@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JM — Controle Terceirizado</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;min-height:100vh}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e5e5e5;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-sub{font-size:11px;color:#666}
+.tabs{display:flex;gap:2px;padding:10px 16px 0;background:#fff;border-bottom:1px solid #e5e5e5;overflow-x:auto;position:sticky;top:53px;z-index:99}
+.tab{padding:7px 12px;font-size:12px;border:none;background:none;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab.active{color:#1d1d1f;border-bottom-color:#3266ad;font-weight:600}
+.content{padding:14px;display:flex;flex-direction:column;gap:10px;max-width:900px;margin:0 auto;width:100%}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:14px 16px}
+.section-label{font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.metric{background:#f5f5f7;border-radius:8px;padding:10px 12px}
+.metric-label{font-size:10px;color:#666;margin-bottom:3px}
+.metric-value{font-size:20px;font-weight:600}
+.cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
+.badge-open{background:#fff3e0;color:#e65100}
+.badge-partial{background:#e3f2fd;color:#1565c0}
+.badge-closed{background:#e8f5e9;color:#2e7d32}
+.btn{padding:6px 12px;border:1px solid #d0d0d0;border-radius:8px;font-size:12px;cursor:pointer;background:#fff;color:#1d1d1f;font-family:inherit}
+.btn:hover{background:#f5f5f7}
+.btn-primary{background:#3266ad;color:#fff;border-color:#3266ad}
+.btn-primary:hover{background:#2557a0}
+.btn-sm{padding:3px 9px;font-size:11px}
+.btn-success{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
+.btn-danger{background:#ffebee;color:#c62828;border-color:#ef9a9a}
+.btn-warn{background:#fff8e1;color:#e65100;border-color:#ffcc02}
+.form-group{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.form-group label{font-size:11px;color:#666;font-weight:500}
+.form-group input,.form-group select{font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:7px 10px;background:#fff;color:#1d1d1f;font-family:inherit}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#3266ad}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.divider{border:none;border-top:1px solid #e5e5e5;margin:10px 0}
+.tipos-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.tipos-table th{font-size:10px;font-weight:600;color:#666;text-align:left;padding:4px 6px;background:#f5f5f7}
+.tipos-table td{padding:4px 6px;border-bottom:1px solid #f0f0f0}
+.tipos-table tr:last-child td{border-bottom:none}
+.pend-pos{color:#e65100;font-weight:600}
+.pend-zero{color:#2e7d32}
+.small-table{width:100%;border-collapse:collapse;font-size:11px}
+.small-table th{text-align:left;color:#666;font-weight:600;padding:4px 6px;background:#f5f5f7}
+.small-table td{padding:5px 6px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.small-table tr:last-child td{border-bottom:none}
+.tag-tipo{font-size:10px;padding:1px 6px;border-radius:99px;background:#f0f0f0;color:#555;display:inline-block;margin:1px}
+.num-inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
+.num-group{display:flex;flex-direction:column;gap:2px}
+.num-group label{font-size:10px;color:#666;font-weight:500}
+.num-group input{font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 7px;background:#fff;color:#1d1d1f;text-align:center;font-family:inherit}
+.mat-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:99px;background:#f0f0f0;color:#555;margin:1px}
+.cor-pill{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:99px;margin:1px;font-weight:600}
+.info-box{background:#f5f5f7;border-radius:8px;padding:8px 10px;font-size:11px;color:#666;margin-bottom:10px}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f7;padding:16px}
+.login-box{background:#fff;border:1px solid #e5e5e5;border-radius:16px;padding:28px 24px;width:100%;max-width:340px}
+.perfil-badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+.user-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:#666}
+.pago-badge{font-size:10px;padding:2px 8px;border-radius:99px;background:#e8f5e9;color:#2e7d32;font-weight:600}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal-box{background:#fff;border:1px solid #e5e5e5;border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:12px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.loading{display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:#666;flex-direction:column;gap:12px}
+.spinner{width:32px;height:32px;border:3px solid #e5e5e5;border-top-color:#3266ad;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;z-index:2000;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+details summary{cursor:pointer;color:#666;font-size:12px;margin-bottom:8px;list-style:none}
+details summary::-webkit-details-marker{display:none}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<div id="root"></div>
+<div id="modal-root"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+// ── Firebase config ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBP5VqlhSyP4EohIlnBGe3Ldr6R46YOGZM",
+  authDomain: "jm-enroladores.firebaseapp.com",
+  projectId: "jm-enroladores",
+  storageBucket: "jm-enroladores.firebasestorage.app",
+  messagingSenderId: "1081241136144",
+  appId: "1:1081241136144:web:796a8c776783bec0372e95"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// ── Constantes ───────────────────────────────────────────────────
+const TIPOS=[
+  {id:'varanda_sofia',label:'Varanda Sofia',principal:true},
+  {id:'centro_luxo',label:'Centro Luxo',principal:true},
+  {id:'varanda_luxo',label:'Varanda Luxo'},
+  {id:'varanda_nova',label:'Varanda Nova'},
+  {id:'centro_novo',label:'Centro Novo'},
+  {id:'banqueta',label:'Banqueta'},
+  {id:'mesa_bistro',label:'Mesa Bistrô'},
+  {id:'cadeira_mesa',label:'Cad. de Mesa'},
+  {id:'namoradeira',label:'Namoradeira'},
+];
+const CORES=['Bege','Mogno','Marrom','Preto','Bicolor'];
+const COR_STYLE={'Bege':{bg:'#f5e6c8',color:'#7a5c1e'},'Mogno':{bg:'#6b2a1a',color:'#f5d5c8'},'Marrom':{bg:'#4a2c0a',color:'#e8d0b0'},'Preto':{bg:'#222',color:'#eee'},'Bicolor':{bg:'#444',color:'#eee'}};
+const COLORS=['#3266ad','#1D9E75','#D85A30','#D4537E','#BA7517','#639922','#7F77DD','#993C1D'];
+const PERFIS={admin:{label:'Administrador',color:'#3266ad',bg:'#e8f0fb'},apontador:{label:'Apontador',color:'#1D9E75',bg:'#e8f5ef'},entregador:{label:'Entregador',color:'#BA7517',bg:'#fef3e2'},financeiro:{label:'Financeiro',color:'#D4537E',bg:'#fce8ef'},proprietario:{label:'Proprietário',color:'#534AB7',bg:'#eeecfb'}};
+
+// ── Estado local ─────────────────────────────────────────────────
+let currentUser=null;
+let currentUserData=null;
+let currentTab='painel';
+let enroladores=[];
+let fichas=[];
+let usuarios=[];
+let unsubFichas=null;
+let unsubEnroladores=null;
+let unsubUsuarios=null;
+
+// ── Helpers ──────────────────────────────────────────────────────
+const avatarColor=i=>COLORS[i%COLORS.length];
+const initials=n=>n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const today=()=>new Date().toISOString().split('T')[0];
+const fmtDate=s=>{if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`};
+const corPill=cor=>{if(!cor)return'';const st=COR_STYLE[cor]||{bg:'#eee',color:'#333'};return`<span class="cor-pill" style="background:${st.bg};color:${st.color}">${cor}</span>`};
+const getEnr=id=>enroladores.find(e=>e.id===id);
+const getFicha=id=>fichas.find(f=>f.id===id);
+
+function somaEntr(f,k){if(k==='fita'||k==='fio')return(f.entregas||[]).reduce((a,e)=>a+(parseInt(e[k])||0),0);return(f.entregas||[]).reduce((a,e)=>a+(parseInt((e.tipos||{})[k])||0),0)}
+function somaRecol(f,k){if(k==='fitaSobrando'||k==='fioSobrando')return(f.recolhimentos||[]).reduce((a,r)=>a+(parseInt(r[k])||0),0);return(f.recolhimentos||[]).reduce((a,r)=>a+(parseInt((r.tipos||{})[k])||0),0)}
+function totalEnv(f){return TIPOS.reduce((a,t)=>a+somaEntr(f,t.id),0)}
+function totalRec(f){return TIPOS.reduce((a,t)=>a+somaRecol(f,t.id),0)}
+function pendentes(f){return totalEnv(f)-totalRec(f)}
+
+function can(p){
+  if(!currentUserData)return false;
+  const rules={verPainel:['admin','apontador','proprietario'],verFichas:['admin','apontador','financeiro','proprietario'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],editar:['admin']};
+  return(rules[p]||[]).includes(currentUserData.perfil);
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── Modal ────────────────────────────────────────────────────────
+function showModal(title,html,btns){
+  document.getElementById('modal-root').innerHTML=`<div class="modal-overlay"><div class="modal-box"><div class="modal-title">${title}</div><div id="modal-body">${html}</div><div class="modal-btns">${btns}</div></div></div>`;
+}
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
+function showConfirm(title,msg,confirmLabel,cls,onConfirm){
+  showModal(title,`<div style="font-size:13px;color:#444;line-height:1.6">${msg}</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm ${cls}" onclick="window._closeModal();(${onConfirm.toString()})();">${confirmLabel}</button>`);
+}
+window._closeModal=closeModal;
+
+// ── Render principal ─────────────────────────────────────────────
+function render(){
+  document.getElementById('root').innerHTML=currentUserData?renderApp():renderLogin();
+}
+function reloadTab(){
+  const el=document.getElementById('tab-content');
+  if(el)el.innerHTML=renderTab(currentTab);
+}
+
+// ── Login ────────────────────────────────────────────────────────
+function renderLogin(){
+  return `<div class="login-wrap"><div class="login-box">
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">JM</div>
+    <div style="font-size:13px;color:#666;margin-bottom:24px">Controle de Enroladores</div>
+    <div class="form-group"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com" style="font-size:14px;padding:10px 12px"></div>
+    <div class="form-group" style="margin-bottom:16px"><label>Senha</label><input type="password" id="login-pass" placeholder="senha" style="font-size:14px;padding:10px 12px" onkeydown="if(event.key==='Enter')window._doLogin()"></div>
+    <div id="login-err" style="font-size:12px;color:#c62828;margin-bottom:10px;display:none">E-mail ou senha incorretos.</div>
+    <button class="btn btn-primary" style="width:100%;padding:10px;font-size:14px" onclick="window._doLogin()">Entrar</button>
+  </div></div>`;
+}
+
+window._doLogin=async function(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value.trim();
+  try{
+    await signInWithEmailAndPassword(auth,email,pass);
+  }catch(e){
+    document.getElementById('login-err').style.display='block';
+  }
+};
+
+// ── App shell ────────────────────────────────────────────────────
+function renderApp(){
+  const p=PERFIS[currentUserData.perfil]||PERFIS.apontador;
+  const tabs=[];
+  if(can('verPainel'))tabs.push({id:'painel',label:'Painel'});
+  if(can('verFichas')||can('verFichasEntregador'))tabs.push({id:'fichas',label:'Fichas'});
+  if(can('registrar'))tabs.push({id:'entregar',label:'Entrega'});
+  if(can('registrar'))tabs.push({id:'recolher',label:'Recolhimento'});
+  if(can('verRelatorio'))tabs.push({id:'relatorio',label:'Relatório'});
+  if(can('cadastrarEnrolador'))tabs.push({id:'enroladores',label:'Enroladores'});
+  if(can('gerenciarUsuarios'))tabs.push({id:'usuarios',label:'Usuários'});
+  if(!tabs.find(t=>t.id===currentTab))currentTab=tabs[0]?.id||'fichas';
+  return `<div class="app">
+    <div class="topbar">
+      <div><div class="topbar-title">JM — Controle Terceirizado</div><div class="topbar-sub">Fibra sintética</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="user-chip">
+          <div class="avatar" style="background:${p.bg};color:${p.color};width:28px;height:28px;font-size:10px">${initials(currentUserData.nome)}</div>
+          <span style="display:none" id="user-name-label">${currentUserData.nome}</span>
+          <span class="perfil-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>
+        </div>
+        <button class="btn btn-sm" onclick="window._doLogout()">Sair</button>
+      </div>
+    </div>
+    <div class="tabs">${tabs.map(t=>`<button class="tab ${currentTab===t.id?'active':''}" onclick="window._switchTab('${t.id}')">${t.label}</button>`).join('')}</div>
+    <div class="content" id="tab-content">${renderTab(currentTab)}</div>
+  </div>`;
+}
+
+window._doLogout=async()=>{await signOut(auth);};
+window._switchTab=tab=>{
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el.getAttribute('onclick')===`window._switchTab('${tab}')`));
+  reloadTab();
+};
+function renderTab(tab){
+  if(tab==='painel')return renderPainel();
+  if(tab==='fichas')return renderFichas();
+  if(tab==='entregar')return renderEntrega();
+  if(tab==='recolher')return renderRecolhimento();
+  if(tab==='relatorio')return renderRelatorio();
+  if(tab==='enroladores')return renderEnroladores();
+  if(tab==='usuarios')return renderUsuarios();
+  return '';
+}
+
+// ── Painel ───────────────────────────────────────────────────────
+function renderPainel(){
+  const abertas=fichas.filter(f=>f.status==='aberta');
+  const fechadas=fichas.filter(f=>f.status==='fechada');
+  const tEnv=fichas.reduce((a,f)=>a+totalEnv(f),0);
+  const tRec=fichas.reduce((a,f)=>a+totalRec(f),0);
+  const vFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_sofia')-somaRecol(f,'varanda_sofia'),0);
+  const cFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_luxo')-somaRecol(f,'centro_luxo'),0);
+  let html=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="background:#e8f0fb;border:1px solid #c5d8f5;border-radius:12px;padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;color:#3266ad;margin-bottom:6px">Varanda Sofia nas casas</div>
+        <div style="font-size:40px;font-weight:700;color:#3266ad;line-height:1">${vFora}</div>
+        <div style="font-size:11px;color:#3266ad99;margin-top:4px">pendentes de retorno</div>
+      </div>
+      <div style="background:#e8f5ef;border:1px solid #b2dfce;border-radius:12px;padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;color:#1D9E75;margin-bottom:6px">Centro Luxo nas casas</div>
+        <div style="font-size:40px;font-weight:700;color:#1D9E75;line-height:1">${cFora}</div>
+        <div style="font-size:11px;color:#1D9E7599;margin-top:4px">pendentes de retorno</div>
+      </div>
+    </div>
+    <div class="cards-row" style="margin-bottom:10px">
+      <div class="metric"><div class="metric-label">peças fora</div><div class="metric-value">${tEnv-tRec}</div></div>
+      <div class="metric"><div class="metric-label">total enviado</div><div class="metric-value">${tEnv}</div></div>
+      <div class="metric"><div class="metric-label">fichas abertas</div><div class="metric-value">${abertas.length}</div></div>
+      <div class="metric"><div class="metric-label">p/ financeiro</div><div class="metric-value">${fechadas.length}</div></div>
+    </div>
+    <div class="section-label">fichas em andamento</div>`;
+  if(!abertas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
+  html+=abertas.map(f=>{
+    const enr=getEnr(f.enroladorId);if(!enr)return'';
+    const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
+    const env=totalEnv(f),rec=totalRec(f),pend=env-rec,pct=env?Math.round(rec/env*100):0;
+    const vF=somaEntr(f,'varanda_sofia')-somaRecol(f,'varanda_sofia');
+    const cF=somaEntr(f,'centro_luxo')-somaRecol(f,'centro_luxo');
+    const fitaEnv=somaEntr(f,'fita'),fioEnv=somaEntr(f,'fio'),fitaSob=somaRecol(f,'fitaSobrando'),fioSob=somaRecol(f,'fioSobrando');
+    const coresUsadas=[...new Set((f.entregas||[]).filter(e=>e.cor).map(e=>e.cor))];
+    const rows=TIPOS.filter(t=>somaEntr(f,t.id)>0).map(t=>{
+      const e=somaEntr(f,t.id),r=somaRecol(f,t.id),p=e-r,bw=e?Math.round(r/e*100):0;
+      return `<tr ${t.principal?'style="background:#f8f8f8"':''}><td style="padding:4px 6px;font-size:11px;font-weight:${t.principal?600:400}">${t.label}</td><td style="padding:4px 6px;font-size:11px;text-align:center">${e}</td><td style="padding:4px 6px;font-size:11px;text-align:center">${r}</td><td style="padding:4px 6px;font-size:11px;text-align:center" class="${p>0?'pend-pos':'pend-zero'}">${p}</td><td style="padding:4px 6px;width:60px"><div style="height:4px;background:#e5e5e5;border-radius:99px;overflow:hidden"><div style="height:100%;width:${bw}%;background:${t.principal?'#3266ad':c};border-radius:99px"></div></div></td></tr>`;
+    }).join('');
+    const podeFechar=can('fecharFicha')&&pend===0;
+    const sl=pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
+    const st=pend===0?'pronto p/ fechar':rec>0?'retornando':'aguardando';
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
+          <div><div style="font-size:13px;font-weight:600">${enr.nome}</div><div style="font-size:11px;color:#666">desde ${fmtDate(f.dataAbertura)}</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="badge ${sl}">${st}</span>
+          ${podeFechar?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar</button>`:''}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:#e8f0fb;border:1px solid #c5d8f5;border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:#3266ad;margin-bottom:2px">Varanda Sofia pendentes</div><div style="font-size:20px;font-weight:700;color:#3266ad">${vF}</div></div>
+        <div style="background:#e8f5ef;border:1px solid #b2dfce;border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:#1D9E75;margin-bottom:2px">Centro Luxo pendentes</div><div style="font-size:20px;font-weight:700;color:#1D9E75">${cF}</div></div>
+      </div>
+      <table class="tipos-table"><thead><tr><th>Tipo</th><th style="text-align:center">Env.</th><th style="text-align:center">Recol.</th><th style="text-align:center">Pend.</th><th></th></tr></thead><tbody>${rows}</tbody>
+        <tfoot><tr style="border-top:1px solid #e5e5e5"><td style="padding:5px 6px;font-size:11px;font-weight:600">Total</td><td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600">${env}</td><td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600">${rec}</td><td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600" class="${pend>0?'pend-pos':'pend-zero'}">${pend}</td><td style="padding:5px 6px;font-size:11px;text-align:right;color:#666">${pct}%</td></tr></tfoot>
+      </table>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+        <span class="mat-pill">Fita: ${fitaEnv} rolos${fitaSob>0?' · '+fitaSob+' sobrando':''}</span>
+        ${coresUsadas.map(cor=>corPill(cor)).join('')}
+        <span class="mat-pill">Fio: ${fioEnv} rolos${fioSob>0?' · '+fioSob+' sobrando':''}</span>
+      </div>
+    </div>`;
+  }).join('');
+  return html;
+}
+
+// ── Fichas ───────────────────────────────────────────────────────
+function renderFichas(){
+  const isEntregador=can('verFichasEntregador')&&!can('verFichas');
+  let html='';
+  if(isEntregador)html+=`<div class="info-box">Você está visualizando as fichas abertas. Dados financeiros não exibidos.</div>`;
+  if(!isEntregador){
+    html+=`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="f-status" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
+        <option value="all">Todos os status</option><option value="aberta">Em andamento</option><option value="fechada">Fechada</option>
+      </select>
+      <select id="f-enr" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
+        <option value="all">Todos enroladores</option>${enroladores.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  const lista=isEntregador?fichas.filter(f=>f.status==='aberta'):[...fichas];
+  html+=`<div id="fichas-inner">${fichasInner(lista,isEntregador)}</div>`;
+  return html;
+}
+window._refreshFichas=()=>{
+  const st=document.getElementById('f-status')?.value||'all';
+  const en=document.getElementById('f-enr')?.value||'all';
+  let lista=[...fichas];
+  if(st!=='all')lista=lista.filter(f=>f.status===st);
+  if(en!=='all')lista=lista.filter(f=>f.enroladorId===en);
+  document.getElementById('fichas-inner').innerHTML=fichasInner(lista,false);
+};
+function fichasInner(lista,isEntregador){
+  if(!lista.length)return'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha encontrada.</div></div>';
+  return lista.map(f=>{
+    const enr=getEnr(f.enroladorId);if(!enr)return'';
+    const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
+    const env=totalEnv(f),rec=totalRec(f),pend=env-rec,pct=env?Math.round(rec/env*100):0;
+    const fitaEnv=somaEntr(f,'fita'),fioEnv=somaEntr(f,'fio'),fitaSob=somaRecol(f,'fitaSobrando'),fioSob=somaRecol(f,'fioSobrando');
+    const closable=pend===0&&f.status==='aberta'&&can('fecharFicha');
+    const podePagar=can('marcarPago')&&f.status==='fechada'&&!f.pago;
+    const isAdmin=can('editar');
+    const entradasRows=(f.entregas||[]).map((e,ei)=>{
+      const pecas=TIPOS.filter(t=>e.tipos&&e.tipos[t.id]>0).map(t=>`<span class="tag-tipo">${t.label}: ${e.tipos[t.id]}</span>`).join('');
+      return `<tr><td>${fmtDate(e.data)}</td><td>${e.entregador||'—'}</td><td>${e.fita||0}r ${e.cor?corPill(e.cor):''}</td><td>${e.fio||0}r</td><td>${pecas||'—'}</td>${isAdmin?`<td style="white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarEntrega('${f.id}',${ei})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirEntrada('${f.id}',${ei})">Excluir</button></td>`:''}</tr>`;
+    }).join('');
+    const recolhRows=(f.recolhimentos||[]).length?(f.recolhimentos||[]).map((r,ri)=>{
+      const pecas=TIPOS.filter(t=>r.tipos&&r.tipos[t.id]>0).map(t=>`<span class="tag-tipo">${t.label}: ${r.tipos[t.id]}</span>`).join('');
+      const sob=[];if(r.fitaSobrando>0)sob.push(`${r.fitaSobrando} fita`);if(r.fioSobrando>0)sob.push(`${r.fioSobrando} fio`);
+      return `<tr><td>${fmtDate(r.data)}</td><td>${r.entregador||'—'}</td><td>${sob.length?sob.join(', '):'—'}</td><td>${pecas||'—'}</td>${isAdmin?`<td style="white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarRecolhimento('${f.id}',${ri})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirRecolhimento('${f.id}',${ri})">Excluir</button></td>`:''}</tr>`;
+    }).join(''):`<tr><td colspan="${isAdmin?5:4}" style="color:#666">Nenhum recolhimento.</td></tr>`;
+    const sl=f.status==='fechada'?'badge-closed':pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
+    const st2=f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aguardando';
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
+          <div><div style="font-size:13px;font-weight:600">${enr.nome}</div><div style="font-size:11px;color:#666">Aberta em ${fmtDate(f.dataAbertura)}</div></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+          ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
+          ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
+          ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}
+          <span class="badge ${sl}">${st2}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+        <div class="metric"><div class="metric-label">enviadas</div><div class="metric-value" style="font-size:17px">${env}</div></div>
+        <div class="metric"><div class="metric-label">recolhidas</div><div class="metric-value" style="font-size:17px">${rec}</div></div>
+        <div class="metric"><div class="metric-label">pendentes</div><div class="metric-value" style="font-size:17px;color:${pend>0?'#e65100':'#2e7d32'}">${pend}</div></div>
+        <div class="metric"><div class="metric-label">retorno</div><div class="metric-value" style="font-size:17px">${pct}%</div></div>
+      </div>
+      ${!isEntregador?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="metric"><div class="metric-label">fita env./sob.</div><div class="metric-value" style="font-size:13px">${fitaEnv} rolos${fitaSob>0?' / '+fitaSob+' sobrou':''}</div></div>
+        <div class="metric"><div class="metric-label">fio env./sob.</div><div class="metric-value" style="font-size:13px">${fioEnv} rolos${fioSob>0?' / '+fioSob+' sobrou':''}</div></div>
+      </div>`:''}
+      <details open><summary>Entregas e recolhimentos</summary>
+        <div style="margin-top:8px">
+          <div class="section-label" style="margin-bottom:4px">entregas</div>
+          <table class="small-table"><thead><tr><th>Data</th><th>Entregador</th><th>Fita</th><th>Fio</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${entradasRows}</tbody></table>
+          <div class="section-label" style="margin-top:10px;margin-bottom:4px">recolhimentos</div>
+          <table class="small-table"><thead><tr><th>Data</th><th>Entregador</th><th>Sobras</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${recolhRows}</tbody></table>
+        </div>
+      </details>
+    </div>`;
+  }).join('');
+}
+
+// ── Editar entrega / recolhimento ────────────────────────────────
+window._editarEntrega=(fichaId,idx)=>{
+  const f=getFicha(fichaId);const e=(f.entregas||[])[idx];if(!e)return;
+  const tiposInputs=TIPOS.map(t=>`<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="ee-${t.id}" min="0" step="1" value="${(e.tipos||{})[t.id]||0}"></div>`).join('');
+  showModal('Editar entrega',`
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-group"><label>Data</label><input type="date" id="ee-data" value="${e.data}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+      <div class="form-group"><label>Entregador</label><input type="text" id="ee-entregador" value="${e.entregador||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-group"><label>Cor da fita</label><select id="ee-cor" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">—</option>${CORES.map(c=>`<option value="${c}"${e.cor===c?' selected':''}>${c}</option>`).join('')}</select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="form-group"><label>Fita</label><input type="number" id="ee-fita" min="0" value="${e.fita||0}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+        <div class="form-group"><label>Fio</label><input type="number" id="ee-fio" min="0" value="${e.fio||0}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+      </div>
+    </div>
+    <div class="section-label">peças</div><div class="num-inputs">${tiposInputs}</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarEntrega('${fichaId}',${idx})">Salvar</button>`);
+};
+window._salvarEntrega=async(fichaId,idx)=>{
+  const f=getFicha(fichaId);
+  const entregas=[...(f.entregas||[])];
+  entregas[idx]={
+    ...entregas[idx],
+    data:document.getElementById('ee-data').value,
+    entregador:document.getElementById('ee-entregador').value.trim(),
+    cor:document.getElementById('ee-cor').value,
+    fita:parseInt(document.getElementById('ee-fita').value)||0,
+    fio:parseInt(document.getElementById('ee-fio').value)||0,
+    tipos:Object.fromEntries(TIPOS.map(t=>[t.id,parseInt(document.getElementById(`ee-${t.id}`)?.value)||0]))
+  };
+  await updateDoc(doc(db,'fichas',fichaId),{entregas});
+  closeModal();showToast('Entrega atualizada!');
+};
+window._excluirEntrada=(fichaId,idx)=>{
+  showConfirm('Excluir entrega','Tem certeza que deseja excluir este registro de entrega?','Excluir','btn-danger',async function(){
+    const f=getFicha(fichaId);
+    const entregas=[...(f.entregas||[])];
+    entregas.splice(idx,1);
+    await updateDoc(doc(db,'fichas',fichaId),{entregas});
+    showToast('Entrega excluída.');
+  });
+};
+window._editarRecolhimento=(fichaId,idx)=>{
+  const f=getFicha(fichaId);const r=(f.recolhimentos||[])[idx];if(!r)return;
+  const tiposInputs=TIPOS.map(t=>`<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="er-${t.id}" min="0" step="1" value="${(r.tipos||{})[t.id]||0}"></div>`).join('');
+  showModal('Editar recolhimento',`
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-group"><label>Data</label><input type="date" id="er-data" value="${r.data}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+      <div class="form-group"><label>Entregador</label><input type="text" id="er-entregador" value="${r.entregador||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <div class="form-group"><label>Fita sobrando</label><input type="number" id="er-fita" min="0" value="${r.fitaSobrando||0}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+      <div class="form-group"><label>Fio sobrando</label><input type="number" id="er-fio" min="0" value="${r.fioSobrando||0}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>
+    </div>
+    <div class="section-label">peças recolhidas</div><div class="num-inputs">${tiposInputs}</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarRecolhimento('${fichaId}',${idx})">Salvar</button>`);
+};
+window._salvarRecolhimento=async(fichaId,idx)=>{
+  const f=getFicha(fichaId);
+  const recolhimentos=[...(f.recolhimentos||[])];
+  recolhimentos[idx]={
+    ...recolhimentos[idx],
+    data:document.getElementById('er-data').value,
+    entregador:document.getElementById('er-entregador').value.trim(),
+    fitaSobrando:parseInt(document.getElementById('er-fita').value)||0,
+    fioSobrando:parseInt(document.getElementById('er-fio').value)||0,
+    tipos:Object.fromEntries(TIPOS.map(t=>[t.id,parseInt(document.getElementById(`er-${t.id}`)?.value)||0]))
+  };
+  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
+  closeModal();showToast('Recolhimento atualizado!');
+};
+window._excluirRecolhimento=(fichaId,idx)=>{
+  showConfirm('Excluir recolhimento','Tem certeza que deseja excluir este registro?','Excluir','btn-danger',async function(){
+    const f=getFicha(fichaId);
+    const recolhimentos=[...(f.recolhimentos||[])];
+    recolhimentos.splice(idx,1);
+    await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
+    showToast('Recolhimento excluído.');
+  });
+};
+
+// ── Relatório ────────────────────────────────────────────────────
+function renderRelatorio(){
+  const fechadas=fichas.filter(f=>f.status==='fechada');
+  const pagas=fechadas.filter(f=>f.pago).length;
+  const pendPag=fechadas.filter(f=>!f.pago).length;
+  const totalPecas=fechadas.reduce((a,f)=>a+totalEnv(f),0);
+  let html=`<div class="cards-row" style="margin-bottom:12px">
+    <div class="metric"><div class="metric-label">fichas fechadas</div><div class="metric-value">${fechadas.length}</div></div>
+    <div class="metric"><div class="metric-label">pagas</div><div class="metric-value" style="color:#2e7d32">${pagas}</div></div>
+    <div class="metric"><div class="metric-label">aguard. pagamento</div><div class="metric-value" style="color:#e65100">${pendPag}</div></div>
+    <div class="metric"><div class="metric-label">peças processadas</div><div class="metric-value">${totalPecas}</div></div>
+  </div><div class="section-label">fichas fechadas</div>`;
+  if(!fechadas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
+  html+=fechadas.map(f=>{
+    const enr=getEnr(f.enroladorId);if(!enr)return'';
+    const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
+    const env=totalEnv(f),vTot=somaEntr(f,'varanda_sofia'),cTot=somaEntr(f,'centro_luxo');
+    const podePagar=can('marcarPago')&&!f.pago;
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
+          <div><div style="font-size:13px;font-weight:600">${enr.nome}</div><div style="font-size:11px;color:#666">${fmtDate(f.dataAbertura)} · ${env} peças · V.Sofia: ${vTot} · C.Luxo: ${cTot}</div></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${f.pago?'<span class="pago-badge">✓ Pago</span>':`<span class="badge badge-open">Pendente</span>${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  return html;
+}
+
+// ── Entrega ──────────────────────────────────────────────────────
+function buildTiposInputs(cid){
+  const el=document.getElementById(cid);if(!el)return;
+  el.innerHTML=TIPOS.map(t=>`<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="${cid}-${t.id}" min="0" step="1" placeholder="0" value="0"></div>`).join('');
+}
+function getTiposValues(cid){const o={};TIPOS.forEach(t=>o[t.id]=parseInt(document.getElementById(`${cid}-${t.id}`)?.value)||0);return o;}
+
+function renderEntrega(){
+  setTimeout(()=>buildTiposInputs('e-tipos'),0);
+  return `<div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr"><option value="">Selecione...</option>${enroladores.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
+    <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
+    <div class="form-group"><label>Cor da fita</label><select id="e-cor"><option value="">Selecione...</option>${CORES.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Fita (rolos)</label><input type="number" id="e-fita" min="0" step="1" placeholder="0"></div>
+    <div class="form-group"><label>Fio (rolos)</label><input type="number" id="e-fio" min="0" step="1" placeholder="0"></div></div>
+    <hr class="divider"><div class="section-label">peças entregues <span style="font-size:10px;font-weight:400">★ = principais</span></div>
+    <div class="num-inputs" id="e-tipos"></div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="window._registrarEntrega()">Registrar entrega</button></div>
+  </div>`;
+}
+
+function renderRecolhimento(){
+  const abertas=fichas.filter(f=>f.status==='aberta');
+  setTimeout(()=>buildTiposInputs('r-tipos'),0);
+  return `<div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar recolhimento</div>
+    <div class="info-box">Fita e fio são consumidos no enrolamento. Registre abaixo apenas se sobrou algum rolo.</div>
+    <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione ficha aberta...</option>${abertas.map(f=>`<option value="${f.id}">${getEnr(f.enroladorId)?.nome||'?'} (${pendentes(f)} pend.)</option>`).join('')}</select></div>
+    <div class="form-group"><label>Entregador</label><input type="text" id="r-entregador" placeholder="Nome de quem recolheu"></div></div>
+    <div class="form-group"><label>Data</label><input type="date" id="r-data" value="${today()}"></div>
+    <div class="form-row"><div class="form-group"><label>Fita sobrando (rolos)</label><input type="number" id="r-fita" min="0" step="1" placeholder="0"></div>
+    <div class="form-group"><label>Fio sobrando (rolos)</label><input type="number" id="r-fio" min="0" step="1" placeholder="0"></div></div>
+    <hr class="divider"><div class="section-label">peças recolhidas <span style="font-size:10px;font-weight:400">★ = principais</span></div>
+    <div class="num-inputs" id="r-tipos"></div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="window._registrarRecolhimento()">Registrar recolhimento</button></div>
+  </div>`;
+}
+
+window._registrarEntrega=async()=>{
+  const enrId=document.getElementById('e-enr').value;
+  const data=document.getElementById('e-data').value;
+  const entregador=document.getElementById('e-entregador').value.trim();
+  const cor=document.getElementById('e-cor').value;
+  const fita=parseInt(document.getElementById('e-fita').value)||0;
+  const fio=parseInt(document.getElementById('e-fio').value)||0;
+  const tipos=getTiposValues('e-tipos');
+  if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
+  if(!fita&&!fio&&!Object.values(tipos).reduce((a,v)=>a+v,0)){showToast('Registre pelo menos fita, fio ou alguma peça.');return;}
+  // Busca ficha aberta ou cria nova
+  let ficha=fichas.find(f=>f.enroladorId===enrId&&f.status==='aberta');
+  const novaEntrega={data,entregador,cor,fita,fio,tipos};
+  if(ficha){
+    const entregas=[...(ficha.entregas||[]),novaEntrega];
+    await updateDoc(doc(db,'fichas',ficha.id),{entregas});
+  }else{
+    await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
+  }
+  showToast('Entrega registrada!');
+  reloadTab();setTimeout(()=>buildTiposInputs('e-tipos'),0);
+};
+
+window._registrarRecolhimento=async()=>{
+  const fichaId=document.getElementById('r-ficha').value;
+  const data=document.getElementById('r-data').value;
+  const entregador=document.getElementById('r-entregador').value.trim();
+  const fitaSobrando=parseInt(document.getElementById('r-fita').value)||0;
+  const fioSobrando=parseInt(document.getElementById('r-fio').value)||0;
+  const tipos=getTiposValues('r-tipos');
+  if(!fichaId||!data){showToast('Selecione a ficha e a data.');return;}
+  if(!Object.values(tipos).reduce((a,v)=>a+v,0)&&!fitaSobrando&&!fioSobrando){showToast('Registre pelo menos alguma peça recolhida.');return;}
+  const f=getFicha(fichaId);
+  const recolhimentos=[...(f.recolhimentos||[]),{data,entregador,fitaSobrando,fioSobrando,tipos}];
+  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
+  const fAtual={...f,recolhimentos};
+  if(pendentes(fAtual)<=0){
+    showConfirm('Todas as peças retornaram!',`As peças foram todas recolhidas. Deseja fechar a ficha de <strong>${getEnr(f.enroladorId)?.nome}</strong>?`,'Fechar ficha','btn-success',async function(){
+      await updateDoc(doc(db,'fichas',fichaId),{status:'fechada'});showToast('Ficha fechada!');
+    });
+  }else{
+    showToast('Recolhimento registrado!');
+  }
+  reloadTab();setTimeout(()=>buildTiposInputs('r-tipos'),0);
+};
+
+// ── Enroladores ──────────────────────────────────────────────────
+function renderEnroladores(){
+  let html=`<div class="card" style="margin-bottom:10px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar enrolador</div>
+    <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="en-nome" placeholder="Nome completo"></div>
+    <div class="form-group"><label>Endereço / Bairro</label><input type="text" id="en-end" placeholder="Rua, nº - Bairro"></div></div>
+    <div class="form-group"><label>Telefone</label><input type="text" id="en-tel" placeholder="(88) 99999-0000"></div>
+    <button class="btn btn-primary" onclick="window._cadastrarEnr()">Cadastrar</button>
+  </div>`;
+  html+=enroladores.map((e,i)=>{
+    const fList=fichas.filter(f=>f.enroladorId===e.id);
+    const env=fList.reduce((a,f)=>a+totalEnv(f),0),rec=fList.reduce((a,f)=>a+totalRec(f),0);
+    const c=avatarColor(i);
+    return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div class="avatar" style="background:${c}22;color:${c};width:38px;height:38px">${initials(e.nome)}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${e.nome}</div><div style="font-size:11px;color:#666">${e.endereco||'—'}</div><div style="font-size:11px;color:#666">${e.telefone||'—'}</div></div>
+      <div style="text-align:right;margin-right:8px"><div style="font-size:10px;color:#666">env./recol.</div><div style="font-size:15px;font-weight:600">${env} / ${rec}</div></div>
+      <button class="btn btn-sm btn-warn" onclick="window._editarEnrolador('${e.id}')">Editar</button>
+    </div>`;
+  }).join('');
+  return html;
+}
+window._cadastrarEnr=async()=>{
+  const nome=document.getElementById('en-nome').value.trim();
+  const end=document.getElementById('en-end').value.trim();
+  const tel=document.getElementById('en-tel').value.trim();
+  if(!nome){showToast('Informe o nome do enrolador.');return;}
+  await addDoc(collection(db,'enroladores'),{nome,endereco:end,telefone:tel});
+  showToast('Enrolador cadastrado!');reloadTab();
+};
+window._editarEnrolador=id=>{
+  const e=enroladores.find(x=>x.id===id);if(!e)return;
+  const inp=(eid,label,val)=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="text" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
+  showModal('Editar enrolador',inp('ee-enr-nome','Nome completo',e.nome)+inp('ee-enr-end','Endereço / Bairro',e.endereco)+inp('ee-enr-tel','Telefone',e.telefone),
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
+};
+window._salvarEnrolador=async id=>{
+  const nome=document.getElementById('ee-enr-nome').value.trim();
+  if(!nome){showToast('Informe o nome.');return;}
+  await updateDoc(doc(db,'enroladores',id),{nome,endereco:document.getElementById('ee-enr-end').value.trim(),telefone:document.getElementById('ee-enr-tel').value.trim()});
+  closeModal();showToast('Enrolador atualizado!');
+};
+
+// ── Usuários ─────────────────────────────────────────────────────
+function renderUsuarios(){
+  return `<div class="card" style="margin-bottom:10px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar novo usuário</div>
+    <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>
+    <div class="form-group"><label>Perfil</label><select id="nu-perfil">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>
+    <div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>
+    <button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>
+  </div>
+  <div class="section-label">usuários cadastrados</div>
+  ${usuarios.map(u=>{
+    const p=PERFIS[u.perfil]||PERFIS.apontador;
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${p.bg};color:${p.color}">${initials(u.nome)}</div>
+          <div><div style="font-size:13px;font-weight:600">${u.nome}</div><div style="font-size:11px;color:#666">${u.email}</div></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="perfil-badge" style="background:${p.bg};color:${p.color}">${p.label}</span>
+          <button class="btn btn-sm btn-warn" onclick="window._editarUsuario('${u.id}')">Editar</button>
+          ${u.uid!==currentUser.uid?`<button class="btn btn-sm btn-danger" onclick="window._excluirUsuario('${u.id}')">Excluir</button>`:'<span style="font-size:10px;color:#666">(você)</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+window._cadastrarUsuario=async()=>{
+  const nome=document.getElementById('nu-nome').value.trim();
+  const perfil=document.getElementById('nu-perfil').value;
+  const email=document.getElementById('nu-email').value.trim();
+  const senha=document.getElementById('nu-senha').value.trim();
+  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
+  if(senha.length<6){showToast('A senha precisa ter pelo menos 6 caracteres.');return;}
+  try{
+    // Cria usuário no Auth via Admin SDK não está disponível no client.
+    // Salvamos no Firestore e orientamos o admin a criar no console do Firebase.
+    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
+    showToast('Usuário salvo! Crie o login dele no Firebase Console → Authentication → Add user.');
+    reloadTab();
+  }catch(e){showToast('Erro ao cadastrar: '+e.message);}
+};
+
+window._editarUsuario=id=>{
+  const u=usuarios.find(x=>x.id===id);if(!u)return;
+  const inp=(eid,label,val,type='text')=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="${type}" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
+  showModal(`Editar — ${u.nome}`,
+    inp('eu-nome','Nome completo',u.nome)+
+    `<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}"${u.perfil===k?' selected':''}>${v.label}</option>`).join('')}</select></div>`+
+    inp('eu-email','E-mail',u.email,'email'),
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarUsuario('${id}')">Salvar</button>`);
+};
+window._salvarUsuario=async id=>{
+  const nome=document.getElementById('eu-nome').value.trim();
+  const perfil=document.getElementById('eu-perfil').value;
+  const email=document.getElementById('eu-email').value.trim();
+  if(!nome||!email){showToast('Nome e e-mail são obrigatórios.');return;}
+  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email});
+  closeModal();showToast('Usuário atualizado!');
+};
+window._excluirUsuario=id=>{
+  const u=usuarios.find(x=>x.id===id);if(!u)return;
+  showConfirm('Excluir usuário',`Excluir <strong>${u.nome}</strong> do sistema?`,'Excluir','btn-danger',async function(){
+    await deleteDoc(doc(db,'usuarios',id));
+    showToast('Usuário removido do sistema. Remova também no Firebase Console → Authentication.');
+  });
+};
+
+// ── Ações fichas ─────────────────────────────────────────────────
+window._fecharFicha=id=>{
+  const enr=getEnr(getFicha(id)?.enroladorId);
+  showConfirm('Fechar ficha',`Fechar a ficha de <strong>${enr?.nome}</strong> e enviar ao financeiro?`,'Fechar ficha','btn-success',async function(){
+    await updateDoc(doc(db,'fichas',id),{status:'fechada'});showToast('Ficha fechada!');
+  });
+};
+window._confirmarPago=id=>{
+  const enr=getEnr(getFicha(id)?.enroladorId);
+  showConfirm('Confirmar pagamento',`Confirma o pagamento da ficha de <strong>${enr?.nome}</strong>?`,'Confirmar','btn-primary',async function(){
+    await updateDoc(doc(db,'fichas',id),{pago:true});showToast('Pagamento registrado!');
+  });
+};
+
+// ── Firebase listeners em tempo real ────────────────────────────
+function iniciarListeners(){
+  if(unsubEnroladores)unsubEnroladores();
+  if(unsubFichas)unsubFichas();
+  if(unsubUsuarios)unsubUsuarios();
+
+  unsubEnroladores=onSnapshot(collection(db,'enroladores'),snap=>{
+    enroladores=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData)reloadTab();
+  });
+
+  unsubFichas=onSnapshot(collection(db,'fichas'),snap=>{
+    fichas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData)reloadTab();
+  });
+
+  unsubUsuarios=onSnapshot(collection(db,'usuarios'),snap=>{
+    usuarios=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentTab==='usuarios')reloadTab();
+  });
+}
+
+function pararListeners(){
+  if(unsubEnroladores)unsubEnroladores();
+  if(unsubFichas)unsubFichas();
+  if(unsubUsuarios)unsubUsuarios();
+  unsubEnroladores=unsubFichas=unsubUsuarios=null;
+}
+
+// ── Auth state ───────────────────────────────────────────────────
+document.getElementById('root').innerHTML=`<div class="loading"><div class="spinner"></div><div>Carregando...</div></div>`;
+
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    currentUser=user;
+    // Busca perfil do usuário no Firestore
+    const snap=await getDocs(collection(db,'usuarios'));
+    const uDoc=snap.docs.find(d=>d.data().uid===user.uid||d.data().email===user.email);
+    if(uDoc){
+      currentUserData={id:uDoc.id,...uDoc.data()};
+    }else{
+      // Primeiro acesso do admin: cria registro automaticamente
+      currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
+    }
+    currentTab=can('verPainel')?'painel':'fichas';
+    iniciarListeners();
+    render();
+  }else{
+    currentUser=null;currentUserData=null;
+    pararListeners();
+    enroladores=[];fichas=[];usuarios=[];
+    render();
+  }
+});
+
+</script>
+</body>
+</html>
