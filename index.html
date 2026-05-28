@@ -115,7 +115,7 @@ const TIPOS=[
 const CORES=['Bege','Mogno','Marrom','Preto','Bicolor'];
 const COR_STYLE={'Bege':{bg:'#f5e6c8',color:'#7a5c1e'},'Mogno':{bg:'#6b2a1a',color:'#f5d5c8'},'Marrom':{bg:'#4a2c0a',color:'#e8d0b0'},'Preto':{bg:'#222',color:'#eee'},'Bicolor':{bg:'#444',color:'#eee'}};
 const COLORS=['#3266ad','#1D9E75','#D85A30','#D4537E','#BA7517','#639922','#7F77DD','#993C1D'];
-const PERFIS={admin:{label:'Administrador',color:'#3266ad',bg:'#e8f0fb'},apontador:{label:'Apontador',color:'#1D9E75',bg:'#e8f5ef'},entregador:{label:'Entregador',color:'#BA7517',bg:'#fef3e2'},financeiro:{label:'Financeiro',color:'#D4537E',bg:'#fce8ef'},proprietario:{label:'Proprietário',color:'#534AB7',bg:'#eeecfb'}};
+const PERFIS={admin:{label:'Administrador',color:'#3266ad',bg:'#e8f0fb'},apontador:{label:'Apontador',color:'#1D9E75',bg:'#e8f5ef'},entregador:{label:'Entregador',color:'#BA7517',bg:'#fef3e2'},financeiro:{label:'Financeiro',color:'#D4537E',bg:'#fce8ef'},proprietario:{label:'Proprietário',color:'#534AB7',bg:'#eeecfb'},geral:{label:'Geral',color:'#555',bg:'#f0f0f0'}};
 
 // ── Estado local ─────────────────────────────────────────────────
 let currentUser=null;
@@ -145,7 +145,7 @@ function pendentes(f){return totalEnv(f)-totalRec(f)}
 
 function can(p){
   if(!currentUserData)return false;
-  const rules={verPainel:['admin','apontador','proprietario'],verFichas:['admin','apontador','financeiro','proprietario'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],verRanking:['admin','apontador','proprietario','financeiro','entregador'],editar:['admin']};
+  const rules={verPainel:['admin','apontador','proprietario','geral'],verFichas:['admin','apontador','financeiro','proprietario','geral'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],verRanking:['admin','apontador','proprietario','financeiro','entregador','geral'],editar:['admin']};
   return(rules[p]||[]).includes(currentUserData.perfil);
 }
 
