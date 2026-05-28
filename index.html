@@ -533,7 +533,26 @@ function renderRelatorio(){
 
 // ── Ranking ──────────────────────────────────────────────────
 function renderRanking(){
-  // Calcula total enrolado por enrolador (apenas fichas fechadas + em andamento já recolhidas)
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Agrupa recolhimentos por mês/ano para um enrolador
+  function resumoMensal(fichasEnr){
+    const map={};
+    fichasEnr.forEach(f=>{
+      (f.recolhimentos||[]).forEach(r=>{
+        if(!r.data)return;
+        const [y,m]=r.data.split('-');
+        const chave=`${y}-${m}`;
+        if(!map[chave])map[chave]={ano:parseInt(y),mes:parseInt(m),total:0,varandas:0,centros:0};
+        TIPOS.forEach(t=>{map[chave].total+=(parseInt((r.tipos||{})[t.id])||0);});
+        map[chave].varandas+=(parseInt((r.tipos||{}).varanda_sofia)||0);
+        map[chave].centros+=(parseInt((r.tipos||{}).centro_luxo)||0);
+      });
+    });
+    // Ordena do mais recente para o mais antigo
+    return Object.values(map).sort((a,b)=>b.ano!==a.ano?b.ano-a.ano:b.mes-a.mes);
+  }
+
   const dados = enroladores.map(enr=>{
     const fichasEnr = fichas.filter(f=>f.enroladorId===enr.id);
     const totalEnrolado = fichasEnr.reduce((a,f)=>a+totalRec(f),0);
@@ -541,17 +560,15 @@ function renderRanking(){
     const totalPendente = fichasEnr.reduce((a,f)=>a+Math.max(0,pendentes(f)),0);
     const varandas      = fichasEnr.reduce((a,f)=>a+somaRecol(f,'varanda_sofia'),0);
     const centros       = fichasEnr.reduce((a,f)=>a+somaRecol(f,'centro_luxo'),0);
-    const fichasFech    = fichasEnr.filter(f=>f.status==='fechada').length;
-    const fichasAbert   = fichasEnr.filter(f=>f.status==='aberta').length;
     const txRetorno     = totalEnviado>0?Math.round(totalEnrolado/totalEnviado*100):0;
-    return {enr, totalEnrolado, totalEnviado, totalPendente, varandas, centros, fichasFech, fichasAbert, txRetorno};
+    const mensal        = resumoMensal(fichasEnr);
+    return {enr, totalEnrolado, totalEnviado, totalPendente, varandas, centros, txRetorno, mensal};
   }).filter(d=>d.totalEnviado>0)
     .sort((a,b)=>b.totalEnrolado-a.totalEnrolado);
 
   if(!dados.length) return '<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:24px">Nenhum dado disponível ainda.</div></div>';
 
   const maximo = dados[0].totalEnrolado||1;
-
   const medalhas = ['🥇','🥈','🥉'];
 
   let html = `<div style="font-size:12px;color:#666;margin-bottom:12px">Ordenado pelo total de peças já enroladas e devolvidas à fábrica.</div>`;
@@ -561,6 +578,24 @@ function renderRanking(){
     const c  = avatarColor(ci);
     const bar = Math.round(d.totalEnrolado/maximo*100);
     const destaque = i===0 ? 'border:2px solid #f5c842;' : '';
+
+    // Tabela mensal
+    const mensalRows = d.mensal.length ? d.mensal.map(m=>{
+      const nomeMes=`${MESES[m.mes-1]} ${m.ano}`;
+      const barMes=Math.round(m.total/maximo*100);
+      return `<tr>
+        <td style="padding:5px 6px;font-size:11px;white-space:nowrap;color:#444">${nomeMes}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600">${m.total}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center;color:#3266ad">${m.varandas}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center;color:#1D9E75">${m.centros}</td>
+        <td style="padding:5px 6px;width:80px">
+          <div style="height:4px;background:#f0f0f0;border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${barMes}%;background:${c};border-radius:99px"></div>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="5" style="padding:8px 6px;font-size:11px;color:#999">Nenhum recolhimento registrado ainda.</td></tr>`;
+
     return `<div class="card" style="margin-bottom:10px;${destaque}">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||'#'+(i+1)}</div>
@@ -577,12 +612,31 @@ function renderRanking(){
       <div style="height:8px;background:#f0f0f0;border-radius:99px;overflow:hidden;margin-bottom:10px">
         <div style="height:100%;width:${bar}%;background:${c};border-radius:99px;transition:width .5s"></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
         <div class="metric"><div class="metric-label">Varanda Sofia</div><div class="metric-value" style="font-size:16px;color:#3266ad">${d.varandas}</div></div>
         <div class="metric"><div class="metric-label">Centro Luxo</div><div class="metric-value" style="font-size:16px;color:#1D9E75">${d.centros}</div></div>
         <div class="metric"><div class="metric-label">Taxa retorno</div><div class="metric-value" style="font-size:16px;color:${d.txRetorno>=80?'#2e7d32':d.txRetorno>=50?'#e65100':'#c62828'}">${d.txRetorno}%</div></div>
         <div class="metric"><div class="metric-label">Pendentes</div><div class="metric-value" style="font-size:16px;color:${d.totalPendente>0?'#e65100':'#2e7d32'}">${d.totalPendente}</div></div>
       </div>
+      <details>
+        <summary style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;margin-bottom:0">
+          <span>▶</span> Resumo por mês
+        </summary>
+        <div style="margin-top:10px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#f5f5f7">
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:left">Mês</th>
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:center">Total</th>
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#3266ad;text-align:center">V.Sofia</th>
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#1D9E75;text-align:center">C.Luxo</th>
+                <th style="padding:5px 6px;width:80px"></th>
+              </tr>
+            </thead>
+            <tbody>${mensalRows}</tbody>
+          </table>
+        </div>
+      </details>
     </div>`;
   }).join('');
 
