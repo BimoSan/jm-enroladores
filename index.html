@@ -112,6 +112,20 @@ const TIPOS=[
   {id:'cadeira_mesa',label:'Cad. de Mesa'},
   {id:'namoradeira',label:'Namoradeira'},
 ];
+
+// Valores unitários por peça (editáveis pelo admin no Firestore)
+let valoresPecas = {
+  varanda_sofia: 0,
+  centro_luxo: 0,
+  varanda_luxo: 0,
+  varanda_nova: 0,
+  centro_novo: 0,
+  banqueta: 0,
+  mesa_bistro: 0,
+  cadeira_mesa: 0,
+  namoradeira: 0,
+};
+
 const CORES=['Bege','Mogno','Marrom','Preto','Bicolor'];
 const COR_STYLE={'Bege':{bg:'#f5e6c8',color:'#7a5c1e'},'Mogno':{bg:'#6b2a1a',color:'#f5d5c8'},'Marrom':{bg:'#4a2c0a',color:'#e8d0b0'},'Preto':{bg:'#222',color:'#eee'},'Bicolor':{bg:'#444',color:'#eee'}};
 const COLORS=['#3266ad','#1D9E75','#D85A30','#D4537E','#BA7517','#639922','#7F77DD','#993C1D'];
@@ -145,7 +159,7 @@ function pendentes(f){return totalEnv(f)-totalRec(f)}
 
 function can(p){
   if(!currentUserData)return false;
-  const rules={verPainel:['admin','apontador','proprietario','geral','financeiro','entregador'],verFichas:['admin','apontador','financeiro','proprietario','geral'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],verRanking:['admin','apontador','proprietario','financeiro','entregador','geral'],editar:['admin']};
+  const rules={verPainel:['admin','apontador','proprietario','geral','financeiro','entregador'],verFichas:['admin','apontador','financeiro','proprietario','geral'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],verRanking:['admin','apontador','proprietario','financeiro','entregador','geral'],verValores:['admin','proprietario','financeiro'],editar:['admin']};
   return(rules[p]||[]).includes(currentUserData.perfil);
 }
 
@@ -207,6 +221,7 @@ function renderApp(){
   if(can('registrar'))tabs.push({id:'recolher',label:'Recolhimento'});
   if(can('verRelatorio'))tabs.push({id:'relatorio',label:'Relatório'});
   if(can('verRanking'))tabs.push({id:'ranking',label:'Ranking'});
+  if(can('verValores'))tabs.push({id:'valores',label:'Pagamentos'});
   if(can('cadastrarEnrolador'))tabs.push({id:'enroladores',label:'Enroladores'});
   if(can('gerenciarUsuarios'))tabs.push({id:'usuarios',label:'Usuários'});
   if(!tabs.find(t=>t.id===currentTab))currentTab=tabs[0]?.id||'fichas';
@@ -240,6 +255,7 @@ function renderTab(tab){
   if(tab==='recolher')return renderRecolhimento();
   if(tab==='relatorio')return renderRelatorio();
   if(tab==='ranking')return renderRanking();
+  if(tab==='valores')return renderValores();
   if(tab==='enroladores')return renderEnroladores();
   if(tab==='usuarios')return renderUsuarios();
   return '';
@@ -500,27 +516,80 @@ window._confirmarExcluirRecolh=async()=>{
 
 // ── Relatório ────────────────────────────────────────────────────
 function renderRelatorio(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const fechadas=fichas.filter(f=>f.status==='fechada');
-  const pagas=fechadas.filter(f=>f.pago).length;
-  const pendPag=fechadas.filter(f=>!f.pago).length;
+  const pagas=fechadas.filter(f=>f.pago);
+  const pendentes_pag=fechadas.filter(f=>!f.pago);
   const totalPecas=fechadas.reduce((a,f)=>a+totalEnv(f),0);
+  const totalPagoVal=pagas.reduce((a,f)=>a+calcularPagamento(f),0);
+  const totalPendenteVal=pendentes_pag.reduce((a,f)=>a+calcularPagamento(f),0);
+
   let html=`<div class="cards-row" style="margin-bottom:12px">
     <div class="metric"><div class="metric-label">fichas fechadas</div><div class="metric-value">${fechadas.length}</div></div>
-    <div class="metric"><div class="metric-label">pagas</div><div class="metric-value" style="color:#2e7d32">${pagas}</div></div>
-    <div class="metric"><div class="metric-label">aguard. pagamento</div><div class="metric-value" style="color:#e65100">${pendPag}</div></div>
+    <div class="metric"><div class="metric-label">pagas</div><div class="metric-value" style="color:#2e7d32">${pagas.length}</div></div>
+    <div class="metric"><div class="metric-label">aguard. pagamento</div><div class="metric-value" style="color:#e65100">${pendentes_pag.length}</div></div>
     <div class="metric"><div class="metric-label">peças processadas</div><div class="metric-value">${totalPecas}</div></div>
-  </div><div class="section-label">fichas fechadas</div>`;
+  </div>
+  <div class="cards-row" style="margin-bottom:16px">
+    <div class="metric"><div class="metric-label">total já pago</div><div class="metric-value" style="font-size:16px;color:#2e7d32">${fmtMoeda(totalPagoVal)}</div></div>
+    <div class="metric"><div class="metric-label">total a pagar</div><div class="metric-value" style="font-size:16px;color:#e65100">${fmtMoeda(totalPendenteVal)}</div></div>
+  </div>`;
+
+  // ── Resumo mensal ──
+  // Agrupa fichas pagas por mês de fechamento (usa dataAbertura como referência)
+  const mapMensal={};
+  pagas.forEach(f=>{
+    if(!f.dataAbertura)return;
+    const [y,m]=f.dataAbertura.split('-');
+    const chave=`${y}-${m.padStart(2,'0')}`;
+    if(!mapMensal[chave])mapMensal[chave]={ano:parseInt(y),mes:parseInt(m),totalPago:0,fichas:0,pecas:0};
+    mapMensal[chave].totalPago+=calcularPagamento(f);
+    mapMensal[chave].fichas+=1;
+    mapMensal[chave].pecas+=totalEnv(f);
+  });
+  const meses=Object.values(mapMensal).sort((a,b)=>b.ano!==a.ano?b.ano-a.ano:b.mes-a.mes);
+
+  if(meses.length){
+    const maxVal=Math.max(...meses.map(m=>m.totalPago))||1;
+    html+=`<div class="section-label">resumo mensal de mão de obra</div>
+    <div class="card" style="margin-bottom:16px">
+      ${meses.map(m=>{
+        const bar=Math.round(m.totalPago/maxVal*100);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0">
+          <div style="width:110px;font-size:12px;font-weight:600;color:#444;flex-shrink:0">${MESES[m.mes-1]} ${m.ano}</div>
+          <div style="flex:1">
+            <div style="height:8px;background:#f0f0f0;border-radius:99px;overflow:hidden">
+              <div style="height:100%;width:${bar}%;background:#3266ad;border-radius:99px"></div>
+            </div>
+            <div style="font-size:10px;color:#666;margin-top:3px">${m.fichas} ficha${m.fichas>1?'s':''} · ${m.pecas} peças</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:14px;font-weight:700;color:#2e7d32">${fmtMoeda(m.totalPago)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // ── Lista de fichas ──
+  html+=`<div class="section-label">fichas fechadas</div>`;
   if(!fechadas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
+
   html+=fechadas.map(f=>{
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
     const env=totalEnv(f),vTot=somaEntr(f,'varanda_sofia'),cTot=somaEntr(f,'centro_luxo');
+    const total=calcularPagamento(f);
     const podePagar=can('marcarPago')&&!f.pago;
     return `<div class="card" style="margin-bottom:8px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
-          <div><div style="font-size:13px;font-weight:600">${enr.nome}</div><div style="font-size:11px;color:#666">${fmtDate(f.dataAbertura)} · ${env} peças · V.Sofia: ${vTot} · C.Luxo: ${cTot}</div></div>
+          <div>
+            <div style="font-size:13px;font-weight:600">${enr.nome}</div>
+            <div style="font-size:11px;color:#666">${fmtDate(f.dataAbertura)} · ${env} peças · V.Sofia: ${vTot} · C.Luxo: ${cTot}</div>
+            <div style="font-size:12px;font-weight:600;color:${f.pago?'#2e7d32':'#e65100'};margin-top:2px">${fmtMoeda(total)}</div>
+          </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
           ${f.pago?'<span class="pago-badge">✓ Pago</span>':`<span class="badge badge-open">Pendente</span>${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}`}
@@ -530,6 +599,112 @@ function renderRelatorio(){
   }).join('');
   return html;
 }
+
+// ── Valores e pagamento ──────────────────────────────────────
+function calcularPagamento(f){
+  return TIPOS.reduce((total,t)=>{
+    const qtd=somaRecol(f,t.id);
+    const valor=parseFloat(valoresPecas[t.id])||0;
+    return total+(qtd*valor);
+  },0);
+}
+
+function fmtMoeda(v){
+  return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+
+function renderValores(){
+  const isAdmin=can('editar');
+  let html=``;
+
+  if(isAdmin){
+    html+=`<div class="card" style="margin-bottom:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Valores unitários por peça</div>
+      <div style="font-size:12px;color:#666;margin-bottom:14px">Defina o valor pago ao enrolador por cada peça enrolada. O sistema calcula o total automaticamente ao fechar a ficha.</div>
+      <div class="num-inputs" id="valores-inputs">
+        ${TIPOS.map(t=>`
+          <div class="num-group">
+            <label>${t.label}${t.principal?' ★':''}</label>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:12px;color:#666">R$</span>
+              <input type="number" id="vp-${t.id}" min="0" step="0.01" placeholder="0,00"
+                value="${(parseFloat(valoresPecas[t.id])||0).toFixed(2)}"
+                style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 7px;background:#fff;color:#1d1d1f;width:100%">
+            </div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-primary" onclick="window._salvarValores()">Salvar valores</button>
+      </div>
+    </div>`;
+  }
+
+  // Lista de fichas fechadas com valor calculado
+  const fechadas=fichas.filter(f=>f.status==='fechada');
+  html+=`<div class="section-label">fichas fechadas — valores a pagar</div>`;
+
+  if(!fechadas.length){
+    html+='<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
+    return html;
+  }
+
+  html+=fechadas.map(f=>{
+    const enr=getEnr(f.enroladorId);if(!enr)return'';
+    const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
+    const total=calcularPagamento(f);
+    const detalhes=TIPOS.filter(t=>somaRecol(f,t.id)>0).map(t=>{
+      const qtd=somaRecol(f,t.id);
+      const val=parseFloat(valoresPecas[t.id])||0;
+      const sub=qtd*val;
+      return `<tr>
+        <td style="padding:5px 6px;font-size:11px">${t.label}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center">${qtd}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center">${fmtMoeda(val)}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:right;font-weight:600">${fmtMoeda(sub)}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600">${enr.nome}</div>
+            <div style="font-size:11px;color:#666">Fechada em ${fmtDate(f.dataAbertura)}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:#666;margin-bottom:2px">${f.pago?'':'a pagar'}</div>
+          <div style="font-size:22px;font-weight:700;color:${f.pago?'#2e7d32':'#e65100'}">${fmtMoeda(total)}</div>
+          ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#f5f5f7">
+          <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:left">Peça</th>
+          <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:center">Qtd.</th>
+          <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:center">Valor unit.</th>
+          <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:right">Subtotal</th>
+        </tr></thead>
+        <tbody>${detalhes}</tbody>
+        <tfoot><tr style="border-top:2px solid #e5e5e5">
+          <td colspan="3" style="padding:6px 6px;font-size:12px;font-weight:700">Total a pagar</td>
+          <td style="padding:6px 6px;font-size:14px;font-weight:700;text-align:right;color:${f.pago?'#2e7d32':'#e65100'}">${fmtMoeda(total)}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  }).join('');
+
+  return html;
+}
+
+window._salvarValores=async()=>{
+  const valores={};
+  TIPOS.forEach(t=>{
+    valores[t.id]=parseFloat(document.getElementById(`vp-${t.id}`)?.value)||0;
+  });
+  await setDoc(doc(db,'configuracoes','valores'),valores);
+  showToast('Valores salvos com sucesso!');
+};
 
 // ── Ranking ──────────────────────────────────────────────────
 function renderRanking(){
@@ -922,6 +1097,14 @@ function iniciarListeners(){
   unsubUsuarios=onSnapshot(collection(db,'usuarios'),snap=>{
     usuarios=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentTab==='usuarios')reloadTab();
+  });
+
+  // Listener de valores unitários
+  onSnapshot(doc(db,'configuracoes','valores'),snap=>{
+    if(snap.exists()){
+      valoresPecas={...valoresPecas,...snap.data()};
+      if(currentUserData)reloadTab();
+    }
   });
 }
 
