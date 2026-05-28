@@ -832,8 +832,9 @@ function renderEntrega(){
   setTimeout(()=>buildTiposInputs('e-tipos'),0);
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
-    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr"><option value="">Selecione...</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
+    <div id="e-ficha-opcao" style="display:none;margin-bottom:10px"></div>
     <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
     <div class="form-group"><label>Cor da fita</label><select id="e-cor"><option value="">Selecione...</option>${CORES.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
     <div class="form-row"><div class="form-group"><label>Fita (rolos)</label><input type="number" id="e-fita" min="0" step="1" placeholder="0"></div>
@@ -844,13 +845,48 @@ function renderEntrega(){
   </div>`;
 }
 
+window._atualizarFichasEntrega=()=>{
+  const enrId=document.getElementById('e-enr').value;
+  const div=document.getElementById('e-ficha-opcao');
+  if(!enrId){div.style.display='none';div.innerHTML='';return;}
+  const abertas=fichas.filter(f=>f.enroladorId===enrId&&f.status==='aberta');
+  if(abertas.length===0){
+    div.style.display='none';
+    div.innerHTML='';
+  }else{
+    div.style.display='block';
+    const opts=abertas.map(f=>`<option value="${f.id}">Ficha aberta desde ${fmtDate(f.dataAbertura)} (${totalEnv(f)} peças enviadas)</option>`).join('');
+    div.innerHTML=`<div class="form-group"><label>Destino da entrega</label>
+      <select id="e-ficha-dest" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:7px 10px;background:#fff;color:#1d1d1f;width:100%">
+        <option value="nova">➕ Criar nova ficha</option>
+        ${opts}
+      </select>
+    </div>
+    <div class="info-box" style="margin-top:-4px">Se escolher uma ficha existente, a entrega será adicionada a ela. Caso contrário, uma nova ficha será criada.</div>`;
+  }
+};
+
 function renderRecolhimento(){
   const abertas=fichas.filter(f=>f.status==='aberta');
+  // Agrupa por enrolador para exibir no select com separadores
+  const enrolsComFichas=[...new Set(abertas.map(f=>f.enroladorId))]
+    .sort((a,b)=>{const na=getEnr(a)?.nome||'';const nb=getEnr(b)?.nome||'';return na.localeCompare(nb,'pt-BR');});
+  const optsHtml=enrolsComFichas.map(enrId=>{
+    const fichasEnr=abertas.filter(f=>f.enroladorId===enrId)
+      .sort((a,b)=>a.dataAbertura>b.dataAbertura?1:-1);
+    const enr=getEnr(enrId);
+    if(fichasEnr.length===1){
+      const f=fichasEnr[0];
+      return `<option value="${f.id}">${enr?.nome||'?'} — ficha de ${fmtDate(f.dataAbertura)} (${pendentes(f)} pend.)</option>`;
+    }
+    // Mais de uma ficha: mostra grupo
+    return `<optgroup label="${enr?.nome||'?'}">${fichasEnr.map(f=>`<option value="${f.id}">Ficha de ${fmtDate(f.dataAbertura)} — ${totalEnv(f)} env. / ${pendentes(f)} pend.</option>`).join('')}</optgroup>`;
+  }).join('');
   setTimeout(()=>buildTiposInputs('r-tipos'),0);
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar recolhimento</div>
     <div class="info-box">Fita e fio são consumidos no enrolamento. Registre abaixo apenas se sobrou algum rolo.</div>
-    <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione ficha aberta...</option>${abertas.sort((a,b)=>{const na=getEnr(a.enroladorId)?.nome||'';const nb=getEnr(b.enroladorId)?.nome||'';return na.localeCompare(nb,'pt-BR');}).map(f=>`<option value="${f.id}">${getEnr(f.enroladorId)?.nome||'?'} (${pendentes(f)} pend.)</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione a ficha...</option>${optsHtml}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="r-entregador" placeholder="Nome de quem recolheu"></div></div>
     <div class="form-group"><label>Data</label><input type="date" id="r-data" value="${today()}"></div>
     <div class="form-row"><div class="form-group"><label>Fita sobrando (rolos)</label><input type="number" id="r-fita" min="0" step="1" placeholder="0"></div>
@@ -871,10 +907,20 @@ window._registrarEntrega=async()=>{
   const tipos=getTiposValues('e-tipos');
   if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
   if(!fita&&!fio&&!Object.values(tipos).reduce((a,v)=>a+v,0)){showToast('Registre pelo menos fita, fio ou alguma peça.');return;}
-  // Sempre cria uma nova ficha para cada entrega
   const novaEntrega={data,entregador,cor,fita,fio,tipos};
-  await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
-  showToast('Entrega registrada!');
+  const destEl=document.getElementById('e-ficha-dest');
+  const dest=destEl?destEl.value:'nova';
+  if(dest&&dest!=='nova'){
+    // Adiciona à ficha existente
+    const ficha=getFicha(dest);
+    const entregas=[...(ficha.entregas||[]),novaEntrega];
+    await updateDoc(doc(db,'fichas',dest),{entregas});
+    showToast('Entrega adicionada à ficha existente!');
+  }else{
+    // Cria nova ficha
+    await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
+    showToast('Nova ficha criada com a entrega!');
+  }
   reloadTab();setTimeout(()=>buildTiposInputs('e-tipos'),0);
 };
 
