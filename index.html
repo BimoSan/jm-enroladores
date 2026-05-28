@@ -271,8 +271,10 @@ function renderPainel(){
   const tRec=fichas.reduce((a,f)=>a+totalRec(f),0);
   const vFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_sofia')-somaRecol(f,'varanda_sofia'),0);
   const cFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_luxo')-somaRecol(f,'centro_luxo'),0);
+  const vNovaFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_nova')-somaRecol(f,'varanda_nova'),0);
+  const cNovoFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_novo')-somaRecol(f,'centro_novo'),0);
   let html=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
       <div style="background:#e8f0fb;border:1px solid #c5d8f5;border-radius:12px;padding:14px 16px">
         <div style="font-size:11px;font-weight:600;color:#3266ad;margin-bottom:6px">Varanda Sofia nas casas</div>
         <div style="font-size:40px;font-weight:700;color:#3266ad;line-height:1">${vFora}</div>
@@ -282,6 +284,22 @@ function renderPainel(){
         <div style="font-size:11px;font-weight:600;color:#1D9E75;margin-bottom:6px">Centro Luxo nas casas</div>
         <div style="font-size:40px;font-weight:700;color:#1D9E75;line-height:1">${cFora}</div>
         <div style="font-size:11px;color:#1D9E7599;margin-top:4px">pendentes de retorno</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="background:#f0f4ff;border:1px solid #c8d5f5;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:10px;font-weight:600;color:#5577bb;margin-bottom:3px">Varanda Nova nas casas</div>
+          <div style="font-size:11px;color:#5577bb99">pendentes de retorno</div>
+        </div>
+        <div style="font-size:28px;font-weight:700;color:#5577bb">${vNovaFora}</div>
+      </div>
+      <div style="background:#f0faf5;border:1px solid #b8dfc8;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:10px;font-weight:600;color:#3a8a62;margin-bottom:3px">Centro Novo nas casas</div>
+          <div style="font-size:11px;color:#3a8a6299">pendentes de retorno</div>
+        </div>
+        <div style="font-size:28px;font-weight:700;color:#3a8a62">${cNovoFora}</div>
       </div>
     </div>
     <div class="cards-row" style="margin-bottom:10px">
