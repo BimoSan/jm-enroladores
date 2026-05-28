@@ -393,6 +393,7 @@ function fichasInner(lista,isEntregador){
           ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
           ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
           ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}
+          ${isAdmin?`<button class="btn btn-sm btn-danger" onclick="window._excluirFicha('${f.id}')">Excluir ficha</button>`:''}
           <span class="badge ${sl}">${st2}</span>
         </div>
       </div>
@@ -944,6 +945,7 @@ function renderEnroladores(){
       <div style="flex:1"><div style="font-size:13px;font-weight:600">${e.nome}</div><div style="font-size:11px;color:#666">${e.endereco||'—'}</div><div style="font-size:11px;color:#666">${e.telefone||'—'}</div></div>
       <div style="text-align:right;margin-right:8px"><div style="font-size:10px;color:#666">env./recol.</div><div style="font-size:15px;font-weight:600">${env} / ${rec}</div></div>
       <button class="btn btn-sm btn-warn" onclick="window._editarEnrolador('${e.id}')">Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="window._excluirEnrolador('${e.id}')">Excluir</button>
     </div>`;
   }).join('');
   return html;
@@ -1046,6 +1048,41 @@ window._confirmarExcluirUsuario=async()=>{
   await deleteDoc(doc(db,'usuarios',id));
   window._pendingExcluirUsuarioId=null;
   showToast('Usuário removido. Remova também no Firebase Console → Authentication.');
+};
+
+// ── Excluir ficha e enrolador ────────────────────────────────────
+window._excluirFicha=id=>{
+  const enr=getEnr(getFicha(id)?.enroladorId);
+  window._pendingExcluirFichaId=id;
+  showModal('Excluir ficha',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente a ficha de <strong>${enr?.nome}</strong>? Todos os registros de entrega e recolhimento serão apagados. Esta ação não pode ser desfeita.</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirFicha()">Excluir ficha</button>`);
+};
+window._confirmarExcluirFicha=async()=>{
+  const id=window._pendingExcluirFichaId;if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'fichas',id));
+  window._pendingExcluirFichaId=null;
+  showToast('Ficha excluída.');
+};
+
+window._excluirEnrolador=id=>{
+  const enr=enroladores.find(e=>e.id===id);if(!enr)return;
+  const temFichas=fichas.some(f=>f.enroladorId===id);
+  window._pendingExcluirEnrId=id;
+  const aviso=temFichas?'<div style="margin-top:8px;font-size:12px;background:#ffebee;color:#c62828;padding:8px 10px;border-radius:8px">⚠️ Este enrolador possui fichas cadastradas. Exclua as fichas primeiro antes de excluir o enrolador.</div>':'';
+  showModal('Excluir enrolador',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente o enrolador <strong>${enr.nome}</strong>?${aviso}</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     ${!temFichas?`<button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirEnr()">Excluir</button>`:''}`);
+};
+window._confirmarExcluirEnr=async()=>{
+  const id=window._pendingExcluirEnrId;if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'enroladores',id));
+  window._pendingExcluirEnrId=null;
+  showToast('Enrolador excluído.');
 };
 
 // ── Ações fichas ─────────────────────────────────────────────────
