@@ -145,7 +145,7 @@ function pendentes(f){return totalEnv(f)-totalRec(f)}
 
 function can(p){
   if(!currentUserData)return false;
-  const rules={verPainel:['admin','apontador','proprietario'],verFichas:['admin','apontador','financeiro','proprietario'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],editar:['admin']};
+  const rules={verPainel:['admin','apontador','proprietario'],verFichas:['admin','apontador','financeiro','proprietario'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],verRanking:['admin','apontador','proprietario','financeiro','entregador'],editar:['admin']};
   return(rules[p]||[]).includes(currentUserData.perfil);
 }
 
@@ -206,6 +206,7 @@ function renderApp(){
   if(can('registrar'))tabs.push({id:'entregar',label:'Entrega'});
   if(can('registrar'))tabs.push({id:'recolher',label:'Recolhimento'});
   if(can('verRelatorio'))tabs.push({id:'relatorio',label:'Relatório'});
+  if(can('verRanking'))tabs.push({id:'ranking',label:'Ranking'});
   if(can('cadastrarEnrolador'))tabs.push({id:'enroladores',label:'Enroladores'});
   if(can('gerenciarUsuarios'))tabs.push({id:'usuarios',label:'Usuários'});
   if(!tabs.find(t=>t.id===currentTab))currentTab=tabs[0]?.id||'fichas';
@@ -238,6 +239,7 @@ function renderTab(tab){
   if(tab==='entregar')return renderEntrega();
   if(tab==='recolher')return renderRecolhimento();
   if(tab==='relatorio')return renderRelatorio();
+  if(tab==='ranking')return renderRanking();
   if(tab==='enroladores')return renderEnroladores();
   if(tab==='usuarios')return renderUsuarios();
   return '';
@@ -526,6 +528,64 @@ function renderRelatorio(){
       </div>
     </div>`;
   }).join('');
+  return html;
+}
+
+// ── Ranking ──────────────────────────────────────────────────
+function renderRanking(){
+  // Calcula total enrolado por enrolador (apenas fichas fechadas + em andamento já recolhidas)
+  const dados = enroladores.map(enr=>{
+    const fichasEnr = fichas.filter(f=>f.enroladorId===enr.id);
+    const totalEnrolado = fichasEnr.reduce((a,f)=>a+totalRec(f),0);
+    const totalEnviado  = fichasEnr.reduce((a,f)=>a+totalEnv(f),0);
+    const totalPendente = fichasEnr.reduce((a,f)=>a+Math.max(0,pendentes(f)),0);
+    const varandas      = fichasEnr.reduce((a,f)=>a+somaRecol(f,'varanda_sofia'),0);
+    const centros       = fichasEnr.reduce((a,f)=>a+somaRecol(f,'centro_luxo'),0);
+    const fichasFech    = fichasEnr.filter(f=>f.status==='fechada').length;
+    const fichasAbert   = fichasEnr.filter(f=>f.status==='aberta').length;
+    const txRetorno     = totalEnviado>0?Math.round(totalEnrolado/totalEnviado*100):0;
+    return {enr, totalEnrolado, totalEnviado, totalPendente, varandas, centros, fichasFech, fichasAbert, txRetorno};
+  }).filter(d=>d.totalEnviado>0)
+    .sort((a,b)=>b.totalEnrolado-a.totalEnrolado);
+
+  if(!dados.length) return '<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:24px">Nenhum dado disponível ainda.</div></div>';
+
+  const maximo = dados[0].totalEnrolado||1;
+
+  const medalhas = ['🥇','🥈','🥉'];
+
+  let html = `<div style="font-size:12px;color:#666;margin-bottom:12px">Ordenado pelo total de peças já enroladas e devolvidas à fábrica.</div>`;
+
+  html += dados.map((d,i)=>{
+    const ci = enroladores.findIndex(e=>e.id===d.enr.id);
+    const c  = avatarColor(ci);
+    const bar = Math.round(d.totalEnrolado/maximo*100);
+    const destaque = i===0 ? 'border:2px solid #f5c842;' : '';
+    return `<div class="card" style="margin-bottom:10px;${destaque}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||'#'+(i+1)}</div>
+        <div class="avatar" style="background:${c}22;color:${c};width:40px;height:40px;font-size:14px">${initials(d.enr.nome)}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${d.enr.nome}</div>
+          <div style="font-size:11px;color:#666">${d.enr.endereco||'—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:28px;font-weight:700;color:${c};line-height:1">${d.totalEnrolado}</div>
+          <div style="font-size:10px;color:#666">peças enroladas</div>
+        </div>
+      </div>
+      <div style="height:8px;background:#f0f0f0;border-radius:99px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px;transition:width .5s"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div class="metric"><div class="metric-label">Varanda Sofia</div><div class="metric-value" style="font-size:16px;color:#3266ad">${d.varandas}</div></div>
+        <div class="metric"><div class="metric-label">Centro Luxo</div><div class="metric-value" style="font-size:16px;color:#1D9E75">${d.centros}</div></div>
+        <div class="metric"><div class="metric-label">Taxa retorno</div><div class="metric-value" style="font-size:16px;color:${d.txRetorno>=80?'#2e7d32':d.txRetorno>=50?'#e65100':'#c62828'}">${d.txRetorno}%</div></div>
+        <div class="metric"><div class="metric-label">Pendentes</div><div class="metric-value" style="font-size:16px;color:${d.totalPendente>0?'#e65100':'#2e7d32'}">${d.totalPendente}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
   return html;
 }
 
