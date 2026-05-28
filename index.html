@@ -433,13 +433,21 @@ window._salvarEntrega=async(fichaId,idx)=>{
   closeModal();showToast('Entrega atualizada!');
 };
 window._excluirEntrada=(fichaId,idx)=>{
-  showConfirm('Excluir entrega','Tem certeza que deseja excluir este registro de entrega?','Excluir','btn-danger',async function(){
-    const f=getFicha(fichaId);
-    const entregas=[...(f.entregas||[])];
-    entregas.splice(idx,1);
-    await updateDoc(doc(db,'fichas',fichaId),{entregas});
-    showToast('Entrega excluída.');
-  });
+  window._pendingExcluirEntrega={fichaId,idx};
+  showModal('Excluir entrega',
+    '<div style="font-size:13px;color:#444">Tem certeza que deseja excluir este registro de entrega?</div>',
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirEntrada()">Excluir</button>`);
+};
+window._confirmarExcluirEntrada=async()=>{
+  const {fichaId,idx}=window._pendingExcluirEntrega||{};
+  if(!fichaId)return;
+  closeModal();
+  const f=getFicha(fichaId);
+  const entregas=[...(f.entregas||[])];
+  entregas.splice(idx,1);
+  await updateDoc(doc(db,'fichas',fichaId),{entregas});
+  showToast('Entrega excluída.');
 };
 window._editarRecolhimento=(fichaId,idx)=>{
   const f=getFicha(fichaId);const r=(f.recolhimentos||[])[idx];if(!r)return;
@@ -471,13 +479,21 @@ window._salvarRecolhimento=async(fichaId,idx)=>{
   closeModal();showToast('Recolhimento atualizado!');
 };
 window._excluirRecolhimento=(fichaId,idx)=>{
-  showConfirm('Excluir recolhimento','Tem certeza que deseja excluir este registro?','Excluir','btn-danger',async function(){
-    const f=getFicha(fichaId);
-    const recolhimentos=[...(f.recolhimentos||[])];
-    recolhimentos.splice(idx,1);
-    await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
-    showToast('Recolhimento excluído.');
-  });
+  window._pendingExcluirRecolh={fichaId,idx};
+  showModal('Excluir recolhimento',
+    '<div style="font-size:13px;color:#444">Tem certeza que deseja excluir este registro de recolhimento?</div>',
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirRecolh()">Excluir</button>`);
+};
+window._confirmarExcluirRecolh=async()=>{
+  const {fichaId,idx}=window._pendingExcluirRecolh||{};
+  if(!fichaId)return;
+  closeModal();
+  const f=getFicha(fichaId);
+  const recolhimentos=[...(f.recolhimentos||[])];
+  recolhimentos.splice(idx,1);
+  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
+  showToast('Recolhimento excluído.');
 };
 
 // ── Relatório ────────────────────────────────────────────────────
@@ -584,19 +600,39 @@ window._registrarRecolhimento=async()=>{
   const fioSobrando=parseInt(document.getElementById('r-fio').value)||0;
   const tipos=getTiposValues('r-tipos');
   if(!fichaId||!data){showToast('Selecione a ficha e a data.');return;}
-  if(!Object.values(tipos).reduce((a,v)=>a+v,0)&&!fitaSobrando&&!fioSobrando){showToast('Registre pelo menos alguma peça recolhida.');return;}
+  const totalPecasRec=Object.values(tipos).reduce((a,v)=>a+v,0);
+  if(!totalPecasRec&&!fitaSobrando&&!fioSobrando){showToast('Registre pelo menos alguma peça recolhida.');return;}
   const f=getFicha(fichaId);
+
+  // Validação: não permite recolher mais do que foi enviado por tipo
+  for(const t of TIPOS){
+    const jaRecol=somaRecol(f,t.id);
+    const enviado=somaEntr(f,t.id);
+    const tentando=tipos[t.id]||0;
+    if(jaRecol+tentando>enviado){
+      showToast(`Quantidade inválida: ${t.label} — enviadas: ${enviado}, já recolhidas: ${jaRecol}, máximo a recolher agora: ${enviado-jaRecol}.`);
+      return;
+    }
+  }
+
   const recolhimentos=[...(f.recolhimentos||[]),{data,entregador,fitaSobrando,fioSobrando,tipos}];
   await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
   const fAtual={...f,recolhimentos};
   if(pendentes(fAtual)<=0){
-    showConfirm('Todas as peças retornaram!',`As peças foram todas recolhidas. Deseja fechar a ficha de <strong>${getEnr(f.enroladorId)?.nome}</strong>?`,'Fechar ficha','btn-success',async function(){
-      await updateDoc(doc(db,'fichas',fichaId),{status:'fechada'});showToast('Ficha fechada!');
-    });
+    showModal('Todas as peças retornaram!',
+      `<div style="font-size:13px;color:#444;line-height:1.6">As peças foram todas recolhidas. Deseja fechar a ficha de <strong>${getEnr(f.enroladorId)?.nome}</strong>?</div>`,
+      `<button class="btn btn-sm" onclick="window._closeModal()">Agora não</button>
+       <button class="btn btn-sm btn-success" onclick="window._fecharFichaDirecto('${fichaId}')">Fechar ficha</button>`);
   }else{
     showToast('Recolhimento registrado!');
   }
   reloadTab();setTimeout(()=>buildTiposInputs('r-tipos'),0);
+};
+
+window._fecharFichaDirecto=async id=>{
+  closeModal();
+  await updateDoc(doc(db,'fichas',id),{status:'fechada'});
+  showToast('Ficha fechada!');
 };
 
 // ── Enroladores ──────────────────────────────────────────────────
@@ -706,24 +742,51 @@ window._salvarUsuario=async id=>{
 };
 window._excluirUsuario=id=>{
   const u=usuarios.find(x=>x.id===id);if(!u)return;
-  showConfirm('Excluir usuário',`Excluir <strong>${u.nome}</strong> do sistema?`,'Excluir','btn-danger',async function(){
-    await deleteDoc(doc(db,'usuarios',id));
-    showToast('Usuário removido do sistema. Remova também no Firebase Console → Authentication.');
-  });
+  window._pendingExcluirUsuarioId=id;
+  showModal('Excluir usuário',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir <strong>${u.nome}</strong> do sistema? Esta ação não pode ser desfeita.</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirUsuario()">Excluir</button>`);
+};
+window._confirmarExcluirUsuario=async()=>{
+  const id=window._pendingExcluirUsuarioId;
+  if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'usuarios',id));
+  window._pendingExcluirUsuarioId=null;
+  showToast('Usuário removido. Remova também no Firebase Console → Authentication.');
 };
 
 // ── Ações fichas ─────────────────────────────────────────────────
 window._fecharFicha=id=>{
   const enr=getEnr(getFicha(id)?.enroladorId);
-  showConfirm('Fechar ficha',`Fechar a ficha de <strong>${enr?.nome}</strong> e enviar ao financeiro?`,'Fechar ficha','btn-success',async function(){
-    await updateDoc(doc(db,'fichas',id),{status:'fechada'});showToast('Ficha fechada!');
-  });
+  window._pendingFichaId=id;
+  showModal('Fechar ficha',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Fechar a ficha de <strong>${enr?.nome}</strong> e enviar ao financeiro?</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-success" onclick="window._confirmarFecharFicha()">Fechar ficha</button>`);
+};
+window._confirmarFecharFicha=async()=>{
+  const id=window._pendingFichaId;if(!id)return;
+  closeModal();
+  await updateDoc(doc(db,'fichas',id),{status:'fechada'});
+  window._pendingFichaId=null;
+  showToast('Ficha fechada!');
 };
 window._confirmarPago=id=>{
   const enr=getEnr(getFicha(id)?.enroladorId);
-  showConfirm('Confirmar pagamento',`Confirma o pagamento da ficha de <strong>${enr?.nome}</strong>?`,'Confirmar','btn-primary',async function(){
-    await updateDoc(doc(db,'fichas',id),{pago:true});showToast('Pagamento registrado!');
-  });
+  window._pendingPagoId=id;
+  showModal('Confirmar pagamento',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Confirma o pagamento da ficha de <strong>${enr?.nome}</strong>?</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-primary" onclick="window._confirmarPagoAction()">Confirmar</button>`);
+};
+window._confirmarPagoAction=async()=>{
+  const id=window._pendingPagoId;if(!id)return;
+  closeModal();
+  await updateDoc(doc(db,'fichas',id),{pago:true});
+  window._pendingPagoId=null;
+  showToast('Pagamento registrado!');
 };
 
 // ── Firebase listeners em tempo real ────────────────────────────
