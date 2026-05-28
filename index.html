@@ -292,7 +292,7 @@ function renderPainel(){
     </div>
     <div class="section-label">fichas em andamento</div>`;
   if(!abertas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
-  html+=abertas.map(f=>{
+  html+=abertas.sort((a,b)=>{const na=getEnr(a.enroladorId)?.nome||'';const nb=getEnr(b.enroladorId)?.nome||'';return na.localeCompare(nb,'pt-BR');}).map(f=>{
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
     const env=totalEnv(f),rec=totalRec(f),pend=env-rec,pct=env?Math.round(rec/env*100):0;
@@ -346,7 +346,7 @@ function renderFichas(){
         <option value="all">Todos os status</option><option value="aberta">Em andamento</option><option value="fechada">Fechada</option>
       </select>
       <select id="f-enr" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
-        <option value="all">Todos enroladores</option>${enroladores.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
+        <option value="all">Todos enroladores</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
       </select>
     </div>`;
   }
@@ -832,7 +832,7 @@ function renderEntrega(){
   setTimeout(()=>buildTiposInputs('e-tipos'),0);
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
-    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr"><option value="">Selecione...</option>${enroladores.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr"><option value="">Selecione...</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
     <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
     <div class="form-group"><label>Cor da fita</label><select id="e-cor"><option value="">Selecione...</option>${CORES.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
@@ -850,7 +850,7 @@ function renderRecolhimento(){
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar recolhimento</div>
     <div class="info-box">Fita e fio são consumidos no enrolamento. Registre abaixo apenas se sobrou algum rolo.</div>
-    <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione ficha aberta...</option>${abertas.map(f=>`<option value="${f.id}">${getEnr(f.enroladorId)?.nome||'?'} (${pendentes(f)} pend.)</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione ficha aberta...</option>${abertas.sort((a,b)=>{const na=getEnr(a.enroladorId)?.nome||'';const nb=getEnr(b.enroladorId)?.nome||'';return na.localeCompare(nb,'pt-BR');}).map(f=>`<option value="${f.id}">${getEnr(f.enroladorId)?.nome||'?'} (${pendentes(f)} pend.)</option>`).join('')}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="r-entregador" placeholder="Nome de quem recolheu"></div></div>
     <div class="form-group"><label>Data</label><input type="date" id="r-data" value="${today()}"></div>
     <div class="form-row"><div class="form-group"><label>Fita sobrando (rolos)</label><input type="number" id="r-fita" min="0" step="1" placeholder="0"></div>
@@ -871,15 +871,9 @@ window._registrarEntrega=async()=>{
   const tipos=getTiposValues('e-tipos');
   if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
   if(!fita&&!fio&&!Object.values(tipos).reduce((a,v)=>a+v,0)){showToast('Registre pelo menos fita, fio ou alguma peça.');return;}
-  // Busca ficha aberta ou cria nova
-  let ficha=fichas.find(f=>f.enroladorId===enrId&&f.status==='aberta');
+  // Sempre cria uma nova ficha para cada entrega
   const novaEntrega={data,entregador,cor,fita,fio,tipos};
-  if(ficha){
-    const entregas=[...(ficha.entregas||[]),novaEntrega];
-    await updateDoc(doc(db,'fichas',ficha.id),{entregas});
-  }else{
-    await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
-  }
+  await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
   showToast('Entrega registrada!');
   reloadTab();setTimeout(()=>buildTiposInputs('e-tipos'),0);
 };
@@ -936,7 +930,7 @@ function renderEnroladores(){
     <div class="form-group"><label>Telefone</label><input type="text" id="en-tel" placeholder="(88) 99999-0000"></div>
     <button class="btn btn-primary" onclick="window._cadastrarEnr()">Cadastrar</button>
   </div>`;
-  html+=enroladores.map((e,i)=>{
+  html+=[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map((e,i)=>{
     const fList=fichas.filter(f=>f.enroladorId===e.id);
     const env=fList.reduce((a,f)=>a+totalEnv(f),0),rec=fList.reduce((a,f)=>a+totalRec(f),0);
     const c=avatarColor(i);
