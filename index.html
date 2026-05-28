@@ -114,6 +114,20 @@ const TIPOS=[
   {id:'centro_sofia',label:'Centro Sofia'},
 ];
 
+// Cores fixas por tipo de peça
+const TIPO_CORES={
+  varanda_sofia: {bg:'#e8f0fb', border:'#c5d8f5', color:'#3266ad'},
+  centro_luxo:   {bg:'#e8f5ef', border:'#b2dfce', color:'#1D9E75'},
+  varanda_nova:  {bg:'#fff3e0', border:'#ffe0b2', color:'#e65100'},
+  centro_novo:   {bg:'#f3e8fb', border:'#d9b8f5', color:'#7b1fa2'},
+  varanda_luxo:  {bg:'#fce8ef', border:'#f5b8cc', color:'#c2185b'},
+  banqueta:      {bg:'#e8f5e9', border:'#a5d6a7', color:'#2e7d32'},
+  mesa_bistro:   {bg:'#fff8e1', border:'#ffe082', color:'#f57f17'},
+  cadeira_mesa:  {bg:'#e8eaf6', border:'#9fa8da', color:'#283593'},
+  namoradeira:   {bg:'#fbe9e7', border:'#ffab91', color:'#bf360c'},
+  centro_sofia:  {bg:'#e0f7fa', border:'#80deea', color:'#00838f'},
+};
+
 // Valores unitários por peça (editáveis pelo admin no Firestore)
 let valoresPecas = {
   varanda_sofia: 0,
@@ -275,31 +289,31 @@ function renderPainel(){
   const cNovoFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_novo')-somaRecol(f,'centro_novo'),0);
   let html=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
-      <div style="background:#e8f0fb;border:1px solid #c5d8f5;border-radius:12px;padding:14px 16px">
-        <div style="font-size:11px;font-weight:600;color:#3266ad;margin-bottom:6px">Varanda Sofia nas casas</div>
-        <div style="font-size:40px;font-weight:700;color:#3266ad;line-height:1">${vFora}</div>
-        <div style="font-size:11px;color:#3266ad99;margin-top:4px">pendentes de retorno</div>
+      <div style="background:${TIPO_CORES.varanda_sofia.bg};border:1px solid ${TIPO_CORES.varanda_sofia.border};border-radius:12px;padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;color:${TIPO_CORES.varanda_sofia.color};margin-bottom:6px">Varanda Sofia nas casas</div>
+        <div style="font-size:40px;font-weight:700;color:${TIPO_CORES.varanda_sofia.color};line-height:1">${vFora}</div>
+        <div style="font-size:11px;color:${TIPO_CORES.varanda_sofia.color}99;margin-top:4px">pendentes de retorno</div>
       </div>
-      <div style="background:#e8f5ef;border:1px solid #b2dfce;border-radius:12px;padding:14px 16px">
-        <div style="font-size:11px;font-weight:600;color:#1D9E75;margin-bottom:6px">Centro Luxo nas casas</div>
-        <div style="font-size:40px;font-weight:700;color:#1D9E75;line-height:1">${cFora}</div>
-        <div style="font-size:11px;color:#1D9E7599;margin-top:4px">pendentes de retorno</div>
+      <div style="background:${TIPO_CORES.centro_luxo.bg};border:1px solid ${TIPO_CORES.centro_luxo.border};border-radius:12px;padding:14px 16px">
+        <div style="font-size:11px;font-weight:600;color:${TIPO_CORES.centro_luxo.color};margin-bottom:6px">Centro Luxo nas casas</div>
+        <div style="font-size:40px;font-weight:700;color:${TIPO_CORES.centro_luxo.color};line-height:1">${cFora}</div>
+        <div style="font-size:11px;color:${TIPO_CORES.centro_luxo.color}99;margin-top:4px">pendentes de retorno</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div style="background:#f0f4ff;border:1px solid #c8d5f5;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:${TIPO_CORES.varanda_nova.bg};border:1px solid ${TIPO_CORES.varanda_nova.border};border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:10px;font-weight:600;color:#5577bb;margin-bottom:3px">Varanda Nova nas casas</div>
-          <div style="font-size:11px;color:#5577bb99">pendentes de retorno</div>
+          <div style="font-size:10px;font-weight:600;color:${TIPO_CORES.varanda_nova.color};margin-bottom:3px">Varanda Nova nas casas</div>
+          <div style="font-size:11px;color:${TIPO_CORES.varanda_nova.color}99">pendentes de retorno</div>
         </div>
-        <div style="font-size:28px;font-weight:700;color:#5577bb">${vNovaFora}</div>
+        <div style="font-size:28px;font-weight:700;color:${TIPO_CORES.varanda_nova.color}">${vNovaFora}</div>
       </div>
-      <div style="background:#f0faf5;border:1px solid #b8dfc8;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:${TIPO_CORES.centro_novo.bg};border:1px solid ${TIPO_CORES.centro_novo.border};border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:10px;font-weight:600;color:#3a8a62;margin-bottom:3px">Centro Novo nas casas</div>
-          <div style="font-size:11px;color:#3a8a6299">pendentes de retorno</div>
+          <div style="font-size:10px;font-weight:600;color:${TIPO_CORES.centro_novo.color};margin-bottom:3px">Centro Novo nas casas</div>
+          <div style="font-size:11px;color:${TIPO_CORES.centro_novo.color}99">pendentes de retorno</div>
         </div>
-        <div style="font-size:28px;font-weight:700;color:#3a8a62">${cNovoFora}</div>
+        <div style="font-size:28px;font-weight:700;color:${TIPO_CORES.centro_novo.color}">${cNovoFora}</div>
       </div>
     </div>
     <div class="cards-row" style="margin-bottom:10px">
@@ -314,14 +328,22 @@ function renderPainel(){
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
     const env=totalEnv(f),rec=totalRec(f),pend=env-rec,pct=env?Math.round(rec/env*100):0;
-    const vF=somaEntr(f,'varanda_sofia')-somaRecol(f,'varanda_sofia');
-    const cF=somaEntr(f,'centro_luxo')-somaRecol(f,'centro_luxo');
     const fitaEnv=somaEntr(f,'fita'),fioEnv=somaEntr(f,'fio'),fitaSob=somaRecol(f,'fitaSobrando'),fioSob=somaRecol(f,'fioSobrando');
     const coresUsadas=[...new Set((f.entregas||[]).filter(e=>e.cor).map(e=>e.cor))];
     const rows=TIPOS.filter(t=>somaEntr(f,t.id)>0).map(t=>{
       const e=somaEntr(f,t.id),r=somaRecol(f,t.id),p=e-r,bw=e?Math.round(r/e*100):0;
       return `<tr ${t.principal?'style="background:#f8f8f8"':''}><td style="padding:4px 6px;font-size:11px;font-weight:${t.principal?600:400}">${t.label}</td><td style="padding:4px 6px;font-size:11px;text-align:center">${e}</td><td style="padding:4px 6px;font-size:11px;text-align:center">${r}</td><td style="padding:4px 6px;font-size:11px;text-align:center" class="${p>0?'pend-pos':'pend-zero'}">${p}</td><td style="padding:4px 6px;width:60px"><div style="height:4px;background:#e5e5e5;border-radius:99px;overflow:hidden"><div style="height:100%;width:${bw}%;background:${t.principal?'#3266ad':c};border-radius:99px"></div></div></td></tr>`;
     }).join('');
+    // Mini-cards: mostra apenas os tipos que têm peças pendentes nesta ficha
+    const tiposPendentes=TIPOS.filter(t=>somaEntr(f,t.id)-somaRecol(f,t.id)>0);
+    const miniCards=tiposPendentes.length>0
+      ? tiposPendentes.map(t=>{
+          const tc=TIPO_CORES[t.id]||{bg:'#f5f5f5',border:'#ddd',color:'#555'};
+          const pFora=somaEntr(f,t.id)-somaRecol(f,t.id);
+          return `<div style="background:${tc.bg};border:1px solid ${tc.border};border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:${tc.color};margin-bottom:2px">${t.label} pendentes</div><div style="font-size:20px;font-weight:700;color:${tc.color}">${pFora}</div></div>`;
+        }).join('')
+      : `<div style="background:#f0faf0;border:1px solid #b2dfce;border-radius:8px;padding:8px 10px;grid-column:1/-1;text-align:center;font-size:12px;color:#2e7d32;font-weight:600">✓ Todas as peças recolhidas</div>`;
+    const gridCols=tiposPendentes.length===1?'1fr':tiposPendentes.length===2?'1fr 1fr':tiposPendentes.length===3?'1fr 1fr 1fr':'1fr 1fr';
     const podeFechar=can('fecharFicha')&&pend===0;
     const sl=pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
     const st=pend===0?'pronto p/ fechar':rec>0?'retornando':'aguardando';
@@ -336,9 +358,8 @@ function renderPainel(){
           ${podeFechar?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar</button>`:''}
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div style="background:#e8f0fb;border:1px solid #c5d8f5;border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:#3266ad;margin-bottom:2px">Varanda Sofia pendentes</div><div style="font-size:20px;font-weight:700;color:#3266ad">${vF}</div></div>
-        <div style="background:#e8f5ef;border:1px solid #b2dfce;border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:#1D9E75;margin-bottom:2px">Centro Luxo pendentes</div><div style="font-size:20px;font-weight:700;color:#1D9E75">${cF}</div></div>
+      <div style="display:grid;grid-template-columns:${gridCols};gap:8px;margin-bottom:8px">
+        ${miniCards}
       </div>
       <table class="tipos-table"><thead><tr><th>Tipo</th><th style="text-align:center">Env.</th><th style="text-align:center">Recol.</th><th style="text-align:center">Pend.</th><th></th></tr></thead><tbody>${rows}</tbody>
         <tfoot><tr style="border-top:1px solid #e5e5e5"><td style="padding:5px 6px;font-size:11px;font-weight:600">Total</td><td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600">${env}</td><td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600">${rec}</td><td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600" class="${pend>0?'pend-pos':'pend-zero'}">${pend}</td><td style="padding:5px 6px;font-size:11px;text-align:right;color:#666">${pct}%</td></tr></tfoot>
