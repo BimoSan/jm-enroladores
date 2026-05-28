@@ -845,6 +845,26 @@ function renderEntrega(){
   </div>`;
 }
 
+window._atualizarSelectRecolhimento=()=>{
+  const sel=document.getElementById('r-ficha');
+  if(!sel)return;
+  const valorAtual=sel.value;
+  const abertas=fichas.filter(f=>f.status==='aberta');
+  const enrolsComFichas=[...new Set(abertas.map(f=>f.enroladorId))]
+    .sort((a,b)=>{const na=getEnr(a)?.nome||'';const nb=getEnr(b)?.nome||'';return na.localeCompare(nb,'pt-BR');});
+  const optsHtml=enrolsComFichas.map(enrId=>{
+    const fichasEnr=abertas.filter(f=>f.enroladorId===enrId).sort((a,b)=>a.dataAbertura>b.dataAbertura?1:-1);
+    const enr=getEnr(enrId);
+    if(fichasEnr.length===1){
+      const f=fichasEnr[0];
+      return `<option value="${f.id}">${enr?.nome||'?'} — ficha de ${fmtDate(f.dataAbertura)} (${pendentes(f)} pend.)</option>`;
+    }
+    return `<optgroup label="${enr?.nome||'?'}">${fichasEnr.map(f=>`<option value="${f.id}">Ficha de ${fmtDate(f.dataAbertura)} — ${totalEnv(f)} env. / ${pendentes(f)} pend.</option>`).join('')}</optgroup>`;
+  }).join('');
+  sel.innerHTML=`<option value="">Selecione a ficha...</option>${optsHtml}`;
+  if(valorAtual) sel.value=valorAtual;
+};
+
 window._atualizarFichasEntrega=()=>{
   const enrId=document.getElementById('e-enr').value;
   const div=document.getElementById('e-ficha-opcao');
@@ -921,7 +941,15 @@ window._registrarEntrega=async()=>{
     await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
     showToast('Nova ficha criada com a entrega!');
   }
-  reloadTab();setTimeout(()=>buildTiposInputs('e-tipos'),0);
+  // Limpa apenas os campos sem reconstruir o form inteiro
+  document.getElementById('e-data').value=today();
+  document.getElementById('e-cor').value='';
+  document.getElementById('e-fita').value='';
+  document.getElementById('e-fio').value='';
+  document.getElementById('e-entregador').value='';
+  buildTiposInputs('e-tipos');
+  // Atualiza as opções de ficha para o enrolador atual
+  window._atualizarFichasEntrega();
 };
 
 window._registrarRecolhimento=async()=>{
@@ -958,7 +986,13 @@ window._registrarRecolhimento=async()=>{
   }else{
     showToast('Recolhimento registrado!');
   }
-  reloadTab();setTimeout(()=>buildTiposInputs('r-tipos'),0);
+  // Limpa campos sem reconstruir o form — o listener do Firebase atualiza as fichas automaticamente
+  document.getElementById('r-ficha').value='';
+  document.getElementById('r-data').value=today();
+  document.getElementById('r-entregador').value='';
+  document.getElementById('r-fita').value='';
+  document.getElementById('r-fio').value='';
+  buildTiposInputs('r-tipos');
 };
 
 window._fecharFichaDirecto=async id=>{
@@ -1170,7 +1204,16 @@ function iniciarListeners(){
 
   unsubFichas=onSnapshot(collection(db,'fichas'),snap=>{
     fichas=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData)reloadTab();
+    if(currentUserData){
+      // Se estiver na aba entrega ou recolhimento, atualiza apenas os selects de ficha
+      if(currentTab==='entregar'){
+        window._atualizarFichasEntrega&&window._atualizarFichasEntrega();
+      }else if(currentTab==='recolher'){
+        window._atualizarSelectRecolhimento&&window._atualizarSelectRecolhimento();
+      }else{
+        reloadTab();
+      }
+    }
   });
 
   unsubUsuarios=onSnapshot(collection(db,'usuarios'),snap=>{
