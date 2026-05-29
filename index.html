@@ -537,12 +537,12 @@ function fichasInner(lista,isEntregador){
     const isAdmin=can('editar');
     const entradasRows=(f.entregas||[]).map((e,ei)=>{
       const pecas=TIPOS.filter(t=>e.tipos&&e.tipos[t.id]>0).map(t=>`<span class="tag-tipo">${t.label}: ${e.tipos[t.id]}</span>`).join('');
-      return `<tr><td>${fmtDate(e.data)}</td><td>${e.entregador||'—'}</td><td>${e.fita||0}r ${e.cor?corPill(e.cor):''}</td><td>${e.fio||0}r</td><td>${pecas||'—'}</td>${isAdmin?`<td style="white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarEntrega('${f.id}',${ei})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirEntrada('${f.id}',${ei})">Excluir</button></td>`:''}</tr>`;
+      return `<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 10px;white-space:nowrap">${fmtDate(e.data)}</td><td style="padding:8px 10px">${e.entregador||'—'}</td><td style="padding:8px 10px;white-space:nowrap">${e.fita||0}r ${e.cor?corPill(e.cor):''}</td><td style="padding:8px 10px;white-space:nowrap">${e.fio||0}r</td><td style="padding:8px 10px">${pecas||'—'}</td>${isAdmin?`<td style="padding:8px 10px;white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarEntrega('${f.id}',${ei})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px;margin-left:4px" onclick="window._excluirEntrada('${f.id}',${ei})">Excluir</button></td>`:''}</tr>`;
     }).join('');
     const recolhRows=(f.recolhimentos||[]).length?(f.recolhimentos||[]).map((r,ri)=>{
       const pecas=TIPOS.filter(t=>r.tipos&&r.tipos[t.id]>0).map(t=>`<span class="tag-tipo">${t.label}: ${r.tipos[t.id]}</span>`).join('');
       const sob=[];if(r.fitaSobrando>0)sob.push(`${r.fitaSobrando} fita`);if(r.fioSobrando>0)sob.push(`${r.fioSobrando} fio`);
-      return `<tr><td>${fmtDate(r.data)}</td><td>${r.entregador||'—'}</td><td>${sob.length?sob.join(', '):'—'}</td><td>${pecas||'—'}</td>${isAdmin?`<td style="white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarRecolhimento('${f.id}',${ri})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirRecolhimento('${f.id}',${ri})">Excluir</button></td>`:''}</tr>`;
+      return `<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 10px;white-space:nowrap">${fmtDate(r.data)}</td><td style="padding:8px 10px">${r.entregador||'—'}</td><td style="padding:8px 10px">${sob.length?sob.join(', '):'—'}</td><td style="padding:8px 10px">${pecas||'—'}</td>${isAdmin?`<td style="padding:8px 10px;white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarRecolhimento('${f.id}',${ri})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px;margin-left:4px" onclick="window._excluirRecolhimento('${f.id}',${ri})">Excluir</button></td>`:''}</tr>`;
     }).join(''):`<tr><td colspan="${isAdmin?5:4}" style="color:#666">Nenhum recolhimento.</td></tr>`;
     const sl=f.status==='fechada'?'badge-fechada':pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
     const st2=f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aguardando';
@@ -571,14 +571,36 @@ function fichasInner(lista,isEntregador){
         <div class="metric"><div class="metric-label">fita env./sob.</div><div class="metric-value" style="font-size:13px">${fitaEnv} rolos${fitaSob>0?' / '+fitaSob+' sobrou':''}</div></div>
         <div class="metric"><div class="metric-label">fio env./sob.</div><div class="metric-value" style="font-size:13px">${fioEnv} rolos${fioSob>0?' / '+fioSob+' sobrou':''}</div></div>
       </div>`:''}
-      <details open><summary>Entregas e recolhimentos</summary>
-        <div style="margin-top:8px;width:100%">
-          <div class="section-label" style="margin-bottom:4px">entregas</div>
-          <table class="small-table"><thead><tr><th>Data</th><th>Entregador</th><th>Fita</th><th>Fio</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${entradasRows}</tbody></table>
-          <div class="section-label" style="margin-top:10px;margin-bottom:4px">recolhimentos</div>
-          <table class="small-table"><thead><tr><th>Data</th><th>Entregador</th><th>Sobras</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${recolhRows}</tbody></table>
+      <div style="width:100%;margin-top:4px;border-top:1px solid #f1f5f9;padding-top:10px">
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px">Entregas e recolhimentos</div>
+        <div class="section-label" style="margin-bottom:6px">entregas</div>
+        <div style="width:100%;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f8fafc">
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Data</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Entregador</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Fita</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Fio</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px">Peças</th>
+              ${isAdmin?'<th style="padding:8px 10px;width:120px"></th>':''}
+            </tr></thead>
+            <tbody>${entradasRows}</tbody>
+          </table>
         </div>
-      </details>
+        <div class="section-label" style="margin-top:14px;margin-bottom:6px">recolhimentos</div>
+        <div style="width:100%;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f8fafc">
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Data</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Entregador</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px;white-space:nowrap">Sobras</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;font-size:11px">Peças</th>
+              ${isAdmin?'<th style="padding:8px 10px;width:120px"></th>':''}
+            </tr></thead>
+            <tbody>${recolhRows}</tbody>
+          </table>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
