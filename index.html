@@ -1433,7 +1433,7 @@ function renderEntrega(){
   setTimeout(()=>buildTiposInputs('e-tipos'),0);
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
-    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2')return e.apontadorPerfil===p;return true;}).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
     <div id="e-ficha-opcao" style="display:none;margin-bottom:10px"></div>
     <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
@@ -1450,7 +1450,15 @@ window._atualizarSelectRecolhimento=()=>{
   const sel=document.getElementById('r-ficha');
   if(!sel)return;
   const valorAtual=sel.value;
-  const abertas=fichas.filter(f=>f.status==='aberta');
+  const perfil=currentUserData?.perfil;
+  const abertas=fichas.filter(f=>{
+    if(f.status!=='aberta')return false;
+    if(perfil==='apontador1'||perfil==='apontador2'){
+      const enr=getEnr(f.enroladorId);
+      return enr&&enr.apontadorPerfil===perfil;
+    }
+    return true;
+  });
   const enrolsComFichas=[...new Set(abertas.map(f=>f.enroladorId))]
     .sort((a,b)=>{const na=getEnr(a)?.nome||'';const nb=getEnr(b)?.nome||'';return na.localeCompare(nb,'pt-BR');});
   const optsHtml=enrolsComFichas.map(enrId=>{
@@ -1470,6 +1478,8 @@ window._atualizarFichasEntrega=()=>{
   const enrId=document.getElementById('e-enr').value;
   const div=document.getElementById('e-ficha-opcao');
   if(!enrId){div.style.display='none';div.innerHTML='';return;}
+  const meusEnrIds=enroladores.filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2')return e.apontadorPerfil===p;return true;}).map(e=>e.id);
+  if(!meusEnrIds.includes(enrId)){div.style.display='none';div.innerHTML='';return;}
   const abertas=fichas.filter(f=>f.enroladorId===enrId&&f.status==='aberta');
   if(abertas.length===0){
     div.style.display='none';
