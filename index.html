@@ -1498,7 +1498,15 @@ window._atualizarFichasEntrega=()=>{
 };
 
 function renderRecolhimento(){
-  const abertas=fichas.filter(f=>f.status==='aberta');
+  const pfRecol=currentUserData?.perfil;
+  const abertas=fichas.filter(f=>{
+    if(f.status!=='aberta')return false;
+    if(pfRecol==='apontador1'||pfRecol==='apontador2'){
+      const enr=getEnr(f.enroladorId);
+      return enr&&enr.apontadorPerfil===pfRecol;
+    }
+    return true;
+  });
   // Agrupa por enrolador para exibir no select com separadores
   const enrolsComFichas=[...new Set(abertas.map(f=>f.enroladorId))]
     .sort((a,b)=>{const na=getEnr(a)?.nome||'';const nb=getEnr(b)?.nome||'';return na.localeCompare(nb,'pt-BR');});
