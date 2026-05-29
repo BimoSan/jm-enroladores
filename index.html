@@ -1051,7 +1051,7 @@ function renderRanking(){
   }
 
   const dados = enroladores.map(enr=>{
-    const fichasEnr      = fichas.filter(f=>f.enroladorId===enr.id);
+    const fichasEnr = fichas.filter(f=>f.enroladorId===enr.id);
     const totalEnrolado  = fichasEnr.reduce((a,f)=>a+totalRec(f),0);
     const totalEnviado   = fichasEnr.reduce((a,f)=>a+totalEnv(f),0);
     const totalPendente  = fichasEnr.reduce((a,f)=>a+Math.max(0,pendentes(f)),0);
@@ -1069,56 +1069,30 @@ function renderRanking(){
   const maximoMes = Math.max(...dados.map(d=>d.enroladoMesAtual), 1);
   const medalhas = ['🥇','🥈','🥉'];
 
-  // Totais gerais
-  const totalGeralMes    = dados.reduce((a,d)=>a+d.enroladoMesAtual,0);
-  const totalGeralAcum   = dados.reduce((a,d)=>a+d.totalEnrolado,0);
-  const totalGeralVar    = dados.reduce((a,d)=>a+d.varandas,0);
-  const totalGeralCen    = dados.reduce((a,d)=>a+d.centros,0);
-
   let html = `
-    <div style="background:#1e40af;border-radius:14px;padding:14px 18px;margin-bottom:12px">
-      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">🏆 Ranking de Enroladores</div>
-      <div style="font-size:12px;color:#93c5fd">Ordenado por peças enroladas em <strong style="color:#fff">${mesAtualNome} ${anoAtual}</strong></div>
-    </div>
-
-    <div style="background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px;width:100%">
-      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Totais gerais — todas as casas</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%">
-        <div class="metric">
-          <div class="metric-label">${mesAtualNome}</div>
-          <div class="metric-value" style="font-size:22px;color:#1e40af">${totalGeralMes}</div>
-          <div style="font-size:10px;color:#94a3b8">peças este mês</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Total acumulado</div>
-          <div class="metric-value" style="font-size:22px">${totalGeralAcum}</div>
-          <div style="font-size:10px;color:#94a3b8">peças enroladas</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Varanda Sofia</div>
-          <div class="metric-value" style="font-size:22px;color:#3266ad">${totalGeralVar}</div>
-          <div style="font-size:10px;color:#94a3b8">total acumulado</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Centro Luxo</div>
-          <div class="metric-value" style="font-size:22px;color:#1D9E75">${totalGeralCen}</div>
-          <div style="font-size:10px;color:#94a3b8">total acumulado</div>
-        </div>
+    <div style="background:#1e40af;border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking de Enroladores</div>
+        <div style="font-size:12px;color:#93c5fd;margin-top:2px">Ordenado por peças enroladas em <strong style="color:#fff">${mesAtualNome} ${anoAtual}</strong></div>
+      </div>
+      <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:6px 14px;text-align:center">
+        <div style="font-size:10px;color:#93c5fd">mês atual</div>
+        <div style="font-size:18px;font-weight:800;color:#fff">${mesAtualNome}</div>
       </div>
     </div>`;
 
   html += dados.map((d,i)=>{
-    const ci  = enroladores.findIndex(e=>e.id===d.enr.id);
-    const c   = avatarColor(ci);
+    const ci = enroladores.findIndex(e=>e.id===d.enr.id);
+    const c  = avatarColor(ci);
     const bar = Math.round(d.enroladoMesAtual/maximoMes*100);
     const destaque = i===0 ? 'border:2px solid #f5c842;' : '';
 
     const mensalRows = d.mensal.length ? d.mensal.map(m=>{
       const nomeMes=`${MESES[m.mes-1]} ${m.ano}`;
       const isMesAtual=`${m.ano}-${String(m.mes).padStart(2,'0')}`===anoMeAtual;
-      return `<tr style="${isMesAtual?'background:#eff6ff;':''}">
-        <td style="padding:5px 8px;font-size:11px;white-space:nowrap;font-weight:${isMesAtual?700:400};color:${isMesAtual?'#1e40af':'#475569'}">${nomeMes}${isMesAtual?' ◀':''}</td>
-        <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:${isMesAtual?800:600};color:${isMesAtual?'#1e40af':'#1e293b'}">${m.total}</td>
+      return `<tr style="${isMesAtual?'background:#eff6ff;font-weight:700':''}">
+        <td style="padding:5px 8px;font-size:11px;white-space:nowrap;color:${isMesAtual?'#1e40af':'#475569'}">${nomeMes}${isMesAtual?' ◀':''}</td>
+        <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:600;color:${isMesAtual?'#1e40af':'#1e293b'}">${m.total}</td>
         <td style="padding:5px 8px;font-size:11px;text-align:center;color:#3266ad">${m.varandas}</td>
         <td style="padding:5px 8px;font-size:11px;text-align:center;color:#1D9E75">${m.centros}</td>
       </tr>`;
@@ -1127,7 +1101,7 @@ function renderRanking(){
     return `<div class="card" style="margin-bottom:10px;${destaque}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:24px;width:34px;text-align:center">${medalhas[i]||('<span style="font-size:13px;font-weight:700;color:#64748b">#'+(i+1)+'</span>')}</div>
+          <div style="font-size:24px;width:34px;text-align:center">${medalhas[i]||'<span style="font-size:13px;font-weight:700;color:#64748b">#'+(i+1)+'</span>'}</div>
           <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(d.enr.nome)}</div>
           <div>
             <div style="font-size:14px;font-weight:700">${d.enr.nome}</div>
@@ -1135,14 +1109,14 @@ function renderRanking(){
           </div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:11px;color:#64748b">${mesAtualNome}</div>
+          <div style="font-size:11px;color:#64748b;margin-bottom:2px">${mesAtualNome}</div>
           <div style="font-size:30px;font-weight:800;color:${c};line-height:1">${d.enroladoMesAtual}</div>
-          <div style="font-size:10px;color:#94a3b8;margin-top:2px">acumulado: <strong style="color:#475569">${d.totalEnrolado}</strong></div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px">total acumulado: <strong style="color:#475569">${d.totalEnrolado}</strong></div>
         </div>
       </div>
 
       <div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-bottom:12px">
-        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px"></div>
+        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px;transition:width .5s"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;width:100%">
@@ -1163,11 +1137,11 @@ function renderRanking(){
               <th style="padding:6px 8px;font-size:10px;font-weight:700;color:#1D9E75;text-align:center">C.Luxo</th>
             </tr></thead>
             <tbody>${mensalRows}</tbody>
-            <tfoot><tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
-              <td style="padding:7px 8px;font-size:11px;font-weight:700;color:#1e293b">Total do enrolador</td>
-              <td style="padding:7px 8px;font-size:13px;font-weight:800;text-align:center;color:#1e40af">${d.totalEnrolado}</td>
-              <td style="padding:7px 8px;font-size:11px;font-weight:700;text-align:center;color:#3266ad">${d.varandas}</td>
-              <td style="padding:7px 8px;font-size:11px;font-weight:700;text-align:center;color:#1D9E75">${d.centros}</td>
+            <tfoot><tr style="border-top:2px solid #f1f5f9;background:#f8fafc">
+              <td style="padding:6px 8px;font-size:11px;font-weight:700">Total acumulado</td>
+              <td style="padding:6px 8px;font-size:12px;font-weight:800;text-align:center;color:#1e293b">${d.totalEnrolado}</td>
+              <td style="padding:6px 8px;font-size:11px;font-weight:700;text-align:center;color:#3266ad">${d.varandas}</td>
+              <td style="padding:6px 8px;font-size:11px;font-weight:700;text-align:center;color:#1D9E75">${d.centros}</td>
             </tr></tfoot>
           </table>
         </div>
