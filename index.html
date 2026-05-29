@@ -103,7 +103,7 @@
   .data-table th{text-align:left;color:#64748b;font-weight:600;padding:8px 10px;background:#f8fafc;font-size:11px}
   .data-table td{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:12px}
   .data-table tr:last-child td{border-bottom:none}
-  .tipos-table{width:100%;border-collapse:collapse;font-size:12px}
+  .tipos-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
   .tipos-table th{font-size:11px;font-weight:600;color:#64748b;text-align:left;padding:7px 8px;background:#f8fafc}
   .tipos-table td{padding:7px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
   .tipos-table tr:last-child td{border-bottom:none}
@@ -571,9 +571,9 @@ function fichasInner(lista,isEntregador){
         <div class="metric"><div class="metric-label">fio env./sob.</div><div class="metric-value" style="font-size:13px">${fioEnv} rolos${fioSob>0?' / '+fioSob+' sobrou':''}</div></div>
       </div>`:''}
       <details open><summary>Entregas e recolhimentos</summary>
-        <div style="margin-top:8px">
+        <div style="margin-top:8px;width:100%">
           <div class="section-label" style="margin-bottom:4px">entregas</div>
-          <table class="small-table"><thead><tr><th>Data</th><th>Entregador</th><th>Fita</th><th>Fio</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${entradasRows}</tbody></table>
+          <table class="small-table" style="width:100%"><thead><tr><th>Data</th><th>Entregador</th><th>Fita</th><th>Fio</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${entradasRows}</tbody></table>
           <div class="section-label" style="margin-top:10px;margin-bottom:4px">recolhimentos</div>
           <table class="small-table"><thead><tr><th>Data</th><th>Entregador</th><th>Sobras</th><th>Peças</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>${recolhRows}</tbody></table>
         </div>
