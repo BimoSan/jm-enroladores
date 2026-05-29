@@ -570,7 +570,6 @@ function renderApp(){
             <div class="user-role">${p.label}</div>
           </div>
         </div>
-        <button class="btn-logout" style="background:#1e3a8a;margin-bottom:6px" onclick="window._voltarSetores()">← Trocar setor</button>
         <button class="btn-logout" onclick="window._doLogout()">Sair</button>
       </div>
     </div>
@@ -582,9 +581,7 @@ function renderApp(){
           </button>
           <div>
             <div class="topbar-title">${TAB_LABELS[currentTab]||currentTab}</div>
-            <div class="topbar-sub" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:99px;font-size:11px" onclick="window._voltarSetores()">
-              ← ${currentFabrica==='cadeiras'?'🪑 Cadeiras':'🛋️ Estofados'} · Trocar setor
-            </div>
+            <div class="topbar-sub">Fibra sintética</div>
           </div>
         </div>
         <div class="topbar-right">
