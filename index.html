@@ -229,18 +229,22 @@ const TIPO_CORES={
 };
 
 // Valores unitários por peça (editáveis pelo admin no Firestore)
+const _valoresDefault = {varanda_sofia:0,centro_luxo:0,varanda_luxo:0,varanda_nova:0,centro_novo:0,banqueta:0,mesa_bistro:0,cadeira_mesa:0,namoradeira:0,centro_sofia:0};
 let valoresPecas = {
-  varanda_sofia: 0,
-  centro_luxo: 0,
-  varanda_luxo: 0,
-  varanda_nova: 0,
-  centro_novo: 0,
-  banqueta: 0,
-  mesa_bistro: 0,
-  cadeira_mesa: 0,
-  namoradeira: 0,
-  centro_sofia: 0,
+  apontador1: {..._valoresDefault},
+  apontador2: {..._valoresDefault},
 };
+
+// Retorna os valores do apontador da ficha (ou do perfil atual)
+function getValoresPorFicha(f){
+  const enr=getEnr(f?.enroladorId);
+  const ap=enr?.apontadorPerfil||'apontador1';
+  return valoresPecas[ap]||valoresPecas.apontador1;
+}
+function getValoresPorPerfil(perfil){
+  if(perfil==='apontador2') return valoresPecas.apontador2;
+  return valoresPecas.apontador1;
+}
 
 const CORES=['Bege','Mogno','Marrom','Preto','Bicolor'];
 const COR_STYLE={'Bege':{bg:'#f5e6c8',color:'#7a5c1e'},'Mogno':{bg:'#6b2a1a',color:'#f5d5c8'},'Marrom':{bg:'#4a2c0a',color:'#e8d0b0'},'Preto':{bg:'#222',color:'#eee'},'Bicolor':{bg:'#444',color:'#eee'}};
@@ -1163,9 +1167,10 @@ function renderRelatorio(){
 
 // ── Valores e pagamento ──────────────────────────────────────
 function calcularPagamento(f){
+  const vals=getValoresPorFicha(f);
   return TIPOS.reduce((total,t)=>{
     const qtd=somaRecol(f,t.id);
-    const valor=parseFloat(valoresPecas[t.id])||0;
+    const valor=parseFloat(vals[t.id])||0;
     return total+(qtd*valor);
   },0);
 }
@@ -1179,25 +1184,30 @@ function renderValores(){
   let html=``;
 
   if(isAdmin){
-    html+=`<div class="card" style="margin-bottom:12px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Valores unitários por peça</div>
-      <div style="font-size:12px;color:#666;margin-bottom:14px">Defina o valor pago ao enrolador por cada peça enrolada. O sistema calcula o total automaticamente ao fechar a ficha.</div>
-      <div class="num-inputs" id="valores-inputs">
+    const tabelaAp=(ap,label,cor)=>`<div class="card" style="margin-bottom:12px;border-left:4px solid ${cor}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;color:${cor};background:${cor}22;padding:2px 10px;border-radius:99px">${label}</span>
+        <span style="font-size:12px;color:#64748b">Valores unitários por peça</span>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Valores aplicados às fichas dos enroladores deste apontador.</div>
+      <div class="num-inputs">
         ${TIPOS.map(t=>`
           <div class="num-group">
             <label>${t.label}${t.principal?' ★':''}</label>
             <div style="display:flex;align-items:center;gap:4px">
-              <span style="font-size:12px;color:#666">R$</span>
-              <input type="number" id="vp-${t.id}" min="0" step="0.01" placeholder="0,00"
-                value="${(parseFloat(valoresPecas[t.id])||0).toFixed(2)}"
+              <span style="font-size:12px;color:#64748b">R$</span>
+              <input type="number" id="vp-${ap}-${t.id}" min="0" step="0.01" placeholder="0,00"
+                value="${(parseFloat((valoresPecas[ap]||{})[t.id])||0).toFixed(2)}"
                 style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 7px;background:#fff;color:#1d1d1f;width:100%">
             </div>
           </div>`).join('')}
       </div>
       <div style="margin-top:14px">
-        <button class="btn btn-primary" onclick="window._salvarValores()">Salvar valores</button>
+        <button class="btn btn-primary" onclick="window._salvarValores('${ap}')">Salvar valores do ${label}</button>
       </div>
     </div>`;
+    html+=tabelaAp('apontador1','Apontador 1','#0f766e');
+    html+=tabelaAp('apontador2','Apontador 2','#b45309');
   }
 
   // Lista de fichas fechadas com valor calculado
@@ -1213,9 +1223,10 @@ function renderValores(){
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
     const total=calcularPagamento(f);
+    const valsF=getValoresPorFicha(f);
     const detalhes=TIPOS.filter(t=>somaRecol(f,t.id)>0).map(t=>{
       const qtd=somaRecol(f,t.id);
-      const val=parseFloat(valoresPecas[t.id])||0;
+      const val=parseFloat(valsF[t.id])||0;
       const sub=qtd*val;
       return `<tr>
         <td style="padding:5px 6px;font-size:11px">${t.label}</td>
@@ -1258,13 +1269,13 @@ function renderValores(){
   return html;
 }
 
-window._salvarValores=async()=>{
+window._salvarValores=async(ap)=>{
   const valores={};
   TIPOS.forEach(t=>{
-    valores[t.id]=parseFloat(document.getElementById(`vp-${t.id}`)?.value)||0;
+    valores[t.id]=parseFloat(document.getElementById(`vp-${ap}-${t.id}`)?.value)||0;
   });
-  await setDoc(doc(db,'configuracoes','valores'),valores);
-  showToast('Valores salvos com sucesso!');
+  await setDoc(doc(db,'configuracoes',`valores_${ap}`),valores);
+  showToast('Valores do '+(ap==='apontador1'?'Apontador 1':'Apontador 2')+' salvos!');
 };
 
 // ── Ranking ──────────────────────────────────────────────────
@@ -1908,11 +1919,11 @@ function iniciarListeners(){
   });
 
   // Listener de valores unitários
-  onSnapshot(doc(db,'configuracoes','valores'),snap=>{
-    if(snap.exists()){
-      valoresPecas={...valoresPecas,...snap.data()};
-      if(currentUserData)reloadTab();
-    }
+  onSnapshot(doc(db,'configuracoes','valores_apontador1'),snap=>{
+    if(snap.exists()){valoresPecas.apontador1={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
+  });
+  onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
+    if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
 }
 
