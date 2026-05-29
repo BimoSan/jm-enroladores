@@ -280,6 +280,8 @@ const PERFIS={
 let currentUser=null;
 let currentUserData=null;
 let currentTab='painel';
+let currentFabrica=null;
+let currentSetor=null;
 let enroladores=[];
 let fichas=[];
 let usuarios=[];
@@ -897,7 +899,7 @@ function fichasInner(lista,isEntregador){
           <span class="badge ${sl}">${st2}</span>
         </div>
       </div>
-            \${can('verSinalizacoes')?renderBadgeProntos(f):''}
+           ${can('verSinalizacoes')?renderBadgeProntos(f):''}
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;width:100%">
         <div class="metric"><div class="metric-label">Enviadas</div><div class="metric-value" style="font-size:18px;font-weight:700">${env}</div></div>
         <div class="metric"><div class="metric-label">Recolhidas</div><div class="metric-value" style="font-size:18px;font-weight:700">${rec}</div></div>
