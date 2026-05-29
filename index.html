@@ -854,13 +854,14 @@ function renderFichas(){
   if(isEntregador){
     lista=fichas.filter(f=>f.status==='aberta');
   }else if(perfil==='enrolador'){
-    // Enrolador vê só suas fichas (enroladores onde está vinculado)
-    const minhasEnr=enroladores.filter(e=>e.uid===currentUser?.uid||e.enroladorUid===currentUser?.uid).map(e=>e.id);
+    // Enrolador vê só as fichas do enrolador vinculado ao seu usuário
+    const uid=currentUser?.uid||'';
+    const idUsuario=currentUserData?.id||'';
+    const minhasEnr=enroladores.filter(e=>
+      e.usuarioUid===uid||
+      e.usuarioUid===idUsuario
+    ).map(e=>e.id);
     lista=fichas.filter(f=>minhasEnr.includes(f.enroladorId));
-    if(lista.length===0){
-      // Fallback: mostrar fichas onde o enrolador está vinculado por nome
-      lista=fichas.filter(f=>f.enroladorId===currentUserData?.enroladorId);
-    }
   }else if(perfil==='apontador1'||perfil==='apontador2'){
     const meusEnr=enroladores.filter(e=>e.apontadorPerfil===perfil).map(e=>e.id);
     lista=fichas.filter(f=>meusEnr.includes(f.enroladorId));
@@ -913,7 +914,17 @@ function fichasInner(lista,isEntregador){
           ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
           ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}
           ${isAdmin?`<button class="btn btn-sm btn-danger" onclick="window._excluirFicha('${f.id}')">Excluir ficha</button>`:''}
-          ${can('sinalizarProntos')&&f.status==='aberta'?`<button class="btn btn-sm" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="window._abrirSinalizacao('${f.id}')">🔔 Sinalizar prontos</button>`:''}
+          ${(()=>{
+            if(!can('sinalizarProntos')||f.status!=='aberta')return'';
+            // Enrolador só sinaliza fichas suas
+            if(currentUserData?.perfil==='enrolador'){
+              const uid=currentUser?.uid||'';
+              const idU=currentUserData?.id||'';
+              const enrVinc=enroladores.find(e=>e.usuarioUid===uid||e.usuarioUid===idU);
+              if(!enrVinc||enrVinc.id!==f.enroladorId)return'';
+            }
+            return `<button class="btn btn-sm" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="window._abrirSinalizacao('${f.id}')">🔔 Sinalizar prontos</button>`;
+          })()}
           <span class="badge ${sl}">${st2}</span>
         </div>
       </div>
@@ -1654,7 +1665,11 @@ function renderEnroladores(){
     const c=avatarColor(i);
     return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">
       <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(e.nome)}</div>
-      <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${e.nome}</div><div style="font-size:11px;color:#64748b">${e.endereco||'—'}</div><div style="font-size:11px;color:#64748b">${e.telefone||'—'}</div></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">${e.nome}</div>
+        <div style="font-size:11px;color:#64748b">${e.endereco||'—'} · ${e.telefone||'—'}</div>
+        ${e.usuarioUid?`<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:600;margin-top:3px;display:inline-block">✓ Login vinculado</span>`:`<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:99px;font-weight:600;margin-top:3px;display:inline-block">Sem login</span>`}
+      </div>
       <div style="text-align:right;margin-right:8px;flex-shrink:0">
         <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Env./Recol.</div>
         <div style="font-size:16px;font-weight:800;color:#1e293b">${env} / ${rec}</div>
@@ -1678,6 +1693,10 @@ window._cadastrarEnr=async()=>{
 window._editarEnrolador=id=>{
   const e=enroladores.find(x=>x.id===id);if(!e)return;
   const inp=(eid,label,val)=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="text" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
+  // Lista de usuários com perfil enrolador para vincular
+  const enroladoresUsuarios=usuarios.filter(u=>u.perfil==='enrolador');
+  const optsUsuarios=`<option value="">— Sem vínculo</option>`+
+    enroladoresUsuarios.map(u=>`<option value="${u.uid||u.id}" ${(e.usuarioUid===u.uid||e.usuarioUid===u.id)?'selected':''}>${u.nome} (${u.email})</option>`).join('');
   showModal('Editar enrolador',
     inp('ee-enr-nome','Nome completo',e.nome)+
     inp('ee-enr-end','Endereço / Bairro',e.endereco)+
@@ -1686,18 +1705,26 @@ window._editarEnrolador=id=>{
       <select id="ee-enr-apontador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">
         <option value="apontador1" ${e.apontadorPerfil==='apontador1'?'selected':''}>Apontador 1</option>
         <option value="apontador2" ${e.apontadorPerfil==='apontador2'?'selected':''}>Apontador 2</option>
-      </select></div>`,
+      </select></div>
+    <div class="form-group"><label>Usuário vinculado (login do enrolador)</label>
+      <select id="ee-enr-usuario" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">
+        ${optsUsuarios}
+      </select>
+      <div style="font-size:11px;color:#64748b;margin-top:4px">Vincule o cadastro de usuário ao enrolador para que ele veja suas próprias fichas ao fazer login.</div>
+    </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
 };
 window._salvarEnrolador=async id=>{
   const nome=document.getElementById('ee-enr-nome').value.trim();
   if(!nome){showToast('Informe o nome.');return;}
   const apontadorPerfil=document.getElementById('ee-enr-apontador')?.value||'apontador1';
+  const usuarioUid=document.getElementById('ee-enr-usuario')?.value||'';
   await updateDoc(doc(db,'enroladores',id),{
     nome,
     endereco:document.getElementById('ee-enr-end').value.trim(),
     telefone:document.getElementById('ee-enr-tel').value.trim(),
-    apontadorPerfil
+    apontadorPerfil,
+    usuarioUid
   });
   closeModal();showToast('Enrolador atualizado!');
 };
