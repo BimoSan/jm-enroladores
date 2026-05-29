@@ -1617,7 +1617,22 @@ window._registrarRecolhimento=async()=>{
   }
 
   const recolhimentos=[...(f.recolhimentos||[]),{data,entregador,fitaSobrando,fioSobrando,tipos}];
-  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
+
+  // Atualizar sinalização: subtrair peças recolhidas
+  const prontoAtual={...(f.prontos||{})};
+  let algumProntoRestante=false;
+  TIPOS.forEach(t=>{
+    const recolhido=tipos[t.id]||0;
+    const prontoAntes=parseInt(prontoAtual[t.id])||0;
+    prontoAtual[t.id]=Math.max(0, prontoAntes-recolhido);
+    if(prontoAtual[t.id]>0) algumProntoRestante=true;
+  });
+
+  await updateDoc(doc(db,'fichas',fichaId),{
+    recolhimentos,
+    prontos: prontoAtual,
+    prontoSinalizado: algumProntoRestante,
+  });
   const fAtual={...f,recolhimentos};
   if(pendentes(fAtual)<=0){
     showModal('Todas as peças retornaram!',
