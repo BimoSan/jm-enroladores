@@ -155,6 +155,26 @@
   details{width:100%}
   details summary{cursor:pointer;color:#64748b;font-size:12px;font-weight:600;list-style:none}
   details summary::-webkit-details-marker{display:none}
+  .sel-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 50%,#2563eb 100%);padding:20px}
+  .sel-box{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:600px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .sel-title{font-size:22px;font-weight:800;color:#1e293b;margin-bottom:4px}
+  .sel-sub{font-size:13px;color:#64748b;margin-bottom:28px}
+  .fab-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0}
+  .fab-card{border-radius:14px;padding:22px 18px;cursor:pointer;border:2px solid transparent;transition:all .2s;text-align:center}
+  .fab-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .fab-icon{font-size:36px;margin-bottom:10px}
+  .fab-name{font-size:15px;font-weight:700;margin-bottom:4px}
+  .fab-desc{font-size:11px;opacity:.8}
+  .setor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .setor-card{border-radius:12px;padding:16px 14px;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;transition:all .2s;display:flex;align-items:center;gap:12px}
+  .setor-card:hover{border-color:#3b82f6;background:#eff6ff;transform:translateY(-1px)}
+  .setor-card.em-breve{opacity:.5;cursor:not-allowed}
+  .setor-card.em-breve:hover{transform:none;border-color:#e2e8f0;background:#fff}
+  .setor-icon{font-size:24px;flex-shrink:0}
+  .setor-nome{font-size:13px;font-weight:700;color:#1e293b}
+  .setor-desc{font-size:11px;color:#64748b;margin-top:2px}
+  .back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:20px;padding:0;font-family:'Nunito',sans-serif}
+  .back-btn:hover{color:#1e293b}
 </style>
 </head>
 <body>
@@ -225,7 +245,36 @@ let valoresPecas = {
 const CORES=['Bege','Mogno','Marrom','Preto','Bicolor'];
 const COR_STYLE={'Bege':{bg:'#f5e6c8',color:'#7a5c1e'},'Mogno':{bg:'#6b2a1a',color:'#f5d5c8'},'Marrom':{bg:'#4a2c0a',color:'#e8d0b0'},'Preto':{bg:'#222',color:'#eee'},'Bicolor':{bg:'#444',color:'#eee'}};
 const COLORS=['#3266ad','#1D9E75','#D85A30','#D4537E','#BA7517','#639922','#7F77DD','#993C1D'];
-const PERFIS={admin:{label:'Administrador',color:'#3266ad',bg:'#e8f0fb'},apontador:{label:'Apontador',color:'#1D9E75',bg:'#e8f5ef'},entregador:{label:'Entregador',color:'#BA7517',bg:'#fef3e2'},financeiro:{label:'Financeiro',color:'#D4537E',bg:'#fce8ef'},proprietario:{label:'Proprietário',color:'#534AB7',bg:'#eeecfb'},geral:{label:'Geral',color:'#555',bg:'#f0f0f0'}};
+const PERFIS={
+  // Globais
+  admin:            {label:'Administrador',       color:'#3266ad',bg:'#e8f0fb', fabricas:['cadeiras','estofados'], setor:null},
+  proprietario:     {label:'Proprietário',         color:'#534AB7',bg:'#eeecfb', fabricas:['cadeiras','estofados'], setor:null},
+  financeiro:       {label:'Financeiro',           color:'#D4537E',bg:'#fce8ef', fabricas:['cadeiras','estofados'], setor:null},
+  escritorio:       {label:'Escritório',           color:'#0891b2',bg:'#e0f7fa', fabricas:['cadeiras','estofados'], setor:null},
+  // Fábrica de Cadeiras — Geral
+  encarregado_cad:  {label:'Encarregado Geral',    color:'#1e40af',bg:'#dbeafe', fabricas:['cadeiras'],            setor:null},
+  // Fábrica de Cadeiras — Enrolamento Terceirizado
+  apontador1:       {label:'Apontador 1',          color:'#0f766e',bg:'#ccfbf1', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:'#0f766e'},
+  apontador2:       {label:'Apontador 2',          color:'#b45309',bg:'#fef3c7', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:'#b45309'},
+  entregador:       {label:'Entregador',           color:'#BA7517',bg:'#fef3e2', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:null},
+  enrolador:        {label:'Enrolador',            color:'#7c3aed',bg:'#ede9fe', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:null},
+  // Fábrica de Cadeiras — outros setores (em breve)
+  apontador_metal:  {label:'Apontador Metalúrgica',color:'#374151',bg:'#f3f4f6', fabricas:['cadeiras'],            setor:'metalurgica',      fichaColor:null},
+  soldador:         {label:'Soldador',             color:'#6b7280',bg:'#f9fafb', fabricas:['cadeiras'],            setor:'metalurgica',      fichaColor:null},
+  apontador_int:    {label:'Apontador Interno',    color:'#065f46',bg:'#d1fae5', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
+  enrolador_int:    {label:'Enrolador Interno',    color:'#047857',bg:'#a7f3d0', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
+  operador_fitas:   {label:'Operador de Fitas',    color:'#9d174d',bg:'#fce7f3', fabricas:['cadeiras'],            setor:'fitas',            fichaColor:null},
+  geral:            {label:'Geral',                color:'#555',   bg:'#f0f0f0', fabricas:['cadeiras'],            setor:null,               fichaColor:null},
+  // Fábrica de Estofados
+  encarregado_est:  {label:'Encarregado Estofados',color:'#6d28d9',bg:'#ede9fe', fabricas:['estofados'],           setor:null,               fichaColor:null},
+  apontador_cos:    {label:'Apontador Costura',    color:'#be185d',bg:'#fce7f3', fabricas:['estofados'],           setor:'costura',          fichaColor:null},
+  costureira:       {label:'Costureira',           color:'#db2777',bg:'#fdf2f8', fabricas:['estofados'],           setor:'costura',          fichaColor:null},
+  apontador_gra:    {label:'Apontador Grades',     color:'#1d4ed8',bg:'#dbeafe', fabricas:['estofados'],           setor:'grades',           fichaColor:null},
+  gradista:         {label:'Gradista',             color:'#2563eb',bg:'#eff6ff', fabricas:['estofados'],           setor:'grades',           fichaColor:null},
+  apontador_tap:    {label:'Apontador Tapeçamento',color:'#0369a1',bg:'#e0f2fe', fabricas:['estofados'],           setor:'tapecamento',      fichaColor:null},
+  tapecador:        {label:'Tapeçador',            color:'#0284c7',bg:'#f0f9ff', fabricas:['estofados'],           setor:'tapecamento',      fichaColor:null},
+  apontador_esp:    {label:'Apontador Espuma',     color:'#15803d',bg:'#dcfce7', fabricas:['estofados'],           setor:'espuma',           fichaColor:null},
+};
 
 // ── Estado local ─────────────────────────────────────────────────
 let currentUser=null;
@@ -255,8 +304,52 @@ function pendentes(f){return totalEnv(f)-totalRec(f)}
 
 function can(p){
   if(!currentUserData)return false;
-  const rules={verPainel:['admin','apontador','proprietario','geral','financeiro','entregador'],verFichas:['admin','apontador','financeiro','proprietario','geral'],verFichasEntregador:['entregador'],registrar:['admin','apontador'],fecharFicha:['admin','apontador'],marcarPago:['admin','financeiro'],cadastrarEnrolador:['admin'],gerenciarUsuarios:['admin'],verRelatorio:['admin','proprietario','financeiro'],verRanking:['admin','apontador','proprietario','financeiro','entregador','geral'],verValores:['admin','proprietario','financeiro'],editar:['admin']};
-  return(rules[p]||[]).includes(currentUserData.perfil);
+  const perfil=currentUserData.perfil;
+  const rules={
+    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral'],
+    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral'],
+    verFichasEntregador: ['entregador'],
+    verFichasEnrolador:  ['enrolador'],
+    registrar:       ['admin','apontador1','apontador2'],
+    fecharFicha:     ['admin','apontador1','apontador2'],
+    marcarPago:      ['admin','financeiro'],
+    cadastrarEnrolador:  ['admin'],
+    gerenciarUsuarios:   ['admin'],
+    verRelatorio:    ['admin','proprietario','financeiro'],
+    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral'],
+    verValores:      ['admin','proprietario','financeiro'],
+    editar:          ['admin'],
+    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral'],
+    sinalizarProntos:['enrolador'],
+  };
+  return(rules[p]||[]).includes(perfil);
+}
+
+// Retorna o apontador vinculado ao usuário atual (para filtrar fichas)
+function getMeuApontadorId(){
+  const perfil=currentUserData?.perfil;
+  if(perfil==='apontador1'||perfil==='apontador2') return currentUserData.uid||currentUserData.id;
+  return null;
+}
+
+// Verifica se a ficha pertence ao apontador atual
+function fichaDoMeuApontador(ficha){
+  const perfil=currentUserData?.perfil;
+  if(perfil==='apontador1'||perfil==='apontador2'){
+    // Verifica pelo enrolador da ficha — enrolador tem apontadorId
+    const enr=getEnr(ficha.enroladorId);
+    return enr&&enr.apontadorPerfil===perfil;
+  }
+  return true; // outros perfis veem tudo
+}
+
+// Cor da borda da ficha baseada no apontador do enrolador
+function corFicha(ficha){
+  const enr=getEnr(ficha.enroladorId);
+  if(!enr) return '#e2e8f0';
+  if(enr.apontadorPerfil==='apontador1') return '#0f766e';
+  if(enr.apontadorPerfil==='apontador2') return '#b45309';
+  return '#e2e8f0';
 }
 
 function showToast(msg){
@@ -278,7 +371,15 @@ window._closeModal=closeModal;
 
 // ── Render principal ─────────────────────────────────────────────
 function render(){
-  document.getElementById('root').innerHTML=currentUserData?renderApp():renderLogin();
+  if(!currentUserData){
+    document.getElementById('root').innerHTML=renderLogin();
+  }else if(!currentFabrica){
+    document.getElementById('root').innerHTML=renderSelecionarFabrica();
+  }else if(!currentSetor){
+    document.getElementById('root').innerHTML=renderSelecionarSetor();
+  }else{
+    document.getElementById('root').innerHTML=renderApp();
+  }
 }
 function reloadTab(){
   const el=document.getElementById('tab-content');
@@ -310,6 +411,113 @@ window._doLogin=async function(){
 // ── App shell ────────────────────────────────────────────────────
 const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'};
 const TAB_LABELS={'painel': 'Painel', 'fichas': 'Fichas', 'entregar': 'Entrega', 'recolher': 'Recolhimento', 'relatorio': 'Relatório', 'ranking': 'Ranking', 'valores': 'Pagamentos', 'enroladores': 'Enroladores', 'usuarios': 'Usuários'};
+// ── Seleção de fábrica ──────────────────────────────────────────
+function renderSelecionarFabrica(){
+  const p=PERFIS[currentUserData.perfil]||PERFIS.apontador;
+  const fabricasDisponiveis=(p.fabricas)||['cadeiras'];
+
+  const fabricas=[
+    {id:'cadeiras',  nome:'Fábrica de Cadeiras', icon:'🪑', cor:'#1e40af', bg:'linear-gradient(135deg,#1e40af,#3b82f6)', desc:'Metalúrgica, Enrolamento, Fitas e mais'},
+    {id:'estofados', nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Costura, Grades, Tapeçamento e Espuma'},
+  ].filter(f=>fabricasDisponiveis.includes(f.id));
+
+  const cards=fabricas.map(f=>`
+    <div class="fab-card" style="background:${f.bg};color:#fff" onclick="window._selecionarFabrica('${f.id}')">
+      <div class="fab-icon">${f.icon}</div>
+      <div class="fab-name">${f.nome}</div>
+      <div class="fab-desc">${f.desc}</div>
+    </div>`).join('');
+
+  return `<div class="sel-wrap"><div class="sel-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="sel-title">JM — Sistema de Gestão</div>
+      <button class="btn btn-ghost btn-sm" onclick="window._doLogout()">Sair</button>
+    </div>
+    <div class="sel-sub">Olá, <strong>${currentUserData.nome}</strong>! Selecione a fábrica para continuar.</div>
+    <div class="fab-grid">${cards}</div>
+  </div></div>`;
+}
+
+window._selecionarFabrica=id=>{
+  currentFabrica=id;
+  currentSetor=null;
+  render();
+};
+
+// ── Seleção de setor ─────────────────────────────────────────────
+function renderSelecionarSetor(){
+  const setoresCadeiras=[
+    {id:'enrolamento_terc', nome:'Enrolamento Terceirizado', icon:'🧵', desc:'Controle de fichas e enroladores', ativo:true},
+    {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:false},
+    {id:'fitas',            nome:'Setor de Fitas',           icon:'🎀', desc:'Controle de estoque de fitas', ativo:false},
+    {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:false},
+  ];
+  const setoresEstofados=[
+    {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
+    {id:'grades',     nome:'Grades',            icon:'🔩', desc:'Montagem de estruturas', ativo:false},
+    {id:'tapecamento',nome:'Tapeçamento',       icon:'🪑', desc:'Aplicação de tecidos', ativo:false},
+    {id:'espuma',     nome:'Blocos de Espuma',  icon:'🧱', desc:'Corte e controle de espuma', ativo:false},
+  ];
+
+  const setores=currentFabrica==='cadeiras'?setoresCadeiras:setoresEstofados;
+  const fabInfo=currentFabrica==='cadeiras'
+    ?{nome:'Fábrica de Cadeiras',icon:'🪑',cor:'#1e40af'}
+    :{nome:'Fábrica de Estofados',icon:'🛋️',cor:'#7c3aed'};
+
+  const cards=setores.map(s=>`
+    <div class="setor-card ${s.ativo?'':'em-breve'}" onclick="${s.ativo?`window._selecionarSetor('${s.id}')`:'void(0)'}">
+      <div class="setor-icon">${s.icon}</div>
+      <div>
+        <div class="setor-nome">${s.nome}</div>
+        <div class="setor-desc">${s.ativo?s.desc:'Em breve'}</div>
+      </div>
+      ${s.ativo?'':'<span style="margin-left:auto;font-size:10px;background:#f1f5f9;color:#94a3b8;padding:2px 7px;border-radius:99px;font-weight:600">Em breve</span>'}
+    </div>`).join('');
+
+  return `<div class="sel-wrap"><div class="sel-box">
+    <button class="back-btn" onclick="window._voltarFabrica()">← Voltar</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:28px">${fabInfo.icon}</span>
+      <div class="sel-title" style="color:${fabInfo.cor}">${fabInfo.nome}</div>
+    </div>
+    <div class="sel-sub">Selecione o setor que deseja acessar.</div>
+    <div class="setor-grid">${cards}</div>
+  </div></div>`;
+}
+
+window._selecionarSetor=id=>{
+  currentSetor=id;
+  currentTab='painel';
+  render();
+};
+
+// Ao entrar no app, verifica se perfil tem setor fixo e pula seleção
+function aplicarSetorAutomatico(){
+  const p=PERFIS[currentUserData?.perfil];
+  if(!p) return false;
+  // Perfil com fábrica única e setor fixo → entra direto
+  if(p.fabricas&&p.fabricas.length===1&&p.setor){
+    currentFabrica=p.fabricas[0];
+    currentSetor=p.setor;
+    return true;
+  }
+  // Perfil com fábrica única mas sem setor fixo → mostra setores
+  if(p.fabricas&&p.fabricas.length===1&&!p.setor){
+    currentFabrica=p.fabricas[0];
+    return false;
+  }
+  return false;
+}
+window._voltarFabrica=()=>{
+  currentFabrica=null;
+  currentSetor=null;
+  render();
+};
+window._voltarSetores=()=>{
+  currentSetor=null;
+  render();
+};
+
 function renderApp(){
   const p=PERFIS[currentUserData.perfil]||PERFIS.apontador;
   const tabs=[];
@@ -357,7 +565,9 @@ function renderApp(){
           </button>
           <div>
             <div class="topbar-title">${TAB_LABELS[currentTab]||currentTab}</div>
-            <div class="topbar-sub">Fibra sintética</div>
+            <div class="topbar-sub" style="cursor:pointer;opacity:.85" onclick="window._voltarSetores()">
+              ${currentFabrica==='cadeiras'?'🪑 Fábrica de Cadeiras':'🛋️ Fábrica de Estofados'} · Enrolamento Terceirizado ↩
+            </div>
           </div>
         </div>
         <div class="topbar-right">
@@ -379,7 +589,11 @@ window._closeSidebar=()=>{
 };
 
 
-window._doLogout=async()=>{await signOut(auth);};
+window._doLogout=async()=>{
+  currentFabrica=null;
+  currentSetor=null;
+  await signOut(auth);
+};
 window._switchTab=tab=>{
   currentTab=tab;
   // Atualiza nav items ativos
@@ -588,6 +802,7 @@ function renderPainel(){
       <table class="tipos-table"><thead><tr><th>Tipo</th><th style="text-align:center">Env.</th><th style="text-align:center">Recol.</th><th style="text-align:center">Pend.</th><th></th></tr></thead><tbody>${rows}</tbody>
         <tfoot><tr style="border-top:2px solid #f1f5f9"><td style="padding:7px 8px;font-size:12px;font-weight:700">Total</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700">${env}</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700">${rec}</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700" class="${pend>0?'pend-pos':'pend-zero'}">${pend}</td><td style="padding:7px 8px;font-size:12px;text-align:right;color:#64748b;font-weight:600">${pct}%</td></tr></tfoot>
       </table>
+      ${can('verSinalizacoes')?renderBadgeProntos(f):''}
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
         <span class="mat-pill">Fita: ${fitaEnv} rolos${fitaSob>0?' · '+fitaSob+' sobrando':''}</span>
         ${coresUsadas.map(cor=>corPill(cor)).join('')}
@@ -613,7 +828,25 @@ function renderFichas(){
       </select>
     </div>`;
   }
-  const lista=isEntregador?fichas.filter(f=>f.status==='aberta'):[...fichas];
+  // Filtrar fichas por perfil
+  let lista;
+  const perfil=currentUserData?.perfil;
+  if(isEntregador){
+    lista=fichas.filter(f=>f.status==='aberta');
+  }else if(perfil==='enrolador'){
+    // Enrolador vê só suas fichas (enroladores onde está vinculado)
+    const minhasEnr=enroladores.filter(e=>e.uid===currentUser?.uid||e.enroladorUid===currentUser?.uid).map(e=>e.id);
+    lista=fichas.filter(f=>minhasEnr.includes(f.enroladorId));
+    if(lista.length===0){
+      // Fallback: mostrar fichas onde o enrolador está vinculado por nome
+      lista=fichas.filter(f=>f.enroladorId===currentUserData?.enroladorId);
+    }
+  }else if(perfil==='apontador1'||perfil==='apontador2'){
+    const meusEnr=enroladores.filter(e=>e.apontadorPerfil===perfil).map(e=>e.id);
+    lista=fichas.filter(f=>meusEnr.includes(f.enroladorId));
+  }else{
+    lista=[...fichas];
+  }
   html+=`<div id="fichas-inner">${fichasInner(lista,isEntregador)}</div>`;
   return html;
 }
@@ -647,7 +880,9 @@ function fichasInner(lista,isEntregador){
     const sl=f.status==='fechada'?'badge-fechada':pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
     const st2=f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aguardando';
     const borderCls2=f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aberta';
-    return `<div class="ficha-card ${borderCls2}">
+    const enrFicha=getEnr(f.enroladorId);
+    const apontCorBorda=enrFicha?.apontadorPerfil==='apontador1'?'#0f766e':enrFicha?.apontadorPerfil==='apontador2'?'#b45309':'#e2e8f0';
+    return `<div class="ficha-card ${borderCls2}" style="border-left-color:${apontCorBorda}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(enr.nome)}</div>
@@ -658,9 +893,11 @@ function fichasInner(lista,isEntregador){
           ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
           ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}
           ${isAdmin?`<button class="btn btn-sm btn-danger" onclick="window._excluirFicha('${f.id}')">Excluir ficha</button>`:''}
+          ${can('sinalizarProntos')&&f.status==='aberta'?`<button class="btn btn-sm" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="window._abrirSinalizacao('${f.id}')">🔔 Sinalizar prontos</button>`:''}
           <span class="badge ${sl}">${st2}</span>
         </div>
       </div>
+            \${can('verSinalizacoes')?renderBadgeProntos(f):''}
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;width:100%">
         <div class="metric"><div class="metric-label">Enviadas</div><div class="metric-value" style="font-size:18px;font-weight:700">${env}</div></div>
         <div class="metric"><div class="metric-label">Recolhidas</div><div class="metric-value" style="font-size:18px;font-weight:700">${rec}</div></div>
@@ -1355,7 +1592,15 @@ function renderEnroladores(){
     <div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar enrolador</div>
     <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="en-nome" placeholder="Nome completo"></div>
     <div class="form-group"><label>Endereço / Bairro</label><input type="text" id="en-end" placeholder="Rua, nº - Bairro"></div></div>
-    <div class="form-group"><label>Telefone</label><input type="text" id="en-tel" placeholder="(88) 99999-0000"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Telefone</label><input type="text" id="en-tel" placeholder="(88) 99999-0000"></div>
+      <div class="form-group"><label>Apontador responsável</label>
+        <select id="en-apontador">
+          <option value="apontador1">Apontador 1</option>
+          <option value="apontador2">Apontador 2</option>
+        </select>
+      </div>
+    </div>
     <button class="btn btn-primary" onclick="window._cadastrarEnr()">Cadastrar</button>
   </div>`;
   html+=[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map((e,i)=>{
@@ -1365,7 +1610,11 @@ function renderEnroladores(){
     return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">
       <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(e.nome)}</div>
       <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${e.nome}</div><div style="font-size:11px;color:#64748b">${e.endereco||'—'}</div><div style="font-size:11px;color:#64748b">${e.telefone||'—'}</div></div>
-      <div style="text-align:right;margin-right:8px;flex-shrink:0"><div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Env./Recol.</div><div style="font-size:16px;font-weight:800;color:#1e293b">${env} / ${rec}</div></div>
+      <div style="text-align:right;margin-right:8px;flex-shrink:0">
+        <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Env./Recol.</div>
+        <div style="font-size:16px;font-weight:800;color:#1e293b">${env} / ${rec}</div>
+        <div style="font-size:10px;margin-top:4px;padding:2px 8px;border-radius:99px;font-weight:600;background:${e.apontadorPerfil==='apontador1'?'#ccfbf1':'#fef3c7'};color:${e.apontadorPerfil==='apontador1'?'#0f766e':'#b45309'}">${e.apontadorPerfil==='apontador2'?'Apontador 2':'Apontador 1'}</div>
+      </div>
       <button class="btn btn-sm btn-warn" onclick="window._editarEnrolador('${e.id}')">Editar</button>
       <button class="btn btn-sm btn-danger" onclick="window._excluirEnrolador('${e.id}')">Excluir</button>
     </div>`;
@@ -1376,119 +1625,37 @@ window._cadastrarEnr=async()=>{
   const nome=document.getElementById('en-nome').value.trim();
   const end=document.getElementById('en-end').value.trim();
   const tel=document.getElementById('en-tel').value.trim();
+  const apontadorPerfil=document.getElementById('en-apontador')?.value||'apontador1';
   if(!nome){showToast('Informe o nome do enrolador.');return;}
-  await addDoc(collection(db,'enroladores'),{nome,endereco:end,telefone:tel});
+  await addDoc(collection(db,'enroladores'),{nome,endereco:end,telefone:tel,apontadorPerfil});
   showToast('Enrolador cadastrado!');reloadTab();
 };
 window._editarEnrolador=id=>{
   const e=enroladores.find(x=>x.id===id);if(!e)return;
   const inp=(eid,label,val)=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="text" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
-  showModal('Editar enrolador',inp('ee-enr-nome','Nome completo',e.nome)+inp('ee-enr-end','Endereço / Bairro',e.endereco)+inp('ee-enr-tel','Telefone',e.telefone),
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
+  showModal('Editar enrolador',
+    inp('ee-enr-nome','Nome completo',e.nome)+
+    inp('ee-enr-end','Endereço / Bairro',e.endereco)+
+    inp('ee-enr-tel','Telefone',e.telefone)+
+    `<div class="form-group"><label>Apontador responsável</label>
+      <select id="ee-enr-apontador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">
+        <option value="apontador1" ${e.apontadorPerfil==='apontador1'?'selected':''}>Apontador 1</option>
+        <option value="apontador2" ${e.apontadorPerfil==='apontador2'?'selected':''}>Apontador 2</option>
+      </select></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
 };
 window._salvarEnrolador=async id=>{
   const nome=document.getElementById('ee-enr-nome').value.trim();
   if(!nome){showToast('Informe o nome.');return;}
-  await updateDoc(doc(db,'enroladores',id),{nome,endereco:document.getElementById('ee-enr-end').value.trim(),telefone:document.getElementById('ee-enr-tel').value.trim()});
+  const apontadorPerfil=document.getElementById('ee-enr-apontador')?.value||'apontador1';
+  await updateDoc(doc(db,'enroladores',id),{
+    nome,
+    endereco:document.getElementById('ee-enr-end').value.trim(),
+    telefone:document.getElementById('ee-enr-tel').value.trim(),
+    apontadorPerfil
+  });
   closeModal();showToast('Enrolador atualizado!');
 };
-
-// ── Usuários ─────────────────────────────────────────────────────
-function renderUsuarios(){
-  return `<div class="card" style="margin-bottom:10px">
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar novo usuário</div>
-    <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>
-    <div class="form-group"><label>Perfil</label><select id="nu-perfil">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></div></div>
-    <div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>
-    <div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>
-    <button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>
-  </div>
-  <div class="section-label">usuários cadastrados</div>
-  ${usuarios.map(u=>{
-    const p=PERFIS[u.perfil]||PERFIS.apontador;
-    return `<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:44px;height:44px;border-radius:50%;background:${p.bg};color:${p.color};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(u.nome)}</div>
-          <div><div style="font-size:14px;font-weight:700">${u.nome}</div><div style="font-size:11px;color:#64748b">${u.email}</div></div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-          <span style="font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;background:${p.bg};color:${p.color}">${p.label}</span>
-          <button class="btn btn-sm btn-warn" onclick="window._editarUsuario('${u.id}')">Editar</button>
-          ${u.uid!==currentUser.uid?`<button class="btn btn-sm btn-danger" onclick="window._excluirUsuario('${u.id}')">Excluir</button>`:'<span style="font-size:10px;color:#64748b">(você)</span>'}
-        </div>
-      </div>
-    </div>`;
-  }).join('')}`;
-}
-
-window._cadastrarUsuario=async()=>{
-  const nome=document.getElementById('nu-nome').value.trim();
-  const perfil=document.getElementById('nu-perfil').value;
-  const email=document.getElementById('nu-email').value.trim();
-  const senha=document.getElementById('nu-senha').value.trim();
-  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
-  if(senha.length<6){showToast('A senha precisa ter pelo menos 6 caracteres.');return;}
-  try{
-    // Cria usuário no Auth via Admin SDK não está disponível no client.
-    // Salvamos no Firestore e orientamos o admin a criar no console do Firebase.
-    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
-    showToast('Usuário salvo! Crie o login dele no Firebase Console → Authentication → Add user.');
-    reloadTab();
-  }catch(e){showToast('Erro ao cadastrar: '+e.message);}
-};
-
-window._editarUsuario=id=>{
-  const u=usuarios.find(x=>x.id===id);if(!u)return;
-  const inp=(eid,label,val,type='text')=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="${type}" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
-  showModal(`Editar — ${u.nome}`,
-    inp('eu-nome','Nome completo',u.nome)+
-    `<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}"${u.perfil===k?' selected':''}>${v.label}</option>`).join('')}</select></div>`+
-    inp('eu-email','E-mail',u.email,'email'),
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarUsuario('${id}')">Salvar</button>`);
-};
-window._salvarUsuario=async id=>{
-  const nome=document.getElementById('eu-nome').value.trim();
-  const perfil=document.getElementById('eu-perfil').value;
-  const email=document.getElementById('eu-email').value.trim();
-  if(!nome||!email){showToast('Nome e e-mail são obrigatórios.');return;}
-  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email});
-  closeModal();showToast('Usuário atualizado!');
-};
-window._excluirUsuario=id=>{
-  const u=usuarios.find(x=>x.id===id);if(!u)return;
-  window._pendingExcluirUsuarioId=id;
-  showModal('Excluir usuário',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir <strong>${u.nome}</strong> do sistema? Esta ação não pode ser desfeita.</div>`,
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirUsuario()">Excluir</button>`);
-};
-window._confirmarExcluirUsuario=async()=>{
-  const id=window._pendingExcluirUsuarioId;
-  if(!id)return;
-  closeModal();
-  await deleteDoc(doc(db,'usuarios',id));
-  window._pendingExcluirUsuarioId=null;
-  showToast('Usuário removido. Remova também no Firebase Console → Authentication.');
-};
-
-// ── Excluir ficha e enrolador ────────────────────────────────────
-window._excluirFicha=id=>{
-  const enr=getEnr(getFicha(id)?.enroladorId);
-  window._pendingExcluirFichaId=id;
-  showModal('Excluir ficha',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente a ficha de <strong>${enr?.nome}</strong>? Todos os registros de entrega e recolhimento serão apagados. Esta ação não pode ser desfeita.</div>`,
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirFicha()">Excluir ficha</button>`);
-};
-window._confirmarExcluirFicha=async()=>{
-  const id=window._pendingExcluirFichaId;if(!id)return;
-  closeModal();
-  await deleteDoc(doc(db,'fichas',id));
-  window._pendingExcluirFichaId=null;
-  showToast('Ficha excluída.');
-};
-
 window._excluirEnrolador=id=>{
   const enr=enroladores.find(e=>e.id===id);if(!enr)return;
   const temFichas=fichas.some(f=>f.enroladorId===id);
@@ -1538,6 +1705,45 @@ window._confirmarPagoAction=async()=>{
   window._pendingPagoId=null;
   showToast('Pagamento registrado!');
 };
+
+// ── Sinalização de peças prontas ────────────────────────────────
+window._abrirSinalizacao=fichaId=>{
+  const f=getFicha(fichaId);
+  if(!f)return;
+  const tiposInputs=TIPOS.map(t=>{
+    const prontos=(f.prontos||{})[t.id]||0;
+    return `<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="sig-${t.id}" min="0" step="1" value="${prontos}" placeholder="0"></div>`;
+  }).join('');
+  showModal('Sinalizar peças prontas',
+    `<div class="info-box" style="margin-bottom:12px">Informe quantas peças já estão enroladas e prontas para recolhimento.</div>
+    <div class="num-inputs">${tiposInputs}</div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-primary btn-sm" onclick="window._salvarSinalizacao('${fichaId}')">Sinalizar</button>`);
+};
+
+window._salvarSinalizacao=async fichaId=>{
+  const prontos={};
+  TIPOS.forEach(t=>{prontos[t.id]=parseInt(document.getElementById(`sig-${t.id}`)?.value)||0;});
+  const total=Object.values(prontos).reduce((a,v)=>a+v,0);
+  await updateDoc(doc(db,'fichas',fichaId),{prontos,prontoSinalizado:total>0,prontoAtualizadoEm:new Date().toISOString()});
+  closeModal();
+  showToast(total>0?'Peças sinalizadas!':'Sinalização removida.');
+};
+
+function renderBadgeProntos(f){
+  if(!f.prontoSinalizado)return'';
+  const prontos=f.prontos||{};
+  const total=Object.values(prontos).reduce((a,v)=>a+v,0);
+  if(total===0)return'';
+  const itens=TIPOS.filter(t=>prontos[t.id]>0).map(t=>`${t.label}: ${prontos[t.id]}`).join(' · ');
+  return `<div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px">🔔</span>
+    <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#92400e">Peças prontas para recolher!</div>
+    <div style="font-size:11px;color:#b45309;margin-top:2px">${itens}</div></div>
+    <div style="font-size:18px;font-weight:800;color:#d97706">${total}</div>
+  </div>`;
+}
+
 
 // ── Firebase listeners em tempo real ────────────────────────────
 function iniciarListeners(){
@@ -1601,6 +1807,7 @@ onAuthStateChanged(auth,async user=>{
       currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
     }
     currentTab=can('verPainel')?'painel':'fichas';
+    aplicarSetorAutomatico();
     iniciarListeners();
     render();
   }else{
