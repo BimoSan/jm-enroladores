@@ -443,6 +443,8 @@ function renderSelecionarFabrica(){
 window._selecionarFabrica=id=>{
   currentFabrica=id;
   currentSetor=null;
+  sessionStorage.setItem('jm_fabrica',id);
+  sessionStorage.removeItem('jm_setor');
   render();
 };
 
@@ -490,6 +492,7 @@ function renderSelecionarSetor(){
 window._selecionarSetor=id=>{
   currentSetor=id;
   currentTab='painel';
+  sessionStorage.setItem('jm_setor',id);
   render();
 };
 
@@ -513,10 +516,13 @@ function aplicarSetorAutomatico(){
 window._voltarFabrica=()=>{
   currentFabrica=null;
   currentSetor=null;
+  sessionStorage.removeItem('jm_fabrica');
+  sessionStorage.removeItem('jm_setor');
   render();
 };
 window._voltarSetores=()=>{
   currentSetor=null;
+  sessionStorage.removeItem('jm_setor');
   render();
 };
 
@@ -534,6 +540,14 @@ function renderApp(){
   if(can('gerenciarUsuarios'))tabs.push('usuarios');
   if(!tabs.includes(currentTab))currentTab=tabs[0]||'fichas';
 
+  const btnVoltar=`
+      <div style="padding:8px 18px 4px">
+        <button onclick="window._voltarSetores()" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#bfdbfe;font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Trocar setor
+        </button>
+      </div>`;
+
   const navItems=tabs.map(t=>`
     <div class="nav-item ${currentTab===t?'active':''}" onclick="window._switchTab('${t}')">
       ${NAV_ICONS[t]||''}
@@ -547,7 +561,7 @@ function renderApp(){
         <div class="sidebar-logo-title">JM</div>
         <div class="sidebar-logo-sub">Controle Terceirizado</div>
       </div>
-      <div class="sidebar-nav">${navItems}</div>
+      <div class="sidebar-nav">${btnVoltar}${navItems}</div>
       <div class="sidebar-footer">
         <div class="user-info">
           <div style="width:36px;height:36px;border-radius:50%;background:#3b82f6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${initials(currentUserData.nome)}</div>
@@ -556,6 +570,7 @@ function renderApp(){
             <div class="user-role">${p.label}</div>
           </div>
         </div>
+        <button class="btn-logout" style="background:#1e3a8a;margin-bottom:6px" onclick="window._voltarSetores()">← Trocar setor</button>
         <button class="btn-logout" onclick="window._doLogout()">Sair</button>
       </div>
     </div>
@@ -567,8 +582,8 @@ function renderApp(){
           </button>
           <div>
             <div class="topbar-title">${TAB_LABELS[currentTab]||currentTab}</div>
-            <div class="topbar-sub" style="cursor:pointer;opacity:.85" onclick="window._voltarSetores()">
-              ${currentFabrica==='cadeiras'?'🪑 Fábrica de Cadeiras':'🛋️ Fábrica de Estofados'} · Enrolamento Terceirizado ↩
+            <div class="topbar-sub" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:99px;font-size:11px" onclick="window._voltarSetores()">
+              ← ${currentFabrica==='cadeiras'?'🪑 Cadeiras':'🛋️ Estofados'} · Trocar setor
             </div>
           </div>
         </div>
@@ -594,6 +609,8 @@ window._closeSidebar=()=>{
 window._doLogout=async()=>{
   currentFabrica=null;
   currentSetor=null;
+  sessionStorage.removeItem('jm_fabrica');
+  sessionStorage.removeItem('jm_setor');
   await signOut(auth);
 };
 window._switchTab=tab=>{
@@ -1809,7 +1826,14 @@ onAuthStateChanged(auth,async user=>{
       currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
     }
     currentTab=can('verPainel')?'painel':'fichas';
-    aplicarSetorAutomatico();
+    // Tentar restaurar fábrica/setor da sessão anterior
+    const sessaoFabrica=sessionStorage.getItem('jm_fabrica');
+    const sessaoSetor=sessionStorage.getItem('jm_setor');
+    const autoOk=aplicarSetorAutomatico();
+    if(!autoOk && sessaoFabrica){
+      currentFabrica=sessaoFabrica;
+      if(sessaoSetor) currentSetor=sessaoSetor;
+    }
     iniciarListeners();
     render();
   }else{
