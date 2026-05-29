@@ -1722,6 +1722,104 @@ window._confirmarPagoAction=async()=>{
   showToast('Pagamento registrado!');
 };
 
+// ── Usuários ─────────────────────────────────────────────────────
+function renderUsuarios(){
+  // Perfis disponíveis para o setor atual
+  const perfisDoSetor = Object.entries(PERFIS).filter(([k,v])=>{
+    // Perfis globais sempre aparecem
+    if(v.fabricas&&v.fabricas.includes('cadeiras')&&v.fabricas.includes('estofados')) return true;
+    // Perfis específicos da fábrica atual
+    if(currentFabrica&&v.fabricas&&!v.fabricas.includes(currentFabrica)) return false;
+    // Perfis do setor atual ou sem setor fixo
+    if(currentSetor&&v.setor&&v.setor!==currentSetor) return false;
+    return true;
+  });
+
+  const optsPerfilHtml = perfisDoSetor.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+
+  return `<div class="card" style="margin-bottom:10px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar novo usuário</div>
+    <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>
+    <div class="form-group"><label>Perfil</label><select id="nu-perfil">${optsPerfilHtml}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>
+    <div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>
+    <button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>
+  </div>
+  <div class="section-label">usuários cadastrados</div>
+  ${usuarios.map(u=>{
+    const p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:50%;background:${p.bg};color:${p.color};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(u.nome)}</div>
+          <div><div style="font-size:14px;font-weight:700">${u.nome}</div><div style="font-size:11px;color:#64748b">${u.email}</div></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+          <span style="font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;background:${p.bg};color:${p.color}">${p.label}</span>
+          <button class="btn btn-sm btn-warn" onclick="window._editarUsuario('${u.id}')">Editar</button>
+          ${u.uid!==currentUser.uid?`<button class="btn btn-sm btn-danger" onclick="window._excluirUsuario('${u.id}')">Excluir</button>`:'<span style="font-size:10px;color:#64748b">(você)</span>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+window._cadastrarUsuario=async()=>{
+  const nome=document.getElementById('nu-nome').value.trim();
+  const perfil=document.getElementById('nu-perfil').value;
+  const email=document.getElementById('nu-email').value.trim();
+  const senha=document.getElementById('nu-senha').value.trim();
+  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
+  if(senha.length<6){showToast('A senha precisa ter pelo menos 6 caracteres.');return;}
+  try{
+    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
+    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    reloadTab();
+  }catch(e){showToast('Erro: '+e.message);}
+};
+
+window._editarUsuario=id=>{
+  const u=usuarios.find(x=>x.id===id);if(!u)return;
+  const perfisDoSetor=Object.entries(PERFIS).filter(([k,v])=>{
+    if(v.fabricas&&v.fabricas.includes('cadeiras')&&v.fabricas.includes('estofados'))return true;
+    if(currentFabrica&&v.fabricas&&!v.fabricas.includes(currentFabrica))return false;
+    if(currentSetor&&v.setor&&v.setor!==currentSetor)return false;
+    return true;
+  });
+  const optsHtml=perfisDoSetor.map(([k,v])=>`<option value="${k}"${u.perfil===k?' selected':''}>${v.label}</option>`).join('');
+  const inp=(eid,label,val,type='text')=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="${type}" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
+  showModal(`Editar — ${u.nome}`,
+    inp('eu-nome','Nome completo',u.nome)+
+    `<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">${optsHtml}</select></div>`+
+    inp('eu-email','E-mail',u.email,'email'),
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarUsuario('${id}')">Salvar</button>`);
+};
+
+window._salvarUsuario=async id=>{
+  const nome=document.getElementById('eu-nome').value.trim();
+  const perfil=document.getElementById('eu-perfil').value;
+  const email=document.getElementById('eu-email').value.trim();
+  if(!nome||!email){showToast('Nome e e-mail são obrigatórios.');return;}
+  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email});
+  closeModal();showToast('Usuário atualizado!');
+};
+
+window._excluirUsuario=id=>{
+  const u=usuarios.find(x=>x.id===id);if(!u)return;
+  window._pendingExcluirUsuarioId=id;
+  showModal('Excluir usuário',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir <strong>${u.nome}</strong> do sistema?</div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirUsuario()">Excluir</button>`);
+};
+window._confirmarExcluirUsuario=async()=>{
+  const id=window._pendingExcluirUsuarioId;if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'usuarios',id));
+  window._pendingExcluirUsuarioId=null;
+  showToast('Usuário removido.');
+};
+
 // ── Sinalização de peças prontas ────────────────────────────────
 window._abrirSinalizacao=fichaId=>{
   const f=getFicha(fichaId);
