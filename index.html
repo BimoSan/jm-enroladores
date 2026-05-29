@@ -10,7 +10,7 @@
   body{font-family:'Nunito',sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
 
   /* ── Layout ── */
-  .shell{display:flex;min-height:100vh}
+  .shell{display:flex;min-height:100vh;width:100%}
   .sidebar{width:220px;background:#1e40af;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;transition:transform .3s}
   .sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid #2563eb}
   .sidebar-logo-title{font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px}
@@ -29,7 +29,7 @@
   .btn-logout:hover{background:#2563eb;color:#fff}
 
   /* ── Topbar ── */
-  .main{margin-left:220px;display:flex;flex-direction:column;min-height:100vh}
+  .main{margin-left:220px;display:flex;flex-direction:column;min-height:100vh;width:calc(100% - 220px)}
   .topbar{background:#1e40af;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
   .topbar-title{font-size:16px;font-weight:700;color:#fff}
   .topbar-sub{font-size:11px;color:#93c5fd}
@@ -37,7 +37,7 @@
   .perfil-badge{font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;background:#3b82f6;color:#fff}
 
   /* ── Page ── */
-  .page{padding:22px 24px;flex:1}
+  .page{padding:22px 24px;flex:1;width:100%}
   .page-title{font-size:18px;font-weight:800;color:#1e293b;margin-bottom:16px}
 
   /* ── Cards ── */
@@ -51,7 +51,7 @@
   .stat-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);margin-bottom:4px}
   .stat-value{font-size:26px;font-weight:700;color:#fff;line-height:1}
   .stat-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:3px}
-  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;width:100%}
 
   /* ── Métricas secundárias ── */
   .metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px}
@@ -146,7 +146,7 @@
   @media(max-width:768px){
     .sidebar{transform:translateX(-100%)}
     .sidebar.open{transform:translateX(0)}
-    .main{margin-left:0}
+    .main{margin-left:0;width:100%}
     .menu-btn{display:block}
     .sidebar-overlay.show{display:block}
     .topbar{padding:0 14px}
@@ -363,7 +363,7 @@ function renderApp(){
           <span class="perfil-badge">${p.label}</span>
         </div>
       </div>
-      <div class="page" id="tab-content">${renderTab(currentTab)}</div>
+      <div class="page" id="tab-content" style="width:100%">${renderTab(currentTab)}</div>
     </div>
   </div>`;
 }
