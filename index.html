@@ -1017,158 +1017,106 @@ window._salvarValores=async()=>{
 // ── Ranking ──────────────────────────────────────────────────
 function renderRanking(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const hoje = today();
-  const anoMeAtual = hoje.slice(0,7);
-  const mesAtualNome = MESES[parseInt(hoje.slice(5,7))-1];
-  const anoAtual = hoje.slice(0,4);
 
+  // Agrupa recolhimentos por mês/ano para um enrolador
   function resumoMensal(fichasEnr){
     const map={};
     fichasEnr.forEach(f=>{
       (f.recolhimentos||[]).forEach(r=>{
         if(!r.data)return;
         const [y,m]=r.data.split('-');
-        const chave=`${y}-${m.padStart(2,'0')}`;
+        const chave=`${y}-${m}`;
         if(!map[chave])map[chave]={ano:parseInt(y),mes:parseInt(m),total:0,varandas:0,centros:0};
         TIPOS.forEach(t=>{map[chave].total+=(parseInt((r.tipos||{})[t.id])||0);});
         map[chave].varandas+=(parseInt((r.tipos||{}).varanda_sofia)||0);
         map[chave].centros+=(parseInt((r.tipos||{}).centro_luxo)||0);
       });
     });
+    // Ordena do mais recente para o mais antigo
     return Object.values(map).sort((a,b)=>b.ano!==a.ano?b.ano-a.ano:b.mes-a.mes);
   }
 
-  function enroladoNoMes(fichasEnr, anoMes){
-    let total=0;
-    fichasEnr.forEach(f=>{
-      (f.recolhimentos||[]).forEach(r=>{
-        if((r.data||'').slice(0,7)===anoMes){
-          TIPOS.forEach(t=>{total+=(parseInt((r.tipos||{})[t.id])||0);});
-        }
-      });
-    });
-    return total;
-  }
-
   const dados = enroladores.map(enr=>{
-    const fichasEnr      = fichas.filter(f=>f.enroladorId===enr.id);
-    const totalEnrolado  = fichasEnr.reduce((a,f)=>a+totalRec(f),0);
-    const totalEnviado   = fichasEnr.reduce((a,f)=>a+totalEnv(f),0);
-    const totalPendente  = fichasEnr.reduce((a,f)=>a+Math.max(0,pendentes(f)),0);
-    const varandas       = fichasEnr.reduce((a,f)=>a+somaRecol(f,'varanda_sofia'),0);
-    const centros        = fichasEnr.reduce((a,f)=>a+somaRecol(f,'centro_luxo'),0);
-    const txRetorno      = totalEnviado>0?Math.round(totalEnrolado/totalEnviado*100):0;
-    const mensal         = resumoMensal(fichasEnr);
-    const enroladoMesAtual = enroladoNoMes(fichasEnr, anoMeAtual);
-    return {enr, totalEnrolado, totalEnviado, totalPendente, varandas, centros, txRetorno, mensal, enroladoMesAtual};
+    const fichasEnr = fichas.filter(f=>f.enroladorId===enr.id);
+    const totalEnrolado = fichasEnr.reduce((a,f)=>a+totalRec(f),0);
+    const totalEnviado  = fichasEnr.reduce((a,f)=>a+totalEnv(f),0);
+    const totalPendente = fichasEnr.reduce((a,f)=>a+Math.max(0,pendentes(f)),0);
+    const varandas      = fichasEnr.reduce((a,f)=>a+somaRecol(f,'varanda_sofia'),0);
+    const centros       = fichasEnr.reduce((a,f)=>a+somaRecol(f,'centro_luxo'),0);
+    const txRetorno     = totalEnviado>0?Math.round(totalEnrolado/totalEnviado*100):0;
+    const mensal        = resumoMensal(fichasEnr);
+    return {enr, totalEnrolado, totalEnviado, totalPendente, varandas, centros, txRetorno, mensal};
   }).filter(d=>d.totalEnviado>0)
-    .sort((a,b)=>b.enroladoMesAtual-a.enroladoMesAtual || b.totalEnrolado-a.totalEnrolado);
+    .sort((a,b)=>b.totalEnrolado-a.totalEnrolado);
 
-  if(!dados.length) return '<div class="card"><div style="color:#64748b;font-size:13px;text-align:center;padding:20px">Nenhum dado disponível ainda.</div></div>';
+  if(!dados.length) return '<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:24px">Nenhum dado disponível ainda.</div></div>';
 
-  const maximoMes = Math.max(...dados.map(d=>d.enroladoMesAtual), 1);
+  const maximo = dados[0].totalEnrolado||1;
   const medalhas = ['🥇','🥈','🥉'];
 
-  // Totais gerais
-  const totalGeralMes    = dados.reduce((a,d)=>a+d.enroladoMesAtual,0);
-  const totalGeralAcum   = dados.reduce((a,d)=>a+d.totalEnrolado,0);
-  const totalGeralVar    = dados.reduce((a,d)=>a+d.varandas,0);
-  const totalGeralCen    = dados.reduce((a,d)=>a+d.centros,0);
-
-  let html = `
-    <div style="background:#1e40af;border-radius:14px;padding:14px 18px;margin-bottom:12px">
-      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">🏆 Ranking de Enroladores</div>
-      <div style="font-size:12px;color:#93c5fd">Ordenado por peças enroladas em <strong style="color:#fff">${mesAtualNome} ${anoAtual}</strong></div>
-    </div>
-
-    <div style="background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px;width:100%">
-      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Totais gerais — todas as casas</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%">
-        <div class="metric">
-          <div class="metric-label">${mesAtualNome}</div>
-          <div class="metric-value" style="font-size:22px;color:#1e40af">${totalGeralMes}</div>
-          <div style="font-size:10px;color:#94a3b8">peças este mês</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Total acumulado</div>
-          <div class="metric-value" style="font-size:22px">${totalGeralAcum}</div>
-          <div style="font-size:10px;color:#94a3b8">peças enroladas</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Varanda Sofia</div>
-          <div class="metric-value" style="font-size:22px;color:#3266ad">${totalGeralVar}</div>
-          <div style="font-size:10px;color:#94a3b8">total acumulado</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Centro Luxo</div>
-          <div class="metric-value" style="font-size:22px;color:#1D9E75">${totalGeralCen}</div>
-          <div style="font-size:10px;color:#94a3b8">total acumulado</div>
-        </div>
-      </div>
-    </div>`;
+  let html = `<div style="font-size:12px;color:#666;margin-bottom:12px">Ordenado pelo total de peças já enroladas e devolvidas à fábrica.</div>`;
 
   html += dados.map((d,i)=>{
-    const ci  = enroladores.findIndex(e=>e.id===d.enr.id);
-    const c   = avatarColor(ci);
-    const bar = Math.round(d.enroladoMesAtual/maximoMes*100);
+    const ci = enroladores.findIndex(e=>e.id===d.enr.id);
+    const c  = avatarColor(ci);
+    const bar = Math.round(d.totalEnrolado/maximo*100);
     const destaque = i===0 ? 'border:2px solid #f5c842;' : '';
 
+    // Tabela mensal
     const mensalRows = d.mensal.length ? d.mensal.map(m=>{
       const nomeMes=`${MESES[m.mes-1]} ${m.ano}`;
-      const isMesAtual=`${m.ano}-${String(m.mes).padStart(2,'0')}`===anoMeAtual;
-      return `<tr style="${isMesAtual?'background:#eff6ff;':''}">
-        <td style="padding:5px 8px;font-size:11px;white-space:nowrap;font-weight:${isMesAtual?700:400};color:${isMesAtual?'#1e40af':'#475569'}">${nomeMes}${isMesAtual?' ◀':''}</td>
-        <td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:${isMesAtual?800:600};color:${isMesAtual?'#1e40af':'#1e293b'}">${m.total}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:center;color:#3266ad">${m.varandas}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:center;color:#1D9E75">${m.centros}</td>
+      const barMes=Math.round(m.total/maximo*100);
+      return `<tr>
+        <td style="padding:5px 6px;font-size:11px;white-space:nowrap;color:#444">${nomeMes}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center;font-weight:600">${m.total}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center;color:#3266ad">${m.varandas}</td>
+        <td style="padding:5px 6px;font-size:11px;text-align:center;color:#1D9E75">${m.centros}</td>
+        <td style="padding:5px 6px;width:80px">
+          <div style="height:4px;background:#f0f0f0;border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${barMes}%;background:${c};border-radius:99px"></div>
+          </div>
+        </td>
       </tr>`;
-    }).join('') : `<tr><td colspan="4" style="padding:8px;font-size:11px;color:#94a3b8">Nenhum recolhimento registrado ainda.</td></tr>`;
+    }).join('') : `<tr><td colspan="5" style="padding:8px 6px;font-size:11px;color:#999">Nenhum recolhimento registrado ainda.</td></tr>`;
 
     return `<div class="card" style="margin-bottom:10px;${destaque}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:24px;width:34px;text-align:center">${medalhas[i]||('<span style="font-size:13px;font-weight:700;color:#64748b">#'+(i+1)+'</span>')}</div>
-          <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(d.enr.nome)}</div>
-          <div>
-            <div style="font-size:14px;font-weight:700">${d.enr.nome}</div>
-            <div style="font-size:11px;color:#64748b">${d.enr.endereco||'—'}</div>
-          </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||'#'+(i+1)}</div>
+        <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(d.enr.nome)}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${d.enr.nome}</div>
+          <div style="font-size:11px;color:#666">${d.enr.endereco||'—'}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:11px;color:#64748b">${mesAtualNome}</div>
-          <div style="font-size:30px;font-weight:800;color:${c};line-height:1">${d.enroladoMesAtual}</div>
-          <div style="font-size:10px;color:#94a3b8;margin-top:2px">acumulado: <strong style="color:#475569">${d.totalEnrolado}</strong></div>
+          <div style="font-size:28px;font-weight:700;color:${c};line-height:1">${d.totalEnrolado}</div>
+          <div style="font-size:10px;color:#666">peças enroladas</div>
         </div>
       </div>
-
-      <div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-bottom:12px">
-        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px"></div>
+      <div style="height:8px;background:#f0f0f0;border-radius:99px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px;transition:width .5s"></div>
       </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;width:100%">
-        <div class="metric"><div class="metric-label">V. Sofia</div><div class="metric-value" style="font-size:16px;color:#3266ad">${d.varandas}</div></div>
-        <div class="metric"><div class="metric-label">C. Luxo</div><div class="metric-value" style="font-size:16px;color:#1D9E75">${d.centros}</div></div>
-        <div class="metric"><div class="metric-label">Taxa retorno</div><div class="metric-value" style="font-size:16px;color:${d.txRetorno>=80?'#059669':d.txRetorno>=50?'#d97706':'#dc2626'}">${d.txRetorno}%</div></div>
-        <div class="metric"><div class="metric-label">Pendentes</div><div class="metric-value" style="font-size:16px;color:${d.totalPendente>0?'#d97706':'#059669'}">${d.totalPendente}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+        <div class="metric"><div class="metric-label">Varanda Sofia</div><div class="metric-value" style="font-size:16px;color:#3266ad">${d.varandas}</div></div>
+        <div class="metric"><div class="metric-label">Centro Luxo</div><div class="metric-value" style="font-size:16px;color:#1D9E75">${d.centros}</div></div>
+        <div class="metric"><div class="metric-label">Taxa retorno</div><div class="metric-value" style="font-size:16px;color:${d.txRetorno>=80?'#2e7d32':d.txRetorno>=50?'#e65100':'#c62828'}">${d.txRetorno}%</div></div>
+        <div class="metric"><div class="metric-label">Pendentes</div><div class="metric-value" style="font-size:16px;color:${d.totalPendente>0?'#e65100':'#2e7d32'}">${d.totalPendente}</div></div>
       </div>
-
       <details>
-        <summary style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;user-select:none">▶ Resumo por mês</summary>
-        <div style="margin-top:10px;width:100%">
+        <summary style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;margin-bottom:0">
+          <span>▶</span> Resumo por mês
+        </summary>
+        <div style="margin-top:10px">
           <table style="width:100%;border-collapse:collapse">
-            <thead><tr style="background:#f8fafc">
-              <th style="padding:6px 8px;font-size:10px;font-weight:700;color:#64748b;text-align:left">Mês</th>
-              <th style="padding:6px 8px;font-size:10px;font-weight:700;color:#64748b;text-align:center">Total</th>
-              <th style="padding:6px 8px;font-size:10px;font-weight:700;color:#3266ad;text-align:center">V.Sofia</th>
-              <th style="padding:6px 8px;font-size:10px;font-weight:700;color:#1D9E75;text-align:center">C.Luxo</th>
-            </tr></thead>
+            <thead>
+              <tr style="background:#f5f5f7">
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:left">Mês</th>
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#666;text-align:center">Total</th>
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#3266ad;text-align:center">V.Sofia</th>
+                <th style="padding:5px 6px;font-size:10px;font-weight:600;color:#1D9E75;text-align:center">C.Luxo</th>
+                <th style="padding:5px 6px;width:80px"></th>
+              </tr>
+            </thead>
             <tbody>${mensalRows}</tbody>
-            <tfoot><tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
-              <td style="padding:7px 8px;font-size:11px;font-weight:700;color:#1e293b">Total do enrolador</td>
-              <td style="padding:7px 8px;font-size:13px;font-weight:800;text-align:center;color:#1e40af">${d.totalEnrolado}</td>
-              <td style="padding:7px 8px;font-size:11px;font-weight:700;text-align:center;color:#3266ad">${d.varandas}</td>
-              <td style="padding:7px 8px;font-size:11px;font-weight:700;text-align:center;color:#1D9E75">${d.centros}</td>
-            </tr></tfoot>
           </table>
         </div>
       </details>
@@ -1178,11 +1126,185 @@ function renderRanking(){
   return html;
 }
 
-// ── Valores e pagamento ──────────────────────────────────────
+// ── Entrega ──────────────────────────────────────────────────────
+function buildTiposInputs(cid){
+  const el=document.getElementById(cid);if(!el)return;
+  el.innerHTML=TIPOS.map(t=>`<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="${cid}-${t.id}" min="0" step="1" placeholder="0" value="0"></div>`).join('');
+}
+function getTiposValues(cid){const o={};TIPOS.forEach(t=>o[t.id]=parseInt(document.getElementById(`${cid}-${t.id}`)?.value)||0);return o;}
 
+function renderEntrega(){
+  setTimeout(()=>buildTiposInputs('e-tipos'),0);
+  return `<div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
+    <div id="e-ficha-opcao" style="display:none;margin-bottom:10px"></div>
+    <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
+    <div class="form-group"><label>Cor da fita</label><select id="e-cor"><option value="">Selecione...</option>${CORES.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Fita (rolos)</label><input type="number" id="e-fita" min="0" step="1" placeholder="0"></div>
+    <div class="form-group"><label>Fio (rolos)</label><input type="number" id="e-fio" min="0" step="1" placeholder="0"></div></div>
+    <hr class="divider"><div class="section-label">peças entregues <span style="font-size:10px;font-weight:400">★ = principais</span></div>
+    <div class="num-inputs" id="e-tipos"></div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="window._registrarEntrega()">Registrar entrega</button></div>
+  </div>`;
+}
 
+window._atualizarSelectRecolhimento=()=>{
+  const sel=document.getElementById('r-ficha');
+  if(!sel)return;
+  const valorAtual=sel.value;
+  const abertas=fichas.filter(f=>f.status==='aberta');
+  const enrolsComFichas=[...new Set(abertas.map(f=>f.enroladorId))]
+    .sort((a,b)=>{const na=getEnr(a)?.nome||'';const nb=getEnr(b)?.nome||'';return na.localeCompare(nb,'pt-BR');});
+  const optsHtml=enrolsComFichas.map(enrId=>{
+    const fichasEnr=abertas.filter(f=>f.enroladorId===enrId).sort((a,b)=>a.dataAbertura>b.dataAbertura?1:-1);
+    const enr=getEnr(enrId);
+    if(fichasEnr.length===1){
+      const f=fichasEnr[0];
+      return `<option value="${f.id}">${enr?.nome||'?'} — ficha de ${fmtDate(f.dataAbertura)} (${pendentes(f)} pend.)</option>`;
+    }
+    return `<optgroup label="${enr?.nome||'?'}">${fichasEnr.map(f=>`<option value="${f.id}">Ficha de ${fmtDate(f.dataAbertura)} — ${totalEnv(f)} env. / ${pendentes(f)} pend.</option>`).join('')}</optgroup>`;
+  }).join('');
+  sel.innerHTML=`<option value="">Selecione a ficha...</option>${optsHtml}`;
+  if(valorAtual) sel.value=valorAtual;
+};
 
+window._atualizarFichasEntrega=()=>{
+  const enrId=document.getElementById('e-enr').value;
+  const div=document.getElementById('e-ficha-opcao');
+  if(!enrId){div.style.display='none';div.innerHTML='';return;}
+  const abertas=fichas.filter(f=>f.enroladorId===enrId&&f.status==='aberta');
+  if(abertas.length===0){
+    div.style.display='none';
+    div.innerHTML='';
+  }else{
+    div.style.display='block';
+    const opts=abertas.map(f=>`<option value="${f.id}">Ficha aberta desde ${fmtDate(f.dataAbertura)} (${totalEnv(f)} peças enviadas)</option>`).join('');
+    div.innerHTML=`<div class="form-group"><label>Destino da entrega</label>
+      <select id="e-ficha-dest" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:7px 10px;background:#fff;color:#1d1d1f;width:100%">
+        <option value="nova">➕ Criar nova ficha</option>
+        ${opts}
+      </select>
+    </div>
+    <div class="info-box" style="margin-top:-4px">Se escolher uma ficha existente, a entrega será adicionada a ela. Caso contrário, uma nova ficha será criada.</div>`;
+  }
+};
 
+function renderRecolhimento(){
+  const abertas=fichas.filter(f=>f.status==='aberta');
+  // Agrupa por enrolador para exibir no select com separadores
+  const enrolsComFichas=[...new Set(abertas.map(f=>f.enroladorId))]
+    .sort((a,b)=>{const na=getEnr(a)?.nome||'';const nb=getEnr(b)?.nome||'';return na.localeCompare(nb,'pt-BR');});
+  const optsHtml=enrolsComFichas.map(enrId=>{
+    const fichasEnr=abertas.filter(f=>f.enroladorId===enrId)
+      .sort((a,b)=>a.dataAbertura>b.dataAbertura?1:-1);
+    const enr=getEnr(enrId);
+    if(fichasEnr.length===1){
+      const f=fichasEnr[0];
+      return `<option value="${f.id}">${enr?.nome||'?'} — ficha de ${fmtDate(f.dataAbertura)} (${pendentes(f)} pend.)</option>`;
+    }
+    // Mais de uma ficha: mostra grupo
+    return `<optgroup label="${enr?.nome||'?'}">${fichasEnr.map(f=>`<option value="${f.id}">Ficha de ${fmtDate(f.dataAbertura)} — ${totalEnv(f)} env. / ${pendentes(f)} pend.</option>`).join('')}</optgroup>`;
+  }).join('');
+  setTimeout(()=>buildTiposInputs('r-tipos'),0);
+  return `<div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar recolhimento</div>
+    <div class="info-box">Fita e fio são consumidos no enrolamento. Registre abaixo apenas se sobrou algum rolo.</div>
+    <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione a ficha...</option>${optsHtml}</select></div>
+    <div class="form-group"><label>Entregador</label><input type="text" id="r-entregador" placeholder="Nome de quem recolheu"></div></div>
+    <div class="form-group"><label>Data</label><input type="date" id="r-data" value="${today()}"></div>
+    <div class="form-row"><div class="form-group"><label>Fita sobrando (rolos)</label><input type="number" id="r-fita" min="0" step="1" placeholder="0"></div>
+    <div class="form-group"><label>Fio sobrando (rolos)</label><input type="number" id="r-fio" min="0" step="1" placeholder="0"></div></div>
+    <hr class="divider"><div class="section-label">peças recolhidas <span style="font-size:10px;font-weight:400">★ = principais</span></div>
+    <div class="num-inputs" id="r-tipos"></div>
+    <div style="margin-top:12px"><button class="btn btn-primary" onclick="window._registrarRecolhimento()">Registrar recolhimento</button></div>
+  </div>`;
+}
+
+window._registrarEntrega=async()=>{
+  const enrId=document.getElementById('e-enr').value;
+  const data=document.getElementById('e-data').value;
+  const entregador=document.getElementById('e-entregador').value.trim();
+  const cor=document.getElementById('e-cor').value;
+  const fita=parseInt(document.getElementById('e-fita').value)||0;
+  const fio=parseInt(document.getElementById('e-fio').value)||0;
+  const tipos=getTiposValues('e-tipos');
+  if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
+  if(!fita&&!fio&&!Object.values(tipos).reduce((a,v)=>a+v,0)){showToast('Registre pelo menos fita, fio ou alguma peça.');return;}
+  const novaEntrega={data,entregador,cor,fita,fio,tipos};
+  const destEl=document.getElementById('e-ficha-dest');
+  const dest=destEl?destEl.value:'nova';
+  if(dest&&dest!=='nova'){
+    // Adiciona à ficha existente
+    const ficha=getFicha(dest);
+    const entregas=[...(ficha.entregas||[]),novaEntrega];
+    await updateDoc(doc(db,'fichas',dest),{entregas});
+    showToast('Entrega adicionada à ficha existente!');
+  }else{
+    // Cria nova ficha
+    await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
+    showToast('Nova ficha criada com a entrega!');
+  }
+  // Limpa apenas os campos sem reconstruir o form inteiro
+  document.getElementById('e-data').value=today();
+  document.getElementById('e-cor').value='';
+  document.getElementById('e-fita').value='';
+  document.getElementById('e-fio').value='';
+  document.getElementById('e-entregador').value='';
+  buildTiposInputs('e-tipos');
+  // Atualiza as opções de ficha para o enrolador atual
+  window._atualizarFichasEntrega();
+};
+
+window._registrarRecolhimento=async()=>{
+  const fichaId=document.getElementById('r-ficha').value;
+  const data=document.getElementById('r-data').value;
+  const entregador=document.getElementById('r-entregador').value.trim();
+  const fitaSobrando=parseInt(document.getElementById('r-fita').value)||0;
+  const fioSobrando=parseInt(document.getElementById('r-fio').value)||0;
+  const tipos=getTiposValues('r-tipos');
+  if(!fichaId||!data){showToast('Selecione a ficha e a data.');return;}
+  const totalPecasRec=Object.values(tipos).reduce((a,v)=>a+v,0);
+  if(!totalPecasRec&&!fitaSobrando&&!fioSobrando){showToast('Registre pelo menos alguma peça recolhida.');return;}
+  const f=getFicha(fichaId);
+
+  // Validação: não permite recolher mais do que foi enviado por tipo
+  for(const t of TIPOS){
+    const jaRecol=somaRecol(f,t.id);
+    const enviado=somaEntr(f,t.id);
+    const tentando=tipos[t.id]||0;
+    if(jaRecol+tentando>enviado){
+      showToast(`Quantidade inválida: ${t.label} — enviadas: ${enviado}, já recolhidas: ${jaRecol}, máximo a recolher agora: ${enviado-jaRecol}.`);
+      return;
+    }
+  }
+
+  const recolhimentos=[...(f.recolhimentos||[]),{data,entregador,fitaSobrando,fioSobrando,tipos}];
+  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
+  const fAtual={...f,recolhimentos};
+  if(pendentes(fAtual)<=0){
+    showModal('Todas as peças retornaram!',
+      `<div style="font-size:13px;color:#444;line-height:1.6">As peças foram todas recolhidas. Deseja fechar a ficha de <strong>${getEnr(f.enroladorId)?.nome}</strong>?</div>`,
+      `<button class="btn btn-sm" onclick="window._closeModal()">Agora não</button>
+       <button class="btn btn-sm btn-success" onclick="window._fecharFichaDirecto('${fichaId}')">Fechar ficha</button>`);
+  }else{
+    showToast('Recolhimento registrado!');
+  }
+  // Limpa campos sem reconstruir o form — o listener do Firebase atualiza as fichas automaticamente
+  document.getElementById('r-ficha').value='';
+  document.getElementById('r-data').value=today();
+  document.getElementById('r-entregador').value='';
+  document.getElementById('r-fita').value='';
+  document.getElementById('r-fio').value='';
+  buildTiposInputs('r-tipos');
+};
+
+window._fecharFichaDirecto=async id=>{
+  closeModal();
+  await updateDoc(doc(db,'fichas',id),{status:'fechada'});
+  showToast('Ficha fechada!');
+};
 
 // ── Enroladores ──────────────────────────────────────────────────
 function renderEnroladores(){
@@ -1196,10 +1318,10 @@ function renderEnroladores(){
   html+=[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map((e,i)=>{
     const fList=fichas.filter(f=>f.enroladorId===e.id);
     const env=fList.reduce((a,f)=>a+totalEnv(f),0),rec=fList.reduce((a,f)=>a+totalRec(f),0);
-    const c=avatarColor(enroladores.findIndex(x=>x.id===e.id));
+    const c=avatarColor(i);
     return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">
       <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(e.nome)}</div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:700">${e.nome}</div><div style="font-size:11px;color:#64748b">${e.endereco||'—'}</div><div style="font-size:11px;color:#64748b">${e.telefone||'—'}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${e.nome}</div><div style="font-size:11px;color:#64748b">${e.endereco||'—'}</div><div style="font-size:11px;color:#64748b">${e.telefone||'—'}</div></div>
       <div style="text-align:right;margin-right:8px;flex-shrink:0"><div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Env./Recol.</div><div style="font-size:16px;font-weight:800;color:#1e293b">${env} / ${rec}</div></div>
       <button class="btn btn-sm btn-warn" onclick="window._editarEnrolador('${e.id}')">Editar</button>
       <button class="btn btn-sm btn-danger" onclick="window._excluirEnrolador('${e.id}')">Excluir</button>
@@ -1207,7 +1329,6 @@ function renderEnroladores(){
   }).join('');
   return html;
 }
-
 window._cadastrarEnr=async()=>{
   const nome=document.getElementById('en-nome').value.trim();
   const end=document.getElementById('en-end').value.trim();
@@ -1218,31 +1339,15 @@ window._cadastrarEnr=async()=>{
 };
 window._editarEnrolador=id=>{
   const e=enroladores.find(x=>x.id===id);if(!e)return;
-  const inp=(eid,label,val)=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="text" value="${val||''}" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>`;
+  const inp=(eid,label,val)=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="text" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
   showModal('Editar enrolador',inp('ee-enr-nome','Nome completo',e.nome)+inp('ee-enr-end','Endereço / Bairro',e.endereco)+inp('ee-enr-tel','Telefone',e.telefone),
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
 };
 window._salvarEnrolador=async id=>{
   const nome=document.getElementById('ee-enr-nome').value.trim();
   if(!nome){showToast('Informe o nome.');return;}
   await updateDoc(doc(db,'enroladores',id),{nome,endereco:document.getElementById('ee-enr-end').value.trim(),telefone:document.getElementById('ee-enr-tel').value.trim()});
   closeModal();showToast('Enrolador atualizado!');
-};
-window._excluirEnrolador=id=>{
-  const enr=enroladores.find(e=>e.id===id);if(!enr)return;
-  const temFichas=fichas.some(f=>f.enroladorId===id);
-  window._pendingExcluirEnrId=id;
-  const aviso=temFichas?'<div style="margin-top:8px;font-size:12px;background:#fee2e2;color:#991b1b;padding:8px 10px;border-radius:8px">⚠️ Este enrolador possui fichas. Exclua as fichas primeiro.</div>':'';
-  showModal('Excluir enrolador',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente <strong>${enr.nome}</strong>?${aviso}</div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>${!temFichas?`<button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirEnr()">Excluir</button>`:''}`);
-};
-window._confirmarExcluirEnr=async()=>{
-  const id=window._pendingExcluirEnrId;if(!id)return;
-  closeModal();
-  await deleteDoc(doc(db,'enroladores',id));
-  window._pendingExcluirEnrId=null;
-  showToast('Enrolador excluído.');
 };
 
 // ── Usuários ─────────────────────────────────────────────────────
@@ -1282,19 +1387,22 @@ window._cadastrarUsuario=async()=>{
   if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
   if(senha.length<6){showToast('A senha precisa ter pelo menos 6 caracteres.');return;}
   try{
+    // Cria usuário no Auth via Admin SDK não está disponível no client.
+    // Salvamos no Firestore e orientamos o admin a criar no console do Firebase.
     await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
-    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    showToast('Usuário salvo! Crie o login dele no Firebase Console → Authentication → Add user.');
     reloadTab();
-  }catch(e){showToast('Erro: '+e.message);}
+  }catch(e){showToast('Erro ao cadastrar: '+e.message);}
 };
+
 window._editarUsuario=id=>{
   const u=usuarios.find(x=>x.id===id);if(!u)return;
-  const inp=(eid,label,val,type='text')=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="${type}" value="${val||''}" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>`;
+  const inp=(eid,label,val,type='text')=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="${type}" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
   showModal(`Editar — ${u.nome}`,
     inp('eu-nome','Nome completo',u.nome)+
-    `<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}"${u.perfil===k?' selected':''}>${v.label}</option>`).join('')}</select></div>`+
+    `<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}"${u.perfil===k?' selected':''}>${v.label}</option>`).join('')}</select></div>`+
     inp('eu-email','E-mail',u.email,'email'),
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarUsuario('${id}')">Salvar</button>`);
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-primary" onclick="window._salvarUsuario('${id}')">Salvar</button>`);
 };
 window._salvarUsuario=async id=>{
   const nome=document.getElementById('eu-nome').value.trim();
@@ -1308,31 +1416,62 @@ window._excluirUsuario=id=>{
   const u=usuarios.find(x=>x.id===id);if(!u)return;
   window._pendingExcluirUsuarioId=id;
   showModal('Excluir usuário',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir <strong>${u.nome}</strong> do sistema?</div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirUsuario()">Excluir</button>`);
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir <strong>${u.nome}</strong> do sistema? Esta ação não pode ser desfeita.</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirUsuario()">Excluir</button>`);
 };
 window._confirmarExcluirUsuario=async()=>{
-  const id=window._pendingExcluirUsuarioId;if(!id)return;
+  const id=window._pendingExcluirUsuarioId;
+  if(!id)return;
   closeModal();
   await deleteDoc(doc(db,'usuarios',id));
   window._pendingExcluirUsuarioId=null;
-  showToast('Usuário removido.');
+  showToast('Usuário removido. Remova também no Firebase Console → Authentication.');
+};
+
+// ── Excluir ficha e enrolador ────────────────────────────────────
+window._excluirFicha=id=>{
+  const enr=getEnr(getFicha(id)?.enroladorId);
+  window._pendingExcluirFichaId=id;
+  showModal('Excluir ficha',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente a ficha de <strong>${enr?.nome}</strong>? Todos os registros de entrega e recolhimento serão apagados. Esta ação não pode ser desfeita.</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirFicha()">Excluir ficha</button>`);
+};
+window._confirmarExcluirFicha=async()=>{
+  const id=window._pendingExcluirFichaId;if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'fichas',id));
+  window._pendingExcluirFichaId=null;
+  showToast('Ficha excluída.');
+};
+
+window._excluirEnrolador=id=>{
+  const enr=enroladores.find(e=>e.id===id);if(!enr)return;
+  const temFichas=fichas.some(f=>f.enroladorId===id);
+  window._pendingExcluirEnrId=id;
+  const aviso=temFichas?'<div style="margin-top:8px;font-size:12px;background:#ffebee;color:#c62828;padding:8px 10px;border-radius:8px">⚠️ Este enrolador possui fichas cadastradas. Exclua as fichas primeiro antes de excluir o enrolador.</div>':'';
+  showModal('Excluir enrolador',
+    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente o enrolador <strong>${enr.nome}</strong>?${aviso}</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     ${!temFichas?`<button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirEnr()">Excluir</button>`:''}`);
+};
+window._confirmarExcluirEnr=async()=>{
+  const id=window._pendingExcluirEnrId;if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'enroladores',id));
+  window._pendingExcluirEnrId=null;
+  showToast('Enrolador excluído.');
 };
 
 // ── Ações fichas ─────────────────────────────────────────────────
-window._fecharFichaDirecto=async id=>{
-  closeModal();
-  await updateDoc(doc(db,'fichas',id),{status:'fechada'});
-  showToast('Ficha fechada!');
-};
 window._fecharFicha=id=>{
   const enr=getEnr(getFicha(id)?.enroladorId);
   window._pendingFichaId=id;
   showModal('Fechar ficha',
     `<div style="font-size:13px;color:#444;line-height:1.6">Fechar a ficha de <strong>${enr?.nome}</strong> e enviar ao financeiro?</div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-success btn-sm" onclick="window._confirmarFecharFicha()">Fechar ficha</button>`);
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-success" onclick="window._confirmarFecharFicha()">Fechar ficha</button>`);
 };
 window._confirmarFecharFicha=async()=>{
   const id=window._pendingFichaId;if(!id)return;
@@ -1346,8 +1485,8 @@ window._confirmarPago=id=>{
   window._pendingPagoId=id;
   showModal('Confirmar pagamento',
     `<div style="font-size:13px;color:#444;line-height:1.6">Confirma o pagamento da ficha de <strong>${enr?.nome}</strong>?</div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-primary btn-sm" onclick="window._confirmarPagoAction()">Confirmar</button>`);
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-primary" onclick="window._confirmarPagoAction()">Confirmar</button>`);
 };
 window._confirmarPagoAction=async()=>{
   const id=window._pendingPagoId;if(!id)return;
@@ -1356,152 +1495,79 @@ window._confirmarPagoAction=async()=>{
   window._pendingPagoId=null;
   showToast('Pagamento registrado!');
 };
-window._excluirFicha=id=>{
-  const enr=getEnr(getFicha(id)?.enroladorId);
-  window._pendingExcluirFichaId=id;
-  showModal('Excluir ficha',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente a ficha de <strong>${enr?.nome}</strong>? Esta ação não pode ser desfeita.</div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirFicha()">Excluir ficha</button>`);
-};
-window._confirmarExcluirFicha=async()=>{
-  const id=window._pendingExcluirFichaId;if(!id)return;
-  closeModal();
-  await deleteDoc(doc(db,'fichas',id));
-  window._pendingExcluirFichaId=null;
-  showToast('Ficha excluída.');
-};
-window._excluirEntrada=(fichaId,idx)=>{
-  window._pendingExcluirEntrega={fichaId,idx};
-  showModal('Excluir entrega',
-    '<div style="font-size:13px;color:#444">Tem certeza que deseja excluir este registro?</div>',
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirEntrada()">Excluir</button>`);
-};
-window._confirmarExcluirEntrada=async()=>{
-  const {fichaId,idx}=window._pendingExcluirEntrega||{};if(!fichaId)return;
-  closeModal();
-  const f=getFicha(fichaId);
-  const entregas=[...(f.entregas||[])];
-  entregas.splice(idx,1);
-  await updateDoc(doc(db,'fichas',fichaId),{entregas});
-  showToast('Entrega excluída.');
-};
-window._excluirRecolhimento=(fichaId,idx)=>{
-  window._pendingExcluirRecolh={fichaId,idx};
-  showModal('Excluir recolhimento',
-    '<div style="font-size:13px;color:#444">Tem certeza que deseja excluir este registro?</div>',
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirRecolh()">Excluir</button>`);
-};
-window._confirmarExcluirRecolh=async()=>{
-  const {fichaId,idx}=window._pendingExcluirRecolh||{};if(!fichaId)return;
-  closeModal();
-  const f=getFicha(fichaId);
-  const recolhimentos=[...(f.recolhimentos||[])];
-  recolhimentos.splice(idx,1);
-  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
-  showToast('Recolhimento excluído.');
-};
 
-// ── Registrar entrega ─────────────────────────────────────────────
-window._registrarEntrega=async()=>{
-  const enrId=document.getElementById('e-enr').value;
-  const data=document.getElementById('e-data').value;
-  const entregador=document.getElementById('e-entregador').value.trim();
-  const cor=document.getElementById('e-cor').value;
-  const fita=parseInt(document.getElementById('e-fita').value)||0;
-  const fio=parseInt(document.getElementById('e-fio').value)||0;
-  const tipos=getTiposValues('e-tipos');
-  if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
-  if(!fita&&!fio&&!Object.values(tipos).reduce((a,v)=>a+v,0)){showToast('Registre pelo menos fita, fio ou alguma peça.');return;}
-  const novaEntrega={data,entregador,cor,fita,fio,tipos};
-  const destEl=document.getElementById('e-ficha-dest');
-  const dest=destEl?destEl.value:'nova';
-  if(dest&&dest!=='nova'){
-    const ficha=getFicha(dest);
-    const entregas=[...(ficha.entregas||[]),novaEntrega];
-    await updateDoc(doc(db,'fichas',dest),{entregas});
-    showToast('Entrega adicionada à ficha existente!');
-  }else{
-    await addDoc(collection(db,'fichas'),{enroladorId:enrId,dataAbertura:data,status:'aberta',pago:false,entregas:[novaEntrega],recolhimentos:[]});
-    showToast('Nova ficha criada com a entrega!');
-  }
-  document.getElementById('e-data').value=today();
-  document.getElementById('e-cor').value='';
-  document.getElementById('e-fita').value='';
-  document.getElementById('e-fio').value='';
-  document.getElementById('e-entregador').value='';
-  buildTiposInputs('e-tipos');
-  window._atualizarFichasEntrega();
-};
-
-// ── Registrar recolhimento ────────────────────────────────────────
-window._registrarRecolhimento=async()=>{
-  const fichaId=document.getElementById('r-ficha').value;
-  const data=document.getElementById('r-data').value;
-  const entregador=document.getElementById('r-entregador').value.trim();
-  const fitaSobrando=parseInt(document.getElementById('r-fita').value)||0;
-  const fioSobrando=parseInt(document.getElementById('r-fio').value)||0;
-  const tipos=getTiposValues('r-tipos');
-  if(!fichaId||!data){showToast('Selecione a ficha e a data.');return;}
-  const totalPecasRec=Object.values(tipos).reduce((a,v)=>a+v,0);
-  if(!totalPecasRec&&!fitaSobrando&&!fioSobrando){showToast('Registre pelo menos alguma peça recolhida.');return;}
-  const f=getFicha(fichaId);
-  for(const t of TIPOS){
-    const jaRecol=somaRecol(f,t.id);
-    const enviado=somaEntr(f,t.id);
-    const tentando=tipos[t.id]||0;
-    if(jaRecol+tentando>enviado){
-      showToast(`Qtd. inválida: ${t.label} — enviadas: ${enviado}, já recolhidas: ${jaRecol}, máximo: ${enviado-jaRecol}.`);
-      return;
-    }
-  }
-  const recolhimentos=[...(f.recolhimentos||[]),{data,entregador,fitaSobrando,fioSobrando,tipos}];
-  await updateDoc(doc(db,'fichas',fichaId),{recolhimentos});
-  const fAtual={...f,recolhimentos};
-  if(pendentes(fAtual)<=0){
-    showModal('Todas as peças retornaram!',
-      `<div style="font-size:13px;color:#444;line-height:1.6">Deseja fechar a ficha de <strong>${getEnr(f.enroladorId)?.nome}</strong>?</div>`,
-      `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Agora não</button>
-       <button class="btn btn-success btn-sm" onclick="window._fecharFichaDirecto('${fichaId}')">Fechar ficha</button>`);
-  }else{
-    showToast('Recolhimento registrado!');
-  }
-  document.getElementById('r-ficha').value='';
-  document.getElementById('r-data').value=today();
-  document.getElementById('r-entregador').value='';
-  document.getElementById('r-fita').value='';
-  document.getElementById('r-fio').value='';
-  buildTiposInputs('r-tipos');
-};
-
-// ── Firebase listeners em tempo real ─────────────────────────────
+// ── Firebase listeners em tempo real ────────────────────────────
 function iniciarListeners(){
-  onSnapshot(collection(db,'enroladores'),snap=>{
+  if(unsubEnroladores)unsubEnroladores();
+  if(unsubFichas)unsubFichas();
+  if(unsubUsuarios)unsubUsuarios();
+
+  unsubEnroladores=onSnapshot(collection(db,'enroladores'),snap=>{
     enroladores=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData)reloadTab();
   });
-  onSnapshot(collection(db,'fichas'),snap=>{
+
+  unsubFichas=onSnapshot(collection(db,'fichas'),snap=>{
     fichas=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData){
-      if(currentTab==='entregar'){window._atualizarFichasEntrega&&window._atualizarFichasEntrega();}
-      else if(currentTab==='recolher'){window._atualizarSelectRecolhimento&&window._atualizarSelectRecolhimento();}
-      else{reloadTab();}
+      // Se estiver na aba entrega ou recolhimento, atualiza apenas os selects de ficha
+      if(currentTab==='entregar'){
+        window._atualizarFichasEntrega&&window._atualizarFichasEntrega();
+      }else if(currentTab==='recolher'){
+        window._atualizarSelectRecolhimento&&window._atualizarSelectRecolhimento();
+      }else{
+        reloadTab();
+      }
     }
   });
-  onSnapshot(collection(db,'usuarios'),snap=>{
+
+  unsubUsuarios=onSnapshot(collection(db,'usuarios'),snap=>{
     usuarios=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentTab==='usuarios')reloadTab();
   });
+
+  // Listener de valores unitários
   onSnapshot(doc(db,'configuracoes','valores'),snap=>{
-    if(snap.exists()){valoresPecas={...valoresPecas,...snap.data()};if(currentUserData)reloadTab();}
+    if(snap.exists()){
+      valoresPecas={...valoresPecas,...snap.data()};
+      if(currentUserData)reloadTab();
+    }
   });
 }
 
 function pararListeners(){
-  // listeners são gerenciados pelo Firebase SDK
+  if(unsubEnroladores)unsubEnroladores();
+  if(unsubFichas)unsubFichas();
+  if(unsubUsuarios)unsubUsuarios();
+  unsubEnroladores=unsubFichas=unsubUsuarios=null;
 }
+
+// ── Auth state ───────────────────────────────────────────────────
+document.getElementById('root').innerHTML=`<div class="loading"><div class="spinner"></div><div>Carregando...</div></div>`;
+
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    currentUser=user;
+    // Busca perfil do usuário no Firestore
+    const snap=await getDocs(collection(db,'usuarios'));
+    const uDoc=snap.docs.find(d=>d.data().uid===user.uid||d.data().email===user.email);
+    if(uDoc){
+      currentUserData={id:uDoc.id,...uDoc.data()};
+    }else{
+      // Primeiro acesso do admin: cria registro automaticamente
+      currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
+    }
+    currentTab=can('verPainel')?'painel':'fichas';
+    iniciarListeners();
+    render();
+  }else{
+    currentUser=null;currentUserData=null;
+    pararListeners();
+    enroladores=[];fichas=[];usuarios=[];
+    render();
+  }
+});
+
 
 </script>
 </body>
