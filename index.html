@@ -41,7 +41,7 @@
   .page-title{font-size:18px;font-weight:800;color:#1e293b;margin-bottom:16px}
 
   /* ── Cards ── */
-  .card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.08);width:100%}
   .card-sm{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 
   /* ── Stat cards coloridos ── */
@@ -60,7 +60,7 @@
   .metric-value{font-size:18px;font-weight:700;color:#1e293b}
 
   /* ── Fichas ── */
-  .ficha-card{background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #e2e8f0}
+  .ficha-card{background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #e2e8f0;width:100%}
   .ficha-card.aberta{border-left-color:#3b82f6}
   .ficha-card.retornando{border-left-color:#f59e0b}
   .ficha-card.pronto{border-left-color:#10b981}
@@ -418,7 +418,7 @@ function renderPainel(){
   const vNovaFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_nova')-somaRecol(f,'varanda_nova'),0);
   const cNovoFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_novo')-somaRecol(f,'centro_novo'),0);
   let html=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;width:100%">
       <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
         <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
         <div><div class="stat-label">Varanda Sofia</div><div class="stat-value">${vFora}</div><div class="stat-sub">nas casas</div></div>
@@ -428,7 +428,7 @@ function renderPainel(){
         <div><div class="stat-label">Centro Luxo</div><div class="stat-value">${cFora}</div><div class="stat-sub">nas casas</div></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;width:100%">
       <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
         <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
         <div><div class="stat-label">Varanda Nova</div><div class="stat-value">${vNovaFora}</div><div class="stat-sub">nas casas</div></div>
@@ -438,7 +438,7 @@ function renderPainel(){
         <div><div class="stat-label">Centro Novo</div><div class="stat-value">${cNovoFora}</div><div class="stat-sub">nas casas</div></div>
       </div>
     </div>
-    <div class="metrics-row">
+    <div class="metrics-row" style="width:100%">
       <div class="metric"><div class="metric-label">Peças fora</div><div class="metric-value">${tEnv-tRec}</div></div>
       <div class="metric"><div class="metric-label">Total enviado</div><div class="metric-value">${tEnv}</div></div>
       <div class="metric"><div class="metric-label">Fichas abertas</div><div class="metric-value">${abertas.length}</div></div>
@@ -481,7 +481,7 @@ function renderPainel(){
           ${podeFechar?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar</button>`:''}
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:${gridCols};gap:8px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:${gridCols};gap:8px;margin-bottom:10px;width:100%">
         ${miniCards}
       </div>
       <table class="tipos-table"><thead><tr><th>Tipo</th><th style="text-align:center">Env.</th><th style="text-align:center">Recol.</th><th style="text-align:center">Pend.</th><th></th></tr></thead><tbody>${rows}</tbody>
@@ -560,13 +560,13 @@ function fichasInner(lista,isEntregador){
           <span class="badge ${sl}">${st2}</span>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;width:100%">
         <div class="metric"><div class="metric-label">Enviadas</div><div class="metric-value" style="font-size:18px;font-weight:700">${env}</div></div>
         <div class="metric"><div class="metric-label">Recolhidas</div><div class="metric-value" style="font-size:18px;font-weight:700">${rec}</div></div>
         <div class="metric"><div class="metric-label">Pendentes</div><div class="metric-value" style="font-size:17px;color:${pend>0?'#e65100':'#2e7d32'}">${pend}</div></div>
         <div class="metric"><div class="metric-label">Retorno</div><div class="metric-value" style="font-size:18px;font-weight:700">${pct}%</div></div>
       </div>
-      ${!isEntregador?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      ${!isEntregador?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;width:100%">
         <div class="metric"><div class="metric-label">fita env./sob.</div><div class="metric-value" style="font-size:13px">${fitaEnv} rolos${fitaSob>0?' / '+fitaSob+' sobrou':''}</div></div>
         <div class="metric"><div class="metric-label">fio env./sob.</div><div class="metric-value" style="font-size:13px">${fioEnv} rolos${fioSob>0?' / '+fioSob+' sobrou':''}</div></div>
       </div>`:''}
