@@ -2277,6 +2277,7 @@ function renderPainelMetal(){
 
 // ── Apontamento metalúrgica ───────────────────────────────────────
 function renderApontar(){
+  const isAdmin=currentUserData?.perfil==='admin'||currentUserData?.perfil==='encarregado_cad'||currentUserData?.perfil==='apontador_metal';
   const opts=[...soldadores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
     .map(s=>`<option value="${s.id}">${s.nome}</option>`).join('');
 
@@ -2287,7 +2288,39 @@ function renderApontar(){
         style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif">
     </div>`).join('');
 
-  return `<div class="card">
+  // Histórico dos últimos apontamentos
+  const historico=[...apontamentosMetal]
+    .sort((a,b)=>b.criadoEm>a.criadoEm?1:-1)
+    .slice(0,50);
+
+  const historicoRows=historico.map(a=>{
+    const sol=soldadores.find(s=>s.id===a.soldadorId);
+    const totalPecas=Object.values(a.pecas||{}).reduce((s,v)=>s+(parseInt(v)||0),0);
+    const resumo=PECAS_METAL_FULL
+      .filter(p=>(a.pecas||{})[p.id]>0)
+      .map(p=>`<span style="font-size:10px;background:${p.reforma?'#ede9fe':'#f1f5f9'};color:${p.reforma?'#7c3aed':'#475569'};padding:2px 7px;border-radius:99px;display:inline-block;margin:1px">${p.label}: ${a.pecas[p.id]}</span>`)
+      .join('');
+    const ci=soldadores.findIndex(s=>s.id===a.soldadorId);
+    const c=avatarColor(ci);
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${initials(sol?.nome||'?')}</div>
+          <div>
+            <div style="font-size:13px;font-weight:700">${sol?.nome||'Desconhecido'}</div>
+            <div style="font-size:11px;color:#64748b">${fmtDate(a.data)} · ${totalPecas} peças</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-warn" onclick="window._editarApontMetal('${a.id}')">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="window._excluirApontMetal('${a.id}')">Excluir</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:2px">${resumo||'<span style="font-size:11px;color:#94a3b8">Nenhuma peça registrada</span>'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card" style="margin-bottom:16px">
     <div style="font-size:13px;font-weight:600;margin-bottom:14px">Registrar produção</div>
     <div class="form-row" style="margin-bottom:14px">
       <div class="form-group"><label>Soldador</label><select id="ap-soldador">${opts}</select></div>
@@ -2299,8 +2332,11 @@ function renderApontar(){
       <button class="btn btn-primary" onclick="window._registrarApontMetal()">Registrar produção</button>
       <button class="btn btn-ghost" onclick="window._limparApontMetal()">Limpar</button>
     </div>
-  </div>`;
+  </div>
+  <div class="section-label">Histórico de apontamentos</div>
+  ${historico.length ? historicoRows : '<div class="card"><div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Nenhum apontamento registrado ainda.</div></div>'}`;
 }
+
 
 window._registrarApontMetal=async()=>{
   const soldadorId=document.getElementById('ap-soldador').value;
@@ -2318,7 +2354,57 @@ window._registrarApontMetal=async()=>{
   window._limparApontMetal();
 };
 window._limparApontMetal=()=>{
-  PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById(`ap-${p.id}`);if(el)el.value=0;});
+  PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value=0;});
+};
+
+window._excluirApontMetal=id=>{
+  showModal('Excluir apontamento',
+    '<div style="font-size:13px;color:#444">Excluir este registro de produção? Esta ação não pode ser desfeita.</div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirApoint(&quot;'+id+'&quot;)">Excluir</button>');
+};
+window._confirmarExcluirApoint=async id=>{
+  closeModal();
+  await deleteDoc(doc(db,'apontamentos_metal',id));
+  showToast('Apontamento excluído.');
+};
+
+window._editarApontMetal=id=>{
+  const a=apontamentosMetal.find(x=>x.id===id);if(!a)return;
+  const sol=soldadores.find(s=>s.id===a.soldadorId);
+  const opts=[...soldadores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
+    .map(s=>'<option value="'+s.id+'"'+(s.id===a.soldadorId?' selected':'')+'>'+s.nome+'</option>').join('');
+  const grid=PECAS_METAL_FULL.map(p=>{
+    const val=(a.pecas||{})[p.id]||0;
+    return '<div class="num-group">'
+      +'<label style="font-size:10px;'+(p.reforma?'color:#7c3aed':'')+'">'+(p.label)+'</label>'
+      +'<input type="number" id="ea-'+p.id+'" min="0" step="1" value="'+val+'"'
+      +' style="font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:5px 6px;text-align:center;font-family:Nunito,sans-serif;width:100%">'
+      +'</div>';
+  }).join('');
+  showModal('Editar apontamento — '+(sol?.nome||''),
+    '<div class="form-row" style="margin-bottom:12px">'
+    +'<div class="form-group"><label>Soldador</label><select id="ea-soldador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+opts+'</select></div>'
+    +'<div class="form-group"><label>Data</label><input type="date" id="ea-data" value="'+a.data+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px">PEÇAS PRODUZIDAS</div>'
+    +'<div class="num-inputs">'+grid+'</div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarEdicaoApoint(&quot;'+id+'&quot;)">Salvar</button>',
+    true);
+};
+
+window._salvarEdicaoApoint=async id=>{
+  const soldadorId=document.getElementById('ea-soldador').value;
+  const data=document.getElementById('ea-data').value;
+  const pecas={};
+  PECAS_METAL_FULL.forEach(p=>{
+    const v=parseInt(document.getElementById('ea-'+p.id)?.value)||0;
+    if(v>0) pecas[p.id]=v;
+  });
+  await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas});
+  closeModal();
+  showToast('Apontamento atualizado!');
 };
 
 // ── Soldadores cadastro ───────────────────────────────────────────
