@@ -1556,7 +1556,7 @@ function renderRanking(){
 
 function buildTiposInputs(cid){
   const el=document.getElementById(cid);if(!el)return;
-  el.innerHTML=TIPOS.map(t=>`<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="${cid}-${t.id}" min="0" step="1" placeholder="0" value="0"></div>`).join('');
+  el.innerHTML=TIPOS.map(t=>`<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="${cid}-${t.id}" min="0" step="1" placeholder="0" onfocus="this.select()"></div>`).join('');
 }
 function getTiposValues(cid){const o={};TIPOS.forEach(t=>o[t.id]=parseInt(document.getElementById(`${cid}-${t.id}`)?.value)||0);return o;}
 
@@ -1569,8 +1569,8 @@ function renderEntrega(){
     <div id="e-ficha-opcao" style="display:none;margin-bottom:10px"></div>
     <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
     <div class="form-group"><label>Cor da fita</label><select id="e-cor"><option value="">Selecione...</option>${CORES.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
-    <div class="form-row"><div class="form-group"><label>Fita (rolos)</label><input type="number" id="e-fita" min="0" step="1" placeholder="0"></div>
-    <div class="form-group"><label>Fio (rolos)</label><input type="number" id="e-fio" min="0" step="1" placeholder="0"></div></div>
+    <div class="form-row"><div class="form-group"><label>Fita (rolos)</label><input type="number" id="e-fita" min="0" step="1" placeholder="0" onfocus="this.select()"></div>
+    <div class="form-group"><label>Fio (rolos)</label><input type="number" id="e-fio" min="0" step="1" placeholder="0" onfocus="this.select()"></div></div>
     <hr class="divider"><div class="section-label">peças entregues <span style="font-size:10px;font-weight:400">★ = principais</span></div>
     <div class="num-inputs" id="e-tipos"></div>
     <div style="margin-top:12px"><button class="btn btn-primary" onclick="window._registrarEntrega()">Registrar entrega</button></div>
@@ -1659,8 +1659,8 @@ function renderRecolhimento(){
     <div class="form-row"><div class="form-group"><label>Ficha (enrolador)</label><select id="r-ficha"><option value="">Selecione a ficha...</option>${optsHtml}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="r-entregador" placeholder="Nome de quem recolheu"></div></div>
     <div class="form-group"><label>Data</label><input type="date" id="r-data" value="${today()}"></div>
-    <div class="form-row"><div class="form-group"><label>Fita sobrando (rolos)</label><input type="number" id="r-fita" min="0" step="1" placeholder="0"></div>
-    <div class="form-group"><label>Fio sobrando (rolos)</label><input type="number" id="r-fio" min="0" step="1" placeholder="0"></div></div>
+    <div class="form-row"><div class="form-group"><label>Fita sobrando (rolos)</label><input type="number" id="r-fita" min="0" step="1" placeholder="0" onfocus="this.select()"></div>
+    <div class="form-group"><label>Fio sobrando (rolos)</label><input type="number" id="r-fio" min="0" step="1" placeholder="0" onfocus="this.select()"></div></div>
     <hr class="divider"><div class="section-label">peças recolhidas <span style="font-size:10px;font-weight:400">★ = principais</span></div>
     <div class="num-inputs" id="r-tipos"></div>
     <div style="margin-top:12px"><button class="btn btn-primary" onclick="window._registrarRecolhimento()">Registrar recolhimento</button></div>
@@ -2345,8 +2345,9 @@ function renderApontar(){
   const grid=PECAS_METAL_FULL.map(p=>`
     <div class="num-group">
       <label style="font-size:10px;${p.reforma?'color:#7c3aed':''}">${p.label}</label>
-      <input type="number" id="ap-${p.id}" min="0" step="1" placeholder="0" value="0"
-        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif">
+      <input type="number" id="ap-${p.id}" min="0" step="1" placeholder="0"
+        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif"
+        onfocus="this.select()">
     </div>`).join('');
 
   // Histórico dos últimos apontamentos
@@ -2415,7 +2416,7 @@ window._registrarApontMetal=async()=>{
   window._limparApontMetal();
 };
 window._limparApontMetal=()=>{
-  PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value=0;});
+  PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value='';});
 };
 
 window._excluirApontMetal=id=>{
@@ -2560,7 +2561,7 @@ function renderConfigMetal(){
       <label style="font-size:10px">${p.label}</label>
       <input type="number" id="meta-${p.id}" min="0" step="1" placeholder="0"
         value="${parseInt(metas[p.id])||0}"
-        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif">
+        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif" onfocus="this.select()">
     </div>`).join('');
 
   const tabelaPrecos=(prefixId, titulo, descricao, cor, pecas, valoresObj)=>`
