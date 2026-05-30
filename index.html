@@ -314,7 +314,8 @@ let enroladores=[];
 let notificacoes=[];
 let soldadores=[];
 let apontamentosMetal=[];
-let configMetal={metas:{},valores:{}}; // metas e valores por soldador
+let fichasMetal=[];
+let configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{}}; // configurações da metalúrgica
 let fichas=[];
 let usuarios=[];
 let unsubFichas=null;
@@ -457,8 +458,9 @@ const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
   'relatorio':'Relatório','ranking':'Ranking','valores':'Pagamentos',
   'enroladores':'Enroladores','usuarios':'Usuários',
-  'painel_metal':'Painel','apontar':'Apontamento','soldadores_metal':'Soldadores',
-  'config_metal':'Configurações','minha_prod':'Minha Produção','ranking_metal':'Ranking',
+  'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
+  'soldadores_metal':'Soldadores','config_metal':'Configurações',
+  'minha_prod':'Minha Produção','ranking_metal':'Ranking',
 };
 // ── Seleção de fábrica ──────────────────────────────────────────
 function renderSelecionarFabrica(){
@@ -605,7 +607,7 @@ function renderApp(){
     // Tabs da metalúrgica
     const perfMetal=currentUserData?.perfil;
     if(['admin','encarregado_cad','apontador_metal'].includes(perfMetal)){
-      tabs.push('painel_metal','apontar','soldadores_metal','config_metal');
+      tabs.push('painel_metal','apontar','fichas_metal','soldadores_metal','config_metal');
     }else if(perfMetal==='soldador'){
       tabs.push('minha_prod','ranking_metal');
     }else{
@@ -2197,6 +2199,23 @@ function calcGanhoSoldador(soldadorId, periodo){
 
 function fmtR(v){ return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
 
+// ── Helpers fichas metalúrgica ──────────────────────────────────
+function calcGanhoFichaMetal(fichaId){
+  const ficha=fichasMetal.find(f=>f.id===fichaId);
+  if(!ficha) return 0;
+  return calcGanhoSoldador(ficha.soldadorId, ficha.quinzena);
+}
+
+function getFichaMetal(soldadorId, quinzena){
+  return fichasMetal.find(f=>f.soldadorId===soldadorId&&f.quinzena===quinzena);
+}
+
+function totalPecasFicha(soldadorId, quinzena){
+  return apontamentosMetal
+    .filter(a=>a.soldadorId===soldadorId&&getQuinzena(a.data)===quinzena)
+    .reduce((sum,a)=>sum+Object.values(a.pecas||{}).reduce((s,v)=>s+(parseInt(v)||0),0),0);
+}
+
 // ── Painel metalúrgica ────────────────────────────────────────────
 function renderPainelMetal(){
   const hoje_=today();
@@ -2704,15 +2723,132 @@ function renderRankingMetal(){
   }).join(''):'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada neste período.</div></div>'}`;
 }
 
+// ── Fichas quinzenais metalúrgica ────────────────────────────────
+function renderFichasMetal(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const qAtual=getQuinzenaAtual();
+  const isAdmin=['admin','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
+
+  // Agrupar fichas por quinzena
+  const quinzenas=[...new Set([
+    qAtual,
+    ...[...fichasMetal].map(f=>f.quinzena)
+  ])].sort((a,b)=>b>a?1:-1);
+
+  let html='';
+
+  quinzenas.forEach(q=>{
+    const label=quinzenaLabel(q);
+    const isAtual=q===qAtual;
+
+    html+=`<div style="font-size:13px;font-weight:700;color:${isAtual?'#1e40af':'#475569'};margin:16px 0 8px;display:flex;align-items:center;gap:8px">
+      ${label} ${isAtual?'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:99px;font-weight:600">atual</span>':''}
+    </div>`;
+
+    soldadores.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).forEach((sol,i)=>{
+      const ficha=getFichaMetal(sol.id,q);
+      const totalPecas=totalPecasFicha(sol.id,q);
+      const ganho=calcGanhoSoldador(sol.id,q);
+      const c=avatarColor(soldadores.findIndex(s=>s.id===sol.id));
+      const status=ficha?.status||'aberta';
+      const pago=ficha?.pago||false;
+
+      // Detalhamento por peça
+      const pecasQ=PECAS_METAL_FULL.filter(p=>totalPecaPeriodo(sol.id,p.id,q)>0);
+      const detalhe=pecasQ.map(p=>{
+        const qtd=totalPecaPeriodo(sol.id,p.id,q);
+        return `<span style="font-size:10px;background:${p.reforma?'#ede9fe':'#f1f5f9'};color:${p.reforma?'#7c3aed':'#475569'};padding:2px 7px;border-radius:99px;margin:1px;display:inline-block">${p.label}: ${qtd}</span>`;
+      }).join('');
+
+      const badgeStatus=status==='fechada'
+        ?(pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>'
+            :'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:99px;font-weight:700">Fechada</span>')
+        :'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700">Em aberto</span>';
+
+      const btnFechar=isAdmin&&status==='aberta'&&totalPecas>0
+        ?`<button class="btn btn-sm btn-success" onclick="window._fecharFichaMetal('${sol.id}','${q}')">Fechar ficha</button>`:'';
+      const btnPagar=isAdmin&&status==='fechada'&&!pago&&['admin','financeiro'].includes(currentUserData?.perfil)
+        ?`<button class="btn btn-sm btn-primary" onclick="window._pagarFichaMetal('${ficha?.id}')">Marcar pago</button>`:'';
+
+      html+=`<div class="card" style="margin-bottom:8px${status==='fechada'?';border-left:4px solid '+(pago?'#10b981':'#8b5cf6'):';border-left:4px solid #3b82f6'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${detalhe?'10px':'0'}">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">${initials(sol.nome)}</div>
+            <div>
+              <div style="font-size:14px;font-weight:700">${sol.nome}</div>
+              <div style="font-size:11px;color:#64748b">${sol.contrato==='producao'?'Por produção':'Fichado'} · ${totalPecas} peças</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            ${badgeStatus}
+            <div style="text-align:right">
+              <div style="font-size:10px;color:#64748b">a receber</div>
+              <div style="font-size:18px;font-weight:800;color:${pago?'#059669':'#d97706'}">${fmtR(ganho)}</div>
+            </div>
+            ${btnFechar}${btnPagar}
+          </div>
+        </div>
+        ${detalhe?`<div style="display:flex;flex-wrap:wrap;gap:2px">${detalhe}</div>`:''}
+      </div>`;
+    });
+  });
+
+  return html||'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha ainda.</div></div>';
+}
+
+window._fecharFichaMetal=async(soldadorId,quinzena)=>{
+  const sol=soldadores.find(s=>s.id===soldadorId);
+  showModal('Fechar ficha — '+sol?.nome,
+    `<div style="font-size:13px;color:#444;line-height:1.6">Fechar a ficha de <strong>${sol?.nome}</strong> referente a <strong>${quinzenaLabel(quinzena)}</strong>?<br><br>Após fechar, o financeiro será notificado para efetuar o pagamento.</div>`,
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-success btn-sm" onclick="window._confirmarFecharFichaMetal(&quot;'+soldadorId+'&quot;,&quot;'+quinzena+'&quot;)">Fechar ficha</button>');
+};
+
+window._confirmarFecharFichaMetal=async(soldadorId,quinzena)=>{
+  closeModal();
+  const sol=soldadores.find(s=>s.id===soldadorId);
+  const ganho=calcGanhoSoldador(soldadorId,quinzena);
+  // Cria ou atualiza ficha
+  const existing=getFichaMetal(soldadorId,quinzena);
+  if(existing){
+    await updateDoc(doc(db,'fichas_metal',existing.id),{status:'fechada',dataFechamento:today(),ganho});
+  } else {
+    await addDoc(collection(db,'fichas_metal'),{soldadorId,quinzena,status:'fechada',pago:false,dataFechamento:today(),ganho});
+  }
+  // Notificar financeiro
+  await addDoc(collection(db,'notificacoes'),{
+    tipo:'ficha_metal_fechada',
+    soldadorNome:sol?.nome||'',
+    quinzena,quinzenaLabel:quinzenaLabel(quinzena),
+    ganho,data:today(),lida:false,criadaEm:new Date().toISOString(),
+  });
+  showToast('Ficha fechada! Financeiro notificado.');
+};
+
+window._pagarFichaMetal=async(fichaId)=>{
+  showModal('Confirmar pagamento',
+    '<div style="font-size:13px;color:#444">Confirmar o pagamento desta ficha?</div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._confirmarPagarFichaMetal(&quot;'+fichaId+'&quot;)">Confirmar pagamento</button>');
+};
+window._confirmarPagarFichaMetal=async id=>{
+  closeModal();
+  await updateDoc(doc(db,'fichas_metal',id),{pago:true,dataPagamento:today()});
+  showToast('Pagamento registrado!');
+};
+
+// ── Ranking metalúrgica ───────────────────────────────────────────
+
 // ── Roteador de tabs da metalúrgica ──────────────────────────────
 function renderTabMetal(tab){
-  if(tab==='painel_metal') return renderPainelMetal();
-  if(tab==='apontar')      return renderApontar();
+  if(tab==='painel_metal')     return renderPainelMetal();
+  if(tab==='apontar')          return renderApontar();
+  if(tab==='fichas_metal')     return renderFichasMetal();
   if(tab==='soldadores_metal') return renderSoldadoresMetal();
-  if(tab==='config_metal') return renderConfigMetal();
-  if(tab==='minha_prod')   return renderMinhaProd();
-  if(tab==='ranking_metal')return renderRankingMetal();
-  if(tab==='usuarios')     return renderUsuarios();
+  if(tab==='config_metal')     return renderConfigMetal();
+  if(tab==='minha_prod')       return renderMinhaProd();
+  if(tab==='ranking_metal')    return renderRankingMetal();
+  if(tab==='usuarios')         return renderUsuarios();
   return renderPainelMetal();
 }
 
@@ -2804,6 +2940,10 @@ function iniciarListeners(){
     });
     onSnapshot(doc(db,'config_metal','geral'),snap=>{
       if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    });
+    onSnapshot(collection(db,'fichas_metal'),snap=>{
+      fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     });
   }
