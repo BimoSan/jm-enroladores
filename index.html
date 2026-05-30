@@ -2231,6 +2231,31 @@ function renderPainelMetal(){
   </div>
   <div class="section-label">produção de hoje — ${hoje_}</div>`;
 
+  // Resumo por tipo de peça hoje (todos os soldadores)
+  const pecasTotaisHoje=PECAS_METAL_FULL.filter(p=>{
+    return soldadores.some(s=>totalPecaPeriodo(s.id,p.id,'hoje')>0);
+  }).map(p=>{
+    const total=soldadores.reduce((sum,s)=>sum+totalPecaPeriodo(s.id,p.id,'hoje'),0);
+    return {p,total};
+  }).filter(x=>x.total>0);
+
+  if(pecasTotaisHoje.length>0){
+    html+=`<div class="card" style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Produção por tipo — hoje</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;width:100%">
+        ${pecasTotaisHoje.map(({p,total})=>{
+          const meta=p.reforma?0:(parseInt(metas[p.id])||0);
+          const cor=p.reforma?'#7c3aed':meta>0&&total>=meta?'#10b981':'#1e40af';
+          return `<div style="background:${p.reforma?'#f5f3ff':'#f8fafc'};border:1px solid ${p.reforma?'#ddd6fe':'#e2e8f0'};border-radius:10px;padding:8px 10px">
+            <div style="font-size:10px;color:#64748b;margin-bottom:2px">${p.label}${p.reforma?' <span style=\"color:#7c3aed\">(ref.)</span>':''}</div>
+            <div style="font-size:20px;font-weight:800;color:${cor}">${total}</div>
+            ${meta>0?`<div style="font-size:10px;color:#94a3b8">meta: ${meta}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
   html+=soldadores.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(sol=>{
     const totalSol=totalGeralPeriodo(sol.id,'hoje');
     const ganhoHoje=calcGanhoSoldador(sol.id,'hoje');
@@ -2240,15 +2265,22 @@ function renderPainelMetal(){
 
     const barras=pecasHoje.map(p=>{
       const qtd=totalPecaPeriodo(sol.id,p.id,'hoje');
-      const meta=parseInt(metas[p.id])||0;
+      const meta=p.reforma?0:(parseInt(metas[p.id])||0);
       const pct=meta>0?Math.min(100,Math.round(qtd/meta*100)):100;
-      const cor=pct>=100?'#10b981':pct>=70?'#f59e0b':'#ef4444';
-      return `<div style="margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
-          <span style="color:#475569">${p.label}</span>
-          <span style="font-weight:700;color:${cor}">${qtd}${meta>0?' / '+meta:''}</span>
+      const cor=p.reforma?'#7c3aed':pct>=100?'#10b981':pct>=70?'#f59e0b':'#ef4444';
+      const bgCor=p.reforma?'#ede9fe':'#f1f5f9';
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:#475569${p.reforma?';color:#7c3aed':''}">${p.label}</span>
+            ${p.reforma?'<span style="font-size:9px;background:#ede9fe;color:#7c3aed;padding:1px 5px;border-radius:99px;font-weight:600">reforma</span>':''}
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:14px;font-weight:800;color:${cor}">${qtd}</span>
+            ${meta>0?`<span style="font-size:10px;color:#94a3b8"> / ${meta}</span>`:''}
+          </div>
         </div>
-        <div style="height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+        <div style="height:5px;background:${bgCor};border-radius:99px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${cor};border-radius:99px"></div>
         </div>
       </div>`;
