@@ -214,7 +214,31 @@ const TIPOS=[
   {id:'centro_sofia',label:'Centro Sofia'},
 ];
 
-// Cores fixas por tipo de peça
+// ── Peças da Metalúrgica ─────────────────────────────────────────
+const PECAS_METAL = [
+  {id:'varanda_sofia',    label:'Varanda Sofia'},
+  {id:'varanda_luxo',     label:'Varanda Luxo'},
+  {id:'varanda_nova',     label:'Varanda Nova'},
+  {id:'balanco',          label:'Balanço'},
+  {id:'balanco_infantil', label:'Balanço Infantil'},
+  {id:'pe_balanco',       label:'Pé Balanço'},
+  {id:'pe_infantil',      label:'Pé Infantil'},
+  {id:'cadeira_mesa',     label:'Cadeira de Mesa'},
+  {id:'cadeira_piscina',  label:'Cadeira de Piscina'},
+  {id:'banqueta',         label:'Banqueta'},
+  {id:'centro_sofia',     label:'Centro Sofia'},
+  {id:'centro_luxo',      label:'Centro Luxo'},
+  {id:'centro_novo',      label:'Centro Novo'},
+  {id:'mesa_bistro',      label:'Mesa Bistrô'},
+  {id:'namoradeira',      label:'Namoradeira'},
+];
+// Gera lista completa: peça normal + reforma
+const PECAS_METAL_FULL = [
+  ...PECAS_METAL,
+  ...PECAS_METAL.map(p=>({id:`ref_${p.id}`, label:`Reforma ${p.label}`, reforma:true}))
+];
+
+// ── Cores fixas por tipo de peça
 const TIPO_CORES={
   varanda_sofia: {bg:'#e8f0fb', border:'#c5d8f5', color:'#3266ad'},
   centro_luxo:   {bg:'#e8f5ef', border:'#b2dfce', color:'#1D9E75'},
@@ -288,6 +312,9 @@ let currentFabrica=null;
 let currentSetor=null;
 let enroladores=[];
 let notificacoes=[];
+let soldadores=[];
+let apontamentosMetal=[];
+let configMetal={metas:{},valores:{}}; // metas e valores por soldador
 let fichas=[];
 let usuarios=[];
 let unsubFichas=null;
@@ -426,7 +453,13 @@ window._doLogin=async function(){
 
 // ── App shell ────────────────────────────────────────────────────
 const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'};
-const TAB_LABELS={'painel': 'Painel', 'fichas': 'Fichas', 'entregar': 'Entrega', 'recolher': 'Recolhimento', 'relatorio': 'Relatório', 'ranking': 'Ranking', 'valores': 'Pagamentos', 'enroladores': 'Enroladores', 'usuarios': 'Usuários'};
+const TAB_LABELS={
+  'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
+  'relatorio':'Relatório','ranking':'Ranking','valores':'Pagamentos',
+  'enroladores':'Enroladores','usuarios':'Usuários',
+  'painel_metal':'Painel','apontar':'Apontamento','soldadores_metal':'Soldadores',
+  'config_metal':'Configurações','minha_prod':'Minha Produção','ranking_metal':'Ranking',
+};
 // ── Seleção de fábrica ──────────────────────────────────────────
 function renderSelecionarFabrica(){
   const p=PERFIS[currentUserData.perfil]||PERFIS.apontador;
@@ -466,7 +499,7 @@ window._selecionarFabrica=id=>{
 function renderSelecionarSetor(){
   const setoresCadeiras=[
     {id:'enrolamento_terc', nome:'Enrolamento Terceirizado', icon:'🧵', desc:'Controle de fichas e enroladores', ativo:true},
-    {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:false},
+    {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:true},
     {id:'fitas',            nome:'Setor de Fitas',           icon:'🎀', desc:'Controle de estoque de fitas', ativo:false},
     {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:false},
   ];
@@ -547,15 +580,28 @@ window._voltarSetores=()=>{
 function renderApp(){
   const p=PERFIS[currentUserData.perfil]||PERFIS.apontador;
   const tabs=[];
-  if(can('verPainel'))tabs.push('painel');
-  if(can('verFichas')||can('verFichasEntregador'))tabs.push('fichas');
-  if(can('registrar'))tabs.push('entregar');
-  if(can('registrar'))tabs.push('recolher');
-  if(can('verRelatorio'))tabs.push('relatorio');
-  if(can('verRanking'))tabs.push('ranking');
-  if(can('verValores'))tabs.push('valores');
-  if(can('cadastrarEnrolador'))tabs.push('enroladores');
-  if(can('gerenciarUsuarios'))tabs.push('usuarios');
+  if(currentSetor==='metalurgica'){
+    // Tabs da metalúrgica
+    const perfMetal=currentUserData?.perfil;
+    if(['admin','encarregado_cad','apontador_metal'].includes(perfMetal)){
+      tabs.push('painel_metal','apontar','soldadores_metal','config_metal');
+    }else if(perfMetal==='soldador'){
+      tabs.push('minha_prod','ranking_metal');
+    }else{
+      tabs.push('painel_metal','ranking_metal');
+    }
+    if(can('gerenciarUsuarios'))tabs.push('usuarios');
+  } else {
+    if(can('verPainel'))tabs.push('painel');
+    if(can('verFichas')||can('verFichasEntregador'))tabs.push('fichas');
+    if(can('registrar'))tabs.push('entregar');
+    if(can('registrar'))tabs.push('recolher');
+    if(can('verRelatorio'))tabs.push('relatorio');
+    if(can('verRanking'))tabs.push('ranking');
+    if(can('verValores'))tabs.push('valores');
+    if(can('cadastrarEnrolador'))tabs.push('enroladores');
+    if(can('gerenciarUsuarios'))tabs.push('usuarios');
+  }
   if(!tabs.includes(currentTab))currentTab=tabs[0]||'fichas';
 
   const btnVoltar=`
@@ -649,6 +695,8 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  // Metalúrgica tem seu próprio sistema de tabs
+  if(currentSetor==='metalurgica') return renderTabMetal(tab);
   if(tab==='painel')return renderPainel();
   if(tab==='fichas')return renderFichas();
   if(tab==='entregar')return renderEntrega();
@@ -1942,6 +1990,502 @@ window._confirmarExcluirUsuario=async()=>{
   showToast('Usuário removido.');
 };
 
+// ── Sistema Metalúrgica ──────────────────────────────────────────
+
+function getQuinzena(dataStr){
+  const d = dataStr || today();
+  const dia = parseInt(d.slice(8,10));
+  const anoMes = d.slice(0,7);
+  return dia <= 15 ? `${anoMes}-Q1` : `${anoMes}-Q2`;
+}
+
+function getQuinzenaAtual(){ return getQuinzena(today()); }
+
+function quinzenaLabel(q){
+  const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const [ano,mes,q12]=q.split('-');
+  const mNome=MESES[parseInt(mes)-1];
+  return q12==='Q1'?`1–15 ${mNome} ${ano}`:`16–fim ${mNome} ${ano}`;
+}
+
+function isSemana(dataStr){
+  const hoje=new Date(today()+'T00:00:00');
+  const d=new Date(dataStr+'T00:00:00');
+  const diff=(hoje-d)/(1000*60*60*24);
+  const diaSemana=hoje.getDay(); // 0=dom
+  const inicioSemana=new Date(hoje); inicioSemana.setDate(hoje.getDate()-diaSemana);
+  return d>=inicioSemana;
+}
+
+function apontSoldador(soldadorId){
+  return apontamentosMetal.filter(a=>a.soldadorId===soldadorId);
+}
+
+function totalPecaPeriodo(soldadorId, pecaId, periodo){
+  // periodo: 'hoje', 'semana', 'quinzena', 'mes', ou anoMes-Q1/Q2
+  const hoje_=today();
+  const qAtual=getQuinzenaAtual();
+  const mesAtual=hoje_.slice(0,7);
+  return apontSoldador(soldadorId).reduce((sum,a)=>{
+    const data=a.data||'';
+    const match = periodo==='hoje'      ? data===hoje_
+                : periodo==='semana'    ? isSemana(data)
+                : periodo==='quinzena'  ? getQuinzena(data)===qAtual
+                : periodo==='mes'       ? data.slice(0,7)===mesAtual
+                : getQuinzena(data)===periodo;
+    return sum + (match ? (parseInt((a.pecas||{})[pecaId])||0) : 0);
+  }, 0);
+}
+
+function totalGeralPeriodo(soldadorId, periodo){
+  return PECAS_METAL_FULL.reduce((s,p)=>s+totalPecaPeriodo(soldadorId,p.id,periodo),0);
+}
+
+function calcGanhoSoldador(soldadorId, periodo){
+  const s=soldadores.find(x=>x.id===soldadorId);
+  if(!s) return 0;
+  const vals=(configMetal.valores||{})[soldadorId]||{};
+  const metas=(configMetal.metas)||{};
+  const hoje_=today();
+  const qAtual=getQuinzenaAtual();
+
+  if(s.contrato==='producao'){
+    return PECAS_METAL_FULL.reduce((sum,p)=>{
+      const qtd=totalPecaPeriodo(soldadorId,p.id,periodo);
+      const val=parseFloat(vals[p.id])||0;
+      return sum+(qtd*val);
+    },0);
+  } else {
+    // Fichado: ganha pelo excedente da meta, calculado por dia
+    const diasPeriodo=new Set(
+      apontSoldador(soldadorId)
+        .filter(a=>{
+          const data=a.data||'';
+          return periodo==='hoje'     ? data===hoje_
+               : periodo==='semana'   ? isSemana(data)
+               : periodo==='quinzena' ? getQuinzena(data)===qAtual
+               : periodo==='mes'      ? data.slice(0,7)===hoje_.slice(0,7)
+               : getQuinzena(data)===periodo;
+        })
+        .map(a=>a.data)
+    );
+    let totalGanho=0;
+    diasPeriodo.forEach(dia=>{
+      PECAS_METAL_FULL.forEach(p=>{
+        const qtdDia=apontSoldador(soldadorId)
+          .filter(a=>a.data===dia)
+          .reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+        const meta=parseInt(metas[p.id])||0;
+        const excedente=Math.max(0,qtdDia-meta);
+        const val=parseFloat(vals[p.id])||0;
+        totalGanho+=excedente*val;
+      });
+    });
+    return totalGanho;
+  }
+}
+
+function fmtR(v){ return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+// ── Painel metalúrgica ────────────────────────────────────────────
+function renderPainelMetal(){
+  const hoje_=today();
+  const qAtual=getQuinzenaAtual();
+  const metas=configMetal.metas||{};
+
+  if(!soldadores.length) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Nenhum soldador cadastrado ainda.</div></div>';
+
+  const totalHoje=soldadores.reduce((s,sol)=>s+totalGeralPeriodo(sol.id,'hoje'),0);
+  const totalQ=soldadores.reduce((s,sol)=>s+totalGeralPeriodo(sol.id,'quinzena'),0);
+  const totalPagarHoje=soldadores.reduce((s,sol)=>s+calcGanhoSoldador(sol.id,'hoje'),0);
+  const totalPagarQ=soldadores.reduce((s,sol)=>s+calcGanhoSoldador(sol.id,'quinzena'),0);
+
+  let html=`
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;width:100%">
+    <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg></div>
+      <div><div class="stat-label">Peças hoje</div><div class="stat-value">${totalHoje}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div><div class="stat-label">Peças quinzena</div><div class="stat-value">${totalQ}</div><div class="stat-sub">${quinzenaLabel(qAtual)}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      <div><div class="stat-label">A pagar hoje</div><div class="stat-value" style="font-size:18px">${fmtR(totalPagarHoje)}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      <div><div class="stat-label">A pagar quinzena</div><div class="stat-value" style="font-size:18px">${fmtR(totalPagarQ)}</div></div>
+    </div>
+  </div>
+  <div class="section-label">produção de hoje — ${hoje_}</div>`;
+
+  html+=soldadores.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(sol=>{
+    const totalSol=totalGeralPeriodo(sol.id,'hoje');
+    const ganhoHoje=calcGanhoSoldador(sol.id,'hoje');
+    const pecasHoje=PECAS_METAL_FULL.filter(p=>totalPecaPeriodo(sol.id,p.id,'hoje')>0);
+    const ci=soldadores.findIndex(s=>s.id===sol.id);
+    const c=avatarColor(ci);
+
+    const barras=pecasHoje.map(p=>{
+      const qtd=totalPecaPeriodo(sol.id,p.id,'hoje');
+      const meta=parseInt(metas[p.id])||0;
+      const pct=meta>0?Math.min(100,Math.round(qtd/meta*100)):100;
+      const cor=pct>=100?'#10b981':pct>=70?'#f59e0b':'#ef4444';
+      return `<div style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+          <span style="color:#475569">${p.label}</span>
+          <span style="font-weight:700;color:${cor}">${qtd}${meta>0?` / ${meta}`:''}</span>
+        </div>
+        <div style="height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${cor};border-radius:99px"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${pecasHoje.length?'12px':'0'}">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">${initials(sol.nome)}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">${sol.nome}</div>
+            <div style="font-size:11px;color:#64748b">${sol.contrato==='producao'?'Por produção':'Fichado'} · ${totalSol} peças hoje</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:#64748b">ganho hoje</div>
+          <div style="font-size:18px;font-weight:800;color:#059669">${fmtR(ganhoHoje)}</div>
+        </div>
+      </div>
+      ${pecasHoje.length?`<div>${barras}</div>`:'<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px 0">Nenhum apontamento hoje</div>'}
+    </div>`;
+  }).join('');
+
+  return html;
+}
+
+// ── Apontamento metalúrgica ───────────────────────────────────────
+function renderApontar(){
+  const opts=[...soldadores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
+    .map(s=>`<option value="${s.id}">${s.nome}</option>`).join('');
+
+  const grid=PECAS_METAL_FULL.map(p=>`
+    <div class="num-group">
+      <label style="font-size:10px;${p.reforma?'color:#7c3aed':''}">${p.label}</label>
+      <input type="number" id="ap-${p.id}" min="0" step="1" placeholder="0" value="0"
+        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif">
+    </div>`).join('');
+
+  return `<div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:14px">Registrar produção</div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="form-group"><label>Soldador</label><select id="ap-soldador">${opts}</select></div>
+      <div class="form-group"><label>Data</label><input type="date" id="ap-data" value="${today()}"></div>
+    </div>
+    <div class="section-label" style="margin-bottom:10px">Peças produzidas <span style="color:#7c3aed;font-size:10px">· roxo = reforma</span></div>
+    <div class="num-inputs">${grid}</div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="window._registrarApontMetal()">Registrar produção</button>
+      <button class="btn btn-ghost" onclick="window._limparApontMetal()">Limpar</button>
+    </div>
+  </div>`;
+}
+
+window._registrarApontMetal=async()=>{
+  const soldadorId=document.getElementById('ap-soldador').value;
+  const data=document.getElementById('ap-data').value;
+  if(!soldadorId||!data){showToast('Selecione o soldador e a data.');return;}
+  const pecas={};
+  let totalPecas=0;
+  PECAS_METAL_FULL.forEach(p=>{
+    const v=parseInt(document.getElementById(`ap-${p.id}`)?.value)||0;
+    if(v>0){pecas[p.id]=v;totalPecas+=v;}
+  });
+  if(!totalPecas){showToast('Informe pelo menos uma peça.');return;}
+  await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,criadoEm:new Date().toISOString()});
+  showToast('Produção registrada!');
+  window._limparApontMetal();
+};
+window._limparApontMetal=()=>{
+  PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById(`ap-${p.id}`);if(el)el.value=0;});
+};
+
+// ── Soldadores cadastro ───────────────────────────────────────────
+function renderSoldadoresMetal(){
+  let html=`<div class="card" style="margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">Cadastrar soldador</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome</label><input type="text" id="sol-nome" placeholder="Nome completo"></div>
+      <div class="form-group"><label>Tipo de contrato</label>
+        <select id="sol-contrato">
+          <option value="producao">Por produção</option>
+          <option value="fichado">Fichado (meta + excedente)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="window._cadastrarSoldador()">Cadastrar</button>
+  </div>
+  <div class="section-label">soldadores cadastrados</div>`;
+
+  html+=[...soldadores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map((s,i)=>{
+    const c=avatarColor(i);
+    const totalQ=totalGeralPeriodo(s.id,'quinzena');
+    const ganhoQ=calcGanhoSoldador(s.id,'quinzena');
+    return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">
+      <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(s.nome)}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700">${s.nome}</div>
+        <div style="font-size:11px;color:#64748b">${s.contrato==='producao'?'Por produção':'Fichado'}</div>
+      </div>
+      <div style="text-align:right;margin-right:8px">
+        <div style="font-size:10px;color:#64748b">quinzena</div>
+        <div style="font-size:14px;font-weight:700">${totalQ} peças</div>
+        <div style="font-size:12px;color:#059669;font-weight:600">${fmtR(ganhoQ)}</div>
+      </div>
+      <button class="btn btn-sm btn-warn" onclick="window._editarSoldador('${s.id}')">Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="window._excluirSoldador('${s.id}')">Excluir</button>
+    </div>`;
+  }).join('');
+
+  return html;
+}
+
+window._cadastrarSoldador=async()=>{
+  const nome=document.getElementById('sol-nome').value.trim();
+  const contrato=document.getElementById('sol-contrato').value;
+  if(!nome){showToast('Informe o nome.');return;}
+  await addDoc(collection(db,'soldadores'),{nome,contrato,usuarioUid:''});
+  showToast('Soldador cadastrado!');reloadTab();
+};
+window._editarSoldador=id=>{
+  const s=soldadores.find(x=>x.id===id);if(!s)return;
+  showModal('Editar soldador',`
+    <div class="form-group"><label>Nome</label><input id="es-nome" type="text" value="${s.nome||''}" style="width:100%;font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px"></div>
+    <div class="form-group"><label>Tipo de contrato</label>
+      <select id="es-contrato" style="width:100%;font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px">
+        <option value="producao" ${s.contrato==='producao'?'selected':''}>Por produção</option>
+        <option value="fichado" ${s.contrato==='fichado'?'selected':''}>Fichado</option>
+      </select>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-primary btn-sm" onclick="window._salvarSoldador('${id}')">Salvar</button>`);
+};
+window._salvarSoldador=async id=>{
+  const nome=document.getElementById('es-nome').value.trim();
+  const contrato=document.getElementById('es-contrato').value;
+  if(!nome)return;
+  await updateDoc(doc(db,'soldadores',id),{nome,contrato});
+  closeModal();showToast('Soldador atualizado!');
+};
+window._excluirSoldador=id=>{
+  const s=soldadores.find(x=>x.id===id);if(!s)return;
+  showModal('Excluir soldador',
+    `<div style="font-size:13px;color:#444">Excluir <strong>${s.nome}</strong>? Os apontamentos não serão apagados.</div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-danger btn-sm" onclick="window._confirmarExcluirSoldador('${id}')">Excluir</button>`);
+};
+window._confirmarExcluirSoldador=async id=>{
+  closeModal();
+  await deleteDoc(doc(db,'soldadores',id));
+  showToast('Soldador removido.');
+};
+
+// ── Configurações metalúrgica ─────────────────────────────────────
+function renderConfigMetal(){
+  const metas=configMetal.metas||{};
+
+  // Valores por soldador
+  const valoresSols=soldadores.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(s=>{
+    const vals=(configMetal.valores||{})[s.id]||{};
+    const inputs=PECAS_METAL_FULL.map(p=>`
+      <div class="num-group">
+        <label style="font-size:10px;${p.reforma?'color:#7c3aed':''}">${p.label}</label>
+        <div style="display:flex;align-items:center;gap:3px">
+          <span style="font-size:11px;color:#64748b">R$</span>
+          <input type="number" id="val-${s.id}-${p.id}" min="0" step="0.01" placeholder="0,00"
+            value="${(parseFloat(vals[p.id])||0).toFixed(2)}"
+            style="font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;width:100%">
+        </div>
+      </div>`).join('');
+    return `<div class="card" style="margin-bottom:10px;border-left:4px solid ${avatarColor(soldadores.findIndex(x=>x.id===s.id))}">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">${s.nome} <span style="font-size:10px;color:#64748b;font-weight:400">${s.contrato==='producao'?'Por produção':'Fichado'}</span></div>
+      <div class="num-inputs">${inputs}</div>
+      <button class="btn btn-sm btn-primary" style="margin-top:10px" onclick="window._salvarValoresSoldador('${s.id}')">Salvar valores de ${s.nome}</button>
+    </div>`;
+  }).join('');
+
+  // Metas diárias
+  const metasInputs=PECAS_METAL.map(p=>`
+    <div class="num-group">
+      <label style="font-size:10px">${p.label}</label>
+      <input type="number" id="meta-${p.id}" min="0" step="1" placeholder="0"
+        value="${parseInt(metas[p.id])||0}"
+        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif">
+    </div>`).join('');
+
+  return `<div class="card" style="margin-bottom:14px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">Metas diárias por peça</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:12px">Quantidade que cada soldador deve produzir por dia (base para cálculo dos fichados).</div>
+    <div class="num-inputs">${metasInputs}</div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="window._salvarMetas()">Salvar metas</button>
+  </div>
+  <div class="section-label">valores por soldador</div>
+  ${valoresSols||'<div class="card"><div style="color:#64748b;text-align:center;padding:16px">Cadastre soldadores primeiro.</div></div>'}`;
+}
+
+window._salvarMetas=async()=>{
+  const metas={};
+  PECAS_METAL.forEach(p=>{metas[p.id]=parseInt(document.getElementById(`meta-${p.id}`)?.value)||0;});
+  const cur=configMetal||{};
+  await setDoc(doc(db,'config_metal','geral'),{...cur,metas});
+  showToast('Metas salvas!');
+};
+window._salvarValoresSoldador=async soldadorId=>{
+  const vals={};
+  PECAS_METAL_FULL.forEach(p=>{vals[p.id]=parseFloat(document.getElementById(`val-${soldadorId}-${p.id}`)?.value)||0;});
+  const cur=configMetal||{metas:{}};
+  const valores={...(cur.valores||{}),[soldadorId]:vals};
+  await setDoc(doc(db,'config_metal','geral'),{...cur,valores});
+  showToast('Valores salvos!');
+};
+
+// ── Minha produção (soldador) ─────────────────────────────────────
+function renderMinhaProd(){
+  const uid=currentUser?.uid||'';
+  const sol=soldadores.find(s=>s.usuarioUid===uid||s.uid===uid);
+  if(!sol) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum soldador. Peça ao encarregado para vincular.</div></div>';
+
+  const periodos=[
+    {key:'hoje',label:'Hoje'},
+    {key:'semana',label:'Esta semana'},
+    {key:'quinzena',label:quinzenaLabel(getQuinzenaAtual())},
+  ];
+
+  const tabsHtml=periodos.map(p=>`
+    <button class="btn ${window._prodPeriodo===p.key?'btn-primary':'btn-ghost'} btn-sm"
+      onclick="window._prodPeriodo='${p.key}';reloadTab()">${p.label}</button>`).join('');
+
+  if(!window._prodPeriodo) window._prodPeriodo='hoje';
+  const per=window._prodPeriodo;
+
+  const pecasCom=PECAS_METAL_FULL.filter(p=>totalPecaPeriodo(sol.id,p.id,per)>0);
+  const total=totalGeralPeriodo(sol.id,per);
+  const ganho=calcGanhoSoldador(sol.id,per);
+  const c=avatarColor(soldadores.findIndex(s=>s.id===sol.id));
+
+  const rows=pecasCom.map(p=>{
+    const qtd=totalPecaPeriodo(sol.id,p.id,per);
+    const vals=(configMetal.valores||{})[sol.id]||{};
+    const val=parseFloat(vals[p.id])||0;
+    const meta=parseInt((configMetal.metas||{})[p.id])||0;
+    return `<tr>
+      <td style="padding:7px 10px;font-size:12px">${p.label}</td>
+      <td style="padding:7px 10px;font-size:13px;font-weight:700;text-align:center">${qtd}</td>
+      ${meta>0?`<td style="padding:7px 10px;font-size:12px;text-align:center;color:${qtd>=meta?'#059669':'#d97706'}">${meta}</td>`:'<td style="padding:7px 10px;text-align:center;color:#94a3b8">—</td>'}
+      <td style="padding:7px 10px;font-size:12px;text-align:right;color:#059669;font-weight:600">${fmtR(val*qtd)}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="width:48px;height:48px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">${initials(sol.nome)}</div>
+      <div>
+        <div style="font-size:16px;font-weight:800">${sol.nome}</div>
+        <div style="font-size:12px;color:#64748b">${sol.contrato==='producao'?'Por produção':'Fichado'}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:11px;color:#64748b">ganho estimado</div>
+        <div style="font-size:22px;font-weight:800;color:#059669">${fmtR(ganho)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">${tabsHtml}</div>
+    ${pecasCom.length?`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f8fafc">
+        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:left">Peça</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Qtd.</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Meta</th>
+        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:right">Ganho</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr style="border-top:2px solid #f1f5f9">
+        <td style="padding:8px 10px;font-weight:700">Total</td>
+        <td style="padding:8px 10px;font-weight:800;text-align:center">${total}</td>
+        <td></td>
+        <td style="padding:8px 10px;font-weight:800;text-align:right;color:#059669">${fmtR(ganho)}</td>
+      </tr></tfoot>
+    </table>`:'<div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma produção registrada neste período.</div>'}
+  </div>`;
+}
+
+// ── Ranking metalúrgica ───────────────────────────────────────────
+function renderRankingMetal(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._rankMetalPeriodo) window._rankMetalPeriodo='quinzena';
+  if(!window._rankMetalPeca) window._rankMetalPeca=PECAS_METAL[0].id;
+  const per=window._rankMetalPeriodo;
+  const pecaId=window._rankMetalPeca;
+  const qAtual=getQuinzenaAtual();
+  const mesAtual=today().slice(0,7);
+
+  const btnPer=(k,l)=>`<button class="btn btn-sm ${per===k?'btn-primary':'btn-ghost'}" onclick="window._rankMetalPeriodo='${k}';reloadTab()">${l}</button>`;
+  const btnPeca=(p)=>`<button class="btn btn-sm ${pecaId===p.id?'btn-primary':'btn-ghost'}" style="font-size:10px;padding:3px 8px" onclick="window._rankMetalPeca='${p.id}';reloadTab()">${p.label}</button>`;
+
+  const peca=PECAS_METAL_FULL.find(p=>p.id===pecaId)||PECAS_METAL_FULL[0];
+  const dados=[...soldadores].map(s=>{
+    const qtdPeca=totalPecaPeriodo(s.id,pecaId,per);
+    // Inclui reforma da mesma peça
+    const refId=`ref_${pecaId.replace('ref_','')}`;
+    const qtdRef=pecaId.startsWith('ref_')?0:totalPecaPeriodo(s.id,refId,per);
+    return {s,total:qtdPeca+qtdRef,normal:qtdPeca,reforma:qtdRef};
+  }).filter(d=>d.total>0).sort((a,b)=>b.total-a.total);
+
+  const labelPer=per==='quinzena'?quinzenaLabel(qAtual):MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+  const medalhas=['🥇','🥈','🥉'];
+
+  return `<div style="background:#374151;border-radius:14px;padding:14px 18px;margin-bottom:12px;width:100%">
+    <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">⚙️ Ranking Metalúrgica</div>
+    <div style="font-size:12px;color:#9ca3af">${peca.label} · ${labelPer}</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    ${btnPer('quinzena','Quinzena')} ${btnPer('mes','Mensal')}
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    ${PECAS_METAL.map(p=>btnPeca(p)).join('')}
+  </div>
+  ${dados.length?dados.map((d,i)=>{
+    const c=avatarColor(soldadores.findIndex(s=>s.id===d.s.id));
+    const max=dados[0].total||1;
+    const bar=Math.round(d.total/max*100);
+    return `<div class="card" style="margin-bottom:8px${i===0?';border:2px solid #f5c842':''}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||`<span style="font-size:12px;font-weight:700;color:#64748b">#${i+1}</span>`}</div>
+        <div style="width:40px;height:40px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${initials(d.s.nome)}</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:700">${d.s.nome}</div></div>
+        <div style="text-align:right">
+          <div style="font-size:26px;font-weight:800;color:${c}">${d.total}</div>
+          <div style="font-size:10px;color:#94a3b8">${d.normal} norm. + ${d.reforma} ref.</div>
+        </div>
+      </div>
+      <div style="height:7px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px"></div>
+      </div>
+    </div>`;
+  }).join(''):'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada neste período.</div></div>'}`;
+}
+
+// ── Roteador de tabs da metalúrgica ──────────────────────────────
+function renderTabMetal(tab){
+  if(tab==='painel_metal') return renderPainelMetal();
+  if(tab==='apontar')      return renderApontar();
+  if(tab==='soldadores_metal') return renderSoldadoresMetal();
+  if(tab==='config_metal') return renderConfigMetal();
+  if(tab==='minha_prod')   return renderMinhaProd();
+  if(tab==='ranking_metal')return renderRankingMetal();
+  if(tab==='usuarios')     return renderUsuarios();
+  return renderPainelMetal();
+}
+
 // ── Sinalização de peças prontas ────────────────────────────────
 window._abrirSinalizacao=fichaId=>{
   const f=getFicha(fichaId);
@@ -2018,6 +2562,22 @@ function iniciarListeners(){
   onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
+  // Metalúrgica — listeners só quando no setor
+  if(currentSetor==='metalurgica'){
+    onSnapshot(collection(db,'soldadores'),snap=>{
+      soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    });
+    onSnapshot(collection(db,'apontamentos_metal'),snap=>{
+      apontamentosMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    });
+    onSnapshot(doc(db,'config_metal','geral'),snap=>{
+      if(snap.exists()) configMetal={metas:{},valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    });
+  }
+
   // Notificações — só carrega para perfis que precisam
   if(['financeiro','admin','proprietario'].includes(currentUserData?.perfil)){
     onSnapshot(
