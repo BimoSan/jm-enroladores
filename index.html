@@ -2144,19 +2144,22 @@ function totalGeralPeriodo(soldadorId, periodo){
 function calcGanhoSoldador(soldadorId, periodo){
   const s=soldadores.find(x=>x.id===soldadorId);
   if(!s) return 0;
-  const vals=(configMetal.valores||{})[soldadorId]||{};
-  const metas=(configMetal.metas)||{};
+  const vProd=configMetal.valoresProd||{};
+  const vMeta=configMetal.valoresMeta||{};
+  const vRef=configMetal.valoresRef||{};
+  const metas=configMetal.metas||{};
   const hoje_=today();
   const qAtual=getQuinzenaAtual();
 
   if(s.contrato==='producao'){
+    // Ganha por tudo que produzir: peças normais usam vProd, reformas usam vRef
     return PECAS_METAL_FULL.reduce((sum,p)=>{
       const qtd=totalPecaPeriodo(soldadorId,p.id,periodo);
-      const val=parseFloat(vals[p.id])||0;
+      const val=p.reforma ? (parseFloat(vRef[p.id.replace('ref_','')])||0) : (parseFloat(vProd[p.id])||0);
       return sum+(qtd*val);
     },0);
   } else {
-    // Fichado: ganha pelo excedente da meta, calculado por dia
+    // Fichado: excedente usa vMeta para peças, vRef para reformas
     const diasPeriodo=new Set(
       apontSoldador(soldadorId)
         .filter(a=>{
@@ -2175,10 +2178,17 @@ function calcGanhoSoldador(soldadorId, periodo){
         const qtdDia=apontSoldador(soldadorId)
           .filter(a=>a.data===dia)
           .reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
-        const meta=parseInt(metas[p.id])||0;
-        const excedente=Math.max(0,qtdDia-meta);
-        const val=parseFloat(vals[p.id])||0;
-        totalGanho+=excedente*val;
+        const val=p.reforma
+          ? (parseFloat(vRef[p.id.replace('ref_','')])||0)
+          : (parseFloat(vMeta[p.id])||0);
+        if(p.reforma){
+          // Reformas: paga tudo pelo valor de reforma
+          totalGanho+=qtdDia*val;
+        } else {
+          const meta=parseInt(metas[p.id])||0;
+          const excedente=Math.max(0,qtdDia-meta);
+          totalGanho+=excedente*val;
+        }
       });
     });
     return totalGanho;
@@ -2394,28 +2404,10 @@ window._confirmarExcluirSoldador=async id=>{
 // ── Configurações metalúrgica ─────────────────────────────────────
 function renderConfigMetal(){
   const metas=configMetal.metas||{};
+  const vProd=configMetal.valoresProd||{};
+  const vMeta=configMetal.valoresMeta||{};
+  const vRef=configMetal.valoresRef||{};
 
-  // Valores por soldador
-  const valoresSols=soldadores.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(s=>{
-    const vals=(configMetal.valores||{})[s.id]||{};
-    const inputs=PECAS_METAL_FULL.map(p=>`
-      <div class="num-group">
-        <label style="font-size:10px;${p.reforma?'color:#7c3aed':''}">${p.label}</label>
-        <div style="display:flex;align-items:center;gap:3px">
-          <span style="font-size:11px;color:#64748b">R$</span>
-          <input type="number" id="val-${s.id}-${p.id}" min="0" step="0.01" placeholder="0,00"
-            value="${(parseFloat(vals[p.id])||0).toFixed(2)}"
-            style="font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;width:100%">
-        </div>
-      </div>`).join('');
-    return `<div class="card" style="margin-bottom:10px;border-left:4px solid ${avatarColor(soldadores.findIndex(x=>x.id===s.id))}">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">${s.nome} <span style="font-size:10px;color:#64748b;font-weight:400">${s.contrato==='producao'?'Por produção':'Fichado'}</span></div>
-      <div class="num-inputs">${inputs}</div>
-      <button class="btn btn-sm btn-primary" style="margin-top:10px" onclick="window._salvarValoresSoldador('${s.id}')">Salvar valores de ${s.nome}</button>
-    </div>`;
-  }).join('');
-
-  // Metas diárias
   const metasInputs=PECAS_METAL.map(p=>`
     <div class="num-group">
       <label style="font-size:10px">${p.label}</label>
@@ -2424,14 +2416,33 @@ function renderConfigMetal(){
         style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif">
     </div>`).join('');
 
+  const tabelaPrecos=(prefixId, titulo, descricao, cor, pecas, valoresObj)=>`
+    <div class="card" style="margin-bottom:14px;border-left:4px solid ${cor}">
+      <div style="font-size:13px;font-weight:700;color:${cor};margin-bottom:4px">${titulo}</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:12px">${descricao}</div>
+      <div class="num-inputs">${pecas.map(p=>`
+        <div class="num-group">
+          <label style="font-size:10px">${p.label}</label>
+          <div style="display:flex;align-items:center;gap:3px">
+            <span style="font-size:11px;color:#64748b">R$</span>
+            <input type="number" id="${prefixId}-${p.id}" min="0" step="0.01" placeholder="0,00"
+              value="${(parseFloat(valoresObj[p.id])||0).toFixed(2)}"
+              style="font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;width:100%">
+          </div>
+        </div>`).join('')}
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="window._salvarValoresMetal('${prefixId}')">Salvar ${titulo}</button>
+    </div>`;
+
   return `<div class="card" style="margin-bottom:14px">
     <div style="font-size:13px;font-weight:600;margin-bottom:6px">Metas diárias por peça</div>
-    <div style="font-size:11px;color:#64748b;margin-bottom:12px">Quantidade que cada soldador deve produzir por dia (base para cálculo dos fichados).</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:12px">Meta diária por peça. Soldadores fichados só ganham pelo excedente.</div>
     <div class="num-inputs">${metasInputs}</div>
     <button class="btn btn-primary" style="margin-top:12px" onclick="window._salvarMetas()">Salvar metas</button>
   </div>
-  <div class="section-label">valores por soldador</div>
-  ${valoresSols||'<div class="card"><div style="color:#64748b;text-align:center;padding:16px">Cadastre soldadores primeiro.</div></div>'}`;
+  ${tabelaPrecos('prod','Preços — Por Produção','Valor pago por peça para soldadores por produção (sobre tudo que produzirem).','#1e40af',PECAS_METAL,vProd)}
+  ${tabelaPrecos('meta','Preços — Na Meta (Fichados)','Valor pago por peça para soldadores fichados (só sobre o excedente da meta).','#059669',PECAS_METAL,vMeta)}
+  ${tabelaPrecos('ref','Preços — Reformas','Valor pago por reforma de qualquer peça (vale para produção e fichados).','#7c3aed',PECAS_METAL,vRef)}`;
 }
 
 window._salvarMetas=async()=>{
@@ -2441,13 +2452,14 @@ window._salvarMetas=async()=>{
   await setDoc(doc(db,'config_metal','geral'),{...cur,metas});
   showToast('Metas salvas!');
 };
-window._salvarValoresSoldador=async soldadorId=>{
+window._salvarValoresMetal=async(prefixId)=>{
   const vals={};
-  PECAS_METAL_FULL.forEach(p=>{vals[p.id]=parseFloat(document.getElementById(`val-${soldadorId}-${p.id}`)?.value)||0;});
+  PECAS_METAL.forEach(p=>{vals[p.id]=parseFloat(document.getElementById(prefixId+'-'+p.id)?.value)||0;});
+  const campo=prefixId==='prod'?'valoresProd':prefixId==='meta'?'valoresMeta':'valoresRef';
   const cur=configMetal||{metas:{}};
-  const valores={...(cur.valores||{}),[soldadorId]:vals};
-  await setDoc(doc(db,'config_metal','geral'),{...cur,valores});
-  showToast('Valores salvos!');
+  await setDoc(doc(db,'config_metal','geral'),{...cur,[campo]:vals});
+  const labels={'prod':'Preços por Produção','meta':'Preços na Meta','ref':'Preços de Reforma'};
+  showToast((labels[prefixId]||'Valores')+' salvos!');
 };
 
 // ── Minha produção (soldador) ─────────────────────────────────────
@@ -2673,7 +2685,7 @@ function iniciarListeners(){
       if(currentUserData)reloadTab();
     });
     onSnapshot(doc(db,'config_metal','geral'),snap=>{
-      if(snap.exists()) configMetal={metas:{},valores:{},...snap.data()};
+      if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
       if(currentUserData)reloadTab();
     });
   }
