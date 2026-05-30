@@ -2497,6 +2497,7 @@ function renderSoldadoresMetal(){
       <div style="flex:1">
         <div style="font-size:14px;font-weight:700">${s.nome}</div>
         <div style="font-size:11px;color:#64748b">${s.contrato==='producao'?'Por produção':'Fichado'}</div>
+        ${s.usuarioUid?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:600;margin-top:3px;display:inline-block">✓ Login vinculado</span>':'<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:99px;font-weight:600;margin-top:3px;display:inline-block">Sem login</span>'}
       </div>
       <div style="text-align:right;margin-right:8px">
         <div style="font-size:10px;color:#64748b">quinzena</div>
@@ -2520,22 +2521,33 @@ window._cadastrarSoldador=async()=>{
 };
 window._editarSoldador=id=>{
   const s=soldadores.find(x=>x.id===id);if(!s)return;
-  showModal('Editar soldador',`
-    <div class="form-group"><label>Nome</label><input id="es-nome" type="text" value="${s.nome||''}" style="width:100%;font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px"></div>
-    <div class="form-group"><label>Tipo de contrato</label>
-      <select id="es-contrato" style="width:100%;font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px">
-        <option value="producao" ${s.contrato==='producao'?'selected':''}>Por produção</option>
-        <option value="fichado" ${s.contrato==='fichado'?'selected':''}>Fichado</option>
-      </select>
-    </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-primary btn-sm" onclick="window._salvarSoldador('${id}')">Salvar</button>`);
+  const soldadoresUsuarios=usuarios.filter(function(u){return u.perfil==='soldador';});
+  var optsUsuarios='<option value="">— Sem vínculo</option>'
+    +soldadoresUsuarios.map(function(u){
+      var sel=(s.usuarioUid===u.uid||s.usuarioUid===u.id)?'selected':'';
+      return '<option value="'+(u.uid||u.id)+'" '+sel+'>'+u.nome+' ('+u.email+')</option>';
+    }).join('');
+  showModal('Editar soldador',
+    '<div class="form-group"><label>Nome</label><input id="es-nome" type="text" value="'+(s.nome||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Tipo de contrato</label>'
+    +'<select id="es-contrato" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
+    +'<option value="producao"'+(s.contrato==='producao'?' selected':'')+'>Por produção</option>'
+    +'<option value="fichado"'+(s.contrato==='fichado'?' selected':'')+'>Fichado</option>'
+    +'</select></div>'
+    +'<div class="form-group"><label>Usuário vinculado (login do soldador)</label>'
+    +'<select id="es-usuario" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
+    +optsUsuarios+'</select>'
+    +'<div style="font-size:11px;color:#64748b;margin-top:4px">Vincule o cadastro de usuário para que o soldador veja sua própria produção ao fazer login.</div>'
+    +'</div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarSoldador(&quot;'+id+'&quot;)">Salvar</button>');
 };
 window._salvarSoldador=async id=>{
   const nome=document.getElementById('es-nome').value.trim();
   const contrato=document.getElementById('es-contrato').value;
+  const usuarioUid=document.getElementById('es-usuario')?.value||'';
   if(!nome)return;
-  await updateDoc(doc(db,'soldadores',id),{nome,contrato});
+  await updateDoc(doc(db,'soldadores',id),{nome,contrato,usuarioUid});
   closeModal();showToast('Soldador atualizado!');
 };
 window._excluirSoldador=id=>{
@@ -2615,7 +2627,8 @@ window._salvarValoresMetal=async(prefixId)=>{
 // ── Minha produção (soldador) ─────────────────────────────────────
 function renderMinhaProd(){
   const uid=currentUser?.uid||'';
-  const sol=soldadores.find(s=>s.usuarioUid===uid||s.uid===uid);
+  const idUsuario=currentUserData?.id||'';
+  const sol=soldadores.find(s=>s.usuarioUid===uid||s.usuarioUid===idUsuario);
   if(!sol) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum soldador. Peça ao encarregado para vincular.</div></div>';
 
   const periodos=[
