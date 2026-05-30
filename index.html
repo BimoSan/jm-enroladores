@@ -616,8 +616,10 @@ function renderApp(){
   if(currentSetor==='metalurgica'){
     // Tabs da metalúrgica
     const perfMetal=currentUserData?.perfil;
-    if(['admin','encarregado_cad','apontador_metal'].includes(perfMetal)){
+    if(['admin','encarregado_cad'].includes(perfMetal)){
       tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','soldadores_metal','config_metal');
+    }else if(perfMetal==='apontador_metal'){
+      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal');
     }else if(perfMetal==='soldador'){
       tabs.push('minha_prod','ranking_metal');
     }else{
