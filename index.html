@@ -2178,13 +2178,13 @@ function calcGanhoSoldador(soldadorId, periodo){
         const qtdDia=apontSoldador(soldadorId)
           .filter(a=>a.data===dia)
           .reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
-        const val=p.reforma
-          ? (parseFloat(vRef[p.id.replace('ref_','')])||0)
-          : (parseFloat(vMeta[p.id])||0);
         if(p.reforma){
           // Reformas: paga tudo pelo valor de reforma
+          const val=parseFloat(vRef[p.id.replace('ref_','')])||0;
           totalGanho+=qtdDia*val;
         } else {
+          // Fichado: excedente usa preço da meta
+          const val=parseFloat(vMeta[p.id])||0;
           const meta=parseInt(metas[p.id])||0;
           const excedente=Math.max(0,qtdDia-meta);
           totalGanho+=excedente*val;
@@ -2441,8 +2441,8 @@ function renderConfigMetal(){
     <button class="btn btn-primary" style="margin-top:12px" onclick="window._salvarMetas()">Salvar metas</button>
   </div>
   ${tabelaPrecos('prod','Preços — Por Produção','Valor pago por peça para soldadores por produção (sobre tudo que produzirem).','#1e40af',PECAS_METAL,vProd)}
-  ${tabelaPrecos('meta','Preços — Na Meta (Fichados)','Valor pago por peça para soldadores fichados (só sobre o excedente da meta).','#059669',PECAS_METAL,vMeta)}
-  ${tabelaPrecos('ref','Preços — Reformas','Valor pago por reforma de qualquer peça (vale para produção e fichados).','#7c3aed',PECAS_METAL,vRef)}`;
+  ${tabelaPrecos('fichado','Preços — Na Meta (Fichados)','Valor pago por peça para soldadores fichados (só sobre o excedente da meta).','#059669',PECAS_METAL,vMeta)}
+  ${tabelaPrecos('ref','Preços — Reformas','Valor pago por reforma de qualquer peça (vale para todos os contratos).','#7c3aed',PECAS_METAL,vRef)}`;
 }
 
 window._salvarMetas=async()=>{
@@ -2455,7 +2455,7 @@ window._salvarMetas=async()=>{
 window._salvarValoresMetal=async(prefixId)=>{
   const vals={};
   PECAS_METAL.forEach(p=>{vals[p.id]=parseFloat(document.getElementById(prefixId+'-'+p.id)?.value)||0;});
-  const campo=prefixId==='prod'?'valoresProd':prefixId==='meta'?'valoresMeta':'valoresRef';
+  const campo=prefixId==='prod'?'valoresProd':prefixId==='fichado'?'valoresMeta':'valoresRef';
   const cur=configMetal||{metas:{}};
   await setDoc(doc(db,'config_metal','geral'),{...cur,[campo]:vals});
   const labels={'prod':'Preços por Produção','meta':'Preços na Meta','ref':'Preços de Reforma'};
