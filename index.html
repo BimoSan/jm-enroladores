@@ -393,8 +393,8 @@ function showToast(msg){
 }
 
 // ── Modal ────────────────────────────────────────────────────────
-function showModal(title,html,btns){
-  document.getElementById('modal-root').innerHTML=`<div class="modal-overlay"><div class="modal-box"><div class="modal-title">${title}</div><div id="modal-body">${html}</div><div class="modal-btns">${btns}</div></div></div>`;
+function showModal(title,html,btns,wide=false){
+  document.getElementById('modal-root').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)window._closeModal()"><div class="modal-box" style="${wide?'max-width:720px':''}"><div class="modal-title">${title}</div><div id="modal-body">${html}</div><div class="modal-btns">${btns}</div></div></div>`;
 }
 function closeModal(){document.getElementById('modal-root').innerHTML='';}
 function showConfirm(title,msg,confirmLabel,cls,onConfirm){
@@ -477,6 +477,16 @@ function renderSelecionarFabrica(){
       <div class="fab-desc">${f.desc}</div>
     </div>`).join('');
 
+  const perfil=currentUserData?.perfil;
+  const podeGerenciarUsuarios=perfil==='admin';
+  const btnUsuarios=podeGerenciarUsuarios?`
+    <div style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:16px">
+      <button class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="window._abrirUsuariosGlobais()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Usuários Globais
+      </button>
+    </div>`:'';
+
   return `<div class="sel-wrap"><div class="sel-box">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div class="sel-title">JM — Sistema de Gestão</div>
@@ -484,6 +494,7 @@ function renderSelecionarFabrica(){
     </div>
     <div class="sel-sub">Olá, <strong>${currentUserData.nome}</strong>! Selecione a fábrica para continuar.</div>
     <div class="fab-grid">${cards}</div>
+    ${btnUsuarios}
   </div></div>`;
 }
 
@@ -525,6 +536,15 @@ function renderSelecionarSetor(){
       ${s.ativo?'':'<span style="margin-left:auto;font-size:10px;background:#f1f5f9;color:#94a3b8;padding:2px 7px;border-radius:99px;font-weight:600">Em breve</span>'}
     </div>`).join('');
 
+  const podeVerUsrFab=currentUserData?.perfil==='admin';
+  const btnUsrFab=podeVerUsrFab?`
+    <div style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px">
+      <button class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="window._abrirUsuariosFabrica('${currentFabrica}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Usuários da Fábrica
+      </button>
+    </div>`:'';
+
   return `<div class="sel-wrap"><div class="sel-box">
     <button class="back-btn" onclick="window._voltarFabrica()">← Voltar</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -533,6 +553,7 @@ function renderSelecionarSetor(){
     </div>
     <div class="sel-sub">Selecione o setor que deseja acessar.</div>
     <div class="setor-grid">${cards}</div>
+    ${btnUsrFab}
   </div></div>`;
 }
 
@@ -1794,27 +1815,32 @@ window._cadastrarEnr=async()=>{
 };
 window._editarEnrolador=id=>{
   const e=enroladores.find(x=>x.id===id);if(!e)return;
-  const inp=(eid,label,val)=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="text" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
-  // Lista de usuários com perfil enrolador para vincular
-  const enroladoresUsuarios=usuarios.filter(u=>u.perfil==='enrolador');
-  const optsUsuarios=`<option value="">— Sem vínculo</option>`+
-    enroladoresUsuarios.map(u=>`<option value="${u.uid||u.id}" ${(e.usuarioUid===u.uid||e.usuarioUid===u.id)?'selected':''}>${u.nome} (${u.email})</option>`).join('');
+  const inp=function(eid,label,val){
+    return '<div class="form-group"><label>'+label+'</label><input id="'+eid+'" type="text" value="'+(val||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>';
+  };
+  const enroladoresUsuarios=usuarios.filter(function(u){return u.perfil==='enrolador';});
+  var optsUsuarios='<option value="">— Sem vínculo</option>'
+    +enroladoresUsuarios.map(function(u){
+      var sel=(e.usuarioUid===u.uid||e.usuarioUid===u.id)?'selected':'';
+      return '<option value="'+(u.uid||u.id)+'" '+sel+'>'+u.nome+' ('+u.email+')</option>';
+    }).join('');
+  var apontSelect='<div class="form-group"><label>Apontador responsável</label>'
+    +'<select id="ee-enr-apontador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
+    +'<option value="apontador1"'+(e.apontadorPerfil==='apontador1'?' selected':'')+'>Apontador 1</option>'
+    +'<option value="apontador2"'+(e.apontadorPerfil==='apontador2'?' selected':'')+'>Apontador 2</option>'
+    +'</select></div>';
+  var userSelect='<div class="form-group"><label>Usuário vinculado (login do enrolador)</label>'
+    +'<select id="ee-enr-usuario" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
+    +optsUsuarios+'</select>'
+    +'<div style="font-size:11px;color:#64748b;margin-top:4px">Vincule o cadastro de usuário ao enrolador para que ele veja suas fichas ao fazer login.</div>'
+    +'</div>';
   showModal('Editar enrolador',
-    inp('ee-enr-nome','Nome completo',e.nome)+
-    inp('ee-enr-end','Endereço / Bairro',e.endereco)+
-    inp('ee-enr-tel','Telefone',e.telefone)+
-    `<div class="form-group"><label>Apontador responsável</label>
-      <select id="ee-enr-apontador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">
-        <option value="apontador1" ${e.apontadorPerfil==='apontador1'?'selected':''}>Apontador 1</option>
-        <option value="apontador2" ${e.apontadorPerfil==='apontador2'?'selected':''}>Apontador 2</option>
-      </select></div>
-    <div class="form-group"><label>Usuário vinculado (login do enrolador)</label>
-      <select id="ee-enr-usuario" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">
-        ${optsUsuarios}
-      </select>
-      <div style="font-size:11px;color:#64748b;margin-top:4px">Vincule o cadastro de usuário ao enrolador para que ele veja suas próprias fichas ao fazer login.</div>
-    </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarEnrolador('${id}')">Salvar</button>`);
+    inp('ee-enr-nome','Nome completo',e.nome)
+    +inp('ee-enr-end','Endereço / Bairro',e.endereco)
+    +inp('ee-enr-tel','Telefone',e.telefone)
+    +apontSelect+userSelect,
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarEnrolador(&quot;'+id+'&quot;)">Salvar</button>');
 };
 window._salvarEnrolador=async id=>{
   const nome=document.getElementById('ee-enr-nome').value.trim();
@@ -1893,46 +1919,119 @@ window._confirmarPagoAction=async()=>{
 };
 
 // ── Usuários ─────────────────────────────────────────────────────
-function renderUsuarios(){
-  // Perfis disponíveis para o setor atual
-  const perfisDoSetor = Object.entries(PERFIS).filter(([k,v])=>{
-    // Perfis globais sempre aparecem
+// Contextos: 'global' | 'fabrica' | 'setor' (default)
+function getPerfisContexto(contexto, fabrica, setor){
+  return Object.entries(PERFIS).filter(([k,v])=>{
+    if(contexto==='global'){
+      // Só perfis presentes nas duas fábricas
+      return v.fabricas&&v.fabricas.includes('cadeiras')&&v.fabricas.includes('estofados');
+    }
+    if(contexto==='fabrica'){
+      // Perfis da fábrica sem setor fixo (encarregado geral, etc.)
+      if(!v.fabricas||!v.fabricas.includes(fabrica)) return false;
+      return !v.setor; // sem setor específico = nível de fábrica
+    }
+    // Setor específico
     if(v.fabricas&&v.fabricas.includes('cadeiras')&&v.fabricas.includes('estofados')) return true;
-    // Perfis específicos da fábrica atual
-    if(currentFabrica&&v.fabricas&&!v.fabricas.includes(currentFabrica)) return false;
-    // Perfis do setor atual ou sem setor fixo
-    if(currentSetor&&v.setor&&v.setor!==currentSetor) return false;
+    if(fabrica&&v.fabricas&&!v.fabricas.includes(fabrica)) return false;
+    if(setor&&v.setor&&v.setor!==setor) return false;
     return true;
   });
-
-  const optsPerfilHtml = perfisDoSetor.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
-
-  return `<div class="card" style="margin-bottom:10px">
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar novo usuário</div>
-    <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>
-    <div class="form-group"><label>Perfil</label><select id="nu-perfil">${optsPerfilHtml}</select></div></div>
-    <div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>
-    <div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>
-    <button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>
-  </div>
-  <div class="section-label">usuários cadastrados</div>
-  ${usuarios.map(u=>{
-    const p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
-    return `<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:44px;height:44px;border-radius:50%;background:${p.bg};color:${p.color};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(u.nome)}</div>
-          <div><div style="font-size:14px;font-weight:700">${u.nome}</div><div style="font-size:11px;color:#64748b">${u.email}</div></div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-          <span style="font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;background:${p.bg};color:${p.color}">${p.label}</span>
-          <button class="btn btn-sm btn-warn" onclick="window._editarUsuario('${u.id}')">Editar</button>
-          ${u.uid!==currentUser.uid?`<button class="btn btn-sm btn-danger" onclick="window._excluirUsuario('${u.id}')">Excluir</button>`:'<span style="font-size:10px;color:#64748b">(você)</span>'}
-        </div>
-      </div>
-    </div>`;
-  }).join('')}`;
 }
+
+function renderUsuariosContexto(contexto, fabrica, setor, titulo){
+  const perfisDisp = getPerfisContexto(contexto, fabrica, setor);
+  const optsPerfilHtml = perfisDisp.map(function(e){return '<option value="'+e[0]+'">'+e[1].label+'</option>';}).join('');
+  const usuariosFiltrados = contexto==='global'
+    ? usuarios.filter(function(u){var p=PERFIS[u.perfil];return p&&p.fabricas&&p.fabricas.includes('cadeiras')&&p.fabricas.includes('estofados');})
+    : contexto==='fabrica'
+    ? usuarios.filter(function(u){var p=PERFIS[u.perfil];return p&&p.fabricas&&p.fabricas.includes(fabrica)&&!p.setor;})
+    : usuarios;
+
+  var rows=usuariosFiltrados.map(function(u){
+    var p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
+    var excBtn=u.uid!==currentUser.uid
+      ?'<button class="btn btn-sm btn-danger" onclick="window._excluirUsuario(&quot;'+u.id+'&quot;)">Excluir</button>'
+      :'<span style="font-size:10px;color:#64748b">(você)</span>';
+    return '<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:'+p.bg+';color:'+p.color+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">'+initials(u.nome)+'</div>'
+      +'<div><div style="font-size:14px;font-weight:700">'+u.nome+'</div><div style="font-size:11px;color:#64748b">'+u.email+'</div></div></div>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">'
+      +'<span style="font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;background:'+p.bg+';color:'+p.color+'">'+p.label+'</span>'
+      +'<button class="btn btn-sm btn-warn" onclick="window._editarUsuario(&quot;'+u.id+'&quot;)">Editar</button>'
+      +excBtn+'</div></div></div>';
+  }).join('');
+
+  if(!rows) rows='<div class="card"><div style="color:#64748b;text-align:center;padding:16px;font-size:13px">Nenhum usuário cadastrado.</div></div>';
+
+  return '<div class="card" style="margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar novo usuário — '+titulo+'</div>'
+    +'<div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>'
+    +'<div class="form-group"><label>Perfil</label><select id="nu-perfil">'+optsPerfilHtml+'</select></div></div>'
+    +'<div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>'
+    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>'
+    +'<button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>'
+    +'</div>'
+    +'<div class="section-label">usuários cadastrados</div>'
+    +rows;
+}
+
+
+// Abre modal de usuários globais (tela de fábrica)
+window._abrirUsuariosGlobais=()=>{
+  showModal('Usuários Globais',
+    renderUsuariosContexto('global',null,null,'Globais (todas as fábricas)'),
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Fechar</button>`,
+    true // wide
+  );
+};
+
+// Abre modal de usuários da fábrica (tela de setores)
+window._abrirUsuariosFabrica=(fab)=>{
+  const nome=fab==='cadeiras'?'Fábrica de Cadeiras':'Fábrica de Estofados';
+  showModal(`Usuários — ${nome}`,
+    renderUsuariosContexto('fabrica',fab,null,nome),
+    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Fechar</button>`,
+    true
+  );
+};
+
+function renderUsuarios(){
+  const perfisDoSetor = getPerfisContexto('setor', currentFabrica, currentSetor);
+  const perfisIds=perfisDoSetor.map(function(e){return e[0];});
+  const usuariosSetor=usuarios.filter(function(u){return perfisIds.includes(u.perfil);});
+  const optsPerfilHtml = perfisDoSetor.map(function(e){return '<option value="'+e[0]+'">'+e[1].label+'</option>';}).join('');
+
+  var rows=usuariosSetor.map(function(u){
+    var p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
+    var excBtn=u.uid!==currentUser.uid
+      ?'<button class="btn btn-sm btn-danger" onclick="window._excluirUsuario(&quot;'+u.id+'&quot;)">Excluir</button>'
+      :'<span style="font-size:10px;color:#64748b">(você)</span>';
+    return '<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:'+p.bg+';color:'+p.color+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">'+initials(u.nome)+'</div>'
+      +'<div><div style="font-size:14px;font-weight:700">'+u.nome+'</div><div style="font-size:11px;color:#64748b">'+u.email+'</div></div></div>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">'
+      +'<span style="font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;background:'+p.bg+';color:'+p.color+'">'+p.label+'</span>'
+      +'<button class="btn btn-sm btn-warn" onclick="window._editarUsuario(&quot;'+u.id+'&quot;)">Editar</button>'
+      +excBtn+'</div></div></div>';
+  }).join('');
+
+  if(!rows) rows='<div class="card"><div style="color:#64748b;text-align:center;padding:16px;font-size:13px">Nenhum usuário cadastrado neste setor ainda.</div></div>';
+
+  return '<div class="card" style="margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:10px">Cadastrar novo usuário</div>'
+    +'<div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>'
+    +'<div class="form-group"><label>Perfil</label><select id="nu-perfil">'+optsPerfilHtml+'</select></div></div>'
+    +'<div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>'
+    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>'
+    +'<button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>'
+    +'</div>'
+    +'<div class="section-label">usuários deste setor</div>'
+    +rows;
+}
+
 
 window._cadastrarUsuario=async()=>{
   const nome=document.getElementById('nu-nome').value.trim();
@@ -1949,20 +2048,21 @@ window._cadastrarUsuario=async()=>{
 };
 
 window._editarUsuario=id=>{
-  const u=usuarios.find(x=>x.id===id);if(!u)return;
-  const perfisDoSetor=Object.entries(PERFIS).filter(([k,v])=>{
-    if(v.fabricas&&v.fabricas.includes('cadeiras')&&v.fabricas.includes('estofados'))return true;
-    if(currentFabrica&&v.fabricas&&!v.fabricas.includes(currentFabrica))return false;
-    if(currentSetor&&v.setor&&v.setor!==currentSetor)return false;
-    return true;
-  });
-  const optsHtml=perfisDoSetor.map(([k,v])=>`<option value="${k}"${u.perfil===k?' selected':''}>${v.label}</option>`).join('');
-  const inp=(eid,label,val,type='text')=>`<div class="form-group"><label>${label}</label><input id="${eid}" type="${type}" value="${val||''}" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>`;
-  showModal(`Editar — ${u.nome}`,
-    inp('eu-nome','Nome completo',u.nome)+
-    `<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">${optsHtml}</select></div>`+
-    inp('eu-email','E-mail',u.email,'email'),
-    `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="window._salvarUsuario('${id}')">Salvar</button>`);
+  const u=usuarios.find(function(x){return x.id===id;});if(!u)return;
+  const perfisDisp=getPerfisContexto('setor',currentFabrica,currentSetor);
+  const optsHtml=perfisDisp.map(function(e){
+    return '<option value="'+e[0]+'"'+(u.perfil===e[0]?' selected':'')+'>'+e[1].label+'</option>';
+  }).join('');
+  const inp=function(eid,label,val,type){
+    type=type||'text';
+    return '<div class="form-group"><label>'+label+'</label><input id="'+eid+'" type="'+type+'" value="'+(val||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>';
+  };
+  showModal('Editar — '+u.nome,
+    inp('eu-nome','Nome completo',u.nome)
+    +'<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsHtml+'</select></div>'
+    +inp('eu-email','E-mail',u.email,'email'),
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarUsuario(&quot;'+id+'&quot;)">Salvar</button>');
 };
 
 window._salvarUsuario=async id=>{
@@ -2136,7 +2236,7 @@ function renderPainelMetal(){
       return `<div style="margin-bottom:6px">
         <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
           <span style="color:#475569">${p.label}</span>
-          <span style="font-weight:700;color:${cor}">${qtd}${meta>0?` / ${meta}`:''}</span>
+          <span style="font-weight:700;color:${cor}">${qtd}${meta>0?' / '+meta:''}</span>
         </div>
         <div style="height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${cor};border-radius:99px"></div>
@@ -2459,7 +2559,7 @@ function renderRankingMetal(){
     const bar=Math.round(d.total/max*100);
     return `<div class="card" style="margin-bottom:8px${i===0?';border:2px solid #f5c842':''}">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||`<span style="font-size:12px;font-weight:700;color:#64748b">#${i+1}</span>`}</div>
+        <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||('<span style="font-size:12px;font-weight:700;color:#64748b">#'+(i+1)+'</span>')}</div>
         <div style="width:40px;height:40px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${initials(d.s.nome)}</div>
         <div style="flex:1"><div style="font-size:14px;font-weight:700">${d.s.nome}</div></div>
         <div style="text-align:right">
