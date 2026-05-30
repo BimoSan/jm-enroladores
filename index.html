@@ -184,7 +184,7 @@
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── Firebase config ──────────────────────────────────────────────
@@ -287,6 +287,7 @@ let currentTab='painel';
 let currentFabrica=null;
 let currentSetor=null;
 let enroladores=[];
+let notificacoes=[];
 let fichas=[];
 let usuarios=[];
 let unsubFichas=null;
@@ -376,6 +377,15 @@ function showConfirm(title,msg,confirmLabel,cls,onConfirm){
 window._closeModal=closeModal;
 
 // ── Render principal ─────────────────────────────────────────────
+function atualizarBadgeNotif(){
+  // Atualiza badge sem re-renderizar tudo
+  const el=document.querySelector('.nav-item[onclick*="relatorio"] span:last-child');
+  if(el&&el.tagName==='SPAN'&&el.style.background==='rgb(220, 38, 38)'){
+    el.textContent=notificacoes.length;
+    if(notificacoes.length===0)el.remove();
+  }
+}
+
 function render(){
   if(!currentUserData){
     document.getElementById('root').innerHTML=renderLogin();
@@ -552,11 +562,16 @@ function renderApp(){
         </button>
       </div>`;
 
-  const navItems=tabs.map(t=>`
-    <div class="nav-item ${currentTab===t?'active':''}" onclick="window._switchTab('${t}')">
+  const navItems=tabs.map(t=>{
+    const badge=t==='relatorio'&&notificacoes.length>0
+      ?`<span style="margin-left:auto;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;min-width:18px;text-align:center">${notificacoes.length}</span>`
+      :'';
+    return `<div class="nav-item ${currentTab===t?'active':''}" onclick="window._switchTab('${t}')">
       ${NAV_ICONS[t]||''}
       <span>${TAB_LABELS[t]||t}</span>
-    </div>`).join('');
+      ${badge}
+    </div>`;
+  }).join('');
 
   return `<div class="shell">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="window._closeSidebar()"></div>
@@ -1074,6 +1089,15 @@ window._confirmarExcluirRecolh=async()=>{
 // ── Relatório ────────────────────────────────────────────────────
 function renderRelatorio(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Marcar notificações como lidas ao abrir o relatório
+  if(notificacoes.length>0){
+    notificacoes.forEach(async n=>{
+      await updateDoc(doc(db,'notificacoes',n.id),{lida:true});
+    });
+    notificacoes=[];
+  }
+
   const fechadas=fichas.filter(f=>f.status==='fechada');
   const pagas=fechadas.filter(f=>f.pago);
   const pendentes_pag=fechadas.filter(f=>!f.pago);
@@ -1653,7 +1677,18 @@ window._registrarRecolhimento=async()=>{
 
 window._fecharFichaDirecto=async id=>{
   closeModal();
-  await updateDoc(doc(db,'fichas',id),{status:'fechada'});
+  const f=getFicha(id);
+  const enr=getEnr(f?.enroladorId);
+  await updateDoc(doc(db,'fichas',id),{status:'fechada',dataFechamento:today()});
+  await addDoc(collection(db,'notificacoes'),{
+    tipo:'ficha_fechada',
+    fichaId:id,
+    enroladorNome:enr?.nome||'',
+    total:calcularPagamento({...f,status:'fechada'}),
+    data:today(),
+    lida:false,
+    criadaEm:new Date().toISOString(),
+  });
   showToast('Ficha fechada!');
 };
 
@@ -1773,7 +1808,19 @@ window._fecharFicha=id=>{
 window._confirmarFecharFicha=async()=>{
   const id=window._pendingFichaId;if(!id)return;
   closeModal();
-  await updateDoc(doc(db,'fichas',id),{status:'fechada'});
+  const f=getFicha(id);
+  const enr=getEnr(f?.enroladorId);
+  await updateDoc(doc(db,'fichas',id),{status:'fechada',dataFechamento:today()});
+  // Notificar financeiro
+  await addDoc(collection(db,'notificacoes'),{
+    tipo:'ficha_fechada',
+    fichaId:id,
+    enroladorNome:enr?.nome||'',
+    total:calcularPagamento({...f,status:'fechada'}),
+    data:today(),
+    lida:false,
+    criadaEm:new Date().toISOString(),
+  });
   window._pendingFichaId=null;
   showToast('Ficha fechada!');
 };
@@ -1967,6 +2014,17 @@ function iniciarListeners(){
   onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
+  // Notificações — só carrega para perfis que precisam
+  if(['financeiro','admin','proprietario'].includes(currentUserData?.perfil)){
+    onSnapshot(
+      query(collection(db,'notificacoes'),where('lida','==',false)),
+      snap=>{
+        notificacoes=snap.docs.map(d=>({id:d.id,...d.data()}));
+        atualizarBadgeNotif();
+        if(currentUserData)reloadTab();
+      }
+    );
+  }
 }
 
 function pararListeners(){
@@ -1991,7 +2049,15 @@ onAuthStateChanged(auth,async user=>{
       // Primeiro acesso do admin: cria registro automaticamente
       currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
     }
-    currentTab=can('verPainel')?'painel':'fichas';
+    // Tela inicial por perfil
+    const perfInicial=currentUserData?.perfil;
+    if(perfInicial==='financeiro'){
+      currentTab='relatorio';
+    }else if(can('verPainel')){
+      currentTab='painel';
+    }else{
+      currentTab='fichas';
+    }
     // Tentar restaurar fábrica/setor da sessão anterior
     const sessaoFabrica=sessionStorage.getItem('jm_fabrica');
     const sessaoSetor=sessionStorage.getItem('jm_setor');
