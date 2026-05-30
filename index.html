@@ -639,13 +639,17 @@ function renderApp(){
   }
   if(!tabs.includes(currentTab))currentTab=tabs[0]||'fichas';
 
-  const btnVoltar=`
+  const perfisFixos=['soldador','enrolador','entregador',
+    'enrolador_int','costureira','gradista','tapecador'];
+  const perfilAtual=currentUserData?.perfil;
+  const podeVoltarSetor=!perfisFixos.includes(perfilAtual);
+  const btnVoltar=podeVoltarSetor?`
       <div style="padding:8px 18px 4px">
         <button onclick="window._voltarSetores()" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#bfdbfe;font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:6px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
           Trocar setor
         </button>
-      </div>`;
+      </div>`:'';
 
   const navItems=tabs.map(t=>{
     const badge=t==='relatorio'&&notificacoes.length>0
