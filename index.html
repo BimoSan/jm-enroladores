@@ -2958,25 +2958,23 @@ function iniciarListeners(){
   onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
-  // Metalúrgica — listeners só quando no setor
-  if(currentSetor==='metalurgica'){
-    onSnapshot(collection(db,'soldadores'),snap=>{
-      soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
-      if(currentUserData)reloadTab();
-    });
-    onSnapshot(collection(db,'apontamentos_metal'),snap=>{
-      apontamentosMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
-      if(currentUserData)reloadTab();
-    });
-    onSnapshot(doc(db,'config_metal','geral'),snap=>{
-      if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
-      if(currentUserData)reloadTab();
-    });
-    onSnapshot(collection(db,'fichas_metal'),snap=>{
-      fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
-      if(currentUserData)reloadTab();
-    });
-  }
+  // Metalúrgica — carrega sempre (necessário para restauração de sessão no mobile)
+  onSnapshot(collection(db,'soldadores'),snap=>{
+    soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  onSnapshot(collection(db,'apontamentos_metal'),snap=>{
+    apontamentosMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  onSnapshot(doc(db,'config_metal','geral'),snap=>{
+    if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
+    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  onSnapshot(collection(db,'fichas_metal'),snap=>{
+    fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
 
   // Notificações — só carrega para perfis que precisam
   if(['financeiro','admin','proprietario'].includes(currentUserData?.perfil)){
