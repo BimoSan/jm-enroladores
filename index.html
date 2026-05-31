@@ -2256,20 +2256,28 @@ function totalPecasFicha(soldadorId, quinzena){
 
 // ── Alerta de casas sem retorno ──────────────────────────────────
 function diasSemRetorno(enroladorId){
-  // Pega todas as fichas abertas do enrolador
-  const fichasEnr = fichas.filter(f=>f.enroladorId===enroladorId&&f.status==='aberta');
+  // Pega fichas abertas com peças pendentes
+  const fichasEnr=fichas.filter(f=>f.enroladorId===enroladorId&&f.status==='aberta'&&pendentes(f)>0);
   if(!fichasEnr.length) return null;
-  // Encontra a data de entrega mais recente
-  let maisRecente = null;
+
+  // Referência: último recolhimento ou, se nunca houve recolhimento, a primeira entrega
+  let dataRef=null;
   fichasEnr.forEach(f=>{
-    (f.entregas||[]).forEach(e=>{
-      if(!maisRecente||e.data>maisRecente) maisRecente=e.data;
+    // Verificar último recolhimento
+    (f.recolhimentos||[]).forEach(r=>{
+      if(r.data&&(!dataRef||r.data>dataRef)) dataRef=r.data;
     });
+    // Se não há recolhimento, usar a data da primeira entrega
+    if(!(f.recolhimentos||[]).length){
+      (f.entregas||[]).forEach(e=>{
+        if(e.data&&(!dataRef||e.data<dataRef)) dataRef=e.data;
+      });
+    }
   });
-  if(!maisRecente) return null;
-  // Calcular dias desde a última entrega
-  const diff = Math.floor((new Date(today()+'T00:00:00') - new Date(maisRecente+'T00:00:00')) / (1000*60*60*24));
-  return diff;
+
+  if(!dataRef) return null;
+  const diff=Math.floor((new Date(today()+'T00:00:00')-new Date(dataRef+'T00:00:00'))/(1000*60*60*24));
+  return diff>=0?diff:null;
 }
 
 function renderAlertaSemRetorno(enroladorId, compact=false){
