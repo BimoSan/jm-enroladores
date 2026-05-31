@@ -835,6 +835,25 @@ function gerarResumoMovimento(){
   return html;
 }
 
+function gerarResumoAlertas(){
+  if(currentUserData?.perfil==='enrolador') return '';
+  const alertas=enroladores.filter(e=>{
+    const d=diasSemRetorno(e.id);
+    return d!==null&&d>=30;
+  }).map(e=>({e,dias:diasSemRetorno(e.id)}))
+    .sort((a,b)=>b.dias-a.dias);
+  if(!alertas.length) return '';
+  const rows=alertas.map(({e,dias})=>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fecaca">'
+    +'<span style="font-size:12px;color:#dc2626;font-weight:600">'+e.nome+'</span>'
+    +'<span style="font-size:13px;font-weight:800;color:#dc2626">'+dias+' dias sem retorno</span>'
+    +'</div>'
+  ).join('');
+  return '<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;padding:14px 18px;margin-bottom:16px;width:100%">'
+    +'<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:10px">⚠️ '+alertas.length+' casa'+(alertas.length>1?'s':'')+' sem retorno há mais de 30 dias</div>'
+    +rows+'</div>';
+}
+
 // ── Painel ───────────────────────────────────────────────────────
 function renderPainel(){
   const abertas=fichas.filter(f=>f.status==='aberta');
@@ -885,6 +904,7 @@ function renderPainel(){
       </div>
     </div>
     ${gerarResumoMovimento()}
+    ${gerarResumoAlertas()}
     <div class="section-label">fichas em andamento</div>`;
   if(!abertas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
   html+=abertas.sort((a,b)=>{const na=getEnr(a.enroladorId)?.nome||'';const nb=getEnr(b.enroladorId)?.nome||'';return na.localeCompare(nb,'pt-BR');}).map(f=>{
@@ -928,6 +948,8 @@ function renderPainel(){
       <table class="tipos-table"><thead><tr><th>Tipo</th><th style="text-align:center">Env.</th><th style="text-align:center">Recol.</th><th style="text-align:center">Pend.</th><th></th></tr></thead><tbody>${rows}</tbody>
         <tfoot><tr style="border-top:2px solid #f1f5f9"><td style="padding:7px 8px;font-size:12px;font-weight:700">Total</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700">${env}</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700">${rec}</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700" class="${pend>0?'pend-pos':'pend-zero'}">${pend}</td><td style="padding:7px 8px;font-size:12px;text-align:right;color:#64748b;font-weight:600">${pct}%</td></tr></tfoot>
       </table>
+      ${renderAlertaSemRetorno(f.enroladorId,true)}
+      ${renderAlertaSemRetorno(f.enroladorId,true)}
       ${can('verSinalizacoes')?renderBadgeProntos(f):''}
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
         <span class="mat-pill">Fita: ${fitaEnv} rolos${fitaSob>0?' · '+fitaSob+' sobrando':''}</span>
@@ -2232,6 +2254,48 @@ function totalPecasFicha(soldadorId, quinzena){
     .reduce((sum,a)=>sum+Object.values(a.pecas||{}).reduce((s,v)=>s+(parseInt(v)||0),0),0);
 }
 
+// ── Alerta de casas sem retorno ──────────────────────────────────
+function diasSemRetorno(enroladorId){
+  // Pega todas as fichas abertas do enrolador
+  const fichasEnr = fichas.filter(f=>f.enroladorId===enroladorId&&f.status==='aberta');
+  if(!fichasEnr.length) return null;
+  // Encontra a data de entrega mais recente
+  let maisRecente = null;
+  fichasEnr.forEach(f=>{
+    (f.entregas||[]).forEach(e=>{
+      if(!maisRecente||e.data>maisRecente) maisRecente=e.data;
+    });
+  });
+  if(!maisRecente) return null;
+  // Calcular dias desde a última entrega
+  const diff = Math.floor((new Date(today()+'T00:00:00') - new Date(maisRecente+'T00:00:00')) / (1000*60*60*24));
+  return diff;
+}
+
+function renderAlertaSemRetorno(enroladorId, compact=false){
+  if(currentUserData?.perfil==='enrolador') return '';
+  const dias = diasSemRetorno(enroladorId);
+  if(dias===null || dias < 30) return '';
+  const enr = getEnr(enroladorId);
+  if(compact){
+    return `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:7px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:16px">⚠️</span>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#dc2626">Sem retorno há ${dias} dias</div>
+        <div style="font-size:10px;color:#ef4444">Última entrega há mais de 30 dias. Considere recolher ou redistribuir.</div>
+      </div>
+    </div>`;
+  }
+  return `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:22px;flex-shrink:0">⚠️</span>
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:700;color:#dc2626">Casa sem retorno há ${dias} dias</div>
+      <div style="font-size:11px;color:#ef4444;margin-top:2px">A última entrega foi há mais de 30 dias. Considere recolher as cadeiras ou aguardar mais.</div>
+    </div>
+    <div style="font-size:22px;font-weight:800;color:#dc2626;flex-shrink:0">${dias}d</div>
+  </div>`;
+}
+
 // ── Painel metalúrgica ────────────────────────────────────────────
 function renderPainelMetal(){
   const hoje_=today();
@@ -2698,6 +2762,15 @@ function renderMinhaProd(){
 }
 
 // ── Ranking metalúrgica ───────────────────────────────────────────
+window._setRankMetalPeca=function(id){
+  window._rankMetalPeca=id;
+  reloadTab();
+};
+window._setRankMetalPeriodo=function(k){
+  window._rankMetalPeriodo=k;
+  reloadTab();
+};
+
 function renderRankingMetal(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   if(!window._rankMetalPeriodo) window._rankMetalPeriodo='quinzena';
@@ -2707,8 +2780,8 @@ function renderRankingMetal(){
   const qAtual=getQuinzenaAtual();
   const mesAtual=today().slice(0,7);
 
-  const btnPer=(k,l)=>`<button class="btn btn-sm ${per===k?'btn-primary':'btn-ghost'}" onclick="window._rankMetalPeriodo='${k}';reloadTab()">${l}</button>`;
-  const btnPeca=(p)=>`<button class="btn btn-sm ${pecaId===p.id?'btn-primary':'btn-ghost'}" style="font-size:10px;padding:3px 8px" onclick="window._rankMetalPeca='${p.id}';reloadTab()">${p.label}</button>`;
+  const btnPer=(k,l)=>`<button class="btn btn-sm ${per===k?'btn-primary':'btn-ghost'}" onclick="window._setRankMetalPeriodo('${k}')">${l}</button>`;
+  const btnPeca=(p)=>`<button class="btn btn-sm ${pecaId===p.id?'btn-primary':'btn-ghost'}" style="font-size:10px;padding:3px 8px" onclick="window._setRankMetalPeca('${p.id}')">${p.label}</button>`;
 
   const peca=PECAS_METAL_FULL.find(p=>p.id===pecaId)||PECAS_METAL_FULL[0];
   const dados=[...soldadores].map(s=>{
