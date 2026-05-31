@@ -949,7 +949,6 @@ function renderPainel(){
         <tfoot><tr style="border-top:2px solid #f1f5f9"><td style="padding:7px 8px;font-size:12px;font-weight:700">Total</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700">${env}</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700">${rec}</td><td style="padding:7px 8px;font-size:12px;text-align:center;font-weight:700" class="${pend>0?'pend-pos':'pend-zero'}">${pend}</td><td style="padding:7px 8px;font-size:12px;text-align:right;color:#64748b;font-weight:600">${pct}%</td></tr></tfoot>
       </table>
       ${renderAlertaSemRetorno(f.enroladorId,true)}
-      ${renderAlertaSemRetorno(f.enroladorId,true)}
       ${can('verSinalizacoes')?renderBadgeProntos(f):''}
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
         <span class="mat-pill">Fita: ${fitaEnv} rolos${fitaSob>0?' · '+fitaSob+' sobrando':''}</span>
