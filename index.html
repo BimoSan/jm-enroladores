@@ -3661,12 +3661,12 @@ function almDuracaoEstoque(itemId){
 }
 
 function almDuracaoLabel(dias){
-  if(dias===null) return null;
+  if(dias===null) return {label:'Sem movimentação recente', cor:'#94a3b8', bg:'#f1f5f9'};
   if(dias===0) return {label:'Esgotado', cor:'#dc2626', bg:'#fee2e2'};
-  if(dias<=7)  return {label:dias+'d', cor:'#dc2626', bg:'#fee2e2'};
-  if(dias<=15) return {label:dias+'d', cor:'#d97706', bg:'#fef3c7'};
-  if(dias<=30) return {label:dias+'d', cor:'#2563eb', bg:'#dbeafe'};
-  return {label:dias+'d', cor:'#059669', bg:'#d1fae5'};
+  if(dias<=7)  return {label:dias+'d restantes', cor:'#dc2626', bg:'#fee2e2'};
+  if(dias<=15) return {label:dias+'d restantes', cor:'#d97706', bg:'#fef3c7'};
+  if(dias<=30) return {label:dias+'d restantes', cor:'#2563eb', bg:'#dbeafe'};
+  return {label:dias+'d restantes', cor:'#059669', bg:'#d1fae5'};
 }
 
 function renderAlmItens(){
