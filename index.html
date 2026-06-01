@@ -796,7 +796,7 @@ function renderTab(tab){
   if(tab==='fichas')return renderFichas();
   if(tab==='entregar')return renderEntrega();
   if(tab==='recolher')return renderRecolhimento();
-  if(tab==='relatorio')return renderRelatorio();
+  if(tab==='relatorio'){try{return renderRelatorio();}catch(e){console.error('renderRelatorio ERRO:',e.message,e.stack);return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';}}
   if(tab==='ranking')return renderRanking();
   if(tab==='valores')return renderValores();
   if(tab==='enroladores')return renderEnroladores();
