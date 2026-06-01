@@ -3956,10 +3956,17 @@ onAuthStateChanged(auth,async user=>{
     // Tentar restaurar fábrica/setor da sessão anterior
     const sessaoFabrica=sessionStorage.getItem('jm_fabrica');
     const sessaoSetor=sessionStorage.getItem('jm_setor');
-    const autoOk=aplicarSetorAutomatico();
-    if(!autoOk && sessaoFabrica){
-      currentFabrica=sessaoFabrica;
-      if(sessaoSetor) currentSetor=sessaoSetor;
+    // Se sessão tem almoxarifado, respeitar isso antes do setor automático
+    if(sessaoFabrica==='almoxarifado'){
+      currentFabrica='almoxarifado';
+      currentSetor='almoxarifado';
+      currentTab='alm_painel';
+    } else {
+      const autoOk=aplicarSetorAutomatico();
+      if(!autoOk && sessaoFabrica){
+        currentFabrica=sessaoFabrica;
+        if(sessaoSetor) currentSetor=sessaoSetor;
+      }
     }
     // Reaplicar tab inicial por perfil após restaurar sessão
     if(currentSetor){
