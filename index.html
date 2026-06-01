@@ -2810,8 +2810,8 @@ function renderMeuDesempenho(){
   const totalSemanaAnterior=semanas[semanaAnterior.toISOString().slice(0,10)]||0;
   const diffSemana=totalSemanaAtual-totalSemanaAnterior;
 
-  // ── Meta semanal (soma das metas diárias × 5 dias úteis)
-  const metaSemanal=PECAS_METAL.reduce((s,p)=>s+(parseInt((configMetal.metas||{})[p.id])||0),0)*5;
+  // ── Meta semanal: seg-sex × 1 + sábado × 0.5 = 5.5 dias equivalentes
+  const metaSemanal=Math.round(PECAS_METAL.reduce((s,p)=>s+(parseInt((configMetal.metas||{})[p.id])||0),0)*5.5);
 
   // ── Streak (dias consecutivos com apontamento)
   const diasComApoint=new Set(apontSoldador(sol.id).map(a=>a.data));
