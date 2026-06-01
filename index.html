@@ -980,6 +980,49 @@ function gerarResumoAlertas(){
     +rows+'</div>';
 }
 
+// ── Relatório de bônus mensal ─────────────────────────────────────
+let bonusPagos={};
+
+function renderRelatorioBonusMensal(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesesComDados=new Set();
+  fichas.forEach(f=>{
+    (f.recolhimentos||[]).forEach(r=>{
+      if(r.data) mesesComDados.add(r.data.slice(0,7));
+    });
+  });
+  const mesesList=[...mesesComDados].sort((a,b)=>b>a?1:-1).slice(0,6);
+  let html='<div class="section-label">Histórico de bônus por mês</div>';
+  mesesList.forEach(mes=>{
+    const bonus=getBonusDoMes(mes);
+    if(!bonus.length) return;
+    const [ano,m]=mes.split('-');
+    const mesNome=MESES[parseInt(m)-1]+' '+ano;
+    const totalBonus=bonus.reduce((s,b)=>s+b.totalBonus,0);
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid #fde047">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-size:13px;font-weight:700;color:#92400e">🌟 '+mesNome+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:#92400e">'+fmtMoeda(totalBonus)+'</div>'
+      +'</div>'
+      +bonus.map(function(b){
+        const pago=bonusPagos[b.enroladorId+'-'+b.anoMes];
+        const btnPagar=['admin','financeiro'].includes(currentUserData?.perfil)&&!pago
+          ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(&quot;'+b.enroladorId+'&quot;,&quot;'+b.anoMes+'&quot;)">Marcar pago</button>'
+          :'';
+        const badge=pago
+          ?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>'
+          :'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:99px;font-weight:700">Pendente</span>';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #fef9c3">'
+          +'<div><div style="font-size:13px;font-weight:600">'+b.enrNome+'</div>'
+          +'<div style="font-size:11px;color:#b45309">'+b.totalVSofia+' V.Sofia · bônus: '+fmtMoeda(b.totalBonus)+'</div></div>'
+          +'<div style="display:flex;align-items:center;gap:8px">'+badge+btnPagar+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  });
+  return html||'';
+}
+
 // ── Painel ───────────────────────────────────────────────────────
 function renderPainel(){
   const abertas=fichas.filter(f=>f.status==='aberta');
