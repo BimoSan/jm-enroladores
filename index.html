@@ -533,9 +533,15 @@ function renderSelecionarFabrica(){
 
 window._selecionarFabrica=id=>{
   currentFabrica=id;
-  currentSetor=null;
   sessionStorage.setItem('jm_fabrica',id);
-  sessionStorage.removeItem('jm_setor');
+  if(id==='almoxarifado'){
+    currentSetor='almoxarifado';
+    sessionStorage.setItem('jm_setor','almoxarifado');
+    currentTab='alm_painel';
+  } else {
+    currentSetor=null;
+    sessionStorage.removeItem('jm_setor');
+  }
   render();
 };
 
