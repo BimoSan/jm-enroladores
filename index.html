@@ -3641,6 +3641,34 @@ window._registrarAlmMov=async(tipo)=>{
 };
 
 // ── Itens ─────────────────────────────────────────────────────────
+
+
+// Previsão de duração do estoque (dias)
+function almDuracaoEstoque(itemId){
+  const hoje = new Date(today()+'T00:00:00');
+  const limite = new Date(hoje); limite.setDate(hoje.getDate()-30);
+  const limiteStr = limite.toISOString().slice(0,10);
+  const saidas30 = almMovimentos.filter(m=>
+    m.itemId===itemId && m.tipo==='saida' && m.data>=limiteStr
+  );
+  if(!saidas30.length) return null;
+  const totalSaidas = saidas30.reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+  const mediaDiaria = totalSaidas / 30;
+  if(mediaDiaria<=0) return null;
+  const estoque = almEstoqueItem(itemId);
+  if(estoque<=0) return 0;
+  return Math.floor(estoque / mediaDiaria);
+}
+
+function almDuracaoLabel(dias){
+  if(dias===null) return null;
+  if(dias===0) return {label:'Esgotado', cor:'#dc2626', bg:'#fee2e2'};
+  if(dias<=7)  return {label:dias+'d', cor:'#dc2626', bg:'#fee2e2'};
+  if(dias<=15) return {label:dias+'d', cor:'#d97706', bg:'#fef3c7'};
+  if(dias<=30) return {label:dias+'d', cor:'#2563eb', bg:'#dbeafe'};
+  return {label:dias+'d', cor:'#059669', bg:'#d1fae5'};
+}
+
 function renderAlmItens(){
   const itens=almItens.length?almItens:ALM_ITENS_BASE.map((item,idx)=>({...item,id:'base-'+idx}));
   if(!window._almFiltro) window._almFiltro='';
