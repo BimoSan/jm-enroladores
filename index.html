@@ -65,6 +65,7 @@
   .ficha-card.retornando{border-left-color:#f59e0b}
   .ficha-card.pronto{border-left-color:#10b981}
   .ficha-card.fechada{border-left-color:#6366f1}
+  .ficha-card.cancelada{border-left-color:#dc2626}
 
   /* ── Badges ── */
   .badge{font-size:10px;padding:3px 10px;border-radius:99px;font-weight:700;white-space:nowrap}
@@ -72,6 +73,7 @@
   .badge-partial{background:#dbeafe;color:#1e40af}
   .badge-closed{background:#d1fae5;color:#065f46}
   .badge-fechada{background:#ede9fe;color:#4c1d95}
+  .badge-cancelada{background:#fee2e2;color:#991b1b}
   .pago-badge{font-size:10px;padding:3px 10px;border-radius:99px;background:#d1fae5;color:#065f46;font-weight:700}
 
   /* ── Botões ── */
@@ -857,7 +859,7 @@ function gerarResumoAlertas(){
 // ── Painel ───────────────────────────────────────────────────────
 function renderPainel(){
   const abertas=fichas.filter(f=>f.status==='aberta');
-  const fechadas=fichas.filter(f=>f.status==='fechada');
+  const fechadas=fichas.filter(f=>f.status==='fechada'||f.status==='cancelada'); // só fechadas -- canceladas não geram pagamento
   const tEnv=fichas.reduce((a,f)=>a+totalEnv(f),0);
   const tRec=fichas.reduce((a,f)=>a+totalRec(f),0);
   const vFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_sofia')-somaRecol(f,'varanda_sofia'),0);
@@ -1025,22 +1027,27 @@ function fichasInner(lista,isEntregador){
       const sob=[];if(r.fitaSobrando>0)sob.push(`${r.fitaSobrando} fita`);if(r.fioSobrando>0)sob.push(`${r.fioSobrando} fio`);
       return `<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 10px;white-space:nowrap">${fmtDate(r.data)}</td><td style="padding:8px 10px">${r.entregador||'—'}</td><td style="padding:8px 10px">${sob.length?sob.join(', '):'—'}</td><td style="padding:8px 10px">${pecas||'—'}</td>${isAdmin?`<td style="padding:8px 10px;white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarRecolhimento('${f.id}',${ri})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px;margin-left:4px" onclick="window._excluirRecolhimento('${f.id}',${ri})">Excluir</button></td>`:''}</tr>`;
     }).join(''):`<tr><td colspan="${isAdmin?5:4}" style="color:#666">Nenhum recolhimento.</td></tr>`;
-    const sl=f.status==='fechada'?'badge-fechada':pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
-    const st2=f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aguardando';
-    const borderCls2=f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aberta';
+    const sl=f.status==='cancelada'?'badge-cancelada':f.status==='fechada'?'badge-fechada':pend===0?'badge-closed':rec>0?'badge-partial':'badge-open';
+    const st2=f.status==='cancelada'?'cancelada':f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aguardando';
+    const borderCls2=f.status==='cancelada'?'cancelada':f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aberta';
     const enrFicha=getEnr(f.enroladorId);
     const apontCorBorda=enrFicha?.apontadorPerfil==='apontador1'?'#0f766e':enrFicha?.apontadorPerfil==='apontador2'?'#b45309':'#e2e8f0';
     return `<div class="ficha-card ${borderCls2}" style="border-left-color:${apontCorBorda}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(enr.nome)}</div>
-          <div><div style="font-size:14px;font-weight:700">${enr.nome}</div><div style="font-size:11px;color:#64748b">Aberta em ${fmtDate(f.dataAbertura)}</div></div>
+          <div>
+            <div style="font-size:14px;font-weight:700">${enr.nome}</div>
+            <div style="font-size:11px;color:#64748b">Aberta em ${fmtDate(f.dataAbertura)}</div>
+            ${f.status==='cancelada'?`<div style="font-size:10px;color:#dc2626;margin-top:2px">↩ Cancelada em ${fmtDate(f.dataCancelamento)} · ${f.justificativaCancelamento||''}</div>`:''}
+          </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
           ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
           ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
           ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}
           ${isAdmin?`<button class="btn btn-sm btn-danger" onclick="window._excluirFicha('${f.id}')">Excluir ficha</button>`:''}
+          ${(can('registrar')||can('editar'))&&f.status==='aberta'?`<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5" onclick="window._abrirRetiradaAdmin('${f.id}')">↩ Retirada</button>`:''}
           ${(()=>{
             if(!can('sinalizarProntos')||f.status!=='aberta')return'';
             // Enrolador só sinaliza fichas suas
@@ -3189,6 +3196,76 @@ function renderBadgeProntos(f){
   </div>`;
 }
 
+
+// ── Retirada administrativa ──────────────────────────────────────
+window._abrirRetiradaAdmin=fichaId=>{
+  const f=getFicha(fichaId);
+  if(!f)return;
+  const enr=getEnr(f.enroladorId);
+  // Mostrar apenas peças que ainda estão pendentes
+  const pecasPend=TIPOS.filter(t=>pendentes_tipo(f,t.id)>0);
+  const gridPecas=pecasPend.map(t=>{
+    const pend=pendentes_tipo(f,t.id);
+    return '<div class="num-group">'
+      +'<label style="font-size:10px">'+t.label+' <span style="color:#94a3b8">(pend: '+pend+')</span></label>'
+      +'<input type="number" id="ret-'+t.id+'" min="0" max="'+pend+'" step="1" placeholder="0" onfocus="this.select()"'
+      +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:Nunito,sans-serif">'
+      +'</div>';
+  }).join('');
+
+  showModal('↩ Retirada Administrativa — '+enr?.nome,
+    '<div class="info-box" style="margin-bottom:12px;background:#fee2e2;border-color:#fca5a5;color:#991b1b">Esta operação retira cadeiras da casa <strong>sem gerar pagamento</strong>. A ficha será fechada com status <strong>Cancelada</strong>.</div>'
+    +'<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Peças sendo retiradas</div>'
+    +'<div class="num-inputs" style="margin-bottom:14px">'+gridPecas+'</div>'
+    +'<div class="form-row" style="margin-bottom:12px">'
+    +'<div class="form-group"><label>Fita retornando (rolos)</label><input type="number" id="ret-fita" min="0" step="1" placeholder="0" onfocus="this.select()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px"></div>'
+    +'<div class="form-group"><label>Fio retornando (rolos)</label><input type="number" id="ret-fio" min="0" step="1" placeholder="0" onfocus="this.select()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Justificativa</label><textarea id="ret-justificativa" rows="3" placeholder="Descreva o motivo da retirada..." style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;font-family:Nunito,sans-serif;resize:vertical"></textarea></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm" style="background:#dc2626;color:#fff" onclick="window._confirmarRetiradaAdmin(&quot;'+fichaId+'&quot;)">Confirmar retirada</button>',
+    true);
+};
+
+window._confirmarRetiradaAdmin=async fichaId=>{
+  const f=getFicha(fichaId);if(!f)return;
+  const pecasPend=TIPOS.filter(t=>pendentes_tipo(f,t.id)>0);
+  const pecasRetiradas={};
+  let totalRetirado=0;
+  pecasPend.forEach(t=>{
+    const v=parseInt(document.getElementById('ret-'+t.id)?.value)||0;
+    if(v>0){pecasRetiradas[t.id]=v;totalRetirado+=v;}
+  });
+  const fitaRet=parseInt(document.getElementById('ret-fita')?.value)||0;
+  const fioRet=parseInt(document.getElementById('ret-fio')?.value)||0;
+  const justificativa=document.getElementById('ret-justificativa')?.value.trim()||'';
+
+  // Adicionar recolhimento administrativo
+  const recolhimentos=[...(f.recolhimentos||[]),{
+    data:today(),
+    entregador:currentUserData?.nome||'Admin',
+    tipos:pecasRetiradas,
+    fitaSobrando:fitaRet,
+    fioSobrando:fioRet,
+    administrativo:true,
+    justificativa,
+  }];
+
+  closeModal();
+  await updateDoc(doc(db,'fichas',fichaId),{
+    recolhimentos,
+    status:'cancelada',
+    dataCancelamento:today(),
+    canceladoPor:currentUserData?.nome||'',
+    justificativaCancelamento:justificativa,
+  });
+  showToast('Retirada registrada. Ficha cancelada.');
+};
+
+// Helper para pendentes por tipo
+function pendentes_tipo(f,tipoId){
+  return Math.max(0,somaEntr(f,tipoId)-somaRecol(f,tipoId));
+}
 
 // ── Firebase listeners em tempo real ────────────────────────────
 function iniciarListeners(){
