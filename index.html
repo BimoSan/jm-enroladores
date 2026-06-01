@@ -3491,13 +3491,18 @@ window._confirmarPagarFichaMetal=async id=>{
 // ── Sistema Almoxarifado ─────────────────────────────────────────
 
 function renderTabAlmox(tab){
-  if(tab==='alm_painel')    return renderAlmPainel();
-  if(tab==='alm_entrada')   return renderAlmMovimento('entrada');
-  if(tab==='alm_saida')     return renderAlmMovimento('saida');
-  if(tab==='alm_itens')     return renderAlmItens();
-  if(tab==='alm_relatorio') return renderAlmRelatorio();
-  if(tab==='alm_config')    return renderAlmConfig();
-  return renderAlmPainel();
+  try {
+    if(tab==='alm_painel')    return renderAlmPainel();
+    if(tab==='alm_entrada')   return renderAlmMovimento('entrada');
+    if(tab==='alm_saida')     return renderAlmMovimento('saida');
+    if(tab==='alm_itens')     return renderAlmItens();
+    if(tab==='alm_relatorio') return renderAlmRelatorio();
+    if(tab==='alm_config')    return renderAlmConfig();
+    return renderAlmPainel();
+  } catch(e) {
+    console.error('Erro em renderTabAlmox('+tab+'):', e.message, e.stack);
+    return '<div class="card" style="color:#dc2626;padding:20px"><strong>Erro ao carregar aba:</strong><br>' + e.message + '<br><small>' + e.stack + '</small></div>';
+  }
 }
 
 // ── Painel ───────────────────────────────────────────────────────
