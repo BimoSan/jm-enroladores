@@ -653,6 +653,15 @@ function renderApp(){
       tabs.push('painel_metal','ranking_metal');
     }
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
+  } else if(currentSetor==='almoxarifado'){
+    const pf=currentUserData?.perfil;
+    const podeEditar=['admin','apontador1'].includes(pf);
+    tabs.push('alm_painel');
+    if(podeEditar) tabs.push('alm_entrada','alm_saida','alm_itens');
+    else tabs.push('alm_itens');
+    tabs.push('alm_relatorio');
+    if(podeEditar) tabs.push('alm_config');
+    if(!currentTab||!currentTab.startsWith('alm_')) currentTab='alm_painel';
   } else {
     if(can('verPainel'))tabs.push('painel');
     if(can('verFichas')||can('verFichasEntregador'))tabs.push('fichas');
