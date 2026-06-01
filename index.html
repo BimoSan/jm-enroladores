@@ -643,8 +643,16 @@ window._voltarFabrica=()=>{
   render();
 };
 window._voltarSetores=()=>{
-  currentSetor=null;
-  sessionStorage.removeItem('jm_setor');
+  // Se estiver no almoxarifado, voltar para seleção de fábricas
+  if(currentFabrica==='almoxarifado'){
+    currentFabrica=null;
+    currentSetor=null;
+    sessionStorage.removeItem('jm_fabrica');
+    sessionStorage.removeItem('jm_setor');
+  } else {
+    currentSetor=null;
+    sessionStorage.removeItem('jm_setor');
+  }
   render();
 };
 
@@ -3553,7 +3561,7 @@ function renderAlmPainel(){
       const atual=almEstoqueItem(i.id);
       const cor=CORES_CLASS[i.classificacao]||'#475569';
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fee2e2">'
-        +'<div><div style="font-size:12px;font-weight:600">['+i.codigo+'] '+i.descricao+'</div>'
+        +'<div><div style="font-size:12px;font-weight:600">'+i.descricao+'</div>'
         +'<div style="font-size:10px;color:'+cor+'">'+i.classificacao+'</div></div>'
         +'<div style="text-align:right">'
         +'<div style="font-size:14px;font-weight:800;color:#dc2626">'+atual+' '+i.unidade+'</div>'
