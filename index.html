@@ -324,6 +324,7 @@ let currentFabrica=null;
 let currentSetor=null;
 let enroladores=[];
 let notificacoes=[];
+let configBonus={meta:300, valorBonus:1.00, ativo:true}; // configuração do bônus de volume
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
@@ -837,6 +838,76 @@ function gerarResumoMovimento(){
   return html;
 }
 
+// ── Sistema de Bônus por Volume ──────────────────────────────────
+
+function calcVSofiaNoMes(enroladorId, anoMes){
+  return fichas
+    .filter(f=>f.enroladorId===enroladorId)
+    .reduce((sum,f)=>{
+      return sum+(f.recolhimentos||[]).reduce((s,r)=>{
+        if((r.data||'').slice(0,7)!==anoMes) return s;
+        return s+(parseInt((r.tipos||{}).varanda_sofia)||0);
+      },0);
+    },0);
+}
+
+function calcBonusEnrolador(enroladorId, anoMes){
+  const enr=getEnr(enroladorId);
+  if(!enr||enr.apontadorPerfil!=='apontador1') return null;
+  if(!configBonus.ativo) return null;
+  const total=calcVSofiaNoMes(enroladorId, anoMes);
+  if(total<configBonus.meta) return null;
+  return {
+    enroladorId,
+    enrNome:enr.nome,
+    anoMes,
+    totalVSofia:total,
+    meta:configBonus.meta,
+    valorBonus:configBonus.valorBonus,
+    totalBonus:parseFloat((total*configBonus.valorBonus).toFixed(2)),
+  };
+}
+
+function getBonusDoMes(anoMes){
+  return enroladores
+    .filter(e=>e.apontadorPerfil==='apontador1')
+    .map(e=>calcBonusEnrolador(e.id, anoMes))
+    .filter(b=>b!==null);
+}
+
+function renderPainelBonus(){
+  // Só mostra para perfis que não são enroladores
+  if(currentUserData?.perfil==='enrolador') return '';
+  const mesAtual=today().slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+  const bonus=getBonusDoMes(mesAtual);
+  if(!bonus.length) return '';
+
+  const rows=bonus.map(b=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #fef9c3">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#92400e">${b.enrNome}</div>
+        <div style="font-size:11px;color:#b45309">${b.totalVSofia} V.Sofia · meta: ${b.meta} · R$${b.valorBonus.toFixed(2)}/peça</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:#92400e">${fmtMoeda(b.totalBonus)}</div>
+        <div style="font-size:10px;color:#b45309">bônus ${mesNome}</div>
+      </div>
+    </div>`).join('');
+
+  const totalBonus=bonus.reduce((s,b)=>s+b.totalBonus,0);
+
+  return `<div style="background:#fefce8;border:1.5px solid #fde047;border-radius:14px;padding:14px 18px;margin-bottom:16px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:#92400e">🌟 Bônus por volume — ${mesNome}</div>
+      <div style="font-size:16px;font-weight:800;color:#92400e">${fmtMoeda(totalBonus)}</div>
+    </div>
+    ${rows}
+    <div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Apontador 1 que atingiram ${configBonus.meta}+ Varandas Sofia no mês.</div>
+  </div>`;
+}
+
 function gerarResumoAlertas(){
   if(currentUserData?.perfil==='enrolador') return '';
   const alertas=enroladores.filter(e=>{
@@ -906,6 +977,7 @@ function renderPainel(){
       </div>
     </div>
     ${gerarResumoMovimento()}
+    ${renderPainelBonus()}
     ${gerarResumoAlertas()}
     <div class="section-label">fichas em andamento</div>`;
   if(!abertas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
@@ -1291,6 +1363,8 @@ function renderRelatorio(){
   }
 
   // ── Lista de fichas ──
+  // Bônus por volume
+  html+=renderRelatorioBonusMensal();
   html+=`<div class="section-label">fichas fechadas</div>`;
   if(!fechadas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
 
@@ -1338,7 +1412,28 @@ function renderValores(){
   let html=``;
 
   if(isAdmin){
-    const tabelaAp=(ap,label,cor)=>`<div class="card" style="margin-bottom:12px;border-left:4px solid ${cor}">
+    // Config bônus
+  html+=`<div class="card" style="margin-bottom:14px;border-left:4px solid #fde047">
+    <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">🌟 Configuração de Bônus por Volume</div>
+    <div style="font-size:11px;color:#b45309;margin-bottom:12px">Quando uma casa do Apontador 1 atingir a meta mensal de Varandas Sofia, receberá um bônus por peça.</div>
+    <div class="form-row">
+      <div class="form-group"><label>Meta mensal (V.Sofia)</label>
+        <input type="number" id="bonus-meta" min="0" step="1" value="${configBonus.meta||300}"
+          style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px" onfocus="this.select()">
+      </div>
+      <div class="form-group"><label>Valor do bônus (R$ por peça)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:#64748b;font-size:13px">R$</span>
+          <input type="number" id="bonus-valor" min="0" step="0.01" value="${(configBonus.valorBonus||1).toFixed(2)}"
+            style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;flex:1" onfocus="this.select()">
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:10px">Ex: meta 300, bônus R$1,00 → casa com 400 V.Sofia recebe R$400,00 de bônus</div>
+    <button class="btn btn-primary btn-sm" onclick="window._salvarConfigBonus()">Salvar configuração</button>
+  </div>`;
+
+  const tabelaAp=(ap,label,cor)=>`<div class="card" style="margin-bottom:12px;border-left:4px solid ${cor}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-size:12px;font-weight:700;color:${cor};background:${cor}22;padding:2px 10px;border-radius:99px">${label}</span>
         <span style="font-size:12px;color:#64748b">Valores unitários por peça</span>
@@ -1422,6 +1517,25 @@ function renderValores(){
 
   return html;
 }
+
+window._salvarConfigBonus=async()=>{
+  const meta=parseInt(document.getElementById('bonus-meta')?.value)||300;
+  const valorBonus=parseFloat(document.getElementById('bonus-valor')?.value)||1;
+  await setDoc(doc(db,'configuracoes','bonus_volume'),{meta,valorBonus,ativo:true});
+  showToast('Configuração de bônus salva!');
+};
+
+window._pagarBonus=async(enroladorId, anoMes)=>{
+  const b=calcBonusEnrolador(enroladorId, anoMes);
+  if(!b) return;
+  const chave=enroladorId+'-'+anoMes;
+  await setDoc(doc(db,'bonus_pagos',chave),{
+    enroladorId, anoMes, enrNome:b.enrNome,
+    totalVSofia:b.totalVSofia, totalBonus:b.totalBonus,
+    pagoEm:today(), pagoPor:currentUserData?.nome||''
+  });
+  showToast('Bônus marcado como pago!');
+};
 
 window._salvarValores=async(ap)=>{
   const valores={};
@@ -3320,6 +3434,18 @@ function iniciarListeners(){
   onSnapshot(collection(db,'fichas_metal'),snap=>{
     fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+
+  // Config bônus
+  onSnapshot(doc(db,'configuracoes','bonus_volume'),snap=>{
+    if(snap.exists()) configBonus={meta:300,valorBonus:1.00,ativo:true,...snap.data()};
+    if(currentUserData)reloadTab();
+  });
+  // Bônus pagos
+  onSnapshot(collection(db,'bonus_pagos'),snap=>{
+    bonusPagos={};
+    snap.docs.forEach(d=>{bonusPagos[d.id]=d.data();});
+    if(currentUserData)reloadTab();
   });
 
   // Notificações — só carrega para perfis que precisam
