@@ -3892,6 +3892,16 @@ function iniciarListeners(){
   onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
+  // Almoxarifado
+  onSnapshot(collection(db,'alm_itens'),snap=>{
+    almItens=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='almoxarifado')reloadTab();
+  });
+  onSnapshot(collection(db,'alm_movimentos'),snap=>{
+    almMovimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='almoxarifado')reloadTab();
+  });
+
   // Metalúrgica — carrega sempre (necessário para restauração de sessão no mobile)
   onSnapshot(collection(db,'soldadores'),snap=>{
     soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
