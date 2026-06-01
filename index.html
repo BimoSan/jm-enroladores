@@ -3536,6 +3536,23 @@ function renderAlmItens(){
   return html;
 }
 
+window._limparDuplicatasAlm=async()=>{
+  if(!confirm('Isso vai manter apenas um item por código e excluir os duplicados. Continuar?')) return;
+  showToast('Removendo duplicatas...');
+  const vistos={};
+  let removidos=0;
+  for(const item of almItens){
+    const chave=(item.codigo||'').trim().toUpperCase();
+    if(vistos[chave]){
+      await deleteDoc(doc(db,'alm_itens',item.id));
+      removidos++;
+    } else {
+      vistos[chave]=true;
+    }
+  }
+  showToast(removidos+' duplicatas removidas!');
+};
+
 window._importarAlmBase=async()=>{
   if(!confirm('Importar os '+ALM_ITENS_BASE.length+' itens base para o Firestore? Isso criará os cadastros iniciais.')) return;
   showToast('Importando itens...');
@@ -3729,6 +3746,7 @@ function renderAlmConfig(){
     +'<div class="card" style="margin-bottom:10px">'
     +'<div style="font-size:12px;color:#475569;margin-bottom:10px">Importe os '+ALM_ITENS_BASE.length+' itens da planilha original como ponto de partida. Só é necessário fazer uma vez.</div>'
     +'<button class="btn btn-primary" onclick="window._importarAlmBase()">Importar itens base ('+ALM_ITENS_BASE.length+' itens)</button>'
+    +' <button class="btn btn-warn" style="margin-left:8px" onclick="window._limparDuplicatasAlm()">Remover duplicatas</button>'
     +'</div>';
 }
 
