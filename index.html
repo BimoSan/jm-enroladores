@@ -521,8 +521,7 @@ function renderSelecionarFabrica(){
       <div class="fab-desc">${f.desc}</div>
     </div>`).join('');
 
-  const perfil=currentUserData?.perfil;
-  const podeGerenciarUsuarios=perfil==='admin';
+  const podeGerenciarUsuarios=currentUserData?.perfil==='admin';
   const btnUsuarios=podeGerenciarUsuarios?`
     <div style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:16px">
       <button class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="window._abrirUsuariosGlobais()">
@@ -532,8 +531,7 @@ function renderSelecionarFabrica(){
     </div>`:'';
 
   return `<div class="sel-wrap"><div class="sel-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div class="sel-title">JM — Sistema de Gestão</div>
       <button class="btn btn-ghost btn-sm" onclick="window._doLogout()">Sair</button>
     </div>
@@ -542,6 +540,7 @@ function renderSelecionarFabrica(){
     ${btnUsuarios}
   </div></div>`;
 }
+
 
 window._selecionarFabrica=id=>{
   currentFabrica=id;
