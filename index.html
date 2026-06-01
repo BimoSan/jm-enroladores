@@ -498,9 +498,10 @@ function renderSelecionarFabrica(){
   const fabricasDisponiveis=(p.fabricas)||['cadeiras'];
 
   const fabricas=[
-    {id:'cadeiras',  nome:'Fábrica de Cadeiras', icon:'🪑', cor:'#1e40af', bg:'linear-gradient(135deg,#1e40af,#3b82f6)', desc:'Metalúrgica, Enrolamento, Fitas e mais'},
-    {id:'estofados', nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Costura, Grades, Tapeçamento e Espuma'},
-  ].filter(f=>fabricasDisponiveis.includes(f.id));
+    {id:'cadeiras',     nome:'Fábrica de Cadeiras', icon:'🪑', cor:'#1e40af', bg:'linear-gradient(135deg,#1e40af,#3b82f6)', desc:'Metalúrgica, Enrolamento, Fitas e mais'},
+    {id:'estofados',    nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Costura, Grades, Tapeçamento e Espuma'},
+    {id:'almoxarifado', nome:'Almoxarifado',          icon:'📦', cor:'#92400e', bg:'linear-gradient(135deg,#92400e,#f59e0b)', desc:'Controle de estoque e materiais'},
+  ].filter(f=>f.id==='almoxarifado'?['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil):fabricasDisponiveis.includes(f.id));
 
   const cards=fabricas.map(f=>`
     <div class="fab-card" style="background:${f.bg};color:#fff" onclick="window._selecionarFabrica('${f.id}')">
