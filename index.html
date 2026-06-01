@@ -3569,7 +3569,7 @@ function renderAlmPainel(){
     return '<div class="card" style="margin-bottom:8px;border-left:4px solid '+(isEnt?'#10b981':'#f59e0b')+'">'
       +'<div style="display:flex;align-items:center;justify-content:space-between">'
       +'<div>'
-      +'<div style="font-size:13px;font-weight:700">['+item.codigo+'] '+item.descricao+'</div>'
+      +'<div style="font-size:13px;font-weight:700">'+item.descricao+'</div>'
       +'<div style="font-size:11px;color:#64748b">'+m.tipoMov+' · '+m.pessoa+' → '+m.setor+' · '+fmtDate(m.data)+'</div>'
       +'</div>'
       +'<div style="font-size:18px;font-weight:800;color:'+(isEnt?'#059669':'#d97706')+'">'
@@ -3584,7 +3584,7 @@ function renderAlmMovimento(tipo){
   const tiposMov=isEnt?almTiposEntrada():almTiposSaida();
   const itens=almItens.length?almItens:ALM_ITENS_BASE.map((i,idx)=>({...i,id:'base-'+idx}));
   const optsItens=itens.sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'))
-    .map(i=>'<option value="'+i.id+'">'+i.codigo+' — '+i.descricao+'</option>').join('');
+    .map(i=>'<option value="'+i.id+'">'+i.descricao+'</option>').join('');
   const optsTipos=tiposMov.map(t=>'<option>'+t+'</option>').join('');
   const optsPessoas=almPessoas().map(p=>'<option>'+p+'</option>').join('');
   const optsSetores=almSetores().map(s=>'<option>'+s+'</option>').join('');
@@ -3929,7 +3929,7 @@ function renderAlmRelatorio(){
       return '<div class="card" style="margin-bottom:6px;padding:10px 14px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center">'
         +'<div>'
-        +'<div style="font-size:12px;font-weight:700">'+(item?'['+item.codigo+'] '+item.descricao:m.itemDesc||'Item')+'</div>'
+        +'<div style="font-size:12px;font-weight:700">'+(item?item.descricao:m.itemDesc||'Item')+'</div>'
         +'<div style="font-size:10px;color:#64748b">'+m.tipoMov+' · '+m.pessoa+' · '+m.setor+' · '+fmtDate(m.data)+'</div>'
         +'</div>'
         +'<div style="font-size:16px;font-weight:800;color:'+(isEnt?'#059669':'#d97706')+'">'
