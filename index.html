@@ -470,7 +470,7 @@ const TAB_LABELS={
   'enroladores':'Enroladores','usuarios':'Usuários',
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','config_metal':'Configurações',
-  'minha_prod':'Minha Produção','ranking_metal':'Ranking',
+  'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking',
 };
 // ── Seleção de fábrica ──────────────────────────────────────────
 function renderSelecionarFabrica(){
@@ -621,7 +621,7 @@ function renderApp(){
     }else if(perfMetal==='apontador_metal'){
       tabs.push('painel_metal','apontar','fichas_metal','ranking_metal');
     }else if(perfMetal==='soldador'){
-      tabs.push('minha_prod','ranking_metal');
+      tabs.push('minha_prod','meu_desempenho','ranking_metal');
     }else{
       tabs.push('painel_metal','ranking_metal');
     }
@@ -2769,6 +2769,173 @@ function renderMinhaProd(){
 }
 
 // ── Ranking metalúrgica ───────────────────────────────────────────
+// ── Meu Desempenho (soldador) ────────────────────────────────────
+function renderMeuDesempenho(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const uid=currentUser?.uid||'';
+  const idUsuario=currentUserData?.id||'';
+  const sol=soldadores.find(s=>s.usuarioUid===uid||s.usuarioUid===idUsuario);
+  if(!sol) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum soldador.</div></div>';
+
+  const c=avatarColor(soldadores.findIndex(s=>s.id===sol.id));
+  const hoje_=today();
+  const mesAtual=hoje_.slice(0,7);
+
+  // ── Acumulado total
+  const totalAcum=PECAS_METAL_FULL.reduce((s,p)=>s+totalPecaPeriodo(sol.id,p.id,'mes')*0,0)
+    +apontSoldador(sol.id).reduce((s,a)=>s+Object.values(a.pecas||{}).reduce((x,v)=>x+(parseInt(v)||0),0),0);
+
+  // ── Recorde semanal (total de peças em uma semana)
+  // Agrupar apontamentos por semana (segunda a domingo)
+  function getInicioSemana(dataStr){
+    const d=new Date(dataStr+'T00:00:00');
+    const dia=d.getDay(); // 0=dom
+    const diff=dia===0?6:dia-1; // segunda=0
+    const seg=new Date(d); seg.setDate(d.getDate()-diff);
+    return seg.toISOString().slice(0,10);
+  }
+
+  const semanas={};
+  apontSoldador(sol.id).forEach(a=>{
+    if(!a.data)return;
+    const seg=getInicioSemana(a.data);
+    if(!semanas[seg])semanas[seg]=0;
+    Object.values(a.pecas||{}).forEach(v=>semanas[seg]+=(parseInt(v)||0));
+  });
+  const semanaAtual=getInicioSemana(hoje_);
+  const totalSemanaAtual=semanas[semanaAtual]||0;
+  const recordeSemanal=Math.max(0,...Object.values(semanas));
+  const semanaAnterior=new Date(semanaAtual+'T00:00:00');
+  semanaAnterior.setDate(semanaAnterior.getDate()-7);
+  const totalSemanaAnterior=semanas[semanaAnterior.toISOString().slice(0,10)]||0;
+  const diffSemana=totalSemanaAtual-totalSemanaAnterior;
+
+  // ── Meta semanal (soma das metas diárias × 5 dias úteis)
+  const metaSemanal=PECAS_METAL.reduce((s,p)=>s+(parseInt((configMetal.metas||{})[p.id])||0),0)*5;
+
+  // ── Streak (dias consecutivos com apontamento)
+  const diasComApoint=new Set(apontSoldador(sol.id).map(a=>a.data));
+  let streak=0;
+  let d=new Date(hoje_+'T00:00:00');
+  while(true){
+    const ds=d.toISOString().slice(0,10);
+    if(diasComApoint.has(ds)){streak++;d.setDate(d.getDate()-1);}
+    else break;
+    if(streak>365)break;
+  }
+
+  // ── Resumo mensal
+  const mesesMap={};
+  apontSoldador(sol.id).forEach(a=>{
+    if(!a.data)return;
+    const m=a.data.slice(0,7);
+    if(!mesesMap[m])mesesMap[m]=0;
+    Object.values(a.pecas||{}).forEach(v=>mesesMap[m]+=(parseInt(v)||0));
+  });
+  const mesesList=Object.entries(mesesMap).sort((a,b)=>b[0]>a[0]?1:-1).slice(0,6);
+  const maxMes=Math.max(1,...mesesList.map(m=>m[1]));
+
+  // ── Melhor quinzena
+  const quinzenasMap={};
+  apontSoldador(sol.id).forEach(a=>{
+    if(!a.data)return;
+    const q=getQuinzena(a.data);
+    if(!quinzenasMap[q])quinzenasMap[q]=0;
+    Object.values(a.pecas||{}).forEach(v=>quinzenasMap[q]+=(parseInt(v)||0));
+  });
+  const qAtual=getQuinzenaAtual();
+  const totalQAtual=quinzenasMap[qAtual]||0;
+  const recordeQuinzena=Math.max(0,...Object.values(quinzenasMap));
+  const isRecordeQ=totalQAtual>0&&totalQAtual>=recordeQuinzena;
+
+  return `<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <div style="width:52px;height:52px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800">${initials(sol.nome)}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800">${sol.nome}</div>
+        <div style="font-size:12px;color:#64748b">${sol.contrato==='producao'?'Por produção':'Fichado'}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;width:100%">
+    <div class="metric" style="border-left:4px solid ${c}">
+      <div class="metric-label">Total acumulado</div>
+      <div class="metric-value" style="font-size:28px;color:${c}">${totalAcum}</div>
+      <div style="font-size:11px;color:#94a3b8">peças soldadas</div>
+    </div>
+    <div class="metric" style="border-left:4px solid #f59e0b">
+      <div class="metric-label">🔥 Sequência atual</div>
+      <div class="metric-value" style="font-size:28px;color:#f59e0b">${streak}</div>
+      <div style="font-size:11px;color:#94a3b8">dia${streak!==1?'s':''} seguido${streak!==1?'s':''}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;border-left:4px solid #3b82f6">
+    <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:10px">📅 Esta semana</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-size:36px;font-weight:800;color:#1e40af">${totalSemanaAtual}</div>
+        <div style="font-size:11px;color:#64748b">peças esta semana</div>
+      </div>
+      <div style="text-align:right">
+        ${totalSemanaAtual>=recordeSemanal&&totalSemanaAtual>0
+          ?'<div style="background:#fef3c7;color:#92400e;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:700">🏆 Novo recorde!</div>'
+          :`<div style="font-size:11px;color:#64748b">Recorde</div>
+           <div style="font-size:20px;font-weight:700;color:#475569">${recordeSemanal}</div>`}
+        <div style="font-size:11px;color:${diffSemana>=0?'#059669':'#dc2626'};margin-top:4px">
+          ${diffSemana>=0?'↑':'↓'} ${Math.abs(diffSemana)} vs semana anterior
+        </div>
+      </div>
+    </div>
+    ${metaSemanal>0?`<div style="margin-top:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px">
+        <span>Progresso da meta semanal</span>
+        <span style="font-weight:700;color:${totalSemanaAtual>=metaSemanal?'#059669':'#1e40af'}">${Math.min(100,Math.round(totalSemanaAtual/metaSemanal*100))}%</span>
+      </div>
+      <div style="height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(100,Math.round(totalSemanaAtual/metaSemanal*100))}%;background:${totalSemanaAtual>=metaSemanal?'#059669':'#3b82f6'};border-radius:99px"></div>
+      </div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:3px">Meta: ${metaSemanal} peças</div>
+    </div>`:''}
+  </div>
+
+  <div class="card" style="margin-bottom:14px;border-left:4px solid #8b5cf6">
+    <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:10px">📆 Quinzena atual — ${quinzenaLabel(qAtual)}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:36px;font-weight:800;color:#7c3aed">${totalQAtual}</div>
+        <div style="font-size:11px;color:#64748b">peças na quinzena</div>
+      </div>
+      <div style="text-align:right">
+        ${isRecordeQ
+          ?'<div style="background:#fef3c7;color:#92400e;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:700">🏆 Recorde de quinzena!</div>'
+          :`<div style="font-size:11px;color:#64748b">Melhor quinzena</div>
+           <div style="font-size:20px;font-weight:700;color:#475569">${recordeQuinzena}</div>`}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px">📊 Resumo mensal</div>
+    ${mesesList.length?mesesList.map(([m,total])=>{
+      const [ano,mes]=m.split('-');
+      const nomeMes=MESES[parseInt(mes)-1]+' '+ano;
+      const bar=Math.round(total/maxMes*100);
+      const isMesAtual=m===mesAtual;
+      return `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:12px;font-weight:${isMesAtual?700:400};color:${isMesAtual?'#1e40af':'#475569'}">${nomeMes}${isMesAtual?' ◀':''}</span>
+          <span style="font-size:14px;font-weight:800;color:${isMesAtual?'#1e40af':'#1e293b'}">${total}</span>
+        </div>
+        <div style="height:7px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${bar}%;background:${isMesAtual?'#3b82f6':c};border-radius:99px"></div>
+        </div>
+      </div>`;
+    }).join(''):'<div style="color:#94a3b8;font-size:13px;text-align:center;padding:12px">Nenhuma produção registrada ainda.</div>'}
+  </div>`;
+}
+
 window._setRankMetalPeca=function(id){
   window._rankMetalPeca=id;
   reloadTab();
@@ -2957,6 +3124,7 @@ function renderTabMetal(tab){
   if(tab==='soldadores_metal') return renderSoldadoresMetal();
   if(tab==='config_metal')     return renderConfigMetal();
   if(tab==='minha_prod')       return renderMinhaProd();
+  if(tab==='meu_desempenho')   return renderMeuDesempenho();
   if(tab==='ranking_metal')    return renderRankingMetal();
   if(tab==='usuarios')         return renderUsuarios();
   return renderPainelMetal();
