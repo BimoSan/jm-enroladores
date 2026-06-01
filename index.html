@@ -3730,7 +3730,7 @@ window._importarAlmBase=async()=>{
 };
 
 window._novoAlmItem=()=>{
-  const optsClass=ALM_CLASSIFICACOES.map(c=>'<option>'+c+'</option>').join('');
+  const optsClass=almClassificacoes().map(c=>'<option>'+c+'</option>').join('');
   const optsUnd=almUnidades().map(u=>'<option>'+u+'</option>').join('');
   showModal('Novo item',
     '<div class="form-row">'
@@ -3763,8 +3763,8 @@ window._salvarNovoAlmItem=async()=>{
 
 window._editarAlmItem=id=>{
   const item=almItens.find(i=>i.id===id);if(!item)return;
-  const optsClass=ALM_CLASSIFICACOES.map(c=>'<option'+(item.classificacao===c?' selected':'')+'>'+c+'</option>').join('');
-  const optsUnd=ALM_UNIDADES.map(u=>'<option'+(item.unidade===u?' selected':'')+'>'+u+'</option>').join('');
+  const optsClass=almClassificacoes().map(c=>'<option'+(item.classificacao===c?' selected':'')+'>'+c+'</option>').join('');
+  const optsUnd=almUnidades().map(u=>'<option'+(item.unidade===u?' selected':'')+'>'+u+'</option>').join('');
   const atual=almEstoqueItem(id);
   showModal('Editar item — '+item.descricao,
     '<div class="form-row">'
