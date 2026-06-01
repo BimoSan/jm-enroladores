@@ -3637,23 +3637,22 @@ window._registrarAlmMov=async(tipo)=>{
 
 // ── Itens ─────────────────────────────────────────────────────────
 function renderAlmItens(){
-  const itens=almItens.length?almItens:ALM_ITENS_BASE.map((i,idx)=>({...i,id:'base-'+idx}));
+  const itens=almItens.length?almItens:ALM_ITENS_BASE.map((item,idx)=>({...item,id:'base-'+idx}));
   if(!window._almFiltro) window._almFiltro='';
   if(!window._almClassFiltro) window._almClassFiltro='';
 
   const CORES_CLASS={'MATERIA PRIMA':'#1e40af','EPI':'#065f46','MATERIAL DE USO E CONSUMO':'#92400e',
-    'FERRAMENTAS':'#4c1d95','PEÇAS PARA MAQUINÁRIOS':'#dc2626','MAQUINÁRIO':'#374151',
-    'EMBALAGEM':'#0369a1','PRODUTO ACABADO':'#15803d'};
+    'FERRAMENTAS':'#4c1d95','PECAS PARA MAQUINARIOS':'#dc2626','PEÇAS PARA MAQUINÁRIOS':'#dc2626',
+    'MAQUINARIO':'#374151','MAQUINÁRIO':'#374151','EMBALAGEM':'#0369a1','PRODUTO ACABADO':'#15803d'};
 
   const filtrados=itens.filter(i=>{
-    const q=window._almFiltro.toLowerCase();
+    const q=(window._almFiltro||'').toLowerCase();
     const matchQ=!q||(i.descricao||'').toLowerCase().includes(q)||(i.codigo||'').toLowerCase().includes(q);
     const matchC=!window._almClassFiltro||i.classificacao===window._almClassFiltro;
     return matchQ&&matchC;
   }).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'','pt-BR'));
 
   const podeEditar=['admin','apontador1'].includes(currentUserData?.perfil);
-
   const optsClass='<option value="">Todas as classificações</option>'+almClassificacoes().map(c=>'<option value="'+c+'"'+(window._almClassFiltro===c?' selected':'')+'>'+c+'</option>').join('');
 
   let html='<div class="card" style="margin-bottom:14px">'
@@ -3663,15 +3662,17 @@ function renderAlmItens(){
     +' oninput="window._almFiltro=this.value;reloadTab()"'
     +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Classificação</label>'
-    +'<select id="alm-class-filtro" onchange="window._almClassFiltro=this.value;reloadTab()"'
+    +'<select onchange="window._almClassFiltro=this.value;reloadTab()"'
     +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsClass+'</select></div>'
     +'</div>'
-    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._novoAlmItem()">+ Novo item</button>'+'<button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="window._importarAlmBase()">Importar base</button>':'')
-    +'</div>';
+    +(podeEditar
+      ?'<button class="btn btn-primary btn-sm" onclick="window._novoAlmItem()">+ Novo item</button>'
+       +' <button class="btn btn-ghost btn-sm" onclick="window._importarAlmBase()">Importar base</button>'
+      :'')
+    +'</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:8px">'+filtrados.length+' itens encontrados</div>';
 
-  html+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">'+filtrados.length+' itens encontrados</div>';
-
-  html+=filtrados.map(item=>{
+  filtrados.forEach(function(item){
     const atual=almEstoqueItem(item.id);
     const min=parseInt(item.estoqueMin)||0;
     const max=parseInt(item.estoqueMax)||0;
@@ -3679,7 +3680,20 @@ function renderAlmItens(){
     const alerta=min>0&&atual<min;
     const pct=max>0?Math.min(100,Math.round(atual/max*100)):50;
     const barCor=alerta?'#dc2626':pct<50?'#f59e0b':'#10b981';
-    return '<div class="card" style="margin-bottom:8px'+(alerta?';border-left:3px solid #dc2626':'')+'">'
+
+    // Badge de duração
+    const dias=almDuracaoEstoque(item.id);
+    const duracaoLabel=almDuracaoLabel(dias);
+    const duracaoBadge=duracaoLabel
+      ?'<div style="font-size:10px;background:'+duracaoLabel.bg+';color:'+duracaoLabel.cor
+        +';padding:1px 6px;border-radius:99px;font-weight:700;margin-top:3px;display:inline-block">⏱ '
+        +duracaoLabel.label+'</div>'
+      :'';
+
+    const editBtn=podeEditar
+      ?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(&quot;"+item.id+"&quot;)">Editar</button>'   :'';
+
+    html+='<div class="card" style="margin-bottom:8px'+(alerta?';border-left:3px solid #dc2626':'')+'">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">'
@@ -3689,37 +3703,22 @@ function renderAlmItens(){
       +'<div style="font-size:10px;color:'+cor+'">'+item.classificacao+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
-      +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual+' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
+      +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual
+      +' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
       +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
-      +(()=>{const d=almDuracaoEstoque(item.id);const l=almDuracaoLabel(d);return l?'<div style="font-size:10px;background:'+l.bg+';color:'+l.cor+';padding:1px 6px;border-radius:99px;font-weight:700;margin-top:3px;display:inline-block">⏱ '+l.label+'</div>':'';})()
+      +duracaoBadge
       +'</div>'
-      +(podeEditar?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(&quot;'+item.id+'&quot;)">Editar</button>':'')
+      +editBtn
       +'</div>'
       +'<div style="height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
       +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div>'
       +'</div>'
       +'</div>';
-  }).join('');
+  });
 
   return html;
 }
 
-window._limparDuplicatasAlm=async()=>{
-  if(!confirm('Isso vai manter apenas um item por código e excluir os duplicados. Continuar?')) return;
-  showToast('Removendo duplicatas...');
-  const vistos={};
-  let removidos=0;
-  for(const item of almItens){
-    const chave=(item.codigo||'').trim().toUpperCase();
-    if(vistos[chave]){
-      await deleteDoc(doc(db,'alm_itens',item.id));
-      removidos++;
-    } else {
-      vistos[chave]=true;
-    }
-  }
-  showToast(removidos+' duplicatas removidas!');
-};
 
 window._importarAlmBase=async()=>{
   if(!confirm('Importar os '+ALM_ITENS_BASE.length+' itens base para o Firestore? Isso criará os cadastros iniciais.')) return;
