@@ -3691,8 +3691,9 @@ function renderAlmItens(){
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual+' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
       +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
+      +(()=>{const d=almDuracaoEstoque(item.id);const l=almDuracaoLabel(d);return l?'<div style="font-size:10px;background:'+l.bg+';color:'+l.cor+';padding:1px 6px;border-radius:99px;font-weight:700;margin-top:3px;display:inline-block">⏱ '+l.label+'</div>':'';})() 
       +'</div>'
-      +(podeEditar?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(\''+item.id+'\')">Editar</button>':'')
+      +(podeEditar?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(&quot;'+item.id+'&quot;)">">Editar</button>':'')
       +'</div>'
       +'<div style="height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
       +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div>'
