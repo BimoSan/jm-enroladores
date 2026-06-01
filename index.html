@@ -3531,7 +3531,7 @@ function renderAlmPainel(){
     const atual=almEstoqueItem(i.id);
     const min=parseInt(i.estoqueMin)||0;
     return min>0&&atual<min;
-  }).slice(0,10);
+  });
 
   // Últimos movimentos
   const ultimos=[...almMovimentos].sort((a,b)=>b.criadoEm>a.criadoEm?1:-1).slice(0,8);
