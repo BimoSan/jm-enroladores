@@ -328,6 +328,8 @@ let configBonus={meta:300, valorBonus:1.00, ativo:true}; // configuração do b�
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
+let almItens=[];
+let almMovimentos=[];
 let configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{}}; // configurações da metalúrgica
 let fichas=[];
 let usuarios=[];
@@ -466,7 +468,22 @@ window._doLogin=async function(){
 };
 
 // ── App shell ────────────────────────────────────────────────────
-const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'};
+const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  'alm_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
+  'alm_entrada':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
+  'alm_saida':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  'alm_itens':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+  'alm_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'alm_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
+  'painel_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'apontar':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  'fichas_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  'soldadores_metal':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  'config_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
+  'minha_prod':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  'ranking_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+};
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
   'relatorio':'Relatório','ranking':'Ranking','valores':'Pagamentos',
@@ -2250,6 +2267,32 @@ window._confirmarExcluirUsuario=async()=>{
   showToast('Usuário removido.');
 };
 
+// ── Constantes do Almoxarifado ───────────────────────────────────
+const ALM_TIPOS_ENTRADA=['COMPRA','DEVOLUÇÃO','DOAÇÃO','CONFERÊNCIA'];
+const ALM_TIPOS_SAIDA=['USO INTERNO','VENDA','PERDA','DOAÇÃO','RECOLHIMENTO'];
+const ALM_CLASSIFICACOES=['MATERIA PRIMA','EPI','MATERIAL DE USO E CONSUMO','FERRAMENTAS','PEÇAS PARA MAQUINÁRIOS','MAQUINÁRIO','EMBALAGEM','PRODUTO ACABADO'];
+const ALM_UNIDADES=['UND','CX','KG','ROLO','METRO','LT','PAR','SACO','BALDE'];
+const ALM_SETORES=['Estofados','Cadeiras','Metalúrgica','Pintura','Oficina','Almoxarifado','Madeira','Engenharia','Proprietário','Fita','Externo','Administração','Limpeza','Caminhões','Apontador'];
+const ALM_PESSOAS=['Neneca','Gordo','Alan','Antônio','Luan','Inácio','Elton','João Victor','Mozart','Zé Wilson','Cliente','Netin','Marisa','Raimundinho','Tento'];
+const ALM_ITENS_BASE=[{"codigo": "PA32", "descricao": "GRAMPO GALVANIZADO 26/6", "unidade": "CX", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "CA2", "descricao": "VARANDA NOVA", "unidade": "UND", "estoqueMin": 0, "estoqueMax": 50000, "classificacao": "PRODUTO ACABADO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "CA1", "descricao": "VARANDA SOFIA", "unidade": "UND", "estoqueMin": 0, "estoqueMax": 50000, "classificacao": "PRODUTO ACABADO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "B6", "descricao": "TRENA 3MT", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P7-13", "descricao": "BROCA AÇO RAPIDO 6MM", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "PA31", "descricao": "EMBALAGEM 0,90", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EMBALAGEM", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "PA30", "descricao": "EMBALAGEM 1,40", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EMBALAGEM", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P7-12", "descricao": "BROCA AÇO RÁPIDO 7MM", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P2-6", "descricao": "QUEIMADOR", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P11-1", "descricao": "FITA AUTOADESIVA MANTA", "unidade": "UND", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "B5", "descricao": "BOTA", "unidade": "UND", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P7-11", "descricao": "CORREIA A-33", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P19-1", "descricao": "ETIQUETA PARA COLCHÕES", "unidade": "UND", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "P3-8", "descricao": "LUBRIFICANTE MINERAL PARA MOTOR A DISEL 15W40", "unidade": "LT", "estoqueMin": 20, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 20, "observacoes": ""}, {"codigo": "P6-15", "descricao": "LIXA", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P4-14", "descricao": "DISCO DIAMANTADO 110MM", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P15-1", "descricao": "ARAME RECOZIDO BWG 18", "unidade": "KG", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P7-10", "descricao": "PRESSOSTATOO 135-175PSI", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "B4", "descricao": "RESPIRADOR DESCARTAVEL", "unidade": "UND", "estoqueMin": 50, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 50, "observacoes": ""}, {"codigo": "PA29", "descricao": "EMBALAGEM 1,62M E 1,13M", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "EMBALAGEM", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "M13", "descricao": "FIBRA SILICONADA", "unidade": "UND", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "PA28", "descricao": "CANTONEIRA DE PAPELÃO 52CM", "unidade": "UND", "estoqueMin": 20, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 20, "observacoes": ""}, {"codigo": "P20-10", "descricao": "LINHA PRETA 20", "unidade": "UND", "estoqueMin": 8, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 8, "observacoes": ""}, {"codigo": "P25-2", "descricao": "PARAFUSO 1/4X2.1/2 UNC", "unidade": "CX", "estoqueMin": 13, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 13, "observacoes": ""}, {"codigo": "P24-2", "descricao": "PARAFUSO 1/4X2 UNC", "unidade": "CX", "estoqueMin": 7, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 7, "observacoes": ""}, {"codigo": "P24-1", "descricao": "PORCA TRAVANTE 1/4-20 UNC", "unidade": "CX", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P4-12", "descricao": "ELETRODO E-6013", "unidade": "CX", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P4-11", "descricao": "DISCO DIAMANTADO PORCELANATO 110MM X 20MM", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P6-14", "descricao": "RESISTENCIA 50X50", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-13", "descricao": "RESISTENCIA 105110P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P7-9", "descricao": "CORREIA 3L190 116PH", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P7-8", "descricao": "CORREIA B58", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P7-7", "descricao": "CORREIA B70", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P7-6", "descricao": "CORREIA B65", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P7-5", "descricao": "CORREIA B63", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P7-4", "descricao": "CORREIA B60", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "PA27", "descricao": "SAPATA 3/4", "unidade": "SACO", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P18-3", "descricao": "ÓLEO PARA MÁQUINA DE COSTURA", "unidade": "UND", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P6-12", "descricao": "RESISTENCIA 7080P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "PA26", "descricao": "PONTEIRA 1.1/4", "unidade": "SACO", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "M12", "descricao": "TECIDO ESTAMPADO", "unidade": "ROLO", "estoqueMin": 45, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 45, "observacoes": ""}, {"codigo": "M11", "descricao": "NYLON 600", "unidade": "ROLO", "estoqueMin": 12, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 12, "observacoes": ""}, {"codigo": "M10", "descricao": "TECIDO VINHO", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M9", "descricao": "TECIDO MARROM", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M8", "descricao": "TECIDO AZUL", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M7", "descricao": "TECIDO VERMELHO", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M6", "descricao": "TECIDO PRETO", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M5", "descricao": "TECIDO CINZA CAMURÇA", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M4", "descricao": "TECIDO BEGE", "unidade": "ROLO", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 40, "observacoes": ""}, {"codigo": "M3", "descricao": "TNT 1,40 40G/M² 500M", "unidade": "ROLO", "estoqueMin": 12, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 12, "observacoes": ""}, {"codigo": "M2", "descricao": "TNT 0,90 40G/M² 500M", "unidade": "ROLO", "estoqueMin": 6, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 6, "observacoes": ""}, {"codigo": "M1", "descricao": "TECIDO FORRAR SOFÁ", "unidade": "ROLO", "estoqueMin": 12, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 12, "observacoes": ""}, {"codigo": "PA25", "descricao": "PIGMENTO MOGNO 25KG", "unidade": "SACO", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "PA24", "descricao": "PIGMENTO MARROM CHOCOLATE 25KG", "unidade": "SACO", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "PA23", "descricao": "PIGMENTO PRETO 25KG", "unidade": "SACO", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "PA22", "descricao": "PIGMENTO CARAMELO TANQUE 25KG", "unidade": "SACO", "estoqueMin": 6, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 6, "observacoes": ""}, {"codigo": "PA21", "descricao": "BARBANTE", "unidade": "SACO", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "PA20", "descricao": "ACELERADOR 25KG", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "PA19", "descricao": "FOSFATIZANTE", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "PA18", "descricao": "DESENGRAXANTE 25KG", "unidade": "UND", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "PA17", "descricao": "SOLDA MIG 0,8 MM", "unidade": "CX", "estoqueMin": 64, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 64, "observacoes": ""}, {"codigo": "PA16", "descricao": "PONTEIRA 3/4", "unidade": "SACO", "estoqueMin": 12, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 12, "observacoes": ""}, {"codigo": "PA15", "descricao": "PONTEIRA 7/8", "unidade": "SACO", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "PA14", "descricao": "IPÊARLA 32", "unidade": "BALDE", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "PA13", "descricao": "EMBALAGEM 165CM", "unidade": "ROLO", "estoqueMin": 16, "estoqueMax": 5000, "classificacao": "EMBALAGEM", "estoqueAtual": 16, "observacoes": ""}, {"codigo": "PA12", "descricao": "EMBALAGEM 195CM", "unidade": "ROLO", "estoqueMin": 22, "estoqueMax": 5000, "classificacao": "EMBALAGEM", "estoqueAtual": 22, "observacoes": ""}, {"codigo": "PA11", "descricao": "PERCINTA PRETA", "unidade": "SACO", "estoqueMin": 32, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 32, "observacoes": ""}, {"codigo": "PA10", "descricao": "MOLA", "unidade": "SACO", "estoqueMin": 17, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 17, "observacoes": ""}, {"codigo": "PA9", "descricao": "PÉ PALITO", "unidade": "SACO", "estoqueMin": 14, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 14, "observacoes": ""}, {"codigo": "PA8", "descricao": "PREGO 18X2 20KG", "unidade": "KG", "estoqueMin": 20, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 20, "observacoes": ""}, {"codigo": "PA7", "descricao": "TINTA CRAQUEADA", "unidade": "CX", "estoqueMin": 20, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 20, "observacoes": ""}, {"codigo": "PA6", "descricao": "PÉ DE SOFÁ CX 40KIT DE 10", "unidade": "CX", "estoqueMin": 22, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 22, "observacoes": ""}, {"codigo": "PA5", "descricao": "PÉ DE CAMA CX 30KIT DE 7", "unidade": "CX", "estoqueMin": 60, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 60, "observacoes": ""}, {"codigo": "P7-3", "descricao": "BROCA AÇO RÁPIDO 10MM", "unidade": "UND", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "PA4", "descricao": "COLA SPRAY 14KG", "unidade": "BALDE", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "PA3", "descricao": "GRAMPO 80/10", "unidade": "CX", "estoqueMin": 15, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 15, "observacoes": ""}, {"codigo": "PA2", "descricao": "GRAMPO 14/45", "unidade": "CX", "estoqueMin": 45, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 45, "observacoes": ""}, {"codigo": "PA1", "descricao": "GRAMPO 14/28", "unidade": "CX", "estoqueMin": 8, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 8, "observacoes": ""}, {"codigo": "P4-10", "descricao": "LÂMINA DE SERRA CIRCULAR 250MM X 30MM X 60T", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P4-9", "descricao": "FITA TRANSPARENTE", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "B3", "descricao": "FITA ISOLANTE", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "B2", "descricao": "BOBINA", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "B1", "descricao": "COLA 3M", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P29-1", "descricao": "VIÉS", "unidade": "SACO", "estoqueMin": 15, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 15, "observacoes": ""}, {"codigo": "P25-1", "descricao": "MANGUEIRA DE AR", "unidade": "UND", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P23-1", "descricao": "BOTÃO FORRAR 24 - GS", "unidade": "CX", "estoqueMin": 75, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 75, "observacoes": ""}, {"codigo": "P22-1", "descricao": "CORDÃO DE REDE", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P21-2", "descricao": "LINHA PRETA 40", "unidade": "UND", "estoqueMin": 18, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 18, "observacoes": ""}, {"codigo": "P21-1", "descricao": "LINHA ENCERADA", "unidade": "UND", "estoqueMin": 30, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 30, "observacoes": ""}, {"codigo": "P20-9", "descricao": "LINHA BRANCA 60", "unidade": "UND", "estoqueMin": 7, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 7, "observacoes": ""}, {"codigo": "P20-8", "descricao": "LINHA PRETA 60", "unidade": "UND", "estoqueMin": 18, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 18, "observacoes": ""}, {"codigo": "P20-7", "descricao": "LINHA AZUL 60", "unidade": "UND", "estoqueMin": 6, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 6, "observacoes": ""}, {"codigo": "P20-6", "descricao": "LINHA BEGE 60", "unidade": "UND", "estoqueMin": 7, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 7, "observacoes": ""}, {"codigo": "P20-5", "descricao": "LINHA CINZA 60", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P20-4", "descricao": "LINHA MARROM 60", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P20-3", "descricao": "LINHA VINHO 60", "unidade": "UND", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "P20-2", "descricao": "LINHA VERMELHA 60", "unidade": "UND", "estoqueMin": 4, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 4, "observacoes": ""}, {"codigo": "P20-1", "descricao": "ETIQUETA PARA CAMA", "unidade": "UND", "estoqueMin": 8, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 8, "observacoes": ""}, {"codigo": "P18-2", "descricao": "CINTA DE ELEVAÇÃO 2TON X 4M", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "FERRAMENTAS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P18-1", "descricao": "CATRACA", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "FERRAMENTAS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P17-2", "descricao": "PARAFUSO FRANCÊS ZINCO 1/4 X 1.1/4", "unidade": "CX", "estoqueMin": 85, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 85, "observacoes": ""}, {"codigo": "P17-1", "descricao": "ARRUELA LISA ZINCADA 1/4", "unidade": "SACO", "estoqueMin": 6, "estoqueMax": 5000, "classificacao": "MATERIA PRIMA", "estoqueAtual": 6, "observacoes": ""}, {"codigo": "P16-1", "descricao": "LAMINA IF 12,7X0,50 MM PAF2L - 8,200M", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P9-1", "descricao": "BUCHA AMERICANA 5/16 MIL UNIDADES", "unidade": "SACO", "estoqueMin": 21, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 21, "observacoes": ""}, {"codigo": "P7-2", "descricao": "GRAXA CHASSIS CA-2 10KG", "unidade": "BALDE", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P7-1", "descricao": "LUBRAX COMPSOR AC 46 20L", "unidade": "BALDE", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P4-8", "descricao": "LÂMINA DE SERRA CIRCULAR 235MM X 25.4MM X 60T", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P3-7", "descricao": "GUIA CONDUÍTE TOCHA MIG 24KD 3M", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P6-11", "descricao": "RESISTÊNCIA 7550P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-10", "descricao": "RESISTÊNCIA 80150P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-9", "descricao": "RESISTÊNCIA DE BICO 10070P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-8", "descricao": "RESISTÊNCIA DE BICO 100150P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-7", "descricao": "RESISTÊNCIA DE BICO 100155P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-6", "descricao": "RESISTÊNCIA 100150P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-5", "descricao": "RESISTÊNCIA 100100P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-4", "descricao": "RESISTÊNCIA 105100P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-3", "descricao": "RESISTÊNCIA 11885P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-2", "descricao": "RESISTÊNCIA 115100P", "unidade": "UND", "estoqueMin": 3, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 3, "observacoes": ""}, {"codigo": "P6-1", "descricao": "SERRA BIMETAL 300MM", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P5-4", "descricao": "ABRAÇADEIRA DE NYLON 3,6MM X 150MM", "unidade": "SACO", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P5-3", "descricao": "ABRAÇADEIRA DE NYLON 4,8MM X 300MM", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P5-2", "descricao": "ABRAÇADEIRA DE NYLON 7,6MM X 400MM", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P5-1", "descricao": "SACO DE LIXO 50L AZUL", "unidade": "SACO", "estoqueMin": 0, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 0, "observacoes": ""}, {"codigo": "P4-7", "descricao": "FITA ISOLANTE PARA ALTA TENSÃO", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P4-6", "descricao": "DISCO DE CORTE 12 X 1/8 X 3/4", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P4-5", "descricao": "DISCO DE DESBASTE 7 X 1/4 X 7/8", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P4-4", "descricao": "DISCO DE CORTE 7 X 1/16 X 7/8", "unidade": "UND", "estoqueMin": 20, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 20, "observacoes": ""}, {"codigo": "P4-3", "descricao": "DISCO DE CORTE 4.1/2 X 3/64 X 7/8", "unidade": "UND", "estoqueMin": 50, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 50, "observacoes": ""}, {"codigo": "P4-2", "descricao": "DISCO DE DESBASTE 4.1/2 X 1/4 X 7/8", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P4-1", "descricao": "DISCO DE SERRA MADEIRA 4.3/8", "unidade": "UND", "estoqueMin": 5, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 5, "observacoes": ""}, {"codigo": "P3-6", "descricao": "LUVA DE PVC 36CM", "unidade": "PAR", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P3-5", "descricao": "LUVA DE PVC 46CM E", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P3-4", "descricao": "LUVA DE PVC 46CM D", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P3-3", "descricao": "REGULADOR DE PRESSÃO", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P3-2", "descricao": "PORTA ELETRODO", "unidade": "UND", "estoqueMin": 1, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 1, "observacoes": ""}, {"codigo": "P3-1", "descricao": "TOCHA MIG", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "PEÇAS PARA MAQUINÁRIOS", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P2-5", "descricao": "LUVA DE PANO", "unidade": "PAR", "estoqueMin": 120, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 120, "observacoes": ""}, {"codigo": "P2-4", "descricao": "CALÇA", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P2-3", "descricao": "CAMISA DE SOLDADOR", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P2-2", "descricao": "CALÇA DE SOLDADOR", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P2-1", "descricao": "AVENTAL DE COURO", "unidade": "UND", "estoqueMin": 2, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 2, "observacoes": ""}, {"codigo": "P1-8", "descricao": "LUVA DE SOLDA E", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P1-7", "descricao": "LUVA DE SOLDA D", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "EPI", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P1-6", "descricao": "BOCAL MIG 24KD 12MM", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P1-5", "descricao": "BICO DE CONTATO 24 KD M6", "unidade": "UND", "estoqueMin": 20, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 20, "observacoes": ""}, {"codigo": "P1-4", "descricao": "PORTA BICO 24KD M6", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P1-2", "descricao": "LENTE ESCURA", "unidade": "UND", "estoqueMin": 10, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 10, "observacoes": ""}, {"codigo": "P1-1", "descricao": "LENTE TRANSPARENTE", "unidade": "UND", "estoqueMin": 40, "estoqueMax": 5000, "classificacao": "MATERIAL DE USO E CONSUMO", "estoqueAtual": 40, "observacoes": ""}];
+
+// Calcular estoque atual de um item baseado nos movimentos
+function almEstoqueAtual(itemId){
+  const item=almItens.find(i=>i.id===itemId);
+  const base=item?.estoqueAtual||0;
+  // Somar entradas e subtrair saídas dos movimentos
+  return almMovimentos
+    .filter(m=>m.itemId===itemId)
+    .reduce((s,m)=>m.tipo==='entrada'?s+m.quantidade:s-m.quantidade, base);
+}
+
+function almEstoqueItem(itemId){
+  return almMovimentos
+    .filter(m=>m.itemId===itemId)
+    .reduce((s,m)=>m.tipo==='entrada'?s+(parseInt(m.quantidade)||0):s-(parseInt(m.quantidade)||0),
+      parseInt(almItens.find(i=>i.id===itemId)?.estoqueAtual||0));
+}
+
 // ── Sistema Metalúrgica ──────────────────────────────────────────
 
 function getQuinzena(dataStr){
@@ -3257,6 +3300,417 @@ window._confirmarPagarFichaMetal=async id=>{
 };
 
 // ── Ranking metalúrgica ───────────────────────────────────────────
+
+// ── Sistema Almoxarifado ─────────────────────────────────────────
+
+function renderTabAlmox(tab){
+  if(tab==='alm_painel')    return renderAlmPainel();
+  if(tab==='alm_entrada')   return renderAlmMovimento('entrada');
+  if(tab==='alm_saida')     return renderAlmMovimento('saida');
+  if(tab==='alm_itens')     return renderAlmItens();
+  if(tab==='alm_relatorio') return renderAlmRelatorio();
+  if(tab==='alm_config')    return renderAlmConfig();
+  return renderAlmPainel();
+}
+
+// ── Painel ───────────────────────────────────────────────────────
+function renderAlmPainel(){
+  const itens=almItens.length?almItens:ALM_ITENS_BASE.map((i,idx)=>({...i,id:'base-'+idx}));
+  const totalItens=itens.length;
+  const abaixoMin=itens.filter(i=>almEstoqueItem(i.id)<(parseInt(i.estoqueMin)||0)).length;
+  const movHoje=almMovimentos.filter(m=>m.data===today());
+  const entHoje=movHoje.filter(m=>m.tipo==='entrada').reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+  const saiHoje=movHoje.filter(m=>m.tipo==='saida').reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+
+  const CORES_CLASS={'MATERIA PRIMA':'#1e40af','EPI':'#065f46','MATERIAL DE USO E CONSUMO':'#92400e',
+    'FERRAMENTAS':'#4c1d95','PEÇAS PARA MAQUINÁRIOS':'#dc2626','MAQUINÁRIO':'#374151',
+    'EMBALAGEM':'#0369a1','PRODUTO ACABADO':'#15803d'};
+
+  // Alertas de estoque baixo
+  const alertas=itens.filter(i=>{
+    const atual=almEstoqueItem(i.id);
+    const min=parseInt(i.estoqueMin)||0;
+    return min>0&&atual<min;
+  }).slice(0,10);
+
+  // Últimos movimentos
+  const ultimos=[...almMovimentos].sort((a,b)=>b.criadoEm>a.criadoEm?1:-1).slice(0,8);
+
+  return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;width:100%">
+    <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+      <div><div class="stat-label">Total de itens</div><div class="stat-value">${totalItens}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div><div class="stat-label">Abaixo do mínimo</div><div class="stat-value">${abaixoMin}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div>
+      <div><div class="stat-label">Entradas hoje</div><div class="stat-value">${entHoje}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+      <div><div class="stat-label">Saídas hoje</div><div class="stat-value">${saiHoje}</div></div>
+    </div>
+  </div>
+
+  ${alertas.length?`<div class="card" style="margin-bottom:14px;border-left:4px solid #dc2626">
+    <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:10px">⚠️ Itens abaixo do estoque mínimo</div>
+    ${alertas.map(i=>{
+      const atual=almEstoqueItem(i.id);
+      const cor=CORES_CLASS[i.classificacao]||'#475569';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fee2e2">'
+        +'<div><div style="font-size:12px;font-weight:600">['+i.codigo+'] '+i.descricao+'</div>'
+        +'<div style="font-size:10px;color:'+cor+'">'+i.classificacao+'</div></div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:14px;font-weight:800;color:#dc2626">'+atual+' '+i.unidade+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">mín: '+i.estoqueMin+'</div>'
+        +'</div></div>';
+    }).join('')}
+  </div>`:''}
+
+  <div class="section-label">Últimas movimentações</div>
+  ${ultimos.length?ultimos.map(m=>{
+    const item=almItens.find(i=>i.id===m.itemId)||{descricao:m.itemDesc||'Item',codigo:'',unidade:''};
+    const isEnt=m.tipo==='entrada';
+    return '<div class="card" style="margin-bottom:8px;border-left:4px solid '+(isEnt?'#10b981':'#f59e0b')+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div>'
+      +'<div style="font-size:13px;font-weight:700">['+item.codigo+'] '+item.descricao+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+m.tipoMov+' · '+m.pessoa+' → '+m.setor+' · '+fmtDate(m.data)+'</div>'
+      +'</div>'
+      +'<div style="font-size:18px;font-weight:800;color:'+(isEnt?'#059669':'#d97706')+'">'
+      +(isEnt?'+':'-')+m.quantidade+' '+item.unidade
+      +'</div></div></div>';
+  }).join(''):'<div class="card"><div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma movimentação registrada ainda.</div></div>'}`;
+}
+
+// ── Movimentação (entrada/saída) ──────────────────────────────────
+function renderAlmMovimento(tipo){
+  const isEnt=tipo==='entrada';
+  const tiposMov=isEnt?ALM_TIPOS_ENTRADA:ALM_TIPOS_SAIDA;
+  const itens=almItens.length?almItens:ALM_ITENS_BASE.map((i,idx)=>({...i,id:'base-'+idx}));
+  const optsItens=itens.sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'))
+    .map(i=>'<option value="'+i.id+'">'+i.codigo+' — '+i.descricao+'</option>').join('');
+  const optsTipos=tiposMov.map(t=>'<option>'+t+'</option>').join('');
+  const optsPessoas=ALM_PESSOAS.map(p=>'<option>'+p+'</option>').join('');
+  const optsSetores=ALM_SETORES.map(s=>'<option>'+s+'</option>').join('');
+
+  return '<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:14px;font-weight:700;color:'+(isEnt?'#059669':'#d97706')+';margin-bottom:14px">'
+    +(isEnt?'⬇️ Registrar Entrada':'⬆️ Registrar Saída')+'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Item</label>'
+    +'<select id="alm-item" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsItens+'</select></div>'
+    +'<div class="form-group"><label>Tipo de '+(isEnt?'entrada':'saída')+'</label>'
+    +'<select id="alm-tipo-mov" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsTipos+'</select></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Quantidade</label>'
+    +'<input type="number" id="alm-qtd" min="1" step="1" placeholder="0" onfocus="this.select()"'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="alm-data" value="'+today()+'"'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Pessoa</label>'
+    +'<select id="alm-pessoa" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsPessoas+'</select></div>'
+    +'<div class="form-group"><label>Setor</label>'
+    +'<select id="alm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsSetores+'</select></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Observações</label>'
+    +'<input type="text" id="alm-obs" placeholder="Opcional"'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary" onclick="window._registrarAlmMov(\''+tipo+'\')">Registrar '+(isEnt?'entrada':'saída')+'</button>'
+    +'</div>';
+}
+
+window._registrarAlmMov=async(tipo)=>{
+  const itemId=document.getElementById('alm-item')?.value;
+  const tipoMov=document.getElementById('alm-tipo-mov')?.value;
+  const qtd=parseInt(document.getElementById('alm-qtd')?.value)||0;
+  const data=document.getElementById('alm-data')?.value||today();
+  const pessoa=document.getElementById('alm-pessoa')?.value;
+  const setor=document.getElementById('alm-setor')?.value;
+  const obs=document.getElementById('alm-obs')?.value||'';
+  if(!itemId||qtd<=0){showToast('Informe o item e a quantidade.');return;}
+  const item=almItens.find(i=>i.id===itemId)||ALM_ITENS_BASE.find((_,idx)=>'base-'+idx===itemId);
+  await addDoc(collection(db,'alm_movimentos'),{
+    itemId,itemDesc:item?.descricao||'',itemCod:item?.codigo||'',
+    tipo,tipoMov,quantidade:qtd,data,pessoa,setor,obs,
+    registradoPor:currentUserData?.nome||'',
+    criadoEm:new Date().toISOString(),
+  });
+  showToast((tipo==='entrada'?'Entrada':'Saída')+' registrada com sucesso!');
+  document.getElementById('alm-qtd').value='';
+  document.getElementById('alm-obs').value='';
+};
+
+// ── Itens ─────────────────────────────────────────────────────────
+function renderAlmItens(){
+  const itens=almItens.length?almItens:ALM_ITENS_BASE.map((i,idx)=>({...i,id:'base-'+idx}));
+  if(!window._almFiltro) window._almFiltro='';
+  if(!window._almClassFiltro) window._almClassFiltro='';
+
+  const CORES_CLASS={'MATERIA PRIMA':'#1e40af','EPI':'#065f46','MATERIAL DE USO E CONSUMO':'#92400e',
+    'FERRAMENTAS':'#4c1d95','PEÇAS PARA MAQUINÁRIOS':'#dc2626','MAQUINÁRIO':'#374151',
+    'EMBALAGEM':'#0369a1','PRODUTO ACABADO':'#15803d'};
+
+  const filtrados=itens.filter(i=>{
+    const q=window._almFiltro.toLowerCase();
+    const matchQ=!q||(i.descricao||'').toLowerCase().includes(q)||(i.codigo||'').toLowerCase().includes(q);
+    const matchC=!window._almClassFiltro||i.classificacao===window._almClassFiltro;
+    return matchQ&&matchC;
+  }).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'','pt-BR'));
+
+  const podeEditar=['admin','apontador1'].includes(currentUserData?.perfil);
+
+  const optsClass='<option value="">Todas as classificações</option>'+ALM_CLASSIFICACOES.map(c=>'<option value="'+c+'"'+(window._almClassFiltro===c?' selected':'')+'>'+c+'</option>').join('');
+
+  let html='<div class="card" style="margin-bottom:14px">'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Buscar item</label>'
+    +'<input type="text" id="alm-busca" placeholder="Código ou descrição..." value="'+(window._almFiltro||'')+'"'
+    +' oninput="window._almFiltro=this.value;reloadTab()"'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Classificação</label>'
+    +'<select id="alm-class-filtro" onchange="window._almClassFiltro=this.value;reloadTab()"'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsClass+'</select></div>'
+    +'</div>'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._novoAlmItem()">+ Novo item</button>'+'<button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="window._importarAlmBase()">Importar base</button>':'')
+    +'</div>';
+
+  html+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">'+filtrados.length+' itens encontrados</div>';
+
+  html+=filtrados.map(item=>{
+    const atual=almEstoqueItem(item.id);
+    const min=parseInt(item.estoqueMin)||0;
+    const max=parseInt(item.estoqueMax)||0;
+    const cor=CORES_CLASS[item.classificacao]||'#475569';
+    const alerta=min>0&&atual<min;
+    const pct=max>0?Math.min(100,Math.round(atual/max*100)):50;
+    const barCor=alerta?'#dc2626':pct<50?'#f59e0b':'#10b981';
+    return '<div class="card" style="margin-bottom:8px'+(alerta?';border-left:3px solid #dc2626':'')+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">'
+      +'<span style="font-size:10px;background:'+cor+'22;color:'+cor+';padding:2px 7px;border-radius:99px;font-weight:700;white-space:nowrap">'+item.codigo+'</span>'
+      +'<span style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+item.descricao+'</span>'
+      +'</div>'
+      +'<div style="font-size:10px;color:'+cor+'">'+item.classificacao+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
+      +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual+' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
+      +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
+      +'</div>'
+      +(podeEditar?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(\''+item.id+'\')">Editar</button>':'')
+      +'</div>'
+      +'<div style="height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+      +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  return html;
+}
+
+window._importarAlmBase=async()=>{
+  if(!confirm('Importar os '+ALM_ITENS_BASE.length+' itens base para o Firestore? Isso criará os cadastros iniciais.')) return;
+  showToast('Importando itens...');
+  for(const item of ALM_ITENS_BASE){
+    await addDoc(collection(db,'alm_itens'),{...item});
+  }
+  showToast('Itens importados com sucesso!');
+};
+
+window._novoAlmItem=()=>{
+  const optsClass=ALM_CLASSIFICACOES.map(c=>'<option>'+c+'</option>').join('');
+  const optsUnd=ALM_UNIDADES.map(u=>'<option>'+u+'</option>').join('');
+  showModal('Novo item',
+    '<div class="form-row">'
+    +'<div class="form-group"><label>Código</label><input id="ni-cod" type="text" placeholder="ex: PA33" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Unidade</label><select id="ni-und" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsUnd+'</select></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Descrição</label><input id="ni-desc" type="text" placeholder="Nome do item" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Classificação</label><select id="ni-class" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsClass+'</select></div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Estoque mínimo</label><input id="ni-min" type="number" min="0" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Estoque máximo</label><input id="ni-max" type="number" min="0" value="5000" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Estoque atual</label><input id="ni-atual" type="number" min="0" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarNovoAlmItem()">Salvar</button>',true);
+};
+
+window._salvarNovoAlmItem=async()=>{
+  const cod=document.getElementById('ni-cod')?.value.trim();
+  const desc=document.getElementById('ni-desc')?.value.trim();
+  const und=document.getElementById('ni-und')?.value;
+  const cl=document.getElementById('ni-class')?.value;
+  const min=parseInt(document.getElementById('ni-min')?.value)||0;
+  const max=parseInt(document.getElementById('ni-max')?.value)||0;
+  const atual=parseInt(document.getElementById('ni-atual')?.value)||0;
+  if(!cod||!desc){showToast('Informe o código e a descrição.');return;}
+  await addDoc(collection(db,'alm_itens'),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,observacoes:''});
+  closeModal();showToast('Item cadastrado!');
+};
+
+window._editarAlmItem=id=>{
+  const item=almItens.find(i=>i.id===id);if(!item)return;
+  const optsClass=ALM_CLASSIFICACOES.map(c=>'<option'+(item.classificacao===c?' selected':'')+'>'+c+'</option>').join('');
+  const optsUnd=ALM_UNIDADES.map(u=>'<option'+(item.unidade===u?' selected':'')+'>'+u+'</option>').join('');
+  const atual=almEstoqueItem(id);
+  showModal('Editar item — '+item.descricao,
+    '<div class="form-row">'
+    +'<div class="form-group"><label>Código</label><input id="ei-cod" value="'+(item.codigo||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Unidade</label><select id="ei-und" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsUnd+'</select></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Descrição</label><input id="ei-desc" value="'+(item.descricao||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Classificação</label><select id="ei-class" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsClass+'</select></div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Estoque mínimo</label><input id="ei-min" type="number" value="'+(item.estoqueMin||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Estoque máximo</label><input id="ei-max" type="number" value="'+(item.estoqueMax||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Corrigir estoque atual (base)</label><input id="ei-atual" type="number" value="'+atual+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="window._excluirAlmItem(&quot;'+id+'&quot;)">Excluir</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarAlmItem(&quot;'+id+'&quot;)">Salvar</button>',true);
+};
+
+window._salvarAlmItem=async id=>{
+  const cod=document.getElementById('ei-cod')?.value.trim();
+  const desc=document.getElementById('ei-desc')?.value.trim();
+  const und=document.getElementById('ei-und')?.value;
+  const cl=document.getElementById('ei-class')?.value;
+  const min=parseInt(document.getElementById('ei-min')?.value)||0;
+  const max=parseInt(document.getElementById('ei-max')?.value)||0;
+  const atual=parseInt(document.getElementById('ei-atual')?.value)||0;
+  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual});
+  closeModal();showToast('Item atualizado!');
+};
+
+window._excluirAlmItem=async id=>{
+  closeModal();
+  await deleteDoc(doc(db,'alm_itens',id));
+  showToast('Item excluído.');
+};
+
+// ── Relatório ─────────────────────────────────────────────────────
+function renderAlmRelatorio(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesAtual=today().slice(0,7);
+  const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+  if(!window._almRelPeriodo) window._almRelPeriodo='mes';
+  const per=window._almRelPeriodo;
+
+  const movFiltrados=almMovimentos.filter(m=>{
+    if(per==='hoje') return m.data===today();
+    if(per==='mes') return (m.data||'').slice(0,7)===mesAtual;
+    return true;
+  });
+
+  const entradas=movFiltrados.filter(m=>m.tipo==='entrada');
+  const saidas=movFiltrados.filter(m=>m.tipo==='saida');
+  const totalEnt=entradas.reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+  const totalSai=saidas.reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+
+  // Por classificação
+  const itens=almItens.length?almItens:ALM_ITENS_BASE.map((i,idx)=>({...i,id:'base-'+idx}));
+  const CORES_CLASS={'MATERIA PRIMA':'#1e40af','EPI':'#065f46','MATERIAL DE USO E CONSUMO':'#92400e',
+    'FERRAMENTAS':'#4c1d95','PEÇAS PARA MAQUINÁRIOS':'#dc2626','MAQUINÁRIO':'#374151',
+    'EMBALAGEM':'#0369a1','PRODUTO ACABADO':'#15803d'};
+
+  const porClass={};
+  movFiltrados.forEach(m=>{
+    const item=itens.find(i=>i.id===m.itemId);
+    const cl=item?.classificacao||'Outros';
+    if(!porClass[cl])porClass[cl]={entrada:0,saida:0};
+    if(m.tipo==='entrada') porClass[cl].entrada+=parseInt(m.quantidade)||0;
+    else porClass[cl].saida+=parseInt(m.quantidade)||0;
+  });
+
+  // Por setor (saídas)
+  const porSetor={};
+  saidas.forEach(m=>{
+    if(!porSetor[m.setor]) porSetor[m.setor]=0;
+    porSetor[m.setor]+=parseInt(m.quantidade)||0;
+  });
+  const setoresList=Object.entries(porSetor).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxSetor=setoresList[0]?.[1]||1;
+
+  const btnPer=(k,l)=>'<button class="btn btn-sm '+(per===k?'btn-primary':'btn-ghost')+'" onclick="window._almRelPeriodo=\''+k+'\';reloadTab()">'+l+'</button>';
+
+  return '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +btnPer('hoje','Hoje')+btnPer('mes',mesNome)+btnPer('total','Tudo')
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;width:100%">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">'
+    +'<div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div>'
+    +'<div><div class="stat-label">Total entradas</div><div class="stat-value">'+totalEnt+'</div><div class="stat-sub">'+entradas.length+' movimentos</div></div>'
+    +'</div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">'
+    +'<div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>'
+    +'<div><div class="stat-label">Total saídas</div><div class="stat-value">'+totalSai+'</div><div class="stat-sub">'+saidas.length+' movimentos</div></div>'
+    +'</div>'
+    +'</div>'
+
+    +(Object.keys(porClass).length?'<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">📊 Movimentação por classificação</div>'
+    +Object.entries(porClass).map(([cl,v])=>{
+      const cor=CORES_CLASS[cl]||'#475569';
+      return '<div style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
+        +'<span style="color:'+cor+';font-weight:600">'+cl+'</span>'
+        +'<span style="color:#64748b">▲ '+v.entrada+' ▼ '+v.saida+'</span>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+        +'<div style="height:100%;width:'+Math.min(100,v.entrada)+'%;background:'+cor+';opacity:.8;border-radius:99px"></div></div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+        +'<div style="height:100%;width:'+Math.min(100,v.saida)+'%;background:'+cor+';opacity:.4;border-radius:99px"></div></div>'
+        +'</div></div>';
+    }).join('')+'</div>':'')
+
+    +(setoresList.length?'<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">📤 Saídas por setor</div>'
+    +setoresList.map(([s,v])=>{
+      const bar=Math.round(v/maxSetor*100);
+      return '<div style="margin-bottom:8px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'
+        +'<span style="color:#475569">'+s+'</span><span style="font-weight:700">'+v+'</span></div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+        +'<div style="height:100%;width:'+bar+'%;background:#f59e0b;border-radius:99px"></div></div></div>';
+    }).join('')+'</div>':'')
+
+    +'<div class="section-label">Histórico de movimentos</div>'
+    +([...movFiltrados].sort((a,b)=>b.criadoEm>a.criadoEm?1:-1).slice(0,30).map(m=>{
+      const item=itens.find(i=>i.id===m.itemId);
+      const isEnt=m.tipo==='entrada';
+      return '<div class="card" style="margin-bottom:6px;padding:10px 14px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<div>'
+        +'<div style="font-size:12px;font-weight:700">'+(item?'['+item.codigo+'] '+item.descricao:m.itemDesc||'Item')+'</div>'
+        +'<div style="font-size:10px;color:#64748b">'+m.tipoMov+' · '+m.pessoa+' · '+m.setor+' · '+fmtDate(m.data)+'</div>'
+        +'</div>'
+        +'<div style="font-size:16px;font-weight:800;color:'+(isEnt?'#059669':'#d97706')+'">'
+        +(isEnt?'+':'-')+m.quantidade+' '+(item?.unidade||'')+'</div>'
+        +'</div></div>';
+    }).join('')||'<div class="card"><div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma movimentação no período.</div></div>');
+}
+
+// ── Configurações ─────────────────────────────────────────────────
+function renderAlmConfig(){
+  return '<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:10px">Configurações do Almoxarifado</div>'
+    +'<div style="font-size:12px;color:#64748b;margin-bottom:14px">Gerencie pessoas, setores e parâmetros do sistema.</div>'
+    +'<div class="section-label">Importar dados base</div>'
+    +'<div class="card" style="margin-bottom:10px">'
+    +'<div style="font-size:12px;color:#475569;margin-bottom:10px">Importe os '+ALM_ITENS_BASE.length+' itens da planilha original como ponto de partida. Só é necessário fazer uma vez.</div>'
+    +'<button class="btn btn-primary" onclick="window._importarAlmBase()">Importar itens base ('+ALM_ITENS_BASE.length+' itens)</button>'
+    +'</div>';
+}
 
 // ── Roteador de tabs da metalúrgica ──────────────────────────────
 function renderTabMetal(tab){
