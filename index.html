@@ -3688,7 +3688,7 @@ function renderAlmItens(){
 
   const filtrados=itens.filter(i=>{
     const q=(window._almFiltro||'').toLowerCase();
-    const matchQ=!q||(i.descricao||'').toLowerCase().includes(q)||(i.codigo||'').toLowerCase().includes(q);
+    const matchQ=!q||(i.descricao||'').toLowerCase().startsWith(q);
     const matchC=!window._almClassFiltro||i.classificacao===window._almClassFiltro;
     return matchQ&&matchC;
   }).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'','pt-BR'));
@@ -3768,7 +3768,7 @@ window._filtrarAlmItens=function(q){
   const classe=window._almClassFiltro||'';
   const itens=almItens.length?almItens:ALM_ITENS_BASE.map(function(item,i){return Object.assign({},item,{id:'base-'+i});});
   const filtrados=itens.filter(function(i){
-    const matchQ=!lower||(i.descricao||'').toLowerCase().includes(lower);
+    const matchQ=!lower||(i.descricao||'').toLowerCase().startsWith(lower);
     const matchC=!classe||i.classificacao===classe;
     return matchQ&&matchC;
   });
