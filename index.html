@@ -491,6 +491,9 @@ const TAB_LABELS={
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','config_metal':'Configurações',
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking',
+  // Almoxarifado
+  'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
+  'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
 };
 // ── Seleção de fábrica ──────────────────────────────────────────
 function renderSelecionarFabrica(){
@@ -770,6 +773,7 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  if(currentSetor==='almoxarifado') return renderTabAlmox(tab);
   // Metalúrgica tem seu próprio sistema de tabs
   if(currentSetor==='metalurgica') return renderTabMetal(tab);
   if(tab==='painel')return renderPainel();
