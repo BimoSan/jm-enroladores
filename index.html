@@ -3724,7 +3724,8 @@ function renderAlmItens(){
       :'';
 
     const editBtn=podeEditar
-      ?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(&quot;"+item.id+"&quot;)">Editar</button>'   :'';
+      ?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(this.dataset.id)" data-id="'+item.id+'">Editar</button>'
+      :'';
 
     html+='<div class="card" style="margin-bottom:8px'+(alerta?';border-left:3px solid #dc2626':'')+'">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
