@@ -878,7 +878,9 @@ function gerarResumoMovimento(){
 
 function gerarResumoAlertas(){
   if(currentUserData?.perfil==='enrolador') return '';
+  const apt=window._painelApt||'apontador1';
   const alertas=enroladores.filter(e=>{
+    if(e.apontadorPerfil!==apt) return false;
     const d=diasSemRetorno(e.id);
     return d!==null&&d>=30;
   }).map(e=>({e,dias:diasSemRetorno(e.id)}))
