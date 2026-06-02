@@ -4278,11 +4278,11 @@ function renderAlmRelatorio(){
   const dotEnt=resumo7.map((r,i)=>`<circle cx="${ptEnt[i].x}" cy="${ptEnt[i].y}" r="3" fill="#059669"/>`).join('');
   const dotSai=resumo7.map((r,i)=>`<circle cx="${ptSai[i].x}" cy="${ptSai[i].y}" r="3" fill="#dc2626"/>`).join('');
 
-  const grafico7=`<svg viewBox="0 0 ${G7W} ${G7H+20}" style="width:100%;overflow:visible">
+  const grafico7=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><svg viewBox="0 0 ${G7W} ${G7H+20}" style="min-width:320px;width:100%;overflow:visible">
     <path d="${lineEnt}" fill="none" stroke="#059669" stroke-width="2"/>
     <path d="${lineSai}" fill="none" stroke="#dc2626" stroke-width="2"/>
     ${dotEnt}${dotSai}${valEnt}${valSai}${dias7Labels}
-  </svg>`;
+  </svg></div>`;
 
   // Tabela custo 7 dias
   const tabela7=resumo7.map(r=>{
@@ -4309,25 +4309,28 @@ function renderAlmRelatorio(){
   const totalSaiAno=mesesAno.reduce((s,m)=>s+m.saiQtd,0);
 
   // Gráfico barras mensal
-  const GBW=420; const GBH=120;
+  const GBH=120;
+  const bW=16; const bGap=8; const bPad=10;
+  const GBW=bPad*2+12*(bW*2+2+bGap);  // largura real para 12 meses
   const maxMes=Math.max(...mesesAno.map(m=>Math.max(m.entQtd,m.saiQtd)),1);
-  const bW=14; const bGap=16;
   const barsMes=mesesAno.map((m,i)=>{
-    const x=10+i*(bW*2+bGap);
+    const x=bPad+i*(bW*2+2+bGap);
     const hE=Math.round(m.entQtd/maxMes*GBH);
     const hS=Math.round(m.saiQtd/maxMes*GBH);
     const mesAtual=today().slice(0,7)===m.mes;
     return `<g>
       <rect x="${x}" y="${GBH-hE}" width="${bW}" height="${hE}" rx="2" fill="#059669" opacity="${m.entQtd?1:0.15}"/>
       <rect x="${x+bW+2}" y="${GBH-hS}" width="${bW}" height="${hS}" rx="2" fill="#dc2626" opacity="${m.saiQtd?1:0.15}"/>
-      ${m.entQtd?`<text x="${x+bW/2}" y="${GBH-hE-3}" text-anchor="middle" font-size="7" fill="#059669">${m.entQtd}</text>`:''}
-      ${m.saiQtd?`<text x="${x+bW+2+bW/2}" y="${GBH-hS-3}" text-anchor="middle" font-size="7" fill="#dc2626">${m.saiQtd}</text>`:''}
-      <text x="${x+bW}" y="${GBH+12}" text-anchor="middle" font-size="8" fill="${mesAtual?'#1e40af':'#64748b'}" font-weight="${mesAtual?700:400}">${MESES_ABREV[i]}</text>
-      ${m.entCusto?`<text x="${x+bW}" y="${GBH+22}" text-anchor="middle" font-size="7" fill="#92400e">${(m.entCusto/1000).toFixed(1)}k</text>`:''}
+      ${m.entQtd?`<text x="${x+bW/2}" y="${GBH-hE-3}" text-anchor="middle" font-size="8" fill="#059669">${m.entQtd}</text>`:''}
+      ${m.saiQtd?`<text x="${x+bW+2+bW/2}" y="${GBH-hS-3}" text-anchor="middle" font-size="8" fill="#dc2626">${m.saiQtd}</text>`:''}
+      <text x="${x+bW}" y="${GBH+13}" text-anchor="middle" font-size="9" fill="${mesAtual?'#1e40af':'#64748b'}" font-weight="${mesAtual?700:400}">${MESES_ABREV[i]}</text>
+      ${m.entCusto?`<text x="${x+bW}" y="${GBH+24}" text-anchor="middle" font-size="8" fill="#92400e">${(m.entCusto/1000).toFixed(1)}k</text>`:''}
     </g>`;
   }).join('');
 
-  const graficoMes=`<svg viewBox="0 0 ${GBW} ${GBH+28}" style="width:100%;overflow:visible">${barsMes}</svg>`;
+  const graficoMes=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <svg viewBox="0 0 ${GBW} ${GBH+30}" style="min-width:${GBW}px;height:${GBH+30}px;display:block">${barsMes}</svg>
+  </div>`;
 
   // Seletor de ano
   const anos=[...new Set(almMovimentos.map(m=>(m.data||'').slice(0,4)).filter(Boolean))].sort((a,b)=>b-a);
