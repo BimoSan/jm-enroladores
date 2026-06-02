@@ -954,7 +954,63 @@ function renderRelatorioBonusMensal(){
   return html||'';
 }
 
-// ── Painel ───────────────────────────────────────────────────────
+// ── Bônus e relatório bônus ──────────────────────────────────────
+
+function calcVSofiaNoMes(enroladorId, anoMes){
+  return fichas.filter(f=>f.enroladorId===enroladorId)
+    .reduce((sum,f)=>{
+      return sum+(f.recolhimentos||[]).reduce((s,r)=>{
+        if((r.data||'').slice(0,7)!==anoMes) return s;
+        return s+(parseInt((r.tipos||{}).varanda_sofia)||0);
+      },0);
+    },0);
+}
+
+function calcBonusEnrolador(enroladorId, anoMes){
+  const enr=getEnr(enroladorId);
+  if(!enr||enr.apontadorPerfil!=='apontador1') return null;
+  if(!configBonus.ativo) return null;
+  const total=calcVSofiaNoMes(enroladorId, anoMes);
+  if(total<configBonus.meta) return null;
+  return {
+    enroladorId, enrNome:enr.nome, anoMes,
+    totalVSofia:total, meta:configBonus.meta,
+    valorBonus:configBonus.valorBonus,
+    totalBonus:parseFloat((total*configBonus.valorBonus).toFixed(2)),
+  };
+}
+
+function getBonusDoMes(anoMes){
+  return enroladores.filter(e=>e.apontadorPerfil==='apontador1')
+    .map(e=>calcBonusEnrolador(e.id, anoMes))
+    .filter(b=>b!==null);
+}
+
+function renderPainelBonus(){
+  if(currentUserData?.perfil==='enrolador') return '';
+  const mesAtual=today().slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+  const bonus=getBonusDoMes(mesAtual);
+  if(!bonus.length) return '';
+  const totalBonus=bonus.reduce((s,b)=>s+b.totalBonus,0);
+  const rows=bonus.map(b=>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fef9c3">'
+    +'<div><div style="font-size:12px;font-weight:700;color:#92400e">'+b.enrNome+'</div>'
+    +'<div style="font-size:11px;color:#b45309">'+b.totalVSofia+' V.Sofia · meta: '+b.meta+'</div></div>'
+    +'<div style="font-size:16px;font-weight:800;color:#92400e">'+fmtMoeda(b.totalBonus)+'</div>'
+    +'</div>'
+  ).join('');
+  return '<div style="background:#fefce8;border:1.5px solid #fde047;border-radius:14px;padding:14px 18px;margin-bottom:16px;width:100%">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:700;color:#92400e">🌟 Bônus por volume — '+mesNome+'</div>'
+    +'<div style="font-size:16px;font-weight:800;color:#92400e">'+fmtMoeda(totalBonus)+'</div>'
+    +'</div>'+rows
+    +'<div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Apontador 1 que atingiram '+configBonus.meta+'+ Varandas Sofia no mês.</div>'
+    +'</div>';
+}
+
+
 function renderPainel(){
   const abertas=fichas.filter(f=>f.status==='aberta');
   const fechadas=fichas.filter(f=>f.status==='fechada'||f.status==='cancelada'); // só fechadas -- canceladas não geram pagamento
