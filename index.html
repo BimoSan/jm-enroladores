@@ -3925,7 +3925,7 @@ function renderAlmMovimento(tipo){
     +'</div>'
     +'<div class="form-row">'
     +'<div class="form-group"><label>Quantidade</label>'
-    +'<input type="number" id="alm-qtd" min="1" step="1" placeholder="0" onfocus="this.select()"'
+    +'<input type="number" id="alm-qtd" min="1" step="1" placeholder="0" onfocus="this.select()" oninput="window._almAtualizarTotal()"'
     +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="alm-data" value="'+today()+'"'
@@ -3936,6 +3936,14 @@ function renderAlmMovimento(tipo){
     +'<select id="alm-pessoa" onchange="window._almAutoSetor()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsPessoas+'</select></div>'
     +'<div class="form-group"><label>Setor</label>'
     +'<select id="alm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsSetores+'</select></div>'
+    +(isEnt?'<div class="form-row">'
+      +'<div class="form-group"><label>Custo unitário (R$)</label>'
+      +'<input type="number" id="alm-custo" min="0" step="0.01" placeholder="0,00" onfocus="this.select()" oninput="window._almAtualizarTotal()"'
+      +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+      +'<div class="form-group"><label>Total (R$)</label>'
+      +'<input type="text" id="alm-total" readonly placeholder="—"'
+      +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%;background:#f8fafc;font-weight:700;color:#059669"></div>'
+      +'</div>':'')
     +'</div>'
     +'<div class="form-group"><label>Observações</label>'
     +'<input type="text" id="alm-obs" placeholder="Opcional"'
@@ -3943,6 +3951,19 @@ function renderAlmMovimento(tipo){
     +'<button class="btn btn-primary" onclick="window._registrarAlmMov(\''+tipo+'\')">Registrar '+(isEnt?'entrada':'saída')+'</button>'
     +'</div>';
 }
+
+window._almAtualizarTotal=function(){
+  const qtd=parseInt(document.getElementById('alm-qtd')?.value)||0;
+  const custo=parseFloat(document.getElementById('alm-custo')?.value)||0;
+  const totalEl=document.getElementById('alm-total');
+  if(totalEl){
+    if(qtd>0&&custo>0){
+      totalEl.value='R$ '+(qtd*custo).toFixed(2).replace('.',',');
+    } else {
+      totalEl.value='—';
+    }
+  }
+};
 
 window._almAutoSetor=function(){
   const pessoa=document.getElementById('alm-pessoa')?.value;
@@ -4000,7 +4021,7 @@ window._registrarAlmMov=async(tipo)=>{
   showToast((tipo==='entrada'?'✅ Entrada':'✅ Saída')+' registrada com sucesso!');
   document.getElementById('alm-qtd').value='';
   document.getElementById('alm-obs').value='';
-  const custoEl=document.getElementById('alm-custo');
+  const custoEl=document.getElementById('alm-custo');if(custoEl)custoEl.value='';
   if(custoEl) custoEl.value='';
 };
 
