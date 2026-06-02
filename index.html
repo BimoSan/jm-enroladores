@@ -1016,20 +1016,54 @@ function renderPainel(){
   const fechadas=fichas.filter(f=>f.status==='fechada'||f.status==='cancelada'); // só fechadas -- canceladas não geram pagamento
   const tEnv=fichas.reduce((a,f)=>a+totalEnv(f),0);
   const tRec=fichas.reduce((a,f)=>a+totalRec(f),0);
-  const vFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_sofia')-somaRecol(f,'varanda_sofia'),0);
-  const cFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_luxo')-somaRecol(f,'centro_luxo'),0);
-  const vNovaFora=abertas.reduce((a,f)=>a+somaEntr(f,'varanda_nova')-somaRecol(f,'varanda_nova'),0);
-  const cNovoFora=abertas.reduce((a,f)=>a+somaEntr(f,'centro_novo')-somaRecol(f,'centro_novo'),0);
+
+  // Helper para calcular pendentes por tipo e apontador
+  function foraApt(tipoId, apt){
+    return abertas.filter(f=>{
+      if(!apt) return true;
+      const enr=getEnr(f.enroladorId);
+      return enr?.apontadorPerfil===apt;
+    }).reduce((a,f)=>a+somaEntr(f,tipoId)-somaRecol(f,tipoId),0);
+  }
+
+  const vFora=foraApt('varanda_sofia');
+  const cFora=foraApt('centro_luxo');
+  const vNovaFora=foraApt('varanda_nova');
+  const cNovoFora=foraApt('centro_novo');
   let html=`
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;width:100%">
-      <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
-        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-        <div><div class="stat-label">Varanda Sofia</div><div class="stat-value">${vFora}</div><div class="stat-sub">nas casas</div></div>
+    display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;width:100%">
+      <!-- Varanda Sofia -->
+      <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:14px;padding:12px 14px;color:#fff">
+        <div style="font-size:11px;font-weight:600;opacity:.85;margin-bottom:6px">Varanda Sofia — nas casas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
+            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP1</div>
+            <div style="font-size:22px;font-weight:800">${foraApt('varanda_sofia','apontador1')}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
+            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP2</div>
+            <div style="font-size:22px;font-weight:800">${foraApt('varanda_sofia','apontador2')}</div>
+          </div>
+        </div>
+        <div style="font-size:10px;opacity:.7;margin-top:4px">Total: ${vFora}</div>
       </div>
-      <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
-        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
-        <div><div class="stat-label">Centro Luxo</div><div class="stat-value">${cFora}</div><div class="stat-sub">nas casas</div></div>
+      <!-- Centro Luxo -->
+      <div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:14px;padding:12px 14px;color:#fff">
+        <div style="font-size:11px;font-weight:600;opacity:.85;margin-bottom:6px">Centro Luxo — nas casas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
+            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP1</div>
+            <div style="font-size:22px;font-weight:800">${foraApt('centro_luxo','apontador1')}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
+            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP2</div>
+            <div style="font-size:22px;font-weight:800">${foraApt('centro_luxo','apontador2')}</div>
+          </div>
+        </div>
+        <div style="font-size:10px;opacity:.7;margin-top:4px">Total: ${cFora}</div>
       </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;width:100%
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;width:100%">
       <div style="background:linear-gradient(135deg,#92400e,#f59e0b);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
