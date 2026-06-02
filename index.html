@@ -1025,16 +1025,7 @@ function renderRelatorioBonusMensal(){
 
 // ── Painel ───────────────────────────────────────────────────────
 function renderPainel(){
-  const abertas=fichas.filter(f=>f.status==='aberta').sort((a,b)=>{
-    // Pegar a data mais recente de movimentação (entrega ou recolhimento)
-    function ultimaMov(f){
-      const datas=[];
-      (f.entregas||[]).forEach(e=>{if(e.data)datas.push(e.data);});
-      (f.recolhimentos||[]).forEach(r=>{if(r.data)datas.push(r.data);});
-      return datas.sort().pop()||'0000-00-00';
-    }
-    return ultimaMov(b).localeCompare(ultimaMov(a));
-  });
+  const abertas=fichas.filter(f=>f.status==='aberta');
   const fechadas=fichas.filter(f=>f.status==='fechada'||f.status==='cancelada'); // só fechadas -- canceladas não geram pagamento
   const tEnv=fichas.reduce((a,f)=>a+totalEnv(f),0);
   const tRec=fichas.reduce((a,f)=>a+totalRec(f),0);
@@ -1174,6 +1165,16 @@ function renderFichas(){
   }else{
     lista=[...fichas];
   }
+  // Ordenar por movimentação mais recente primeiro
+  lista.sort((a,b)=>{
+    function ultimaMov(f){
+      const datas=[];
+      (f.entregas||[]).forEach(e=>{if(e.data)datas.push(e.data);});
+      (f.recolhimentos||[]).forEach(r=>{if(r.data)datas.push(r.data);});
+      return datas.sort().pop()||'0000-00-00';
+    }
+    return ultimaMov(b).localeCompare(ultimaMov(a));
+  });
   html+=`<div id="fichas-inner">${fichasInner(lista,isEntregador)}</div>`;
   return html;
 }
