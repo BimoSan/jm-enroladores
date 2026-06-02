@@ -1195,9 +1195,35 @@ function renderFichas(){
 window._refreshFichas=()=>{
   const st=document.getElementById('f-status')?.value||'all';
   const en=document.getElementById('f-enr')?.value||'all';
+  const apt=document.getElementById('f-apontador')?.value||'all';
   let lista=[...fichas];
+  // Filtrar por perfil do apontador logado
+  const perfil=currentUserData?.perfil;
+  if(perfil==='apontador1'){
+    const meusEnr=enroladores.filter(e=>e.apontadorPerfil==='apontador1').map(e=>e.id);
+    lista=lista.filter(f=>meusEnr.includes(f.enroladorId));
+  } else if(perfil==='apontador2'){
+    const meusEnr=enroladores.filter(e=>e.apontadorPerfil==='apontador2').map(e=>e.id);
+    lista=lista.filter(f=>meusEnr.includes(f.enroladorId));
+  }
   if(st!=='all')lista=lista.filter(f=>f.status===st);
   if(en!=='all')lista=lista.filter(f=>f.enroladorId===en);
+  if(apt!=='all'){
+    lista=lista.filter(f=>{
+      const enr=getEnr(f.enroladorId);
+      return enr?.apontadorPerfil===apt;
+    });
+  }
+  // Ordenar por movimentação mais recente
+  lista.sort((a,b)=>{
+    function ultimaMov(f){
+      const datas=[];
+      (f.entregas||[]).forEach(e=>{if(e.data)datas.push(e.data);});
+      (f.recolhimentos||[]).forEach(r=>{if(r.data)datas.push(r.data);});
+      return datas.sort().pop()||'0000-00-00';
+    }
+    return ultimaMov(b).localeCompare(ultimaMov(a));
+  });
   document.getElementById('fichas-inner').innerHTML=fichasInner(lista,false);
 };
 function fichasInner(lista,isEntregador){
@@ -1726,16 +1752,6 @@ function renderRanking(){
   const maximoMes = Math.max(...dados.map(d=>d.enroladoMesAtual), 1);
   const medalhas = ['🥇','🥈','🥉'];
 
-  // Botões filtro apontador
-  const btnApt=(v,l,cor)=>`<button class="btn btn-sm ${_rankFiltroApt===v?'btn-primary':'btn-ghost'}"
-    style="${_rankFiltroApt===v?'':'border:1.5px solid '+cor+';color:'+cor}"
-    onclick="window._setRankFiltroApt('${v}')">${l}</button>`;
-  const filtroAptHtml=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    ${btnApt('all','Todos apontadores','#475569')}
-    ${btnApt('apontador1','Apontador 1','#0f766e')}
-    ${btnApt('apontador2','Apontador 2','#b45309')}
-  </div>`;
-
   // Totais do mês atual
   const totalGeralMes  = dados.reduce((a,d)=>a+d.enroladoMesAtual,0);
 
@@ -1755,7 +1771,20 @@ function renderRanking(){
   const cenMes = enroladoTipoNoMes('centro_luxo');
   const totalCasas = dados.length;
 
-  let html = `
+  // Botões filtro apontador
+  function btnRankApt(v,l,cor){
+    const ativo=_rankFiltroApt===v;
+    return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
+      +' style="'+(ativo?'':'border:1.5px solid '+cor+';color:'+cor)+'"'
+      +' onclick="window._setRankFiltroApt(&quot;'+v+'&quot;)">'+l+'</button>';
+  }
+  const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +btnRankApt('all','Todos','#475569')
+    +btnRankApt('apontador1','Apontador 1','#0f766e')
+    +btnRankApt('apontador2','Apontador 2','#b45309')
+    +'</div>';
+
+  let html = filtroAptHtml+`
     <div style="background:#1e40af;border-radius:14px;padding:14px 18px;margin-bottom:12px;width:100%">
       <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">🏆 Ranking de Enroladores</div>
       <div style="font-size:12px;color:#93c5fd">Ordenado por peças enroladas em <strong style="color:#fff">${mesAtualNome} ${anoAtual}</strong></div>
