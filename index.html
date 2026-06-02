@@ -845,8 +845,8 @@ function gerarResumoMovimento(){
   }
 
   const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
-    +btn('apontador1','Apontador 1',cor1)
-    +btn('apontador2','Apontador 2',cor2)
+    +btn('apontador1','Inácio',cor1)
+    +btn('apontador2','Mirandinha',cor2)
     +'</div>';
 
   const cor=apt==='apontador1'?cor1:cor2;
@@ -1054,8 +1054,13 @@ function renderPainel(){
     ${renderPainelBonus()}
     ${gerarResumoAlertas()}
     <div class="section-label">fichas em andamento</div>`;
-  if(!abertas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
-  html+=abertas.sort((a,b)=>{const na=getEnr(a.enroladorId)?.nome||'';const nb=getEnr(b.enroladorId)?.nome||'';return na.localeCompare(nb,'pt-BR');}).map(f=>{
+  const abertasVazias=abertas.filter(f=>{const enr=getEnr(f.enroladorId);return enr?.apontadorPerfil===apt;});
+  if(!abertasVazias.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
+  const abertasFiltradas=abertas.filter(f=>{
+    const enr=getEnr(f.enroladorId);
+    return enr?.apontadorPerfil===apt;
+  });
+  html+=abertasFiltradas.sort((a,b)=>{const na=getEnr(a.enroladorId)?.nome||'';const nb=getEnr(b.enroladorId)?.nome||'';return na.localeCompare(nb,'pt-BR');}).map(f=>{
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
     const env=totalEnv(f),rec=totalRec(f),pend=env-rec,pct=env?Math.round(rec/env*100):0;
@@ -1448,8 +1453,8 @@ function renderHistoricoSemanal(){
   }
   const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +btnApt('all','Todos','#475569')
-    +btnApt('apontador1','Apontador 1','#0f766e')
-    +btnApt('apontador2','Apontador 2','#b45309')
+    +btnApt('apontador1','Inácio','#0f766e')
+    +btnApt('apontador2','Mirandinha','#b45309')
     +'</div>';
 
   // Resumo por dia (total geral)
