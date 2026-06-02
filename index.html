@@ -3329,9 +3329,11 @@ function renderMinhaProd(){
     {key:'quinzena',label:quinzenaLabel(getQuinzenaAtual())},
   ];
 
-  const tabsHtml=periodos.map(p=>`
-    <button class="btn ${window._prodPeriodo===p.key?'btn-primary':'btn-ghost'} btn-sm"
-      onclick="window._prodPeriodo='${p.key}';reloadTab()">${p.label}</button>`).join('');
+  const tabsHtml=periodos.map(p=>{
+    const ativo=window._prodPeriodo===p.key;
+    return '<button class="btn '+(ativo?'btn-primary':'btn-ghost')+' btn-sm"'
+      +' onclick="window._setProdPeriodo(this.dataset.k)" data-k="'+p.key+'">'+p.label+'</button>';
+  }).join('');
 
   if(!window._prodPeriodo) window._prodPeriodo='hoje';
   const per=window._prodPeriodo;
@@ -3568,6 +3570,10 @@ function renderMeuDesempenho(){
   </div>`;
 }
 
+window._setProdPeriodo=function(k){
+  window._prodPeriodo=k;
+  reloadTab();
+};
 window._setPainelApt=function(v){
   window._painelApt=v;
   reloadTab();
