@@ -4076,7 +4076,7 @@ function renderAlmItens(){
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual
       +' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
       +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
-      +(item.custoUnitario?'<div style="font-size:11px;font-weight:700;color:#059669;margin-top:2px">R$ '+parseFloat(item.custoUnitario).toFixed(2)+' / '+item.unidade+'</div>':'')
+      +(item.custoUnitario?'<div style="font-size:11px;font-weight:700;color:#059669;margin-top:2px">R$ '+parseFloat(item.custoUnitario).toFixed(2)+' / '+item.unidade+'<span style="font-size:10px;font-weight:600;color:#64748b;margin-left:8px">Total: R$ '+(parseFloat(item.custoUnitario)*atual).toFixed(2)+'</span></div>':'')
       +duracaoBadge
       +'</div>'
       +editBtn
@@ -4135,7 +4135,7 @@ window._filtrarAlmItens=function(q){
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual+' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
       +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
-      +(item.custoUnitario?'<div style="font-size:11px;font-weight:700;color:#059669;margin-top:2px">R$ '+parseFloat(item.custoUnitario).toFixed(2)+' / '+item.unidade+'</div>':'')
+      +(item.custoUnitario?'<div style="font-size:11px;font-weight:700;color:#059669;margin-top:2px">R$ '+parseFloat(item.custoUnitario).toFixed(2)+' / '+item.unidade+'<span style="font-size:10px;font-weight:600;color:#64748b;margin-left:8px">Total: R$ '+(parseFloat(item.custoUnitario)*atual).toFixed(2)+'</span></div>':'')
       +duracaoBadge
       +'</div>'
       +editBtn
