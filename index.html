@@ -841,7 +841,7 @@ function gerarResumoMovimento(){
     const ativo=apt===v;
     return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
       +' style="'+(ativo?'':'border:1.5px solid '+cor+';color:'+cor)+'"'
-      +' onclick="window._painelApt=&quot;'+v+'&quot;;reloadTab()">'+l+'</button>';
+      +' onclick="window._setPainelApt(this.dataset.v)" data-v="'+v+'">'+l+'</button>';
   }
 
   const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
@@ -3561,6 +3561,10 @@ function renderMeuDesempenho(){
   </div>`;
 }
 
+window._setPainelApt=function(v){
+  window._painelApt=v;
+  reloadTab();
+};
 window._setRankFiltroApt=function(v){
   _rankFiltroApt=v;
   reloadTab();
