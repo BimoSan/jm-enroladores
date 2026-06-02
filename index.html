@@ -321,6 +321,7 @@ let currentUser=null;
 let currentUserData=null;
 let currentTab='painel';
 let currentFabrica=null;
+let _rankFiltroApt='all'; // filtro de apontador no ranking
 let currentSetor=null;
 let enroladores=[];
 let notificacoes=[];
@@ -1140,6 +1141,11 @@ function renderFichas(){
       <select id="f-status" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos os status</option><option value="aberta">Em andamento</option><option value="fechada">Fechada</option>
       </select>
+      <select id="f-apontador" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
+        <option value="all">Todos apontadores</option>
+        <option value="apontador1" style="color:#0f766e;font-weight:700">Apontador 1</option>
+        <option value="apontador2" style="color:#b45309;font-weight:700">Apontador 2</option>
+      </select>
       <select id="f-enr" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos enroladores</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
       </select>
@@ -1164,6 +1170,14 @@ function renderFichas(){
     lista=fichas.filter(f=>meusEnr.includes(f.enroladorId));
   }else{
     lista=[...fichas];
+  }
+  // Filtrar por apontador se selecionado
+  const filtroApt=document.getElementById('f-apontador')?.value||'all';
+  if(filtroApt!=='all'){
+    lista=lista.filter(f=>{
+      const enr=getEnr(f.enroladorId);
+      return enr?.apontadorPerfil===filtroApt;
+    });
   }
   // Ordenar por movimentação mais recente primeiro
   lista.sort((a,b)=>{
@@ -1688,7 +1702,12 @@ function renderRanking(){
     return total;
   }
 
-  const dados = enroladores.map(enr=>{
+  // Filtro de apontador
+  const enroladoresFiltrados=_rankFiltroApt==='all'
+    ? enroladores
+    : enroladores.filter(e=>e.apontadorPerfil===_rankFiltroApt);
+
+  const dados = enroladoresFiltrados.map(enr=>{
     const fichasEnr      = fichas.filter(f=>f.enroladorId===enr.id);
     const totalEnrolado  = fichasEnr.reduce((a,f)=>a+totalRec(f),0);
     const totalEnviado   = fichasEnr.reduce((a,f)=>a+totalEnv(f),0);
@@ -1706,6 +1725,16 @@ function renderRanking(){
 
   const maximoMes = Math.max(...dados.map(d=>d.enroladoMesAtual), 1);
   const medalhas = ['🥇','🥈','🥉'];
+
+  // Botões filtro apontador
+  const btnApt=(v,l,cor)=>`<button class="btn btn-sm ${_rankFiltroApt===v?'btn-primary':'btn-ghost'}"
+    style="${_rankFiltroApt===v?'':'border:1.5px solid '+cor+';color:'+cor}"
+    onclick="window._setRankFiltroApt('${v}')">${l}</button>`;
+  const filtroAptHtml=`<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    ${btnApt('all','Todos apontadores','#475569')}
+    ${btnApt('apontador1','Apontador 1','#0f766e')}
+    ${btnApt('apontador2','Apontador 2','#b45309')}
+  </div>`;
 
   // Totais do mês atual
   const totalGeralMes  = dados.reduce((a,d)=>a+d.enroladoMesAtual,0);
@@ -3369,6 +3398,10 @@ function renderMeuDesempenho(){
   </div>`;
 }
 
+window._setRankFiltroApt=function(v){
+  _rankFiltroApt=v;
+  reloadTab();
+};
 window._setRankMetalPeca=function(id){
   window._rankMetalPeca=id;
   reloadTab();
