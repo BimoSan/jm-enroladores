@@ -813,156 +813,84 @@ function gerarResumoMovimento(){
   const anoMes = hoje.slice(0,7);
   const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long'});
 
-  function calcMovimento(tipoId){
+  function calcMovimento(tipoId, aptFiltro){
     let envHoje=0, envMes=0, recHoje=0, recMes=0;
     fichas.forEach(f=>{
+      // Filtrar por apontador se necessário
+      if(aptFiltro){
+        const enr=getEnr(f.enroladorId);
+        if(!enr||enr.apontadorPerfil!==aptFiltro) return;
+      }
       (f.entregas||[]).forEach(e=>{
         const v = parseInt((e.tipos||{})[tipoId])||0;
         if(e.data===hoje) envHoje+=v;
         if((e.data||'').slice(0,7)===anoMes) envMes+=v;
       });
       (f.recolhimentos||[]).forEach(r=>{
+        if(r.administrativo) return;
         const v = parseInt((r.tipos||{})[tipoId])||0;
         if(r.data===hoje) recHoje+=v;
         if((r.data||'').slice(0,7)===anoMes) recMes+=v;
       });
     });
-    return {envHoje, envMes, recHoje, recMes};
+    return {envHoje,envMes,recHoje,recMes};
   }
 
-  const tiposAtivos = TIPOS.filter(t=>{
-    const m = calcMovimento(t.id);
-    return m.envHoje>0 || m.envMes>0 || m.recHoje>0 || m.recMes>0;
-  });
+  // Peças principais para o painel
+  const tiposPainel = TIPOS.filter(t=>t.principal||['varanda_nova','centro_novo','varanda_luxo','banqueta','mesa_bistro','cadeira_mesa','namoradeira','centro_sofia'].includes(t.id));
 
-  if(tiposAtivos.length===0){
-    return `<div style="background:#fff;border-radius:14px;padding:24px 20px;box-shadow:0 1px 3px rgba(0,0,0,.08);width:100%;margin-bottom:20px;text-align:center;color:#64748b">
-      <div style="font-size:32px;margin-bottom:10px">📦</div>
-      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Nenhuma movimentação este mês</div>
-      <div style="font-size:12px">Nenhuma entrega ou recolhimento registrado em ${mesNome}.</div>
-    </div>`;
-  }
+  let html='';
+  tiposPainel.forEach(t=>{
+    const ap1=calcMovimento(t.id,'apontador1');
+    const ap2=calcMovimento(t.id,'apontador2');
+    const total=calcMovimento(t.id);
 
-  let html = `<div style="width:100%;margin-bottom:20px">`;
+    // Só mostrar se tiver algum movimento
+    if(!total.envMes&&!total.recMes) return;
 
-  tiposAtivos.forEach(t=>{
-    const m = calcMovimento(t.id);
-    const tc = TIPO_CORES[t.id] || {bg:'#f5f5f5', border:'#ddd', color:'#555'};
-
-    // Card entrega
-    let entregaHTML = '';
-    if(m.envHoje === 0){
-      entregaHTML = `<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-bottom:8px">Nenhuma entrega hoje</div>
-        <div style="font-size:10px;color:${tc.color}99">${mesNome}: <strong style="font-size:14px;color:${tc.color}">${m.envMes}</strong></div>`;
-    } else {
-      entregaHTML = `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
-          <span style="font-size:28px;font-weight:800;color:${tc.color}">${m.envHoje}</span>
-          <span style="font-size:11px;color:${tc.color}99">hoje</span>
+    const cor=TIPO_CORES[t.id]||'#1e40af';
+    html+=`<div class="card" style="margin-bottom:12px;border-left:4px solid ${cor}">
+      <div style="font-size:14px;font-weight:700;color:${cor};margin-bottom:10px">${t.label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <!-- Apontador 1 -->
+        <div style="background:#f0fdf4;border-radius:10px;padding:10px">
+          <div style="font-size:10px;font-weight:700;color:#0f766e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Apontador 1</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Entregas</div>
+              <div style="font-size:18px;font-weight:800;color:#0f766e">${ap1.envHoje||'—'}</div>
+              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap1.envMes}</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Recolhidos</div>
+              <div style="font-size:18px;font-weight:800;color:#0f766e">${ap1.recHoje||'—'}</div>
+              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap1.recMes}</div>
+            </div>
+          </div>
         </div>
-        <div style="font-size:11px;color:${tc.color}99">${mesNome}: <strong>${m.envMes}</strong></div>`;
-    }
-
-    // Card recolhimento
-    let recolhHTML = '';
-    if(m.recHoje === 0){
-      recolhHTML = `<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-bottom:8px">Nenhum recolhimento hoje</div>
-        <div style="font-size:10px;color:${tc.color}99">${mesNome}: <strong style="font-size:14px;color:${tc.color}">${m.recMes}</strong></div>`;
-    } else {
-      recolhHTML = `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
-          <span style="font-size:28px;font-weight:800;color:${tc.color}">${m.recHoje}</span>
-          <span style="font-size:11px;color:${tc.color}99">hoje</span>
-        </div>
-        <div style="font-size:11px;color:${tc.color}99">${mesNome}: <strong>${m.recMes}</strong></div>`;
-    }
-
-    html += `<div style="background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);width:100%;margin-bottom:10px;border-left:4px solid ${tc.color}">
-      <div style="font-size:13px;font-weight:700;color:${tc.color};margin-bottom:10px">${t.label}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%">
-        <div style="background:${tc.bg};border:1px solid ${tc.border};border-radius:10px;padding:10px 14px">
-          <div style="font-size:10px;font-weight:700;color:${tc.color};text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Entregas</div>
-          ${entregaHTML}
-        </div>
-        <div style="background:${tc.bg};border:1px solid ${tc.border};border-radius:10px;padding:10px 14px">
-          <div style="font-size:10px;font-weight:700;color:${tc.color};text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Recolhimentos</div>
-          ${recolhHTML}
+        <!-- Apontador 2 -->
+        <div style="background:#fff7ed;border-radius:10px;padding:10px">
+          <div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Apontador 2</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div>
+              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Entregas</div>
+              <div style="font-size:18px;font-weight:800;color:#b45309">${ap2.envHoje||'—'}</div>
+              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap2.envMes}</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Recolhidos</div>
+              <div style="font-size:18px;font-weight:800;color:#b45309">${ap2.recHoje||'—'}</div>
+              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap2.recMes}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>`;
   });
 
-  html += `</div>`;
   return html;
 }
 
-// ── Sistema de Bônus por Volume ──────────────────────────────────
-
-function calcVSofiaNoMes(enroladorId, anoMes){
-  return fichas
-    .filter(f=>f.enroladorId===enroladorId)
-    .reduce((sum,f)=>{
-      return sum+(f.recolhimentos||[]).reduce((s,r)=>{
-        if((r.data||'').slice(0,7)!==anoMes) return s;
-        return s+(parseInt((r.tipos||{}).varanda_sofia)||0);
-      },0);
-    },0);
-}
-
-function calcBonusEnrolador(enroladorId, anoMes){
-  const enr=getEnr(enroladorId);
-  if(!enr||enr.apontadorPerfil!=='apontador1') return null;
-  if(!configBonus.ativo) return null;
-  const total=calcVSofiaNoMes(enroladorId, anoMes);
-  if(total<configBonus.meta) return null;
-  return {
-    enroladorId,
-    enrNome:enr.nome,
-    anoMes,
-    totalVSofia:total,
-    meta:configBonus.meta,
-    valorBonus:configBonus.valorBonus,
-    totalBonus:parseFloat((total*configBonus.valorBonus).toFixed(2)),
-  };
-}
-
-function getBonusDoMes(anoMes){
-  return enroladores
-    .filter(e=>e.apontadorPerfil==='apontador1')
-    .map(e=>calcBonusEnrolador(e.id, anoMes))
-    .filter(b=>b!==null);
-}
-
-function renderPainelBonus(){
-  // Só mostra para perfis que não são enroladores
-  if(currentUserData?.perfil==='enrolador') return '';
-  const mesAtual=today().slice(0,7);
-  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
-  const bonus=getBonusDoMes(mesAtual);
-  if(!bonus.length) return '';
-
-  const rows=bonus.map(b=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #fef9c3">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:#92400e">${b.enrNome}</div>
-        <div style="font-size:11px;color:#b45309">${b.totalVSofia} V.Sofia · meta: ${b.meta} · R$${b.valorBonus.toFixed(2)}/peça</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:18px;font-weight:800;color:#92400e">${fmtMoeda(b.totalBonus)}</div>
-        <div style="font-size:10px;color:#b45309">bônus ${mesNome}</div>
-      </div>
-    </div>`).join('');
-
-  const totalBonus=bonus.reduce((s,b)=>s+b.totalBonus,0);
-
-  return `<div style="background:#fefce8;border:1.5px solid #fde047;border-radius:14px;padding:14px 18px;margin-bottom:16px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:13px;font-weight:700;color:#92400e">🌟 Bônus por volume — ${mesNome}</div>
-      <div style="font-size:16px;font-weight:800;color:#92400e">${fmtMoeda(totalBonus)}</div>
-    </div>
-    ${rows}
-    <div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Apontador 1 que atingiram ${configBonus.meta}+ Varandas Sofia no mês.</div>
-  </div>`;
-}
 
 function gerarResumoAlertas(){
   if(currentUserData?.perfil==='enrolador') return '';
