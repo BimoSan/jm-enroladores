@@ -3623,59 +3623,81 @@ window._setRankMetalPeriodo=function(k){
 function renderRankingMetal(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   if(!window._rankMetalPeriodo) window._rankMetalPeriodo='quinzena';
-  if(!window._rankMetalPeca) window._rankMetalPeca=PECAS_METAL[0].id;
   const per=window._rankMetalPeriodo;
-  const pecaId=window._rankMetalPeca;
   const qAtual=getQuinzenaAtual();
-  const mesAtual=today().slice(0,7);
+  const hoje_=today();
+  const mesAtual=hoje_.slice(0,7);
 
-  const btnPer=(k,l)=>`<button class="btn btn-sm ${per===k?'btn-primary':'btn-ghost'}" onclick="window._setRankMetalPeriodo('${k}')">${l}</button>`;
-  const btnPeca=(p)=>`<button class="btn btn-sm ${pecaId===p.id?'btn-primary':'btn-ghost'}" style="font-size:10px;padding:3px 8px" onclick="window._setRankMetalPeca('${p.id}')">${p.label}</button>`;
+  function perLabel(){
+    if(per==='quinzena') return quinzenaLabel(qAtual);
+    const m=parseInt(mesAtual.slice(5,7))-1;
+    return MESES[m]+' '+mesAtual.slice(0,4);
+  }
 
-  const peca=PECAS_METAL_FULL.find(p=>p.id===pecaId)||PECAS_METAL_FULL[0];
-  const dados=[...soldadores].map(s=>{
-    const qtdPeca=totalPecaPeriodo(s.id,pecaId,per);
-    // Inclui reforma da mesma peça
-    const refId=`ref_${pecaId.replace('ref_','')}`;
-    const qtdRef=pecaId.startsWith('ref_')?0:totalPecaPeriodo(s.id,refId,per);
-    return {s,total:qtdPeca+qtdRef,normal:qtdPeca,reforma:qtdRef};
-  }).filter(d=>d.total>0).sort((a,b)=>b.total-a.total);
+  function btnPer(v,l){
+    const ativo=per===v;
+    return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
+      +' onclick="window._setRankMetalPeriodo(&quot;'+v+'&quot;)">'+l+'</button>';
+  }
+  const filtroPerHtml='<div style="display:flex;gap:8px;margin-bottom:16px">'
+    +btnPer('quinzena','Quinzena')
+    +btnPer('mes','Mensal')
+    +'</div>';
 
-  const labelPer=per==='quinzena'?quinzenaLabel(qAtual):MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
-  const medalhas=['🥇','🥈','🥉'];
+  function qtdSoldador(soldadorId, pecaId){
+    return totalPecaPeriodo(soldadorId, pecaId, per==='quinzena'?qAtual:mesAtual);
+  }
 
-  return `<div style="background:#374151;border-radius:14px;padding:14px 18px;margin-bottom:12px;width:100%">
-    <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">⚙️ Ranking Metalúrgica</div>
-    <div style="font-size:12px;color:#9ca3af">${peca.label} · ${labelPer}</div>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-    ${btnPer('quinzena','Quinzena')} ${btnPer('mes','Mensal')}
-  </div>
-  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-    ${PECAS_METAL.map(p=>btnPeca(p)).join('')}
-  </div>
-  ${dados.length?dados.map((d,i)=>{
-    const c=avatarColor(soldadores.findIndex(s=>s.id===d.s.id));
-    const max=dados[0].total||1;
-    const bar=Math.round(d.total/max*100);
-    return `<div class="card" style="margin-bottom:8px${i===0?';border:2px solid #f5c842':''}">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:22px;width:32px;text-align:center">${medalhas[i]||('<span style="font-size:12px;font-weight:700;color:#64748b">#'+(i+1)+'</span>')}</div>
-        <div style="width:40px;height:40px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${initials(d.s.nome)}</div>
-        <div style="flex:1"><div style="font-size:14px;font-weight:700">${d.s.nome}</div></div>
-        <div style="text-align:right">
-          <div style="font-size:26px;font-weight:800;color:${c}">${d.total}</div>
-          <div style="font-size:10px;color:#94a3b8">${d.normal} norm. + ${d.reforma} ref.</div>
-        </div>
-      </div>
-      <div style="height:7px;background:#f1f5f9;border-radius:99px;overflow:hidden">
-        <div style="height:100%;width:${bar}%;background:${c};border-radius:99px"></div>
-      </div>
-    </div>`;
-  }).join(''):'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada neste período.</div></div>'}`;
+  // Só peças com produção no período
+  const pecasComProd=PECAS_METAL.filter(p=>
+    soldadores.some(s=>qtdSoldador(s.id,p.id)>0)
+  );
+
+  if(!pecasComProd.length){
+    return `<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
+      <div style="font-size:16px;font-weight:800;color:#fff">⚙️ Ranking Metalúrgica</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">${perLabel()}</div>
+    </div>`+filtroPerHtml+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada no período.</div></div>';
+  }
+
+  const cardsPecas=pecasComProd.map(p=>{
+    const ranking=soldadores.map(s=>({s,qtd:qtdSoldador(s.id,p.id)}))
+      .filter(x=>x.qtd>0)
+      .sort((a,b)=>b.qtd-a.qtd);
+    if(!ranking.length) return '';
+    const maxQtd=ranking[0].qtd;
+    const medalhas=['🥇','🥈','🥉'];
+    const rows=ranking.map(({s,qtd},i)=>{
+      const ci=soldadores.findIndex(x=>x.id===s.id);
+      const cor=avatarColor(ci);
+      const pct=Math.round(qtd/maxQtd*100);
+      const barCor=i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#cd7f32':'#3b82f6';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+        +'<span style="font-size:16px;width:24px;text-align:center">'+(i<3?medalhas[i]:'<span style="font-size:12px;color:#64748b">'+(i+1)+'</span>')+'</span>'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:'+cor+'22;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+initials(s.nome)+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700">'+s.nome+'</div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px;margin-top:4px;overflow:hidden">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div>'
+        +'</div></div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+barCor+'">'+qtd+'</div>'
+        +'</div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="font-size:14px;font-weight:700;color:#1e293b">'+p.label+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+perLabel()+'</div>'
+      +'</div>'
+      +rows+'</div>';
+  }).join('');
+
+  return `<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
+    <div style="font-size:16px;font-weight:800;color:#fff">⚙️ Ranking Metalúrgica</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">${perLabel()}</div>
+  </div>`+filtroPerHtml+cardsPecas;
 }
 
-// ── Fichas quinzenais metalúrgica ────────────────────────────────
+
 function renderFichasMetal(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const qAtual=getQuinzenaAtual();
