@@ -794,7 +794,7 @@ function renderTab(tab){
   if(currentSetor==='almoxarifado') return renderTabAlmox(tab);
   // Metalúrgica tem seu próprio sistema de tabs
   if(currentSetor==='metalurgica') return renderTabMetal(tab);
-  if(tab==='painel')return renderPainel();
+  if(tab==='painel'){try{return renderPainel();}catch(e){console.error('Painel ERRO:',e.message,e.stack);return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'<br><small>'+e.stack+'</small></div>';}}
   if(tab==='fichas')return renderFichas();
   if(tab==='entregar')return renderEntrega();
   if(tab==='recolher')return renderRecolhimento();
