@@ -3933,17 +3933,39 @@ window._registrarAlmMov=async(tipo)=>{
   const pessoa=document.getElementById('alm-pessoa')?.value;
   const setor=document.getElementById('alm-setor')?.value;
   const obs=document.getElementById('alm-obs')?.value||'';
+  const custoUnitario=tipo==='entrada'?(parseFloat(document.getElementById('alm-custo')?.value)||0):0;
   if(!itemId||qtd<=0){showToast('Informe o item e a quantidade.');return;}
   const item=almItens.find(i=>i.id===itemId)||ALM_ITENS_BASE.find((_,idx)=>'base-'+idx===itemId);
-  await addDoc(collection(db,'alm_movimentos'),{
+  // Validar estoque para saída
+  if(tipo==='saida'){
+    const estoqueAtual=almEstoqueItem(itemId);
+    if(estoqueAtual<=0){
+      showToast('❌ Estoque zerado! Não é possível registrar saída.');return;
+    }
+    if(qtd>estoqueAtual){
+      showToast('❌ Estoque insuficiente! Disponível: '+estoqueAtual+' '+( item?.unidade||''));return;
+    }
+  }
+  const mov={
     itemId,itemDesc:item?.descricao||'',itemCod:item?.codigo||'',
     tipo,tipoMov,quantidade:qtd,data,pessoa,setor,obs,
     registradoPor:currentUserData?.nome||'',
     criadoEm:new Date().toISOString(),
-  });
-  showToast((tipo==='entrada'?'Entrada':'Saída')+' registrada com sucesso!');
+  };
+  if(tipo==='entrada'&&custoUnitario>0){
+    mov.custoUnitario=custoUnitario;
+    mov.custoTotal=parseFloat((custoUnitario*qtd).toFixed(2));
+    // Atualizar custo unitário do item no cadastro
+    if(item&&almItens.find(i=>i.id===itemId)){
+      await updateDoc(doc(db,'alm_itens',itemId),{custoUnitario});
+    }
+  }
+  await addDoc(collection(db,'alm_movimentos'),mov);
+  showToast((tipo==='entrada'?'✅ Entrada':'✅ Saída')+' registrada com sucesso!');
   document.getElementById('alm-qtd').value='';
   document.getElementById('alm-obs').value='';
+  const custoEl=document.getElementById('alm-custo');
+  if(custoEl) custoEl.value='';
 };
 
 // ── Itens ─────────────────────────────────────────────────────────
@@ -4045,7 +4067,7 @@ function renderAlmItens(){
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual
       +' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
-      +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+(item.custoUnitario?(' · R$ '+parseFloat(item.custoUnitario).toFixed(2)):'')+'</div>'
       +duracaoBadge
       +'</div>'
       +editBtn
@@ -4103,7 +4125,7 @@ window._filtrarAlmItens=function(q){
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual+' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
-      +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">mín: '+min+' · máx: '+max+(item.custoUnitario?(' · R$ '+parseFloat(item.custoUnitario).toFixed(2)):'')+'</div>'
       +duracaoBadge
       +'</div>'
       +editBtn
@@ -4137,7 +4159,8 @@ window._novoAlmItem=()=>{
     +'<div class="form-group"><label>Estoque mínimo</label><input id="ni-min" type="number" min="0" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Estoque máximo</label><input id="ni-max" type="number" min="0" value="5000" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
-    +'<div class="form-group"><label>Estoque atual</label><input id="ni-atual" type="number" min="0" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    +'<div class="form-group"><label>Estoque atual</label><input id="ni-atual" type="number" min="0" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+  +'<div class="form-group"><label>Custo unitário (R$)</label><input id="ni-custo" type="number" min="0" step="0.01" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarNovoAlmItem()">Salvar</button>',true);
 };
@@ -4151,7 +4174,8 @@ window._salvarNovoAlmItem=async()=>{
   const max=parseInt(document.getElementById('ni-max')?.value)||0;
   const atual=parseInt(document.getElementById('ni-atual')?.value)||0;
   if(!cod||!desc){showToast('Informe o código e a descrição.');return;}
-  await addDoc(collection(db,'alm_itens'),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,observacoes:''});
+  const custo=parseFloat(document.getElementById('ni-custo')?.value)||0;
+  await addDoc(collection(db,'alm_itens'),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,custoUnitario:custo,observacoes:''});
   closeModal();showToast('Item cadastrado!');
 };
 
@@ -4171,7 +4195,8 @@ window._editarAlmItem=id=>{
     +'<div class="form-group"><label>Estoque mínimo</label><input id="ei-min" type="number" value="'+(item.estoqueMin||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Estoque máximo</label><input id="ei-max" type="number" value="'+(item.estoqueMax||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
-    +'<div class="form-group"><label>Corrigir estoque atual (base)</label><input id="ei-atual" type="number" value="'+atual+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    +'<div class="form-group"><label>Corrigir estoque atual (base)</label><input id="ei-atual" type="number" value="'+atual+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+  +'<div class="form-group"><label>Custo unitário (R$)</label><input id="ei-custo" type="number" min="0" step="0.01" value="'+(item.custoUnitario||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-danger btn-sm" onclick="window._excluirAlmItem(&quot;'+id+'&quot;)">Excluir</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarAlmItem(&quot;'+id+'&quot;)">Salvar</button>',true);
@@ -4185,7 +4210,8 @@ window._salvarAlmItem=async id=>{
   const min=parseInt(document.getElementById('ei-min')?.value)||0;
   const max=parseInt(document.getElementById('ei-max')?.value)||0;
   const atual=parseInt(document.getElementById('ei-atual')?.value)||0;
-  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual});
+  const custo=parseFloat(document.getElementById('ei-custo')?.value)||0;
+  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,custoUnitario:custo});
   closeModal();showToast('Item atualizado!');
 };
 
