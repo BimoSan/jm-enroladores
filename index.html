@@ -837,9 +837,12 @@ function gerarResumoMovimento(){
 
   // Botões de seleção
   const cor1='#0f766e'; const cor2='#b45309';
-  const btn=(v,l,cor)=>'<button class="btn btn-sm '+(apt===v?'btn-primary':'btn-ghost')+'"'
-    +' style="'+(apt===v?'':'border:1.5px solid '+cor+';color:'+cor)+'"'
-    +' onclick="window._painelApt=\''+v+'\';reloadTab()">'+l+'</button>';
+  function btn(v,l,cor){
+    const ativo=apt===v;
+    return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
+      +' style="'+(ativo?'':'border:1.5px solid '+cor+';color:'+cor)+'"'
+      +' onclick="window._painelApt=&quot;'+v+'&quot;;reloadTab()">'+l+'</button>';
+  }
 
   const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
     +btn('apontador1','Apontador 1',cor1)
@@ -1007,12 +1010,13 @@ function renderPainel(){
     }).reduce((a,f)=>a+somaEntr(f,tipoId)-somaRecol(f,tipoId),0);
   }
 
-  const vFora=foraApt('varanda_sofia');
-  const cFora=foraApt('centro_luxo');
-  const vNovaFora=foraApt('varanda_nova');
-  const cNovoFora=foraApt('centro_novo');
-  const vLuxoFora=foraApt('varanda_luxo');
-  const banqFora=foraApt('banqueta');
+  const apt=window._painelApt||'apontador1';
+  const vFora=foraApt('varanda_sofia',apt);
+  const cFora=foraApt('centro_luxo',apt);
+  const vNovaFora=foraApt('varanda_nova',apt);
+  const cNovoFora=foraApt('centro_novo',apt);
+  const vLuxoFora=foraApt('varanda_luxo',apt);
+  const banqFora=foraApt('banqueta',apt);
   let html=`
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;width:100%">
       <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
