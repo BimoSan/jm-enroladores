@@ -3995,9 +3995,12 @@ window._almGerarOpts=function(q){
     .filter(function(i){return !lower||(i.descricao||'').toLowerCase().startsWith(lower);})
     .sort(function(a,b){return (a.descricao||'').localeCompare(b.descricao||'','pt-BR');});
   return itens.map(function(i){
+    const estoque=almEstoqueItem(i.id);
+    const cor=estoque<=0?'#dc2626':estoque<=(parseInt(i.estoqueMin)||0)?'#d97706':'#059669';
+    const badge='<span style="font-size:10px;font-weight:700;color:'+cor+';background:'+cor+'18;padding:1px 7px;border-radius:99px;margin-left:8px">'+estoque+' '+i.unidade+'</span>';
     return '<div class="alm-item-opt" data-id="'+i.id+'" data-desc="'+i.descricao+'"'
       +' onclick="window._selecionarAlmItem(this)"'
-      +' style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9">'+i.descricao+'</div>';
+      +' style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between">'      +'<span>'+i.descricao+'</span>'+badge+'</div>';
   }).join('');
 };
 
