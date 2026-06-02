@@ -3919,7 +3919,10 @@ function renderAlmMovimento(tipo){
     +(isEnt?'⬇️ Registrar Entrada':'⬆️ Registrar Saída')+'</div>'
     +'<div class="form-row">'
     +'<div class="form-group"><label>Item</label>'
-    +'<select id="alm-item" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsItens+'</select></div>'
+    +'<input type="text" id="alm-busca-item" placeholder="Buscar item..." autocomplete="off"'
+    +' oninput="window._filtrarAlmItem(this.value)"'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%;margin-bottom:4px">'
+    +'<select id="alm-item" size="5" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:4px;width:100%;min-height:80px">'+optsItens+'</select></div>'
     +'<div class="form-group"><label>Tipo de '+(isEnt?'entrada':'saída')+'</label>'
     +'<select id="alm-tipo-mov" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsTipos+'</select></div>'
     +'</div>'
@@ -3951,6 +3954,19 @@ function renderAlmMovimento(tipo){
     +'<button class="btn btn-primary" onclick="window._registrarAlmMov(\''+tipo+'\')">Registrar '+(isEnt?'entrada':'saída')+'</button>'
     +'</div>';
 }
+
+window._filtrarAlmItem=function(q){
+  const lower=(q||'').toLowerCase();
+  const itens=almItens.length?almItens:ALM_ITENS_BASE.map(function(it,i){return Object.assign({},it,{id:'base-'+i});});
+  const filtrados=itens.filter(function(i){
+    return !lower||(i.descricao||'').toLowerCase().startsWith(lower);
+  }).sort(function(a,b){return (a.descricao||'').localeCompare(b.descricao||'','pt-BR');});
+  const sel=document.getElementById('alm-item');
+  if(!sel) return;
+  sel.innerHTML=filtrados.map(function(i){
+    return '<option value="'+i.id+'">'+i.descricao+'</option>';
+  }).join('');
+};
 
 window._almAtualizarTotal=function(){
   const qtd=parseInt(document.getElementById('alm-qtd')?.value)||0;
