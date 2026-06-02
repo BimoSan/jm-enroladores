@@ -3955,10 +3955,18 @@ window._registrarAlmMov=async(tipo)=>{
   if(tipo==='entrada'&&custoUnitario>0){
     mov.custoUnitario=custoUnitario;
     mov.custoTotal=parseFloat((custoUnitario*qtd).toFixed(2));
-    // Atualizar custo unitário do item no cadastro
-    if(item&&almItens.find(i=>i.id===itemId)){
-      await updateDoc(doc(db,'alm_itens',itemId),{custoUnitario});
+  }
+  if(tipo==='entrada'&&custoUnitario>0&&item&&almItens.find(i=>i.id===itemId)){
+    // Custo médio ponderado: (estoque_atual * custo_atual + qtd_nova * custo_novo) / (estoque_atual + qtd_nova)
+    const estoqueAtual=almEstoqueItem(itemId);
+    const custoAtual=parseFloat(item.custoUnitario)||0;
+    let novoCustoMedio;
+    if(custoAtual>0&&estoqueAtual>0){
+      novoCustoMedio=parseFloat(((custoAtual*estoqueAtual+custoUnitario*qtd)/(estoqueAtual+qtd)).toFixed(4));
+    } else {
+      novoCustoMedio=custoUnitario;
     }
+    await updateDoc(doc(db,'alm_itens',itemId),{custoUnitario:novoCustoMedio});
   }
   await addDoc(collection(db,'alm_movimentos'),mov);
   showToast((tipo==='entrada'?'✅ Entrada':'✅ Saída')+' registrada com sucesso!');
