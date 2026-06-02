@@ -4261,29 +4261,33 @@ function renderAlmRelatorio(){
   const totalSai7=resumo7.reduce((s,r)=>s+r.saiQtd,0);
 
   // Gráfico linha 7 dias
-  const G7W=420; const G7H=120; const pts7=dias7.length;
+  const G7W=320; const G7H=110; const pts7=dias7.length;
   const maxQ7=Math.max(...resumo7.map(r=>Math.max(r.entQtd,r.saiQtd)),1);
-  function px7(i,v){return {x:30+i*(G7W-30)/(pts7-1),y:G7H-10-Math.round(v/maxQ7*(G7H-20))};}
+  const xPad=18;
+  function px7(i,v){return {x:xPad+i*(G7W-xPad*2)/(pts7-1),y:G7H-10-Math.round(v/maxQ7*(G7H-20))};}
   const ptEnt=resumo7.map((r,i)=>px7(i,r.entQtd));
   const ptSai=resumo7.map((r,i)=>px7(i,r.saiQtd));
   const lineEnt='M'+ptEnt.map(p=>p.x+','+p.y).join('L');
   const lineSai='M'+ptSai.map(p=>p.x+','+p.y).join('L');
   const dias7Labels=resumo7.map((r,i)=>{
     const d=new Date(r.data+'T00:00:00');
-    const nm=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]+' '+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0');
-    // Label curto para mobile
-    return `<text x="${ptEnt[i].x}" y="${G7H+14}" text-anchor="middle" font-size="8" fill="#64748b">${nm}</text>`;
+    // Linha 1: dia da semana abreviado, Linha 2: dd/mm
+    const diaNm=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];
+    const diaDt=d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0');
+    const isHoje=r.data===today();
+    return `<text x="${ptEnt[i].x}" y="${G7H+13}" text-anchor="middle" font-size="8" fill="${isHoje?'#1e40af':'#64748b'}" font-weight="${isHoje?700:400}">${diaNm}</text>
+    <text x="${ptEnt[i].x}" y="${G7H+22}" text-anchor="middle" font-size="7" fill="${isHoje?'#3b82f6':'#94a3b8'}">${diaDt}</text>`;
   }).join('');
   const valEnt=resumo7.map((r,i)=>r.entQtd?`<text x="${ptEnt[i].x}" y="${ptEnt[i].y-5}" text-anchor="middle" font-size="8" fill="#059669">${r.entQtd}</text>`:'').join('');
   const valSai=resumo7.map((r,i)=>r.saiQtd?`<text x="${ptSai[i].x}" y="${ptSai[i].y-5}" text-anchor="middle" font-size="8" fill="#dc2626">${r.saiQtd}</text>`:'').join('');
   const dotEnt=resumo7.map((r,i)=>`<circle cx="${ptEnt[i].x}" cy="${ptEnt[i].y}" r="3" fill="#059669"/>`).join('');
   const dotSai=resumo7.map((r,i)=>`<circle cx="${ptSai[i].x}" cy="${ptSai[i].y}" r="3" fill="#dc2626"/>`).join('');
 
-  const grafico7=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><svg viewBox="0 0 ${G7W+20} ${G7H+30}" style="min-width:${G7W+20}px;width:100%;display:block">
+  const grafico7=`<svg viewBox="0 0 ${G7W} ${G7H+28}" style="width:100%;display:block">
     <path d="${lineEnt}" fill="none" stroke="#059669" stroke-width="2"/>
     <path d="${lineSai}" fill="none" stroke="#dc2626" stroke-width="2"/>
     ${dotEnt}${dotSai}${valEnt}${valSai}${dias7Labels}
-  </svg></div>`;
+  </svg>`;
 
   // Tabela custo 7 dias
   const tabela7=resumo7.map(r=>{
