@@ -809,26 +809,25 @@ function renderTab(tab){
 
 // ── Resumo de movimento do painel ────────────────────────────────
 function gerarResumoMovimento(){
-  const hoje = today();
-  const anoMes = hoje.slice(0,7);
-  const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long'});
+  if(!window._painelApt) window._painelApt='apontador1';
+  const apt=window._painelApt;
+  const hoje=today();
+  const anoMes=hoje.slice(0,7);
+  const mesNome=new Date().toLocaleDateString('pt-BR',{month:'long'});
 
-  function calcMovimento(tipoId, aptFiltro){
-    let envHoje=0, envMes=0, recHoje=0, recMes=0;
+  function calcMov(tipoId, aptFiltro){
+    let envHoje=0,envMes=0,recHoje=0,recMes=0;
     fichas.forEach(f=>{
-      // Filtrar por apontador se necessário
-      if(aptFiltro){
-        const enr=getEnr(f.enroladorId);
-        if(!enr||enr.apontadorPerfil!==aptFiltro) return;
-      }
+      const enr=getEnr(f.enroladorId);
+      if(!enr||enr.apontadorPerfil!==aptFiltro) return;
       (f.entregas||[]).forEach(e=>{
-        const v = parseInt((e.tipos||{})[tipoId])||0;
+        const v=parseInt((e.tipos||{})[tipoId])||0;
         if(e.data===hoje) envHoje+=v;
         if((e.data||'').slice(0,7)===anoMes) envMes+=v;
       });
       (f.recolhimentos||[]).forEach(r=>{
         if(r.administrativo) return;
-        const v = parseInt((r.tipos||{})[tipoId])||0;
+        const v=parseInt((r.tipos||{})[tipoId])||0;
         if(r.data===hoje) recHoje+=v;
         if((r.data||'').slice(0,7)===anoMes) recMes+=v;
       });
@@ -836,59 +835,41 @@ function gerarResumoMovimento(){
     return {envHoje,envMes,recHoje,recMes};
   }
 
-  // Peças principais para o painel
-  const tiposPainel = TIPOS.filter(t=>t.principal||['varanda_nova','centro_novo','varanda_luxo','banqueta','mesa_bistro','cadeira_mesa','namoradeira','centro_sofia'].includes(t.id));
+  // Botões de seleção
+  const cor1='#0f766e'; const cor2='#b45309';
+  const btn=(v,l,cor)=>'<button class="btn btn-sm '+(apt===v?'btn-primary':'btn-ghost')+'"'
+    +' style="'+(apt===v?'':'border:1.5px solid '+cor+';color:'+cor)+'"'
+    +' onclick="window._painelApt=\''+v+'\';reloadTab()">'+l+'</button>';
 
-  let html='';
+  const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
+    +btn('apontador1','Apontador 1',cor1)
+    +btn('apontador2','Apontador 2',cor2)
+    +'</div>';
+
+  const cor=apt==='apontador1'?cor1:cor2;
+  const tiposPainel=TIPOS.filter(t=>t.principal||['varanda_nova','centro_novo','varanda_luxo','banqueta','mesa_bistro','cadeira_mesa','namoradeira','centro_sofia'].includes(t.id));
+
+  let cards='';
   tiposPainel.forEach(t=>{
-    const ap1=calcMovimento(t.id,'apontador1');
-    const ap2=calcMovimento(t.id,'apontador2');
-    const total=calcMovimento(t.id);
-
-    // Só mostrar se tiver algum movimento
-    if(!total.envMes&&!total.recMes) return;
-
-    const cor=TIPO_CORES[t.id]||'#1e40af';
-    html+=`<div class="card" style="margin-bottom:12px;border-left:4px solid ${cor}">
-      <div style="font-size:14px;font-weight:700;color:${cor};margin-bottom:10px">${t.label}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <!-- Apontador 1 -->
-        <div style="background:#f0fdf4;border-radius:10px;padding:10px">
-          <div style="font-size:10px;font-weight:700;color:#0f766e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Apontador 1</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <div>
-              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Entregas</div>
-              <div style="font-size:18px;font-weight:800;color:#0f766e">${ap1.envHoje||'—'}</div>
-              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap1.envMes}</div>
-            </div>
-            <div>
-              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Recolhidos</div>
-              <div style="font-size:18px;font-weight:800;color:#0f766e">${ap1.recHoje||'—'}</div>
-              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap1.recMes}</div>
-            </div>
-          </div>
-        </div>
-        <!-- Apontador 2 -->
-        <div style="background:#fff7ed;border-radius:10px;padding:10px">
-          <div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Apontador 2</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <div>
-              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Entregas</div>
-              <div style="font-size:18px;font-weight:800;color:#b45309">${ap2.envHoje||'—'}</div>
-              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap2.envMes}</div>
-            </div>
-            <div>
-              <div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Recolhidos</div>
-              <div style="font-size:18px;font-weight:800;color:#b45309">${ap2.recHoje||'—'}</div>
-              <div style="font-size:10px;color:#94a3b8">${mesNome}: ${ap2.recMes}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>`;
+    const m=calcMov(t.id,apt);
+    if(!m.envMes&&!m.recMes) return;
+    cards+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+cor+'">'
+      +'<div style="font-size:13px;font-weight:700;color:'+cor+';margin-bottom:10px">'+t.label+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      +'<div style="background:'+(apt==='apontador1'?'#f0fdf4':'#fff7ed')+';border-radius:10px;padding:10px">'
+      +'<div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Entregas</div>'
+      +'<div style="font-size:22px;font-weight:800;color:'+cor+'">'+(m.envHoje||'—')+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+mesNome+': '+m.envMes+'</div>'
+      +'</div>'
+      +'<div style="background:'+(apt==='apontador1'?'#f0fdf4':'#fff7ed')+';border-radius:10px;padding:10px">'
+      +'<div style="font-size:9px;color:#64748b;text-transform:uppercase;margin-bottom:2px">Recolhidos</div>'
+      +'<div style="font-size:22px;font-weight:800;color:'+cor+'">'+(m.recHoje||'—')+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+mesNome+': '+m.recMes+'</div>'
+      +'</div>'
+      +'</div></div>';
   });
 
-  return html;
+  return filtroHtml+(cards||'<div class="card"><div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma movimentação registrada neste mês.</div></div>');
 }
 
 
@@ -1034,97 +1015,35 @@ function renderPainel(){
   const banqFora=foraApt('banqueta');
   let html=`
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;width:100%">
-      <!-- Varanda Sofia -->
-      <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:14px;padding:12px 14px;color:#fff">
-        <div style="font-size:11px;font-weight:600;opacity:.85;margin-bottom:6px">Varanda Sofia — nas casas</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
-            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP1</div>
-            <div style="font-size:22px;font-weight:800">${foraApt('varanda_sofia','apontador1')}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
-            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP2</div>
-            <div style="font-size:22px;font-weight:800">${foraApt('varanda_sofia','apontador2')}</div>
-          </div>
-        </div>
-        <div style="font-size:10px;opacity:.7;margin-top:4px">Total: ${vFora}</div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <div><div class="stat-label">Varanda Sofia</div><div class="stat-value">${vFora}</div><div class="stat-sub">nas casas</div></div>
       </div>
-      <!-- Centro Luxo -->
-      <div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:14px;padding:12px 14px;color:#fff">
-        <div style="font-size:11px;font-weight:600;opacity:.85;margin-bottom:6px">Centro Luxo — nas casas</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
-            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP1</div>
-            <div style="font-size:22px;font-weight:800">${foraApt('centro_luxo','apontador1')}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px">
-            <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:2px">AP2</div>
-            <div style="font-size:22px;font-weight:800">${foraApt('centro_luxo','apontador2')}</div>
-          </div>
-        </div>
-        <div style="font-size:10px;opacity:.7;margin-top:4px">Total: ${cFora}</div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+        <div><div class="stat-label">Centro Luxo</div><div class="stat-value">${cFora}</div><div class="stat-sub">nas casas</div></div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;width:100%
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;width:100%">
-      <div style="background:linear-gradient(135deg,#92400e,#f59e0b);border-radius:12px;padding:10px 12px;color:#fff">
-        <div style="font-size:10px;font-weight:600;opacity:.85;margin-bottom:6px">Varanda Nova</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP1</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('varanda_nova','apontador1')}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP2</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('varanda_nova','apontador2')}</div>
-          </div>
-        </div>
-        <div style="font-size:9px;opacity:.7">Total: ${vNovaFora}</div>
+      <div style="background:linear-gradient(135deg,#92400e,#f59e0b);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:10px;color:#fff">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.85)">Varanda Nova</div><div style="font-size:16px;font-weight:800">${vNovaFora}</div><div style="font-size:10px;opacity:.7">nas casas</div></div>
       </div>
-      <div style="background:linear-gradient(135deg,#4c1d95,#8b5cf6);border-radius:12px;padding:10px 12px;color:#fff">
-        <div style="font-size:10px;font-weight:600;opacity:.85;margin-bottom:6px">Centro Novo</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP1</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('centro_novo','apontador1')}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP2</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('centro_novo','apontador2')}</div>
-          </div>
-        </div>
-        <div style="font-size:9px;opacity:.7">Total: ${cNovoFora}</div>
+      <div style="background:linear-gradient(135deg,#4c1d95,#8b5cf6);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:10px;color:#fff">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.85)">Centro Novo</div><div style="font-size:16px;font-weight:800">${cNovoFora}</div><div style="font-size:10px;opacity:.7">nas casas</div></div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;width:100%">
-      <div style="background:linear-gradient(135deg,#c2185b,#f06292);border-radius:12px;padding:10px 12px;color:#fff">
-        <div style="font-size:10px;font-weight:600;opacity:.85;margin-bottom:6px">Varanda Luxo</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP1</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('varanda_luxo','apontador1')}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP2</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('varanda_luxo','apontador2')}</div>
-          </div>
-        </div>
-        <div style="font-size:9px;opacity:.7">Total: ${vLuxoFora}</div>
+      <div style="background:linear-gradient(135deg,#c2185b,#f06292);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:10px;color:#fff">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.85)">Varanda Luxo</div><div style="font-size:16px;font-weight:800">${vLuxoFora}</div><div style="font-size:10px;opacity:.7">nas casas</div></div>
       </div>
-      <div style="background:linear-gradient(135deg,#1b5e20,#43a047);border-radius:12px;padding:10px 12px;color:#fff">
-        <div style="font-size:10px;font-weight:600;opacity:.85;margin-bottom:6px">Banqueta</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP1</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('banqueta','apontador1')}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.18);border-radius:6px;padding:5px 8px">
-            <div style="font-size:8px;opacity:.8">AP2</div>
-            <div style="font-size:18px;font-weight:800">${foraApt('banqueta','apontador2')}</div>
-          </div>
-        </div>
-        <div style="font-size:9px;opacity:.7">Total: ${banqFora}</div>
+      <div style="background:linear-gradient(135deg,#1b5e20,#43a047);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:10px;color:#fff">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+        <div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.85)">Banqueta</div><div style="font-size:16px;font-weight:800">${banqFora}</div><div style="font-size:10px;opacity:.7">nas casas</div></div>
       </div>
     </div>
         ${gerarResumoMovimento()}
