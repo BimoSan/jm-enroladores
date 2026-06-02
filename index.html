@@ -187,6 +187,7 @@
   .setor-desc{font-size:11px;color:#64748b;margin-top:2px}
   .back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:20px;padding:0;font-family:'Nunito',sans-serif}
   .back-btn:hover{color:#1e293b}
+.alm-item-opt:hover{background:#eff6ff!important}
 </style>
 </head>
 <body>
@@ -3919,10 +3920,15 @@ function renderAlmMovimento(tipo){
     +(isEnt?'⬇️ Registrar Entrada':'⬆️ Registrar Saída')+'</div>'
     +'<div class="form-row">'
     +'<div class="form-group"><label>Item</label>'
-    +'<input type="text" id="alm-busca-item" placeholder="Buscar item..." autocomplete="off"'
+    +'<div style="position:relative">'
+    +'<input type="text" id="alm-busca-item" placeholder="Buscar item..." autocomplete="off" readonly'
+    +' onclick="document.getElementById(\'alm-item-lista\').style.display=\'block\';this.removeAttribute(\'readonly\');this.select()"'
     +' oninput="window._filtrarAlmItem(this.value)"'
-    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%;margin-bottom:4px">'
-    +'<select id="alm-item" size="5" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:4px;width:100%;min-height:80px">'+optsItens+'</select></div>'
+    +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%;cursor:pointer;background:#fff">'
+    +'<input type="hidden" id="alm-item">'
+    +'<div id="alm-item-lista" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid #3b82f6;border-radius:9px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12)">'
+    +window._almGerarOpts()
+    +'</div></div></div>'
     +'<div class="form-group"><label>Tipo de '+(isEnt?'entrada':'saída')+'</label>'
     +'<select id="alm-tipo-mov" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsTipos+'</select></div>'
     +'</div>'
@@ -3952,20 +3958,69 @@ function renderAlmMovimento(tipo){
     +'<input type="text" id="alm-obs" placeholder="Opcional"'
     +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
     +'<button class="btn btn-primary" onclick="window._registrarAlmMov(\''+tipo+'\')">Registrar '+(isEnt?'entrada':'saída')+'</button>'
-    +'</div>';
+    +'</div>'
+    +almHistoricoDia(tipo);
 }
 
-window._filtrarAlmItem=function(q){
-  const lower=(q||'').toLowerCase();
-  const itens=almItens.length?almItens:ALM_ITENS_BASE.map(function(it,i){return Object.assign({},it,{id:'base-'+i});});
-  const filtrados=itens.filter(function(i){
-    return !lower||(i.descricao||'').toLowerCase().startsWith(lower);
-  }).sort(function(a,b){return (a.descricao||'').localeCompare(b.descricao||'','pt-BR');});
-  const sel=document.getElementById('alm-item');
-  if(!sel) return;
-  sel.innerHTML=filtrados.map(function(i){
-    return '<option value="'+i.id+'">'+i.descricao+'</option>';
+function almHistoricoDia(tipo){
+  const movs=almMovimentos.filter(m=>m.tipo===tipo&&m.data===today())
+    .sort((a,b)=>b.criadoEm>a.criadoEm?1:-1);
+  if(!movs.length) return '';
+  const isEnt=tipo==='entrada';
+  const cor=isEnt?'#059669':'#d97706';
+  const rows=movs.map(m=>{
+    const item=almItens.find(i=>i.id===m.itemId);
+    const desc=item?item.descricao:(m.itemDesc||'Item');
+    const und=item?item.unidade:'';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+      +'<div>'
+      +'<div style="font-size:12px;font-weight:700">'+desc+'</div>'
+      +'<div style="font-size:10px;color:#64748b">'+m.tipoMov+' · '+m.pessoa+' · '+m.setor+'</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:15px;font-weight:800;color:'+cor+'">'+(isEnt?'+':'-')+m.quantidade+' '+und+'</div>'
+      +(m.custoTotal?'<div style="font-size:10px;color:#92400e">R$ '+parseFloat(m.custoTotal).toFixed(2)+'</div>':'')
+      +'</div>'
+      +'</div>';
   }).join('');
+  return '<div class="card" style="margin-top:14px;border-left:4px solid '+cor+'">'
+    +'<div style="font-size:12px;font-weight:700;color:'+cor+';margin-bottom:10px">'
+    +(isEnt?'⬇️':'⬆️')+' Movimentações de hoje ('+movs.length+')</div>'
+    +rows+'</div>';
+}
+
+window._almGerarOpts=function(q){
+  const lower=(q||'').toLowerCase();
+  const itens=(almItens.length?almItens:ALM_ITENS_BASE.map(function(it,i){return Object.assign({},it,{id:'base-'+i});}))
+    .filter(function(i){return !lower||(i.descricao||'').toLowerCase().startsWith(lower);})
+    .sort(function(a,b){return (a.descricao||'').localeCompare(b.descricao||'','pt-BR');});
+  return itens.map(function(i){
+    return '<div class="alm-item-opt" data-id="'+i.id+'" data-desc="'+i.descricao+'"'
+      +' onclick="window._selecionarAlmItem(this)"'
+      +' style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9">'+i.descricao+'</div>';
+  }).join('');
+};
+
+window._selecionarAlmItem=function(el){
+  document.getElementById('alm-item').value=el.dataset.id;
+  document.getElementById('alm-busca-item').value=el.dataset.desc;
+  document.getElementById('alm-busca-item').setAttribute('readonly','true');
+  document.getElementById('alm-item-lista').style.display='none';
+  // Mostrar custo atual do item
+  const item=almItens.find(i=>i.id===el.dataset.id);
+  if(item&&item.custoUnitario){
+    const custoEl=document.getElementById('alm-custo');
+    if(custoEl&&!custoEl.value) custoEl.value=parseFloat(item.custoUnitario).toFixed(2);
+    window._almAtualizarTotal();
+  }
+};
+
+window._filtrarAlmItem=function(q){
+  const lista=document.getElementById('alm-item-lista');
+  if(lista){
+    lista.innerHTML=window._almGerarOpts(q);
+    lista.style.display='block';
+  }
 };
 
 window._almAtualizarTotal=function(){
@@ -3980,6 +4035,13 @@ window._almAtualizarTotal=function(){
     }
   }
 };
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#alm-item-lista')&&!e.target.closest('#alm-busca-item')){
+    const lista=document.getElementById('alm-item-lista');
+    if(lista) lista.style.display='none';
+  }
+});
 
 window._almAutoSetor=function(){
   const pessoa=document.getElementById('alm-pessoa')?.value;
