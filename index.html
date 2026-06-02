@@ -495,7 +495,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
-  'relatorio':'Relatório','ranking':'Ranking','valores':'Pagamentos',
+  'relatorio':'Relatório','ranking':'Ranking','historico':'Histórico Semanal','valores':'Pagamentos',
   'enroladores':'Enroladores','usuarios':'Usuários',
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','config_metal':'Configurações',
@@ -689,6 +689,7 @@ function renderApp(){
     if(can('registrar'))tabs.push('recolher');
     if(can('verRelatorio'))tabs.push('relatorio');
     if(can('verRanking'))tabs.push('ranking');
+    if(can('verPainel'))tabs.push('historico');
     if(can('verValores'))tabs.push('valores');
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
@@ -797,6 +798,7 @@ function renderTab(tab){
   if(tab==='fichas')return renderFichas();
   if(tab==='entregar')return renderEntrega();
   if(tab==='recolher')return renderRecolhimento();
+  if(tab==='historico')return renderHistoricoSemanal();
   if(tab==='relatorio'){try{return renderRelatorio();}catch(e){console.error('renderRelatorio ERRO:',e.message,e.stack);return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';}}
   if(tab==='ranking')return renderRanking();
   if(tab==='valores')return renderValores();
@@ -1424,6 +1426,180 @@ window._confirmarExcluirRecolh=async()=>{
 };
 
 // ── Relatório ────────────────────────────────────────────────────
+function renderHistoricoSemanal(){
+  const DIAS_NOMES=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Semana atual: seg a sab
+  const hoje=new Date(today()+'T00:00:00');
+  const diaSemana=hoje.getDay(); // 0=dom
+  const diasAtras=diaSemana===0?6:diaSemana-1; // dias desde segunda
+  const seg=new Date(hoje); seg.setDate(hoje.getDate()-diasAtras);
+
+  // Gerar array de dias da semana
+  const diasSemana=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(seg); d.setDate(seg.getDate()+i);
+    diasSemana.push(d.toISOString().slice(0,10));
+  }
+
+  // Calcular entregas e recolhimentos por dia
+  function resumoDia(dataStr){
+    let entregue=0, recolhido=0;
+    const porTipo={};
+    TIPOS.forEach(t=>{porTipo[t.id]={entregue:0,recolhido:0};});
+
+    fichas.forEach(f=>{
+      (f.entregas||[]).forEach(e=>{
+        if(e.data===dataStr){
+          TIPOS.forEach(t=>{
+            const q=parseInt((e.tipos||{})[t.id])||0;
+            entregue+=q;
+            porTipo[t.id].entregue+=q;
+          });
+        }
+      });
+      (f.recolhimentos||[]).forEach(r=>{
+        if(r.data===dataStr&&r.administrativo!==true){
+          TIPOS.forEach(t=>{
+            const q=parseInt((r.tipos||{})[t.id])||0;
+            recolhido+=q;
+            porTipo[t.id].recolhido+=q;
+          });
+        }
+      });
+    });
+    return {entregue,recolhido,saldo:entregue-recolhido,porTipo};
+  }
+
+  const resumos=diasSemana.map(d=>({data:d,...resumoDia(d)}));
+  const totEnt=resumos.reduce((s,r)=>s+r.entregue,0);
+  const totRec=resumos.reduce((s,r)=>s+r.recolhido,0);
+  const totSaldo=totEnt-totRec;
+
+  // Tipos com movimento na semana
+  const tiposAtivos=TIPOS.filter(t=>resumos.some(r=>r.porTipo[t.id].entregue>0||r.porTipo[t.id].recolhido>0));
+
+  // Gráfico de barras SVG
+  const maxVal=Math.max(...resumos.map(r=>Math.max(r.entregue,r.recolhido)),1);
+  const barW=36; const gap=8; const chartH=120; const chartW=(barW*2+gap+16)*7+20;
+
+  const bars=resumos.map((r,i)=>{
+    const x=20+i*(barW*2+gap+16);
+    const hEnt=Math.round(r.entregue/maxVal*chartH);
+    const hRec=Math.round(r.recolhido/maxVal*chartH);
+    const d=new Date(r.data+'T00:00:00');
+    const isHoje=r.data===today();
+    const label=DIAS_NOMES[d.getDay()];
+    return '<g>'
+      +'<rect x="'+x+'" y="'+(chartH-hEnt+10)+'" width="'+barW+'" height="'+hEnt+'" rx="4" fill="#3b82f6" opacity="'+(r.entregue?1:0.2)+'"/>'
+      +'<rect x="'+(x+barW+4)+'" y="'+(chartH-hRec+10)+'" width="'+barW+'" height="'+hRec+'" rx="4" fill="#10b981" opacity="'+(r.recolhido?1:0.2)+'"/>'
+      +'<text x="'+(x+barW)+'" y="'+(chartH+24)+'" text-anchor="middle" font-size="11" fill="'+(isHoje?'#1e40af':'#64748b')+'" font-weight="'+(isHoje?'700':'400')+'">'+label+'</text>'
+      +(r.entregue?'<text x="'+(x+barW/2)+'" y="'+(chartH-hEnt+7)+'" text-anchor="middle" font-size="9" fill="#1e40af">'+r.entregue+'</text>':'')
+      +(r.recolhido?'<text x="'+(x+barW+4+barW/2)+'" y="'+(chartH-hRec+7)+'" text-anchor="middle" font-size="9" fill="#059669">'+r.recolhido+'</text>':'')
+      +'</g>';
+  }).join('');
+
+  const grafico='<div class="card" style="margin-bottom:16px;overflow-x:auto">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">📊 Entregas vs Recolhimentos — semana atual</div>'
+    +'<div style="display:flex;gap:12px;margin-bottom:10px">'
+    +'<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6"><span style="width:12px;height:12px;background:#3b82f6;border-radius:3px;display:inline-block"></span>Entregue</span>'
+    +'<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#10b981"><span style="width:12px;height:12px;background:#10b981;border-radius:3px;display:inline-block"></span>Recolhido</span>'
+    +'</div>'
+    +'<svg width="'+chartW+'" height="'+(chartH+35)+'" style="min-width:'+chartW+'px">'+bars+'</svg>'
+    +'</div>';
+
+  // Stat cards totais
+  const statsHtml='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;width:100%">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">'
+    +'<div><div class="stat-label">Entregue na semana</div><div class="stat-value">'+totEnt+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">'
+    +'<div><div class="stat-label">Recolhido na semana</div><div class="stat-value">'+totRec+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">'
+    +'<div><div class="stat-label">Saldo pendente</div><div class="stat-value">'+totSaldo+'</div></div></div>'
+    +'</div>';
+
+  // Tabela desktop / cards mobile
+  const tabelaDesktop='<div class="card" style="margin-bottom:16px;display:none" id="hist-tabela">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">Detalhamento diário</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f8fafc">'
+    +'<th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600">Dia</th>'
+    +'<th style="padding:8px 10px;text-align:center;color:#3b82f6;font-weight:600">Entregue</th>'
+    +'<th style="padding:8px 10px;text-align:center;color:#10b981;font-weight:600">Recolhido</th>'
+    +'<th style="padding:8px 10px;text-align:center;color:#8b5cf6;font-weight:600">Saldo</th>'
+    +(tiposAtivos.map(t=>'<th style="padding:8px 10px;text-align:center;color:#475569;font-weight:600">'+t.label+'</th>').join(''))
+    +'</tr></thead><tbody>'
+    +resumos.map((r,i)=>{
+      const d=new Date(r.data+'T00:00:00');
+      const isHoje=r.data===today();
+      const nomeDia=DIAS_NOMES[d.getDay()]+' '+d.getDate()+'/'+MESES[d.getMonth()];
+      const temMov=r.entregue>0||r.recolhido>0;
+      return '<tr style="'+(isHoje?'background:#eff6ff;font-weight:700;':'')+(temMov?'':'opacity:0.5;')+'">'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9">'+nomeDia+'</td>'
+        +'<td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9;color:#3b82f6;font-weight:'+(r.entregue?700:400)+'">'+r.entregue+'</td>'
+        +'<td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9;color:#10b981;font-weight:'+(r.recolhido?700:400)+'">'+r.recolhido+'</td>'
+        +'<td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9;color:#8b5cf6;font-weight:700">'+r.saldo+'</td>'
+        +(tiposAtivos.map(t=>'<td style="padding:8px 10px;text-align:center;border-bottom:1px solid #f1f5f9;font-size:11px">'
+          +(r.porTipo[t.id].entregue||r.porTipo[t.id].recolhido
+            ?'<span style="color:#3b82f6">'+r.porTipo[t.id].entregue+'</span>'
+             +' / <span style="color:#10b981">'+r.porTipo[t.id].recolhido+'</span>'
+            :'—')
+          +'</td>').join(''))
+        +'</tr>';
+    }).join('')
+    +'<tr style="background:#f8fafc;font-weight:700">'
+    +'<td style="padding:8px 10px">Total</td>'
+    +'<td style="padding:8px 10px;text-align:center;color:#3b82f6">'+totEnt+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;color:#10b981">'+totRec+'</td>'
+    +'<td style="padding:8px 10px;text-align:center;color:#8b5cf6">'+totSaldo+'</td>'
+    +(tiposAtivos.map(t=>'<td style="padding:8px 10px;text-align:center;font-size:11px">'
+      +'<span style="color:#3b82f6">'+resumos.reduce((s,r)=>s+r.porTipo[t.id].entregue,0)+'</span>'
+      +' / <span style="color:#10b981">'+resumos.reduce((s,r)=>s+r.porTipo[t.id].recolhido,0)+'</span>'
+      +'</td>').join(''))
+    +'</tr>'
+    +'</tbody></table></div></div>';
+
+  // Cards mobile
+  const cardsMobile='<div id="hist-cards">'
+    +resumos.map(r=>{
+      const d=new Date(r.data+'T00:00:00');
+      const isHoje=r.data===today();
+      const temMov=r.entregue>0||r.recolhido>0;
+      if(!temMov&&!isHoje) return '';
+      const nomeDia=DIAS_NOMES[d.getDay()]+', '+d.getDate()+' de '+MESES[d.getMonth()];
+      return '<div class="card" style="margin-bottom:8px'+(isHoje?';border-left:4px solid #1e40af':temMov?';border-left:4px solid #e2e8f0':'')+(temMov?'':';opacity:0.6')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<div style="font-size:13px;font-weight:'+(isHoje?700:600)+'">'+nomeDia+(isHoje?' <span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:99px">Hoje</span>':'')+'</div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
+        +'<div style="text-align:center"><div style="font-size:10px;color:#3b82f6;margin-bottom:2px">Entregue</div><div style="font-size:18px;font-weight:800;color:#3b82f6">'+r.entregue+'</div></div>'
+        +'<div style="text-align:center"><div style="font-size:10px;color:#10b981;margin-bottom:2px">Recolhido</div><div style="font-size:18px;font-weight:800;color:#10b981">'+r.recolhido+'</div></div>'
+        +'<div style="text-align:center"><div style="font-size:10px;color:#8b5cf6;margin-bottom:2px">Saldo</div><div style="font-size:18px;font-weight:800;color:#8b5cf6">'+r.saldo+'</div></div>'
+        +'</div>'
+        +(tiposAtivos.filter(t=>r.porTipo[t.id].entregue||r.porTipo[t.id].recolhido).length
+          ?'<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">'
+            +tiposAtivos.filter(t=>r.porTipo[t.id].entregue||r.porTipo[t.id].recolhido).map(t=>
+              '<span style="font-size:10px;background:#f1f5f9;padding:2px 8px;border-radius:99px">'+t.label+': '
+              +'<span style="color:#3b82f6">'+r.porTipo[t.id].entregue+'</span>'
+              +' / <span style="color:#10b981">'+r.porTipo[t.id].recolhido+'</span></span>'
+            ).join('')
+            +'</div>'
+          :'')
+        +'</div>';
+    }).join('')
+    +'</div>';
+
+  // Script para mostrar tabela em desktop e cards em mobile
+  const script='<script>setTimeout(()=>{'
+    +'const t=document.getElementById("hist-tabela");'
+    +'const c=document.getElementById("hist-cards");'
+    +'if(t&&c){if(window.innerWidth>=768){t.style.display="block";c.style.display="none";}else{t.style.display="none";c.style.display="block";}}'
+    +'},0);<\/script>';
+
+  return statsHtml+grafico+tabelaDesktop+cardsMobile+script;
+}
+
 function renderRelatorio(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
