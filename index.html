@@ -338,6 +338,7 @@ let almConfig={
   classificacoes:[...['MATERIA PRIMA','EPI','MATERIAL DE USO E CONSUMO','FERRAMENTAS','PEÇAS PARA MAQUINÁRIOS','MAQUINÁRIO','EMBALAGEM','PRODUTO ACABADO']],
   tiposEntrada:[...['COMPRA','DEVOLUÇÃO','DOAÇÃO','CONFERÊNCIA']],
   tiposSaida:[...['USO INTERNO','VENDA','PERDA','DOAÇÃO','RECOLHIMENTO']],
+  pessoaSetor:{},
 };
 let configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{}}; // configurações da metalúrgica
 let fichas=[];
@@ -3914,7 +3915,7 @@ function renderAlmMovimento(tipo){
     +'</div>'
     +'<div class="form-row">'
     +'<div class="form-group"><label>Pessoa</label>'
-    +'<select id="alm-pessoa" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsPessoas+'</select></div>'
+    +'<select id="alm-pessoa" onchange="window._almAutoSetor()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsPessoas+'</select></div>'
     +'<div class="form-group"><label>Setor</label>'
     +'<select id="alm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsSetores+'</select></div>'
     +'</div>'
@@ -3924,6 +3925,15 @@ function renderAlmMovimento(tipo){
     +'<button class="btn btn-primary" onclick="window._registrarAlmMov(\''+tipo+'\')">Registrar '+(isEnt?'entrada':'saída')+'</button>'
     +'</div>';
 }
+
+window._almAutoSetor=function(){
+  const pessoa=document.getElementById('alm-pessoa')?.value;
+  const setor=almConfig.pessoaSetor?.[pessoa];
+  if(setor){
+    const sel=document.getElementById('alm-setor');
+    if(sel) sel.value=setor;
+  }
+};
 
 window._registrarAlmMov=async(tipo)=>{
   const itemId=document.getElementById('alm-item')?.value;
@@ -4476,6 +4486,18 @@ function renderAlmConfig(){
     +renderLista('🏷️ Classificações','classificacoes',almConfig.classificacoes,'#4c1d95')
     +renderLista('⬇️ Tipos de entrada','tiposEntrada',almConfig.tiposEntrada,'#0369a1')
     +renderLista('⬆️ Tipos de saída','tiposSaida',almConfig.tiposSaida,'#dc2626')
+    +'<div class="section-label">👤 Setor padrão por pessoa</div>'
+    +'<div class="card" style="margin-bottom:12px">'
+    +'<div style="font-size:12px;color:#475569;margin-bottom:12px">Ao selecionar a pessoa na entrada ou saída, o setor é preenchido automaticamente.</div>'
+    +almPessoas().map(p=>{
+      const setorAtual=almConfig.pessoaSetor?.[p]||'';
+      const optsS='<option value="">— Nenhum —</option>'+almSetores().map(s=>'<option value="'+s+'"'+(setorAtual===s?' selected':'')+'>'+s+'</option>').join('');
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        +'<span style="font-size:13px;font-weight:600;min-width:120px;flex-shrink:0">'+p+'</span>'
+        +'<select onchange="window._setAlmPessoaSetor(this.dataset.p,this.value)" data-p="'+p+'" style="flex:1;font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 8px">'+optsS+'</select>'
+        +'</div>';
+    }).join('')
+    +'</div>'
     +'<div class="section-label">Dados base</div>'
     +'<div class="card">'
     +'<div style="font-size:12px;color:#475569;margin-bottom:10px">Importe os '+ALM_ITENS_BASE.length+' itens da planilha original. Só faça isso uma vez.</div>'
@@ -4483,6 +4505,14 @@ function renderAlmConfig(){
     +' <button class="btn btn-warn" style="margin-left:8px" onclick="window._limparDuplicatasAlm()">Remover duplicatas</button>'
     +'</div>';
 }
+
+window._setAlmPessoaSetor=async(pessoa,setor)=>{
+  const ps={...(almConfig.pessoaSetor||{})};
+  if(setor) ps[pessoa]=setor;
+  else delete ps[pessoa];
+  almConfig={...almConfig,pessoaSetor:ps};
+  await setDoc(doc(db,'alm_config','geral'),almConfig);
+};
 
 window._addAlmLista=async(chave)=>{
   const el=document.getElementById('alm-novo-'+chave);
