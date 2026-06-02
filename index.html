@@ -3323,72 +3323,74 @@ function renderMinhaProd(){
   const sol=soldadores.find(s=>s.usuarioUid===uid||s.usuarioUid===idUsuario);
   if(!sol) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum soldador. Peça ao encarregado para vincular.</div></div>';
 
-  const periodos=[
-    {key:'hoje',label:'Hoje'},
-    {key:'semana',label:'Esta semana'},
-    {key:'quinzena',label:quinzenaLabel(getQuinzenaAtual())},
-  ];
-
-  const tabsHtml=periodos.map(p=>{
-    const ativo=window._prodPeriodo===p.key;
-    return '<button class="btn '+(ativo?'btn-primary':'btn-ghost')+' btn-sm"'
-      +' onclick="window._setProdPeriodo(this.dataset.k)" data-k="'+p.key+'">'+p.label+'</button>';
-  }).join('');
-
-  if(!window._prodPeriodo) window._prodPeriodo='hoje';
-  const per=window._prodPeriodo;
-
-  const pecasCom=PECAS_METAL_FULL.filter(p=>totalPecaPeriodo(sol.id,p.id,per)>0);
-  const total=totalGeralPeriodo(sol.id,per);
-  const ganho=calcGanhoSoldador(sol.id,per);
   const c=avatarColor(soldadores.findIndex(s=>s.id===sol.id));
 
-  const rows=pecasCom.map(p=>{
-    const qtd=totalPecaPeriodo(sol.id,p.id,per);
-    const vals=(configMetal.valores||{})[sol.id]||{};
-    const val=parseFloat(vals[p.id])||0;
-    const meta=parseInt((configMetal.metas||{})[p.id])||0;
-    return `<tr>
-      <td style="padding:7px 10px;font-size:12px">${p.label}</td>
-      <td style="padding:7px 10px;font-size:13px;font-weight:700;text-align:center">${qtd}</td>
-      ${meta>0?`<td style="padding:7px 10px;font-size:12px;text-align:center;color:${qtd>=meta?'#059669':'#d97706'}">${meta}</td>`:'<td style="padding:7px 10px;text-align:center;color:#94a3b8">—</td>'}
-      <td style="padding:7px 10px;font-size:12px;text-align:right;color:#059669;font-weight:600">${fmtR(val*qtd)}</td>
-    </tr>`;
-  }).join('');
+  const periodos=[
+    {key:'hoje', label:'Hoje'},
+    {key:'semana', label:'Esta semana'},
+    {key:'quinzena', label:quinzenaLabel(getQuinzenaAtual())},
+  ];
 
-  return `<div class="card" style="margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-      <div style="width:48px;height:48px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">${initials(sol.nome)}</div>
-      <div>
-        <div style="font-size:16px;font-weight:800">${sol.nome}</div>
-        <div style="font-size:12px;color:#64748b">${sol.contrato==='producao'?'Por produção':'Fichado'}</div>
-      </div>
-      <div style="margin-left:auto;text-align:right">
-        <div style="font-size:11px;color:#64748b">ganho estimado</div>
-        <div style="font-size:22px;font-weight:800;color:#059669">${fmtR(ganho)}</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;margin-bottom:14px">${tabsHtml}</div>
-    ${pecasCom.length?`<table style="width:100%;border-collapse:collapse">
-      <thead><tr style="background:#f8fafc">
-        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:left">Peça</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Qtd.</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Meta</th>
-        <th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:right">Ganho</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr style="border-top:2px solid #f1f5f9">
-        <td style="padding:8px 10px;font-weight:700">Total</td>
-        <td style="padding:8px 10px;font-weight:800;text-align:center">${total}</td>
-        <td></td>
-        <td style="padding:8px 10px;font-weight:800;text-align:right;color:#059669">${fmtR(ganho)}</td>
-      </tr></tfoot>
-    </table>`:'<div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma produção registrada neste período.</div>'}
-  </div>`;
+  function cardPeriodo(p){
+    const pecasCom=PECAS_METAL_FULL.filter(pc=>totalPecaPeriodo(sol.id,pc.id,p.key)>0);
+    const total=totalGeralPeriodo(sol.id,p.key);
+    const ganho=calcGanhoSoldador(sol.id,p.key);
+    if(!total&&p.key!=='hoje') return '';
+
+    const rows=pecasCom.map(pc=>{
+      const qtd=totalPecaPeriodo(sol.id,pc.id,p.key);
+      const vals=(configMetal.valores||{})[sol.id]||{};
+      const val=parseFloat((configMetal.valoresProd||{})[pc.id])||0;
+      const meta=parseInt((configMetal.metas||{})[pc.id])||0;
+      return '<tr>'
+        +'<td style="padding:7px 10px;font-size:12px">'+pc.label+'</td>'
+        +'<td style="padding:7px 10px;font-size:13px;font-weight:700;text-align:center">'+qtd+'</td>'
+        +(meta>0?'<td style="padding:7px 10px;font-size:12px;text-align:center;color:'+(qtd>=meta?'#059669':'#d97706')+'">'+meta+'</td>':'<td style="padding:7px 10px;text-align:center;color:#94a3b8">—</td>')
+        +'<td style="padding:7px 10px;font-size:12px;text-align:right;color:#059669;font-weight:600">'+fmtR(val*qtd)+'</td>'
+        +'</tr>';
+    }).join('');
+
+    return '<div class="card" style="margin-bottom:12px;border-left:4px solid '+c+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(rows?'12px':'0')+'">'
+      +'<div style="font-size:14px;font-weight:700;color:'+c+'">'+p.label+'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:10px;color:#64748b">ganho estimado</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#059669">'+fmtR(ganho)+'</div>'
+      +'</div>'
+      +'</div>'
+      +(rows?'<table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr style="background:#f8fafc">'
+        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:left">Peça</th>'
+        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Qtd.</th>'
+        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Meta</th>'
+        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:right">Ganho</th>'
+        +'</tr></thead>'
+        +'<tbody>'+rows+'</tbody>'
+        +'<tfoot><tr style="border-top:2px solid #f1f5f9">'
+        +'<td style="padding:8px 10px;font-weight:700">Total</td>'
+        +'<td style="padding:8px 10px;font-weight:800;text-align:center">'+total+'</td>'
+        +'<td></td>'
+        +'<td style="padding:8px 10px;font-weight:800;text-align:right;color:#059669">'+fmtR(ganho)+'</td>'
+        +'</tr></tfoot>'
+        +'</table>'
+      :'<div style="color:#94a3b8;text-align:center;padding:12px;font-size:13px">Nenhuma produção registrada.</div>')
+      +'</div>';
+  }
+
+  const header='<div class="card" style="margin-bottom:14px">'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +'<div style="width:48px;height:48px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+initials(sol.nome)+'</div>'
+    +'<div>'
+    +'<div style="font-size:16px;font-weight:800">'+sol.nome+'</div>'
+    +'<div style="font-size:12px;color:#64748b">'+(sol.contrato==='producao'?'Por produção':'Fichado')+'</div>'
+    +'</div>'
+    +'</div>'
+    +'</div>';
+
+  return header+periodos.map(cardPeriodo).join('');
 }
 
-// ── Ranking metalúrgica ───────────────────────────────────────────
-// ── Meu Desempenho (soldador) ────────────────────────────────────
+
 function renderMeuDesempenho(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const uid=currentUser?.uid||'';
