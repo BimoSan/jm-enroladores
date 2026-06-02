@@ -495,7 +495,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
-  'relatorio':'Relatório','ranking':'Ranking','historico':'Histórico Semanal','valores':'Pagamentos',
+  'relatorio':'Relatório','ranking':'Ranking','historico':'📅 Histórico Semanal','valores':'Pagamentos',
   'enroladores':'Enroladores','usuarios':'Usuários',
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','config_metal':'Configurações',
@@ -1451,7 +1451,7 @@ function renderHistoricoSemanal(){
     const ativo=aptFiltro===v;
     return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
       +' style="'+(ativo?'':'border:1.5px solid '+cor+';color:'+cor)+'"'
-      +' onclick="window._histApt=\''+v+'\';reloadTab()">'+l+'</button>';
+      +' onclick="window._setHistApt(this.dataset.v)" data-v="'+v+'">'+l+'</button>';
   }
   const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +btnApt('all','Todos','#475569')
@@ -1486,14 +1486,40 @@ function renderHistoricoSemanal(){
       +'</g>';
   }).join('');
 
-  const grafico='<div class="card" style="margin-bottom:14px;overflow-x:auto">'
-    +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">📊 Entregas vs Recolhimentos — semana atual</div>'
-    +'<div style="display:flex;gap:10px;margin-bottom:8px">'
-    +'<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6"><span style="width:10px;height:10px;background:#3b82f6;border-radius:2px;display:inline-block"></span>Entregue</span>'
-    +'<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#10b981"><span style="width:10px;height:10px;background:#10b981;border-radius:2px;display:inline-block"></span>Recolhido</span>'
-    +'</div>'
-    +'<svg width="'+chartW+'" height="'+(chartH+32)+'" style="min-width:'+chartW+'px">'+bars+'</svg>'
-    +'</div>';
+  // Gráfico por tipo de peça
+  const tiposGrafico=TIPOS.filter(t=>diasSemana.some(d=>{
+    const r=calcDia(d,t.id,aptFiltro==='all'?null:aptFiltro);
+    return r.ent>0||r.rec>0;
+  }));
+
+  const graficos=tiposGrafico.map(t=>{
+    const dadosTipo=diasSemana.map(d=>({data:d,...calcDia(d,t.id,aptFiltro==='all'?null:aptFiltro)}));
+    const maxT=Math.max(...dadosTipo.map(r=>Math.max(r.ent,r.rec)),1);
+    const barsT=dadosTipo.map((r,i)=>{
+      const x=20+i*(barW*2+gap+14);
+      const hE=Math.round(r.ent/maxT*chartH);
+      const hR=Math.round(r.rec/maxT*chartH);
+      const d=new Date(r.data+'T00:00:00');
+      const isHoje=r.data===today();
+      return '<g>'
+        +'<rect x="'+x+'" y="'+(chartH-hE+10)+'" width="'+barW+'" height="'+hE+'" rx="3" fill="#3b82f6" opacity="'+(r.ent?1:0.15)+'"/>'
+        +'<rect x="'+(x+barW+4)+'" y="'+(chartH-hR+10)+'" width="'+barW+'" height="'+hR+'" rx="3" fill="#10b981" opacity="'+(r.rec?1:0.15)+'"/>'
+        +'<text x="'+(x+barW)+'" y="'+(chartH+22)+'" text-anchor="middle" font-size="10" fill="'+(isHoje?'#1e40af':'#64748b')+'" font-weight="'+(isHoje?700:400)+'">'+DIAS_NOMES[d.getDay()]+'</text>'
+        +(r.ent?'<text x="'+(x+barW/2)+'" y="'+(chartH-hE+8)+'" text-anchor="middle" font-size="8" fill="#1e40af">'+r.ent+'</text>':'')
+        +(r.rec?'<text x="'+(x+barW+4+barW/2)+'" y="'+(chartH-hR+8)+'" text-anchor="middle" font-size="8" fill="#059669">'+r.rec+'</text>':'')
+        +'</g>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:10px;overflow-x:auto">'
+      +'<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#475569">📊 '+t.label+'</div>'
+      +'<div style="display:flex;gap:10px;margin-bottom:6px">'
+      +'<span style="display:flex;align-items:center;gap:3px;font-size:10px;color:#3b82f6"><span style="width:8px;height:8px;background:#3b82f6;border-radius:2px;display:inline-block"></span>Entregue</span>'
+      +'<span style="display:flex;align-items:center;gap:3px;font-size:10px;color:#10b981"><span style="width:8px;height:8px;background:#10b981;border-radius:2px;display:inline-block"></span>Recolhido</span>'
+      +'</div>'
+      +'<svg width="'+chartW+'" height="'+(chartH+32)+'" style="min-width:'+chartW+'px"><g>'+barsT+'</g></svg>'
+      +'</div>';
+  }).join('');
+
+  const grafico=graficos||'<div class="card" style="margin-bottom:10px"><div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma movimentação na semana.</div></div>';
 
   // Tipos com movimento na semana (filtrado por apontador)
   const tiposAtivos=TIPOS.filter(t=>resumos.some((r,i)=>{
@@ -3572,6 +3598,10 @@ function renderMeuDesempenho(){
   </div>`;
 }
 
+window._setHistApt=function(v){
+  window._histApt=v;
+  reloadTab();
+};
 window._setProdPeriodo=function(k){
   window._prodPeriodo=k;
   reloadTab();
