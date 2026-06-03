@@ -3476,17 +3476,53 @@ window._abrirEditPonto=(funcId,data)=>{
   const func=pontoFuncionarios.find(f=>f.id===funcId);
   if(!func) return;
   const reg=pontoRegistros.find(r=>r.funcId===funcId&&r.data===data)||{};
-  const STATUS={P:'Presente',F:'Falta',FJ:'Falta Just.',M:'Meio Período',FO:'Folga'};
-  const optsStatus=Object.entries(STATUS).map(([k,v])=>'<option value="'+k+'"'+(reg.status===k?' selected':'')+'>'+k+' — '+v+'</option>').join('');
+  const STATUS_LIST=[
+    {k:'P',  v:'Presente',       cor:'#059669', bg:'#f0fdf4'},
+    {k:'F',  v:'Falta',          cor:'#dc2626', bg:'#fef2f2'},
+    {k:'FJ', v:'Falta Just.',    cor:'#d97706', bg:'#fefce8'},
+    {k:'M',  v:'Meio Período',   cor:'#3b82f6', bg:'#eff6ff'},
+    {k:'FO', v:'Folga',          cor:'#8b5cf6', bg:'#f5f3ff'},
+  ];
+  const statusAtual=reg.status||'P';
   const d=new Date(data+'T12:00:00');
   const nomeDia=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]+' '+data.split('-').reverse().join('/');
+  const botoesStatus=STATUS_LIST.map(s=>{
+    const ativo=statusAtual===s.k;
+    return '<button id="peb-'+s.k+'" onclick="window._selecionarStatusPonto(this,this.dataset.k)" data-k="'+s.k+'"'
+      +' style="flex:1;padding:8px 4px;border-radius:8px;border:2px solid '+(ativo?s.cor:'#e2e8f0')+';background:'+(ativo?s.bg:'#fff')+';color:'+(ativo?s.cor:'#64748b')+';font-size:11px;font-weight:700;cursor:pointer;transition:all .15s">'
+      +'<div>'+s.k+'</div><div style="font-size:9px;font-weight:400">'+s.v+'</div></button>';
+  }).join('');
   showModal(func.nome+' — '+nomeDia,
-    '<div class="form-group"><label>Status</label><select id="pe-status" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Não registrado —</option>'+optsStatus+'</select></div>'
+    '<div class="form-group"><label>Status</label>'
+    +'<input type="hidden" id="pe-status" value="'+statusAtual+'">'
+    +'<div style="display:flex;gap:6px;margin-top:4px">'+botoesStatus+'</div>'
+    +'</div>'
+    +'<div class="form-row" style="margin-top:12px">'
     +'<div class="form-group"><label>Horas extras</label><input id="pe-hextra" type="number" min="0" step="0.5" value="'+(reg.horasExtra||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
-    +'<div class="form-group"><label>Observação</label><input id="pe-obs" value="'+(reg.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    +'<div class="form-group"><label>Observação</label><input id="pe-obs" value="'+(reg.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +(reg.id?'<button class="btn btn-danger btn-sm" onclick="window._excluirPonto(\''+reg.id+'\')">Excluir</button>':'')
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarPonto(\''+funcId+'\',\''+data+'\','+(reg.id?'\''+reg.id+'\'':'null')+')">Salvar</button>',true);
+};
+
+window._selecionarStatusPonto=function(btn,k){
+  document.getElementById('pe-status').value=k;
+  const STATUS_LIST=[
+    {k:'P',cor:'#059669',bg:'#f0fdf4'},
+    {k:'F',cor:'#dc2626',bg:'#fef2f2'},
+    {k:'FJ',cor:'#d97706',bg:'#fefce8'},
+    {k:'M',cor:'#3b82f6',bg:'#eff6ff'},
+    {k:'FO',cor:'#8b5cf6',bg:'#f5f3ff'},
+  ];
+  STATUS_LIST.forEach(s=>{
+    const b=document.getElementById('peb-'+s.k);
+    if(!b) return;
+    const ativo=s.k===k;
+    b.style.border='2px solid '+(ativo?s.cor:'#e2e8f0');
+    b.style.background=ativo?s.bg:'#fff';
+    b.style.color=ativo?s.cor:'#64748b';
+  });
 };
 
 window._salvarPonto=async(funcId,data,regId)=>{
