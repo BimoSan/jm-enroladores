@@ -3646,6 +3646,11 @@ window._salvarPontoLote=async()=>{
 // SISTEMA DE CAMINHÕES / FROTAS
 // ═══════════════════════════════════════════════════════════════
 
+window._setAlmRelPeca=function(v){
+  window._almRelPeca=v;
+  reloadTab();
+};
+
 window._almNavMes=function(mes){
   window._almRelMes=mes;
   reloadTab();
@@ -5726,7 +5731,7 @@ function renderAlmRelatorio(){
   let htmlPeca='<div class="card" style="margin-top:16px">'
     +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">📦 Saídas por peça</div>'
     +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
-    +'<select onchange="window._almRelPeca=this.value;reloadTab()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px;min-width:200px">'
+    +'<select onchange="window._setAlmRelPeca(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px;min-width:200px">'
     +'<option value="">— Selecionar peça —</option>'+optsPeca+'</select>'
     +(pecaSel?'<button class="btn btn-ghost btn-sm" onclick="window._almNavMes(this.dataset.m)" data-m="'+mAntStr+'">←</button>'
       +'<span style="font-weight:700">'+mesNomeN+'</span>'
