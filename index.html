@@ -3646,6 +3646,11 @@ window._salvarPontoLote=async()=>{
 // SISTEMA DE CAMINHÕES / FROTAS
 // ═══════════════════════════════════════════════════════════════
 
+window._almNavMes=function(mes){
+  window._almRelMes=mes;
+  reloadTab();
+};
+
 window._camNavMes=function(tipo,mes){
   if(tipo==='cam_rotas') window._camRotaMes=mes;
   else if(tipo==='cam_ab') window._camAbMes=mes;
@@ -5607,7 +5612,7 @@ function renderAlmRelatorio(){
     <text x="50" y="54" text-anchor="middle" font-size="11" font-weight="700" fill="#1e293b">${pctEnt}%</text>
   </svg>`;
 
-  return `
+  const html=`
   <div class="section-label">ANÁLISE DOS ÚLTIMOS 7 DIAS</div>
   <div class="card" style="margin-bottom:14px">
     <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
@@ -5692,10 +5697,88 @@ function renderAlmRelatorio(){
       <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;margin-bottom:8px">💰 Valor total em estoque</div>
       <div style="font-size:28px;font-weight:800;color:#1e40af">${fmtMoeda(itens.reduce((s,i)=>{const est=almEstoqueItem(i.id);const custo=parseFloat(i.custoUnitario)||0;return s+(est>0?est*custo:0);},0))}</div>
       <div style="font-size:11px;color:#64748b;margin-top:4px">Baseado no custo médio ponderado de ${itens.filter(i=>i.custoUnitario>0).length} itens com custo cadastrado</div>
-    </div>`:''}
-  </div>`;
-}
+    </div>`:''}`;
+  // ── Saídas por peça ──────────────────────────────────────────────
+  if(!window._almRelPeca) window._almRelPeca='';
+  if(!window._almRelMes) window._almRelMes=today().slice(0,7);
 
+  const pecaSel=window._almRelPeca;
+  const mesSel=window._almRelMes;
+
+  // Selector de peça
+  const itensSaida=[...new Set(almMovimentos.filter(m=>m.tipo==='saida').map(m=>m.itemId))]
+    .map(id=>itens.find(i=>i.id===id)).filter(Boolean)
+    .sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
+
+  const optsPeca=itensSaida.map(i=>'<option value="'+i.id+'"'+(i.id===pecaSel?' selected':'')+'>'+i.descricao+'</option>').join('');
+
+  // Navegação de mês
+  const [anoM,mM]=mesSel.split('-');
+  const MESES_N=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNomeN=MESES_N[parseInt(mM)-1]+' '+anoM;
+  const mAnt=new Date(parseInt(anoM),parseInt(mM)-2,1);
+  const mProx=new Date(parseInt(anoM),parseInt(mM),1);
+  const mAntStr=mAnt.getFullYear()+'-'+String(mAnt.getMonth()+1).padStart(2,'0');
+  const mProxStr=mProx.getFullYear()+'-'+String(mProx.getMonth()+1).padStart(2,'0');
+
+  let htmlPeca='<div class="card" style="margin-top:16px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">📦 Saídas por peça</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+    +'<select onchange="window._almRelPeca=this.value;reloadTab()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px;min-width:200px">'
+    +'<option value="">— Selecionar peça —</option>'+optsPeca+'</select>'
+    +(pecaSel?'<button class="btn btn-ghost btn-sm" onclick="window._almNavMes(this.dataset.m)" data-m="'+mAntStr+'">←</button>'
+      +'<span style="font-weight:700">'+mesNomeN+'</span>'
+      +'<button class="btn btn-ghost btn-sm" onclick="window._almNavMes(this.dataset.m)" data-m="'+mProxStr+'">→</button>':'')
+    +'</div>';
+
+  if(pecaSel){
+    const item=itens.find(i=>i.id===pecaSel);
+    const movsMes=almMovimentos.filter(m=>m.tipo==='saida'&&m.itemId===pecaSel&&(m.data||'').slice(0,7)===mesSel)
+      .sort((a,b)=>a.data>b.data?1:-1);
+
+    if(!movsMes.length){
+      htmlPeca+='<div style="color:#94a3b8;text-align:center;padding:16px">Nenhuma saída de '+(item?.descricao||'')+'em '+mesNomeN+'.</div>';
+    } else {
+      // Agrupar por dia
+      const porDia={};
+      movsMes.forEach(m=>{
+        if(!porDia[m.data]) porDia[m.data]={qtd:0,movs:[]};
+        porDia[m.data].qtd+=parseInt(m.quantidade)||0;
+        porDia[m.data].movs.push(m);
+      });
+      const totalMes=movsMes.reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+
+      htmlPeca+='<div style="margin-bottom:8px;font-size:12px;color:#64748b">'
+        +'Total em '+mesNomeN+': <strong style="color:#d97706">'+totalMes+' '+(item?.unidade||'')+'</strong></div>'
+        +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:#f1f5f9">'
+        +'<th style="padding:7px 10px;text-align:left">Data</th>'
+        +'<th style="padding:7px 10px;text-align:right">Quantidade</th>'
+        +'<th style="padding:7px 10px;text-align:left">Quem retirou</th>'
+        +'<th style="padding:7px 10px;text-align:left">Setor</th>'
+        +'<th style="padding:7px 10px;text-align:left">Obs</th>'
+        +'</tr></thead><tbody>'
+        +movsMes.map((m,i)=>{
+          const d=m.data?m.data.split('-').reverse().join('/'):'—';
+          return '<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+            +'<td style="padding:7px 10px">'+d+'</td>'
+            +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#d97706">'+m.quantidade+' '+(item?.unidade||'')+'</td>'
+            +'<td style="padding:7px 10px">'+(m.pessoa||'—')+'</td>'
+            +'<td style="padding:7px 10px">'+(m.setor||'—')+'</td>'
+            +'<td style="padding:7px 10px;color:#64748b;font-style:italic">'+(m.obs||'')+'</td>'
+            +'</tr>';
+        }).join('')
+        +'<tr style="background:#fef9c3;font-weight:700">'
+        +'<td style="padding:7px 10px">TOTAL</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+totalMes+' '+(item?.unidade||'')+'</td>'
+        +'<td colspan="3"></td></tr>'
+        +'</tbody></table></div>';
+    }
+  }
+  htmlPeca+='</div>';
+
+  return html+htmlPeca;
+}
 
 // ── Configurações ─────────────────────────────────────────────────
 function renderAlmConfig(){
