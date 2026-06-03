@@ -330,6 +330,8 @@ let configBonus={meta:300, valorBonus:1.00, ativo:true}; // configuração do b�
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
+let pontoFuncionarios=[]; // lista de funcionários do ponto
+let pontoRegistros=[];    // registros de ponto
 let almItens=[];
 let almMovimentos=[];
 let almConfig={
@@ -493,6 +495,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'apontar':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   'fichas_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'soldadores_metal':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  'ponto_metal':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
   'config_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
   'minha_prod':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
@@ -669,9 +672,9 @@ function renderApp(){
     // Tabs da metalúrgica
     const perfMetal=currentUserData?.perfil;
     if(['admin','encarregado_cad'].includes(perfMetal)){
-      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','soldadores_metal','config_metal');
+      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','soldadores_metal','ponto_metal','config_metal');
     }else if(perfMetal==='apontador_metal'){
-      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal');
+      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','ponto_metal');
     }else if(perfMetal==='soldador'){
       tabs.push('minha_prod','meu_desempenho','ranking_metal');
     }else{
@@ -3283,6 +3286,256 @@ window._confirmarExcluirSoldador=async id=>{
 };
 
 // ── Configurações metalúrgica ─────────────────────────────────────
+function renderPontoMetal(){
+  if(!window._pontoMes) window._pontoMes=today().slice(0,7);
+  const mes=window._pontoMes;
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [ano,m]=mes.split('-');
+  const mesNome=MESES[parseInt(m)-1]+' '+ano;
+  const diasNoMes=new Date(parseInt(ano),parseInt(m),0).getDate();
+  const STATUS={P:'Presente',F:'Falta',FJ:'Falta Just.',M:'Meio Período',FO:'Folga'};
+  const COR_STATUS={P:'#059669',F:'#dc2626',FJ:'#d97706',M:'#3b82f6',FO:'#8b5cf6'};
+  const BG_STATUS={P:'#f0fdf4',F:'#fef2f2',FJ:'#fefce8',M:'#eff6ff',FO:'#f5f3ff'};
+
+  // Funções helpers
+  function getRegistro(funcId, data){
+    return pontoRegistros.find(r=>r.funcId===funcId&&r.data===data)||null;
+  }
+
+  // Meses disponíveis (navegação)
+  const mesAnterior=new Date(parseInt(ano),parseInt(m)-2,1).toISOString().slice(0,7);
+  const mesSeguinte=new Date(parseInt(ano),parseInt(m),1).toISOString().slice(0,7);
+  const hoje_=today();
+
+  // Header
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="window._pontoMes='${mesAnterior}';reloadTab()">←</button>
+      <div style="font-size:16px;font-weight:700">${mesNome}</div>
+      <button class="btn btn-ghost btn-sm" onclick="window._pontoMes='${mesSeguinte}';reloadTab()">→</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="window._abrirNovoPontoFunc()">+ Funcionário</button>
+      <button class="btn btn-ghost btn-sm" onclick="window._abrirRegistroPonto()">Registrar dia</button>
+    </div>
+  </div>`;
+
+  if(!pontoFuncionarios.length){
+    return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum funcionário cadastrado. Clique em "+ Funcionário" para adicionar.</div></div>';
+  }
+
+  // Legenda
+  html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">'
+    +[...Object.entries(STATUS),['FNR','Domingo Perdido']].map(([k,v])=>'<span style="font-size:11px;background:'+(k==='FNR'?'#fecaca':BG_STATUS[k])+';color:'+(k==='FNR'?'#dc2626':COR_STATUS[k])+';padding:3px 10px;border-radius:99px;font-weight:600">'+k+' = '+v+'</span>').join('')
+    +'</div>';
+
+  // Tabela
+  const dias=[];
+  for(let d=1;d<=diasNoMes;d++){
+    const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dow=new Date(dt+'T12:00:00').getDay();
+    dias.push({d,dt,dow,isFds:dow===0||dow===6,isHoje:dt===hoje_});
+  }
+
+  html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
+    +'<thead><tr style="background:#1e293b;color:#fff">'
+    +'<th style="padding:8px 12px;text-align:left;position:sticky;left:0;background:#1e293b;min-width:120px">Funcionário</th>'
+    +dias.map(({d,dt,dow,isFds,isHoje})=>{
+      const nm=['D','S','T','Q','Q','S','S'][dow];
+      return '<th style="padding:6px 4px;text-align:center;min-width:32px;'+(isHoje?'background:#3b82f6;':isFds?'background:#374151;':'')+'">'+
+        '<div style="font-size:9px;opacity:.7">'+nm+'</div>'+
+        '<div>'+d+'</div></th>';
+    }).join('')
+    +'<th style="padding:8px 6px;text-align:center;min-width:50px">Faltas</th>'
+    +'<th style="padding:8px 6px;text-align:center;min-width:50px">H.Extra</th>'
+    +'</tr></thead><tbody>'
+    +pontoFuncionarios.map((func,fi)=>{
+      let totalFaltas=0; let totalHExtra=0;
+      const cells=dias.map(({d,dt,isFds})=>{
+        const reg=getRegistro(func.id,dt);
+        let status=reg?.status||(isFds?'FO':'');
+        const hExtra=reg?.horasExtra||0;
+        if(status==='F'||status==='FJ'||status==='M') totalFaltas+=(status==='M'?0.5:1);
+        totalHExtra+=hExtra;
+        // Verificar se é domingo perdido
+        let domPerdido=false;
+        if(dow===0&&!reg?.status){
+          for(let i=1;i<=6;i++){
+            const prev=new Date(dt+'T12:00:00');prev.setDate(prev.getDate()-i);
+            const prevDt=prev.toISOString().slice(0,10);
+            if(prevDt.slice(0,7)!==mes) continue;
+            const pr=getRegistro(func.id,prevDt);
+            if(pr?.status==='F'){domPerdido=true;break;} // FJ não perde o domingo
+          }
+          if(domPerdido) status='FNR';
+        }
+        const COR_EXT={...COR_STATUS,FNR:'#dc2626'};
+        const BG_EXT={...BG_STATUS,FNR:'#fecaca'};
+        const cor=COR_EXT[status]||'#94a3b8';
+        const bg=BG_EXT[status]||'transparent';
+        return '<td style="padding:3px 2px;text-align:center;background:'+bg+';cursor:pointer" onclick="window._abrirEditPonto(\''+func.id+'\',\''+dt+'\')" title="'+func.nome+' - '+dt+(hExtra?' | '+hExtra+'h extra':'')+'">'
+          +'<div style="font-size:11px;font-weight:700;color:'+cor+'">'+(status||'·')+'</div>'
+          +(hExtra?'<div style="font-size:8px;color:#3b82f6">+'+hExtra+'h</div>':'')
+          +'</td>';
+      }).join('');
+      return '<tr style="'+(fi%2?'background:#f8fafc;':'background:#fff;')+'">'
+        +'<td style="padding:8px 12px;font-weight:600;position:sticky;left:0;background:'+(fi%2?'#f8fafc':'#fff')+';border-right:1px solid #e2e8f0">'
+        +'<div>'+func.nome+'</div>'
+        +(func.cargo?'<div style="font-size:10px;color:#64748b">'+func.cargo+'</div>':'')
+        +'</td>'
+        +cells
+        +'<td style="padding:6px;text-align:center;font-weight:700;color:'+(totalFaltas>0?'#dc2626':'#059669')+'">'+totalFaltas+'</td>'
+        +'<td style="padding:6px;text-align:center;font-weight:700;color:'+(totalHExtra>0?'#3b82f6':'#94a3b8')+'">'+totalHExtra+'h</td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div>';
+
+  // Calcular domingos perdidos por funcionário
+  // Regra: se tiver F ou FJ em qualquer dia da semana (seg-sab), perde o domingo daquela semana
+  function domingosPerdidos(funcId){
+    const domingos=[];
+    for(let d=1;d<=diasNoMes;d++){
+      const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      if(new Date(dt+'T12:00:00').getDay()!==0) continue;
+      // Verificar seg-sab da semana (os 6 dias anteriores)
+      let temFalta=false;
+      for(let i=1;i<=6;i++){
+        const prev=new Date(dt+'T12:00:00');
+        prev.setDate(prev.getDate()-i);
+        const prevDt=prev.toISOString().slice(0,10);
+        // só conta dias do mesmo mês
+        if(prevDt.slice(0,7)!==mes) continue;
+        const reg=getRegistro(funcId,prevDt);
+        if(reg?.status==='F'){temFalta=true;break;} // FJ não perde o domingo
+      }
+      if(temFalta) domingos.push(dt);
+    }
+    return domingos;
+  }
+
+  // Resumo
+  html+='<div class="section-label" style="margin-top:16px">Resumo do mês</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'
+    +pontoFuncionarios.map(func=>{
+      let faltas=0; let hExtra=0; let presencas=0;
+      for(let d=1;d<=diasNoMes;d++){
+        const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        const dow=new Date(dt+'T12:00:00').getDay();
+        if(dow===0||dow===6) continue;
+        const reg=getRegistro(func.id,dt);
+        const s=reg?.status;
+        if(s==='F'||s==='FJ') faltas++;
+        else if(s==='M') faltas+=0.5;
+        else if(s==='P') presencas++;
+        hExtra+=reg?.horasExtra||0;
+      }
+      const domPerds=domingosPerdidos(func.id);
+      return '<div class="card" style="padding:12px">'
+        +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">'+func.nome+'</div>'
+        +(func.cargo?'<div style="font-size:10px;color:#64748b;margin-bottom:8px">'+func.cargo+'</div>':'')
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
+        +'<span style="color:#64748b">Presenças</span><span style="font-weight:700;color:#059669">'+presencas+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
+        +'<span style="color:#64748b">Faltas</span><span style="font-weight:700;color:'+(faltas>0?'#dc2626':'#94a3b8')+'">'+faltas+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
+        +'<span style="color:#64748b">Horas extra</span><span style="font-weight:700;color:'+(hExtra>0?'#3b82f6':'#94a3b8')+'">'+hExtra+'h</span></div>'
+        +(domPerds.length?'<div style="margin-top:8px;background:#fef2f2;border-radius:8px;padding:8px">'
+          +'<div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:4px">⚠️ Domingos perdidos ('+domPerds.length+')</div>'
+          +domPerds.map(dt=>{
+            const d=new Date(dt+'T12:00:00');
+            return '<div style="font-size:11px;color:#dc2626">'+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0')+'</div>';
+          }).join('')
+          +'</div>':'')
+        +'</div>';
+    }).join('')
+    +'</div>';
+
+  return html;
+}
+
+// ── Funções do ponto ──────────────────────────────────────────────
+
+window._abrirNovoPontoFunc=()=>{
+  showModal('Novo funcionário',
+    '<div class="form-group"><label>Nome</label><input id="pf-nome" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Cargo (opcional)</label><input id="pf-cargo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarPontoFunc()">Salvar</button>',true);
+};
+
+window._salvarPontoFunc=async()=>{
+  const nome=document.getElementById('pf-nome')?.value.trim();
+  if(!nome){showToast('Informe o nome.');return;}
+  const cargo=document.getElementById('pf-cargo')?.value.trim()||'';
+  await addDoc(collection(db,'ponto_funcionarios'),{nome,cargo,criadoEm:new Date().toISOString()});
+  closeModal();showToast('Funcionário adicionado!');
+};
+
+window._abrirEditPonto=(funcId,data)=>{
+  const func=pontoFuncionarios.find(f=>f.id===funcId);
+  if(!func) return;
+  const reg=pontoRegistros.find(r=>r.funcId===funcId&&r.data===data)||{};
+  const STATUS={P:'Presente',F:'Falta',FJ:'Falta Just.',M:'Meio Período',FO:'Folga'};
+  const optsStatus=Object.entries(STATUS).map(([k,v])=>'<option value="'+k+'"'+(reg.status===k?' selected':'')+'>'+k+' — '+v+'</option>').join('');
+  const d=new Date(data+'T12:00:00');
+  const nomeDia=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]+' '+data.split('-').reverse().join('/');
+  showModal(func.nome+' — '+nomeDia,
+    '<div class="form-group"><label>Status</label><select id="pe-status" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Não registrado —</option>'+optsStatus+'</select></div>'
+    +'<div class="form-group"><label>Horas extras</label><input id="pe-hextra" type="number" min="0" step="0.5" value="'+(reg.horasExtra||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Observação</label><input id="pe-obs" value="'+(reg.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(reg.id?'<button class="btn btn-danger btn-sm" onclick="window._excluirPonto(\''+reg.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarPonto(\''+funcId+'\',\''+data+'\','+(reg.id?'\''+reg.id+'\'':'null')+')">Salvar</button>',true);
+};
+
+window._salvarPonto=async(funcId,data,regId)=>{
+  const status=document.getElementById('pe-status')?.value;
+  const horasExtra=parseFloat(document.getElementById('pe-hextra')?.value)||0;
+  const obs=document.getElementById('pe-obs')?.value||'';
+  const dados={funcId,data,status,horasExtra,obs,atualizadoPor:currentUserData?.nome||''};
+  if(regId){await updateDoc(doc(db,'ponto_registros',regId),dados);}
+  else{await addDoc(collection(db,'ponto_registros'),dados);}
+  closeModal();showToast('Ponto salvo!');
+};
+
+window._excluirPonto=async(regId)=>{
+  await deleteDoc(doc(db,'ponto_registros',regId));
+  closeModal();showToast('Registro excluído.');
+};
+
+window._abrirRegistroPonto=()=>{
+  const optsFunc=pontoFuncionarios.map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');
+  const STATUS={P:'Presente',F:'Falta',FJ:'Falta Just.',M:'Meio Período',FO:'Folga'};
+  const optsStatus=Object.entries(STATUS).map(([k,v])=>'<option value="'+k+'">'+k+' — '+v+'</option>').join('');
+  showModal('Registrar dia completo',
+    '<div class="form-group"><label>Data</label><input id="pr-data" type="date" value="'+today()+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Status para todos</label><select id="pr-status" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsStatus+'</select></div>'
+    +'<div style="font-size:12px;color:#475569;margin-top:8px">Desmarque quem não aplicar:</div>'
+    +'<div style="max-height:180px;overflow-y:auto;margin-top:8px">'
+    +pontoFuncionarios.map(f=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px"><input type="checkbox" id="pr-func-'+f.id+'" checked> '+f.nome+'</label>').join('')
+    +'</div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarPontoLote()">Salvar</button>',true);
+};
+
+window._salvarPontoLote=async()=>{
+  const data=document.getElementById('pr-data')?.value;
+  const status=document.getElementById('pr-status')?.value;
+  if(!data||!status){showToast('Preencha data e status.');return;}
+  let count=0;
+  for(const func of pontoFuncionarios){
+    const cb=document.getElementById('pr-func-'+func.id);
+    if(!cb?.checked) continue;
+    const existing=pontoRegistros.find(r=>r.funcId===func.id&&r.data===data);
+    const dados={funcId:func.id,data,status,horasExtra:0,obs:'',atualizadoPor:currentUserData?.nome||''};
+    if(existing){await updateDoc(doc(db,'ponto_registros',existing.id),dados);}
+    else{await addDoc(collection(db,'ponto_registros'),dados);}
+    count++;
+  }
+  closeModal();showToast(count+' registros salvos!');
+};
+
 function renderConfigMetal(){
   const metas=configMetal.metas||{};
   const vProd=configMetal.valoresProd||{};
@@ -4665,6 +4918,7 @@ function renderTabMetal(tab){
   if(tab==='apontar')          return renderApontar();
   if(tab==='fichas_metal')     return renderFichasMetal();
   if(tab==='soldadores_metal') return renderSoldadoresMetal();
+  if(tab==='ponto_metal')      return renderPontoMetal();
   if(tab==='config_metal')     return renderConfigMetal();
   if(tab==='minha_prod')       return renderMinhaProd();
   if(tab==='meu_desempenho')   return renderMeuDesempenho();
@@ -4832,6 +5086,16 @@ function iniciarListeners(){
   onSnapshot(collection(db,'alm_movimentos'),snap=>{
     almMovimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='almoxarifado')reloadTab();
+  });
+
+  // Ponto metalúrgica
+  onSnapshot(collection(db,'ponto_funcionarios'),snap=>{
+    pontoFuncionarios=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  onSnapshot(collection(db,'ponto_registros'),snap=>{
+    pontoRegistros=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
   });
 
   // Metalúrgica — carrega sempre (necessário para restauração de sessão no mobile)
