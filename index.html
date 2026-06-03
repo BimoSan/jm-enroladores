@@ -3726,17 +3726,13 @@ function renderCamRotas(){
     +'</div>';
 
   // Stat cards
-  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-    <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
-      <div><div class="stat-label">Viagens no mês</div><div class="stat-value">${rotasMes.length}</div></div>
-    </div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
-      <div><div class="stat-label">Km rodados</div><div class="stat-value">${totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div>
-    </div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
-      <div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:16px">${fmtMoeda(totalGasto)}</div></div>
-    </div>
-  </div>`;
+  const totalGastoMot=rotasMes.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Viagens no mês</div><div class="stat-value">'+rotasMes.length+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalGasto)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#6366f1)"><div><div class="stat-label">Gasto motoristas</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalGastoMot)+'</div></div></div>'
+    +'</div>';
 
   if(!rotasMes.length){
     return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma rota registrada em '+mesNome+'.</div></div>';
@@ -4313,10 +4309,11 @@ function renderCamRelatorio(){
     const kmTotal=rotas.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
     const combTotal=rotas.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
     const manTotal=camManutencoes.filter(m=>(m.data||'').slice(0,7)===mesStr).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    return {mes:MESES[mi],kmTotal,combTotal,manTotal,viagens:rotas.length};
+    const motTotal=rotas.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
+    return {mes:MESES[mi],kmTotal,combTotal,manTotal,motTotal,viagens:rotas.length};
   });
 
-  const totalAnual={km:dadosMes.reduce((s,m)=>s+m.kmTotal,0),comb:dadosMes.reduce((s,m)=>s+m.combTotal,0),man:dadosMes.reduce((s,m)=>s+m.manTotal,0),viagens:dadosMes.reduce((s,m)=>s+m.viagens,0)};
+  const totalAnual={km:dadosMes.reduce((s,m)=>s+m.kmTotal,0),comb:dadosMes.reduce((s,m)=>s+m.combTotal,0),man:dadosMes.reduce((s,m)=>s+m.manTotal,0),mot:dadosMes.reduce((s,m)=>s+(m.motTotal||0),0),viagens:dadosMes.reduce((s,m)=>s+m.viagens,0)};
 
   // Por veículo
   const porVeiculo=camVeiculos.map(v=>{
@@ -4333,20 +4330,15 @@ function renderCamRelatorio(){
   </div>`;
 
   // Stat cards anuais
-  html+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">
-    <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
-      <div><div class="stat-label">Total de viagens</div><div class="stat-value">${totalAnual.viagens}</div></div>
-    </div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
-      <div><div class="stat-label">Km rodados</div><div class="stat-value">${totalAnual.km.toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div>
-    </div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
-      <div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAnual.comb)}</div></div>
-    </div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">
-      <div><div class="stat-label">Gasto manutenção</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAnual.man)}</div></div>
-    </div>
-  </div>`;
+  const totalAnualMot=camRotas.filter(r=>(r.data||'').slice(0,4)===ano).reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Total de viagens</div><div class="stat-value">'+totalAnual.viagens+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalAnual.km.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.comb)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)"><div><div class="stat-label">Gasto manutenção</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.man)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#6366f1)"><div><div class="stat-label">Gasto motoristas</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnualMot)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#7f1d1d,#ef4444)"><div><div class="stat-label">Custo total</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.comb+totalAnual.man+totalAnualMot)+'</div></div></div>'
+    +'</div>';
 
   // Tabela mensal
   html+='<div class="card" style="margin-bottom:14px">'
@@ -4358,6 +4350,7 @@ function renderCamRelatorio(){
     +'<th style="padding:7px 10px;text-align:right">Km</th>'
     +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
     +'<th style="padding:7px 10px;text-align:right">Manutenção</th>'
+    +'<th style="padding:7px 10px;text-align:right">Motoristas</th>'
     +'<th style="padding:7px 10px;text-align:right">Total</th>'
     +'</tr></thead><tbody>'
     +dadosMes.map((m,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+(m.mes===MESES[parseInt(today().slice(5,7))-1]&&today().slice(0,4)===ano?'font-weight:700;background:#eff6ff;':'')+'">'
@@ -4366,7 +4359,8 @@ function renderCamRelatorio(){
       +'<td style="padding:7px 10px;text-align:right">'+(m.kmTotal?m.kmTotal.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
       +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(m.combTotal?fmtMoeda(m.combTotal):'—')+'</td>'
       +'<td style="padding:7px 10px;text-align:right;color:#dc2626">'+(m.manTotal?fmtMoeda(m.manTotal):'—')+'</td>'
-      +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+(m.combTotal+m.manTotal?fmtMoeda(m.combTotal+m.manTotal):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;color:#6366f1">'+(m.motTotal?fmtMoeda(m.motTotal):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+(m.combTotal+m.manTotal+(m.motTotal||0)?fmtMoeda(m.combTotal+m.manTotal+(m.motTotal||0)):'—')+'</td>'
       +'</tr>').join('')
     +'<tr style="background:#f0f9ff;font-weight:700">'
     +'<td style="padding:8px 10px">TOTAL</td>'
@@ -4374,7 +4368,8 @@ function renderCamRelatorio(){
     +'<td style="padding:8px 10px;text-align:right">'+totalAnual.km.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalAnual.comb)+'</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#dc2626">'+fmtMoeda(totalAnual.man)+'</td>'
-    +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalAnual.comb+totalAnual.man)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#6366f1">'+fmtMoeda(totalAnual.mot||0)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalAnual.comb+totalAnual.man+(totalAnual.mot||0))+'</td>'
     +'</tr>'
     +'</tbody></table></div></div>';
 
