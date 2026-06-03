@@ -3607,6 +3607,13 @@ window._salvarPontoLote=async()=>{
 // SISTEMA DE CAMINHÕES / FROTAS
 // ═══════════════════════════════════════════════════════════════
 
+window._camNavMes=function(tipo,mes){
+  if(tipo==='cam_rotas') window._camRotaMes=mes;
+  else if(tipo==='cam_ab') window._camAbMes=mes;
+  else if(tipo==='cam_man') window._camManMes=mes;
+  reloadTab();
+};
+
 function camPodeEditar(){
   return ['admin','escritorio'].includes(currentUserData?.perfil);
 }
@@ -3670,14 +3677,14 @@ function renderCamRotas(){
   const mesAntStr=mesAnt.getFullYear()+'-'+String(mesAnt.getMonth()+1).padStart(2,'0');
   const mesProxStr=mesProx.getFullYear()+'-'+String(mesProx.getMonth()+1).padStart(2,'0');
 
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn btn-ghost btn-sm" onclick="window._camRotaMes='${mesAntStr}';reloadTab()">←</button>
-      <div style="font-size:16px;font-weight:700">${mesNome}</div>
-      <button class="btn btn-ghost btn-sm" onclick="window._camRotaMes='${mesProxStr}';reloadTab()">→</button>
-    </div>
-    ${camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovaRota()">+ Nova rota</button>':''}
-  </div>`;
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._camNavMes(\'cam_rotas\',this.dataset.m)" data-m="'+mesAntStr+'">←</button>'
+    +'<div style="font-size:16px;font-weight:700">'+mesNome+'</div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._camNavMes(\'cam_rotas\',this.dataset.m)" data-m="'+mesProxStr+'">→</button>'
+    +'</div>'
+    +(camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovaRota()">+ Nova rota</button>':'')
+    +'</div>';
 
   // Stat cards
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
@@ -3929,13 +3936,12 @@ function renderCamAbastecimento(){
   const mesAntStr=mesAnt.getFullYear()+'-'+String(mesAnt.getMonth()+1).padStart(2,'0');
   const mesProxStr=mesProx.getFullYear()+'-'+String(mesProx.getMonth()+1).padStart(2,'0');
 
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn btn-ghost btn-sm" onclick="window._camAbMes='${mesAntStr}';reloadTab()">←</button>
-      <div style="font-size:16px;font-weight:700">${mesNome}</div>
-      <button class="btn btn-ghost btn-sm" onclick="window._camAbMes='${mesProxStr}';reloadTab()">→</button>
-    </div>
-  </div>`;
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._camNavMes(\'cam_ab\',this.dataset.m)" data-m="'+mesAntStr+'">←</button>'
+    +'<div style="font-size:16px;font-weight:700">'+mesNome+'</div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._camNavMes(\'cam_ab\',this.dataset.m)" data-m="'+mesProxStr+'">→</button>'
+    +'</div></div>';
 
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
     <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
@@ -4019,14 +4025,14 @@ function renderCamManutencao(){
   const mansMes=camManutencoes.filter(r=>(r.data||'').slice(0,7)===mes);
   const totalGasto=mansMes.reduce((s,r)=>s+(parseFloat(r.valor)||0),0);
 
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn btn-ghost btn-sm" onclick="window._camManMes='${mesAntStr}';reloadTab()">←</button>
-      <div style="font-size:16px;font-weight:700">${mesNome}</div>
-      <button class="btn btn-ghost btn-sm" onclick="window._camManMes='${mesProxStr}';reloadTab()">→</button>
-    </div>
-    ${camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovaManutencao()">+ Nova manutenção</button>':''}
-  </div>`;
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._camNavMes(\'cam_man\',this.dataset.m)" data-m="'+mesAntStr+'">←</button>'
+    +'<div style="font-size:16px;font-weight:700">'+mesNome+'</div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._camNavMes(\'cam_man\',this.dataset.m)" data-m="'+mesProxStr+'">→</button>'
+    +'</div>'
+    +(camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovaManutencao()">+ Nova manutenção</button>':'')
+    +'</div>';
 
   html+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">
     <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">
