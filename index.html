@@ -338,6 +338,13 @@ let fichasMetal=[];
 let pontoFuncionarios=[]; // lista de funcionários do ponto
 let pontoRegistros=[];    // registros de ponto
 let almItens=[];
+// Caminhões
+let camVeiculos=[];
+let camMotoristas=[];
+let camRotas=[];
+let camAbastecimentos=[];
+let camManutencoes=[];
+let camPostos=[];
 let almMovimentos=[];
 let almConfig={
   pessoas:[...['Neneca','Gordo','Alan','Antônio','Luan','Inácio','Elton','João Victor','Mozart','Zé Wilson','Cliente','Netin','Marisa','Raimundinho','Tento']],
@@ -490,6 +497,12 @@ window._doLogin=async function(){
 
 // ── App shell ────────────────────────────────────────────────────
 const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  'cam_rotas':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',
+  'cam_abastecimento':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>',
+  'cam_manutencao':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
+  'cam_veiculos':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  'cam_motoristas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  'cam_relatorio':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'alm_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
   'alm_entrada':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
   'alm_saida':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
@@ -513,7 +526,16 @@ const TAB_LABELS={
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','ponto_metal':'Folha de Ponto','config_metal':'Configurações',
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking',
+  // Caminhões
+  'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
+  'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   // Almoxarifado
+  'cam_rotas':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',
+  'cam_abastecimento':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>',
+  'cam_manutencao':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
+  'cam_veiculos':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  'cam_motoristas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  'cam_relatorio':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
 };
@@ -526,7 +548,8 @@ function renderSelecionarFabrica(){
     {id:'cadeiras',     nome:'Fábrica de Cadeiras', icon:'🪑', cor:'#1e40af', bg:'linear-gradient(135deg,#1e40af,#3b82f6)', desc:'Metalúrgica, Enrolamento, Fitas e mais'},
     {id:'estofados',    nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Costura, Grades, Tapeçamento e Espuma'},
     {id:'almoxarifado', nome:'Almoxarifado',          icon:'📦', cor:'#92400e', bg:'linear-gradient(135deg,#92400e,#f59e0b)', desc:'Controle de estoque e materiais'},
-  ].filter(f=>f.id==='almoxarifado'?['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil):fabricasDisponiveis.includes(f.id));
+    {id:'caminhoes',    nome:'Caminhões',              icon:'🚚', cor:'#1e3a5f', bg:'linear-gradient(135deg,#1e3a5f,#2563eb)', desc:'Frotas, rotas e manutenção'},
+  ].filter(f=>f.id==='almoxarifado'?['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil):f.id==='caminhoes'?['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil):fabricasDisponiveis.includes(f.id));
 
   const cards=fabricas.map(f=>`
     <div class="fab-card" style="background:${f.bg};color:#fff" onclick="window._selecionarFabrica('${f.id}')">
@@ -559,7 +582,11 @@ function renderSelecionarFabrica(){
 window._selecionarFabrica=id=>{
   currentFabrica=id;
   sessionStorage.setItem('jm_fabrica',id);
-  if(id==='almoxarifado'){
+  if(id==='caminhoes'){
+    currentSetor='caminhoes';
+    sessionStorage.setItem('jm_setor','caminhoes');
+    currentTab='cam_rotas';
+  } else if(id==='almoxarifado'){
     currentSetor='almoxarifado';
     sessionStorage.setItem('jm_setor','almoxarifado');
     currentTab='alm_painel';
@@ -688,6 +715,9 @@ function renderApp(){
       tabs.push('painel_metal','ranking_metal');
     }
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
+  } else if(currentSetor==='caminhoes'){
+    tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
+    if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
     const podeEditar=['admin','apontador1'].includes(pf);
@@ -806,6 +836,7 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  if(currentSetor==='caminhoes') return renderTabCaminhoes(tab);
   if(currentSetor==='almoxarifado') return renderTabAlmox(tab);
   // Metalúrgica tem seu próprio sistema de tabs
   if(currentSetor==='metalurgica') return renderTabMetal(tab);
@@ -3579,6 +3610,744 @@ window._salvarPontoLote=async()=>{
   closeModal();showToast(count+' registros salvos!');
 };
 
+// ═══════════════════════════════════════════════════════════════
+// SISTEMA DE CAMINHÕES / FROTAS
+// ═══════════════════════════════════════════════════════════════
+
+function camPodeEditar(){
+  return ['admin','escritorio'].includes(currentUserData?.perfil);
+}
+
+function renderTabCaminhoes(tab){
+  try{
+    if(tab==='cam_rotas')         return renderCamRotas();
+    if(tab==='cam_abastecimento') return renderCamAbastecimento();
+    if(tab==='cam_manutencao')    return renderCamManutencao();
+    if(tab==='cam_veiculos')      return renderCamVeiculos();
+    if(tab==='cam_motoristas')    return renderCamMotoristas();
+    if(tab==='cam_relatorio')     return renderCamRelatorio();
+    return renderCamRotas();
+  }catch(e){
+    return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'<br><small>'+e.stack+'</small></div>';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function camGetVeiculo(id){ return camVeiculos.find(v=>v.id===id)||{}; }
+function camGetMotorista(id){ return camMotoristas.find(m=>m.id===id)||{}; }
+function camSelectVeiculos(selId,val){
+  return '<select id="'+selId+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:7px;padding:5px 8px;width:100%">'
+    +'<option value="">— Veículo —</option>'
+    +camVeiculos.map(v=>'<option value="'+v.id+'"'+(v.id===val?' selected':'')+'>'+v.modelo+' ('+v.placa+')</option>').join('')
+    +'</select>';
+}
+function camSelectMotoristas(selId,val){
+  return '<select id="'+selId+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:7px;padding:5px 8px;width:100%">'
+    +'<option value="">— Motorista —</option>'
+    +camMotoristas.map(m=>'<option value="'+m.id+'"'+(m.id===val?' selected':'')+'>'+m.nome+'</option>').join('')
+    +'</select>';
+}
+function camSelectPostos(selId,val){
+  const postos=camPostos.length?camPostos:[{id:'_avulso',nome:'Abastecimento Avulso'}];
+  return '<select id="'+selId+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:7px;padding:5px 8px;width:100%">'
+    +'<option value="">— Posto —</option>'
+    +postos.map(p=>'<option value="'+p.id+'"'+(p.id===val?' selected':'')+'>'+p.nome+'</option>').join('')
+    +'</select>';
+}
+
+// ── Rotas ─────────────────────────────────────────────────────────
+function renderCamRotas(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._camRotaMes) window._camRotaMes=today().slice(0,7);
+  const mes=window._camRotaMes;
+  const [ano,m]=mes.split('-');
+  const mesNome=MESES[parseInt(m)-1]+' '+ano;
+
+  const rotasMes=camRotas.filter(r=>(r.data||'').slice(0,7)===mes);
+  const totalKm=rotasMes.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
+  const totalGasto=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
+
+  function rotaTotalCombustivel(r){
+    return (r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+  }
+
+  // Navegação de mês
+  const mesAnt=new Date(parseInt(ano),parseInt(m)-2,1);
+  const mesProx=new Date(parseInt(ano),parseInt(m),1);
+  const mesAntStr=mesAnt.getFullYear()+'-'+String(mesAnt.getMonth()+1).padStart(2,'0');
+  const mesProxStr=mesProx.getFullYear()+'-'+String(mesProx.getMonth()+1).padStart(2,'0');
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="window._camRotaMes='${mesAntStr}';reloadTab()">←</button>
+      <div style="font-size:16px;font-weight:700">${mesNome}</div>
+      <button class="btn btn-ghost btn-sm" onclick="window._camRotaMes='${mesProxStr}';reloadTab()">→</button>
+    </div>
+    ${camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovaRota()">+ Nova rota</button>':''}
+  </div>`;
+
+  // Stat cards
+  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+      <div><div class="stat-label">Viagens no mês</div><div class="stat-value">${rotasMes.length}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
+      <div><div class="stat-label">Km rodados</div><div class="stat-value">${totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
+      <div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:16px">${fmtMoeda(totalGasto)}</div></div>
+    </div>
+  </div>`;
+
+  if(!rotasMes.length){
+    return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma rota registrada em '+mesNome+'.</div></div>';
+  }
+
+  // Tabela responsiva
+  html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="width:100%;border-collapse:collapse;min-width:700px;font-size:12px">'
+    +'<thead><tr style="background:#1e3a5f;color:#fff">'
+    +'<th style="padding:8px 10px;text-align:left">Data</th>'
+    +'<th style="padding:8px 10px;text-align:left">Veículo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Motorista</th>'
+    +'<th style="padding:8px 10px;text-align:left">Origem → Destino</th>'
+    +'<th style="padding:8px 10px;text-align:right">Km Ini.</th>'
+    +'<th style="padding:8px 10px;text-align:right">Km Fin.</th>'
+    +'<th style="padding:8px 10px;text-align:right">Km Rod.</th>'
+    +'<th style="padding:8px 10px;text-align:right">Combust.</th>'
+    +'<th style="padding:8px 10px;text-align:center">Postos</th>'
+    +(camPodeEditar()?'<th style="padding:8px 10px;text-align:center">Ações</th>':'')
+    +'</tr></thead><tbody>'
+    +rotasMes.map((r,i)=>{
+      const v=camGetVeiculo(r.veiculoId);
+      const mot=camGetMotorista(r.motoristId);
+      const kmRod=parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0);
+      const totalComb=rotaTotalCombustivel(r);
+      const nPostos=(r.abastecimentos||[]).length;
+      const d=r.data?r.data.split('-').reverse().join('/'):'-';
+      return '<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+        +'<td style="padding:7px 10px">'+d+'</td>'
+        +'<td style="padding:7px 10px;font-weight:600">'+(v.modelo||'—')+' <span style="font-size:10px;color:#64748b">'+(v.placa||'')+'</span></td>'
+        +'<td style="padding:7px 10px">'+(mot.nome||'—')+'</td>'
+        +'<td style="padding:7px 10px">'+(r.origem||'—')+' → '+(r.destino||'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(r.kmInicial?parseFloat(r.kmInicial).toLocaleString('pt-BR'):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(r.kmFinal?parseFloat(r.kmFinal).toLocaleString('pt-BR'):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#2563eb">'+(kmRod>0?kmRod.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(totalComb>0?fmtMoeda(totalComb):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:center"><span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">'+nPostos+'x</span></td>'
+        +(camPodeEditar()?'<td style="padding:7px 10px;text-align:center;white-space:nowrap">'
+        +'<button class="btn btn-sm btn-ghost" onclick="window._editarRota(this.dataset.id)" data-id="'+r.id+'" style="margin-right:4px">✏️</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="window._excluirRota(this.dataset.id)" data-id="'+r.id+'">🗑️</button>'
+        +'</td>':'<td></td>')
+        +'</tr>';
+    }).join('')
+    +'<tr style="background:#f0f9ff;font-weight:700">'
+    +'<td colspan="6" style="padding:8px 10px;text-align:right">TOTAL</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#2563eb">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+' km</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalGasto)+'</td>'
+    +'<td colspan="2"></td>'
+    +'</tr>'
+    +'</tbody></table></div>';
+
+  return html;
+}
+
+// Modal nova rota
+window._abrirNovaRota=function(rota){
+  const edit=rota&&rota.id;
+  const r=rota||{data:today(),abastecimentos:[{posto:'',combustivel:'Diesel',valUnit:'',litros:'',totalPago:'',gastoMot:''}]};
+  const abs=r.abastecimentos||[{posto:'',combustivel:'Diesel',valUnit:'',litros:'',totalPago:'',gastoMot:''}];
+
+  function rowAbs(a,i){
+    const postos=camPostos.length?camPostos:[{id:'_p1',nome:'Posto Jati Rede Mais'},{id:'_p2',nome:'Auto Posto Nordeste'},{id:'_p3',nome:'Araújo Petróleo'}];
+    const optsP=postos.map(p=>'<option value="'+p.nome+'"'+(a.posto===p.nome?' selected':'')+'>'+p.nome+'</option>').join('');
+    return '<tr id="abs-row-'+i+'">'
+      +'<td style="padding:4px"><select id="abs-posto-'+i+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"><option value="">— Posto —</option>'+optsP+'</select></td>'
+      +'<td style="padding:4px"><select id="abs-comb-'+i+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"><option value="Diesel"'+(a.combustivel==='Diesel'?' selected':'')+'>Diesel</option><option value="Gasolina"'+(a.combustivel==='Gasolina'?' selected':'')+'>Gasolina</option><option value="GNV"'+(a.combustivel==='GNV'?' selected':'')+'>GNV</option><option value="Etanol"'+(a.combustivel==='Etanol'?' selected':'')+'>Etanol</option></select></td>'
+      +'<td style="padding:4px"><input id="abs-valunit-'+i+'" type="number" step="0.01" placeholder="R$/L" value="'+(a.valUnit||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%" oninput="window._camCalcTotal('+i+')"></td>'
+      +'<td style="padding:4px"><input id="abs-litros-'+i+'" type="number" step="0.01" placeholder="Litros" value="'+(a.litros||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%" oninput="window._camCalcTotal('+i+')"></td>'
+      +'<td style="padding:4px"><input id="abs-total-'+i+'" type="number" step="0.01" placeholder="Total R$" value="'+(a.totalPago||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"></td>'
+      +'<td style="padding:4px"><input id="abs-gastoMot-'+i+'" type="number" step="0.01" placeholder="Gasto mot." value="'+(a.gastoMot||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"></td>'
+      +'<td style="padding:4px;text-align:center"><button onclick="window._removerAbsRow('+i+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button></td>'
+      +'</tr>';
+  }
+
+  const optsV=camVeiculos.map(v=>'<option value="'+v.id+'"'+(r.veiculoId===v.id?' selected':'')+'>'+v.modelo+' ('+v.placa+')</option>').join('');
+  const optsM=camMotoristas.map(m=>'<option value="'+m.id+'"'+(r.motoristId===m.id?' selected':'')+'>'+m.nome+'</option>').join('');
+
+  window._absCount=abs.length;
+
+  const body='<div class="form-row">'
+    +'<div class="form-group"><label>Data</label><input id="rota-data" type="date" value="'+(r.data||today())+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Veículo</label><select id="rota-veiculo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Veículo —</option>'+optsV+'</select></div>'
+    +'<div class="form-group"><label>Motorista</label><select id="rota-motorista" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Motorista —</option>'+optsM+'</select></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Origem</label><input id="rota-origem" value="'+(r.origem||'')+'" placeholder="ex: Juazeiro do Norte" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Destino</label><input id="rota-destino" value="'+(r.destino||'')+'" placeholder="ex: Fortaleza" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Km Inicial</label><input id="rota-kmini" type="number" value="'+(r.kmInicial||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Km Final</label><input id="rota-kmfin" type="number" value="'+(r.kmFinal||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Observação</label><input id="rota-obs" value="'+(r.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div style="font-size:12px;font-weight:700;color:#1e3a5f;margin:10px 0 6px">⛽ Abastecimentos</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
+    +'<thead><tr style="background:#f1f5f9">'
+    +'<th style="padding:6px 8px;text-align:left">Posto</th>'
+    +'<th style="padding:6px 8px;text-align:left">Combust.</th>'
+    +'<th style="padding:6px 8px">R$/L</th>'
+    +'<th style="padding:6px 8px">Litros</th>'
+    +'<th style="padding:6px 8px">Total R$</th>'
+    +'<th style="padding:6px 8px">Gasto mot.</th>'
+    +'<th style="padding:6px 8px"></th>'
+    +'</tr></thead>'
+    +'<tbody id="abs-tbody">'+abs.map((a,i)=>rowAbs(a,i)).join('')+'</tbody>'
+    +'</table></div>'
+    +'<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="window._adicionarAbsRow()">+ Adicionar posto</button>';
+
+  showModal((edit?'Editar':'Nova')+' rota', body,
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirRota(\''+r.id+'\',true)">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarRota(\''+(r.id||'')+'\')">Salvar</button>',
+    true
+  );
+  window._camRowTemplate=rowAbs;
+  window._camRotaEditando=rota||null;
+};
+
+window._camCalcTotal=function(i){
+  const val=parseFloat(document.getElementById('abs-valunit-'+i)?.value)||0;
+  const lit=parseFloat(document.getElementById('abs-litros-'+i)?.value)||0;
+  if(val&&lit){
+    const el=document.getElementById('abs-total-'+i);
+    if(el) el.value=(val*lit).toFixed(2);
+  }
+};
+
+window._adicionarAbsRow=function(){
+  const i=window._absCount++;
+  const tbody=document.getElementById('abs-tbody');
+  if(!tbody) return;
+  const tr=document.createElement('tr');
+  tr.id='abs-row-'+i;
+  tr.innerHTML=window._camRowTemplate({},i).replace(/<tr[^>]*>|<\/tr>/g,'');
+  tbody.appendChild(tr);
+};
+
+window._removerAbsRow=function(i){
+  const row=document.getElementById('abs-row-'+i);
+  if(row) row.remove();
+};
+
+window._salvarRota=async function(rotaId){
+  const veiculoId=document.getElementById('rota-veiculo')?.value;
+  const motoristId=document.getElementById('rota-motorista')?.value;
+  const data=document.getElementById('rota-data')?.value;
+  const origem=document.getElementById('rota-origem')?.value;
+  const destino=document.getElementById('rota-destino')?.value;
+  const kmInicial=parseFloat(document.getElementById('rota-kmini')?.value)||0;
+  const kmFinal=parseFloat(document.getElementById('rota-kmfin')?.value)||0;
+  const obs=document.getElementById('rota-obs')?.value||'';
+
+  if(!data||!veiculoId){showToast('Informe data e veículo.');return;}
+
+  // Coletar abastecimentos
+  const abastecimentos=[];
+  for(let i=0;i<window._absCount;i++){
+    const row=document.getElementById('abs-row-'+i);
+    if(!row) continue;
+    const posto=document.getElementById('abs-posto-'+i)?.value||'';
+    const combustivel=document.getElementById('abs-comb-'+i)?.value||'Diesel';
+    const valUnit=parseFloat(document.getElementById('abs-valunit-'+i)?.value)||0;
+    const litros=parseFloat(document.getElementById('abs-litros-'+i)?.value)||0;
+    const totalPago=parseFloat(document.getElementById('abs-total-'+i)?.value)||0;
+    const gastoMot=parseFloat(document.getElementById('abs-gastoMot-'+i)?.value)||0;
+    if(posto||litros||totalPago) abastecimentos.push({posto,combustivel,valUnit,litros,totalPago,gastoMot});
+  }
+
+  const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,obs,abastecimentos,
+    registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
+
+  if(rotaId){await updateDoc(doc(db,'cam_rotas',rotaId),dados);}
+  else{await addDoc(collection(db,'cam_rotas'),dados);}
+  closeModal();showToast('Rota salva!');
+};
+
+window._editarRota=function(id){
+  const rota=camRotas.find(r=>r.id===id);
+  if(rota) window._abrirNovaRota(rota);
+};
+
+window._excluirRota=async function(id,fromModal){
+  if(!confirm('Excluir esta rota?')) return;
+  if(fromModal) closeModal();
+  await deleteDoc(doc(db,'cam_rotas',id));
+  showToast('Rota excluída.');
+};
+
+// ── Abastecimento (histórico) ──────────────────────────────────────
+function renderCamAbastecimento(){
+  if(!window._camAbMes) window._camAbMes=today().slice(0,7);
+  const mes=window._camAbMes;
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [ano,m]=mes.split('-');
+  const mesNome=MESES[parseInt(m)-1]+' '+ano;
+  const mesAnt=new Date(parseInt(ano),parseInt(m)-2,1);
+  const mesProx=new Date(parseInt(ano),parseInt(m),1);
+
+  // Consolidar abastecimentos de todas as rotas do mês
+  const abs=[];
+  camRotas.filter(r=>(r.data||'').slice(0,7)===mes).forEach(r=>{
+    (r.abastecimentos||[]).forEach(a=>{
+      abs.push({...a, data:r.data, veiculo:camGetVeiculo(r.veiculoId), motorista:camGetMotorista(r.motoristId), rotaId:r.id});
+    });
+  });
+
+  const totalLitros=abs.reduce((s,a)=>s+(parseFloat(a.litros)||0),0);
+  const totalGasto=abs.reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+  const totalGastoMot=abs.reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+
+  // Agrupado por posto
+  const porPosto={};
+  abs.forEach(a=>{
+    const p=a.posto||'Não informado';
+    if(!porPosto[p])porPosto[p]={litros:0,total:0,count:0};
+    porPosto[p].litros+=parseFloat(a.litros)||0;
+    porPosto[p].total+=parseFloat(a.totalPago)||0;
+    porPosto[p].count++;
+  });
+
+  const mesAntStr=mesAnt.getFullYear()+'-'+String(mesAnt.getMonth()+1).padStart(2,'0');
+  const mesProxStr=mesProx.getFullYear()+'-'+String(mesProx.getMonth()+1).padStart(2,'0');
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="window._camAbMes='${mesAntStr}';reloadTab()">←</button>
+      <div style="font-size:16px;font-weight:700">${mesNome}</div>
+      <button class="btn btn-ghost btn-sm" onclick="window._camAbMes='${mesProxStr}';reloadTab()">→</button>
+    </div>
+  </div>`;
+
+  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+      <div><div class="stat-label">Total abastecimentos</div><div class="stat-value">${abs.length}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
+      <div><div class="stat-label">Litros</div><div class="stat-value">${totalLitros.toLocaleString('pt-BR',{maximumFractionDigits:1})}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
+      <div><div class="stat-label">Gasto total</div><div class="stat-value" style="font-size:16px">${fmtMoeda(totalGasto)}</div></div>
+    </div>
+  </div>`;
+
+  if(!abs.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum abastecimento em '+mesNome+'.</div></div>';
+
+  // Resumo por posto
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">⛽ Resumo por posto</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f1f5f9"><th style="padding:7px 10px;text-align:left">Posto</th><th style="padding:7px 10px;text-align:center">Abast.</th><th style="padding:7px 10px;text-align:right">Litros</th><th style="padding:7px 10px;text-align:right">Total R$</th></tr></thead><tbody>'
+    +Object.entries(porPosto).sort((a,b)=>b[1].total-a[1].total).map(([p,v],i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+      +'<td style="padding:7px 10px;font-weight:600">'+p+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+v.count+'</td>'
+      +'<td style="padding:7px 10px;text-align:right">'+v.litros.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#d97706">'+fmtMoeda(v.total)+'</td>'
+      +'</tr>').join('')
+    +'</tbody></table></div></div>';
+
+  // Tabela detalhada
+  html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
+    +'<thead><tr style="background:#1e3a5f;color:#fff">'
+    +'<th style="padding:8px 10px;text-align:left">Data</th>'
+    +'<th style="padding:8px 10px;text-align:left">Veículo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Motorista</th>'
+    +'<th style="padding:8px 10px;text-align:left">Posto</th>'
+    +'<th style="padding:8px 10px;text-align:left">Combust.</th>'
+    +'<th style="padding:8px 10px;text-align:right">R$/L</th>'
+    +'<th style="padding:8px 10px;text-align:right">Litros</th>'
+    +'<th style="padding:8px 10px;text-align:right">Total R$</th>'
+    +'<th style="padding:8px 10px;text-align:right">Gasto Mot.</th>'
+    +'</tr></thead><tbody>'
+    +abs.map((a,i)=>{
+      const d=a.data?a.data.split('-').reverse().join('/'):'-';
+      return '<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+        +'<td style="padding:7px 10px">'+d+'</td>'
+        +'<td style="padding:7px 10px">'+(a.veiculo?.modelo||'—')+' <span style="font-size:10px;color:#64748b">'+(a.veiculo?.placa||'')+'</span></td>'
+        +'<td style="padding:7px 10px">'+(a.motorista?.nome||'—')+'</td>'
+        +'<td style="padding:7px 10px">'+(a.posto||'—')+'</td>'
+        +'<td style="padding:7px 10px">'+(a.combustivel||'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(a.valUnit?'R$ '+parseFloat(a.valUnit).toFixed(2):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(a.litros?parseFloat(a.litros).toLocaleString('pt-BR',{maximumFractionDigits:1}):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#d97706">'+(a.totalPago?fmtMoeda(parseFloat(a.totalPago)):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(a.gastoMot?fmtMoeda(parseFloat(a.gastoMot)):'—')+'</td>'
+        +'</tr>';
+    }).join('')
+    +'<tr style="background:#f0f9ff;font-weight:700">'
+    +'<td colspan="6" style="padding:8px 10px;text-align:right">TOTAL</td>'
+    +'<td style="padding:8px 10px;text-align:right">'+totalLitros.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalGasto)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalGastoMot)+'</td>'
+    +'</tr>'
+    +'</tbody></table></div>';
+
+  return html;
+}
+
+// ── Manutenção ─────────────────────────────────────────────────────
+function renderCamManutencao(){
+  if(!window._camManMes) window._camManMes=today().slice(0,7);
+  const mes=window._camManMes;
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [ano,m]=mes.split('-');
+  const mesNome=MESES[parseInt(m)-1]+' '+ano;
+  const mesAnt=new Date(parseInt(ano),parseInt(m)-2,1);
+  const mesProx=new Date(parseInt(ano),parseInt(m),1);
+  const mesAntStr=mesAnt.getFullYear()+'-'+String(mesAnt.getMonth()+1).padStart(2,'0');
+  const mesProxStr=mesProx.getFullYear()+'-'+String(mesProx.getMonth()+1).padStart(2,'0');
+
+  const mansMes=camManutencoes.filter(r=>(r.data||'').slice(0,7)===mes);
+  const totalGasto=mansMes.reduce((s,r)=>s+(parseFloat(r.valor)||0),0);
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="window._camManMes='${mesAntStr}';reloadTab()">←</button>
+      <div style="font-size:16px;font-weight:700">${mesNome}</div>
+      <button class="btn btn-ghost btn-sm" onclick="window._camManMes='${mesProxStr}';reloadTab()">→</button>
+    </div>
+    ${camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovaManutencao()">+ Nova manutenção</button>':''}
+  </div>`;
+
+  html+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">
+    <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">
+      <div><div class="stat-label">Manutenções no mês</div><div class="stat-value">${mansMes.length}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)">
+      <div><div class="stat-label">Gasto total</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalGasto)}</div></div>
+    </div>
+  </div>`;
+
+  if(!mansMes.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma manutenção em '+mesNome+'.</div></div>';
+
+  html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
+    +'<thead><tr style="background:#4c1d95;color:#fff">'
+    +'<th style="padding:8px 10px;text-align:left">Data</th>'
+    +'<th style="padding:8px 10px;text-align:left">Veículo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Tipo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Serviço</th>'
+    +'<th style="padding:8px 10px;text-align:left">Causa</th>'
+    +'<th style="padding:8px 10px;text-align:right">Valor</th>'
+    +(camPodeEditar()?'<th style="padding:8px 10px;text-align:center">Ações</th>':'')
+    +'</tr></thead><tbody>'
+    +mansMes.map((r,i)=>{
+      const v=camGetVeiculo(r.veiculoId);
+      const d=r.data?r.data.split('-').reverse().join('/'):'-';
+      return '<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+        +'<td style="padding:7px 10px">'+d+'</td>'
+        +'<td style="padding:7px 10px;font-weight:600">'+(v.modelo||'—')+' <span style="font-size:10px;color:#64748b">'+(v.placa||'')+'</span></td>'
+        +'<td style="padding:7px 10px"><span style="background:'+(r.tipo==='Preventiva'?'#f0fdf4':'#fef2f2')+';color:'+(r.tipo==='Preventiva'?'#059669':'#dc2626')+';padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">'+(r.tipo||'—')+'</span></td>'
+        +'<td style="padding:7px 10px">'+(r.servico||'—')+'</td>'
+        +'<td style="padding:7px 10px;color:#64748b">'+(r.causa||'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#dc2626">'+fmtMoeda(parseFloat(r.valor)||0)+'</td>'
+        +(camPodeEditar()?'<td style="padding:7px 10px;text-align:center;white-space:nowrap">'
+        +'<button class="btn btn-sm btn-ghost" onclick="window._editarManutencao(this.dataset.id)" data-id="'+r.id+'" style="margin-right:4px">✏️</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="window._excluirManutencao(this.dataset.id)" data-id="'+r.id+'">🗑️</button>'
+        +'</td>':'<td></td>')
+        +'</tr>';
+    }).join('')
+    +'<tr style="background:#f5f3ff;font-weight:700">'
+    +'<td colspan="5" style="padding:8px 10px;text-align:right">TOTAL</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#dc2626">'+fmtMoeda(totalGasto)+'</td>'
+    +'<td></td></tr>'
+    +'</tbody></table></div>';
+
+  return html;
+}
+
+window._abrirNovaManutencao=function(man){
+  const edit=man&&man.id;
+  const r=man||{data:today()};
+  const optsV=camVeiculos.map(v=>'<option value="'+v.id+'"'+(r.veiculoId===v.id?' selected':'')+'>'+v.modelo+' ('+v.placa+')</option>').join('');
+  const TIPOS_MAN=['Preventiva','Corretiva','Emergencial'];
+  const optsT=TIPOS_MAN.map(t=>'<option value="'+t+'"'+(r.tipo===t?' selected':'')+'>'+t+'</option>').join('');
+  showModal((edit?'Editar':'Nova')+' manutenção',
+    '<div class="form-row"><div class="form-group"><label>Data</label><input id="man-data" type="date" value="'+(r.data||today())+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Veículo</label><select id="man-veiculo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Veículo —</option>'+optsV+'</select></div>'
+    +'<div class="form-group"><label>Tipo</label><select id="man-tipo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Tipo —</option>'+optsT+'</select></div></div>'
+    +'<div class="form-group"><label>Serviço</label><input id="man-servico" value="'+(r.servico||'')+'" placeholder="ex: Troca de óleo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-row"><div class="form-group"><label>Causa</label><input id="man-causa" value="'+(r.causa||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Valor R$</label><input id="man-valor" type="number" step="0.01" value="'+(r.valor||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div></div>'
+    +'<div class="form-group"><label>Observação</label><input id="man-obs" value="'+(r.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirManutencao(\''+r.id+'\',true)">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarManutencao(\''+(r.id||'')+'\')">Salvar</button>',true);
+};
+
+window._salvarManutencao=async function(manId){
+  const veiculoId=document.getElementById('man-veiculo')?.value;
+  const data=document.getElementById('man-data')?.value;
+  const tipo=document.getElementById('man-tipo')?.value;
+  const servico=document.getElementById('man-servico')?.value;
+  const causa=document.getElementById('man-causa')?.value;
+  const valor=parseFloat(document.getElementById('man-valor')?.value)||0;
+  const obs=document.getElementById('man-obs')?.value||'';
+  if(!data||!veiculoId){showToast('Informe data e veículo.');return;}
+  const dados={veiculoId,data,tipo,servico,causa,valor,obs,registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
+  if(manId){await updateDoc(doc(db,'cam_manutencoes',manId),dados);}
+  else{await addDoc(collection(db,'cam_manutencoes'),dados);}
+  closeModal();showToast('Manutenção salva!');
+};
+
+window._editarManutencao=function(id){
+  const m=camManutencoes.find(x=>x.id===id);
+  if(m) window._abrirNovaManutencao(m);
+};
+
+window._excluirManutencao=async function(id,fromModal){
+  if(!confirm('Excluir esta manutenção?')) return;
+  if(fromModal) closeModal();
+  await deleteDoc(doc(db,'cam_manutencoes',id));
+  showToast('Manutenção excluída.');
+};
+
+// ── Veículos ──────────────────────────────────────────────────────
+function renderCamVeiculos(){
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div style="font-size:16px;font-weight:700">🚚 Veículos cadastrados</div>'
+    +(camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovoVeiculo()">+ Novo veículo</button>':'')
+    +'</div>';
+
+  if(!camVeiculos.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum veículo cadastrado.</div>'
+    +'<button class="btn btn-primary" style="margin-top:10px" onclick="window._importarCamBase()">Importar dados da planilha</button></div>';
+
+  html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#1e3a5f;color:#fff">'
+    +'<th style="padding:8px 10px;text-align:left">Modelo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Placa</th>'
+    +'<th style="padding:8px 10px;text-align:left">Tipo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Cor</th>'
+    +'<th style="padding:8px 10px;text-align:center">Ano</th>'
+    +'<th style="padding:8px 10px;text-align:center">Ações</th>'
+    +'</tr></thead><tbody>'
+    +camVeiculos.map((v,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+      +'<td style="padding:8px 10px;font-weight:700">'+v.modelo+'</td>'
+      +'<td style="padding:8px 10px"><span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px">'+v.placa+'</span></td>'
+      +'<td style="padding:8px 10px">'+v.tipo+'</td>'
+      +'<td style="padding:8px 10px">'+v.cor+'</td>'
+      +'<td style="padding:8px 10px;text-align:center">'+v.ano+'</td>'
+      +'<td style="padding:8px 10px;text-align:center">'
+      +(camPodeEditar()?'<button class="btn btn-sm btn-ghost" onclick="window._editarVeiculo(this.dataset.id)" data-id="'+v.id+'">✏️</button>':'')
+      +'</td></tr>').join('')
+    +'</tbody></table></div>';
+  return html;
+}
+
+window._abrirNovoVeiculo=function(v){
+  const edit=v&&v.id;
+  const r=v||{};
+  const TIPOS_V=['Caminhão Baú','Caminhão Grade','Caminhão Plataforma','Picape','Moto','Van','Outro'];
+  const optsT=TIPOS_V.map(t=>'<option value="'+t+'"'+(r.tipo===t?' selected':'')+'>'+t+'</option>').join('');
+  showModal((edit?'Editar':'Novo')+' veículo',
+    '<div class="form-row"><div class="form-group"><label>Modelo</label><input id="v-modelo" value="'+(r.modelo||'')+'" placeholder="ex: Volkswagen Constellation" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Placa</label><input id="v-placa" value="'+(r.placa||'')+'" placeholder="ex: HYT-2D56" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div></div>'
+    +'<div class="form-row"><div class="form-group"><label>Tipo</label><select id="v-tipo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Tipo —</option>'+optsT+'</select></div>'
+    +'<div class="form-group"><label>Cor</label><input id="v-cor" value="'+(r.cor||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Ano</label><input id="v-ano" type="number" value="'+(r.ano||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirVeiculo(\''+r.id+'\',true)">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarVeiculo(\''+(r.id||'')+'\')">Salvar</button>',true);
+};
+
+window._importarCamBase=async function(){
+  if(!confirm('Importar 12 veículos, 12 motoristas e 4 postos da planilha original?')) return;
+  const veiculos=[{"tipo": "Picape", "modelo": "Hilux", "placa": "PSE-7802", "cor": "Prata", "ano": 2007}, {"tipo": "Picape", "modelo": "Hilux", "placa": "HXT-5830", "cor": "Prata", "ano": 2002}, {"tipo": "Picape", "modelo": "S10", "placa": "NJS-1G16", "cor": "Prata", "ano": 2009}, {"tipo": "Moto", "modelo": "Honda", "placa": "MPK-4D69", "cor": "Vermelho", "ano": 2013}, {"tipo": "Camião Bau", "modelo": "Mecedez Benz", "placa": "SAX-9H44", "cor": "Branco", "ano": 2024}, {"tipo": "Camião Bau", "modelo": "Volkswagen", "placa": "HYT-2D56", "cor": "Vermelho", "ano": 2008}, {"tipo": "Camião Bau", "modelo": "Volkswagen", "placa": "OKQ-2F87", "cor": "Branco", "ano": 2012}, {"tipo": "Camião Bau", "modelo": "Volkswagen", "placa": "HYT-1335", "cor": "Vermelho", "ano": 2012}, {"tipo": "Camião Grade", "modelo": "Mecedez Benz", "placa": "TIJ-3F11", "cor": "Branco", "ano": 2024}, {"tipo": "CAMINHÃO", "modelo": "Volkswagen", "placa": "JUX-6525", "cor": "Branco", "ano": 2007}, {"tipo": "CAMINHAO", "modelo": "Volkswagen", "placa": "POR8614", "cor": "Branca", "ano": 2020}, {"tipo": "ACELLO", "modelo": "Mercedes Benz", "placa": "PND4414", "cor": "Branca", "ano": 2018}];
+  const motoristas=[{"nome": "Luan", "telefone": "", "habilitacao": ""}, {"nome": "Raimundinho", "telefone": "", "habilitacao": ""}, {"nome": "Nino", "telefone": "", "habilitacao": ""}, {"nome": "Junior", "telefone": "", "habilitacao": ""}, {"nome": "Natalicio", "telefone": "", "habilitacao": ""}, {"nome": "Emerson", "telefone": "", "habilitacao": ""}, {"nome": "Bruno", "telefone": "", "habilitacao": ""}, {"nome": "Dez", "telefone": "", "habilitacao": ""}, {"nome": "Tiao", "telefone": "", "habilitacao": ""}, {"nome": "Junior Tio", "telefone": "", "habilitacao": ""}, {"nome": "Neto", "telefone": "", "habilitacao": ""}, {"nome": "Léo", "telefone": "", "habilitacao": ""}];
+  const postos=[{"nome": "Posto Jati Rede Mais"}, {"nome": "Auto Posto Nordeste"}, {"nome": "Araújo Petróleo Ltda"}, {"nome": "Abastecimento Avulso"}];
+  for(const v of veiculos) await addDoc(collection(db,'cam_veiculos'),v);
+  for(const m of motoristas) await addDoc(collection(db,'cam_motoristas'),m);
+  for(const p of postos) await addDoc(collection(db,'cam_postos'),p);
+  showToast('Dados importados com sucesso!');
+};
+
+window._salvarVeiculo=async function(id){
+  const modelo=document.getElementById('v-modelo')?.value.trim();
+  const placa=document.getElementById('v-placa')?.value.trim().toUpperCase();
+  if(!modelo||!placa){showToast('Informe modelo e placa.');return;}
+  const dados={modelo,placa,tipo:document.getElementById('v-tipo')?.value||'',cor:document.getElementById('v-cor')?.value||'',ano:parseInt(document.getElementById('v-ano')?.value)||0};
+  if(id){await updateDoc(doc(db,'cam_veiculos',id),dados);}
+  else{await addDoc(collection(db,'cam_veiculos'),dados);}
+  closeModal();showToast('Veículo salvo!');
+};
+window._editarVeiculo=function(id){const v=camVeiculos.find(x=>x.id===id);if(v)window._abrirNovoVeiculo(v);};
+window._excluirVeiculo=async function(id,fromModal){
+  if(!confirm('Excluir veículo?'))return;
+  if(fromModal)closeModal();
+  await deleteDoc(doc(db,'cam_veiculos',id));showToast('Veículo excluído.');
+};
+
+// ── Motoristas ─────────────────────────────────────────────────────
+function renderCamMotoristas(){
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div style="font-size:16px;font-weight:700">👤 Motoristas</div>'
+    +(camPodeEditar()?'<button class="btn btn-primary" onclick="window._abrirNovoMotorista()">+ Novo motorista</button>':'')
+    +'</div>';
+
+  if(!camMotoristas.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum motorista cadastrado.</div></div>';
+
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#1e3a5f;color:#fff">'
+    +'<th style="padding:8px 10px;text-align:left">Nome</th>'
+    +'<th style="padding:8px 10px;text-align:left">Telefone</th>'
+    +'<th style="padding:8px 10px;text-align:left">Habilitação</th>'
+    +'<th style="padding:8px 10px;text-align:center">Ações</th>'
+    +'</tr></thead><tbody>'
+    +camMotoristas.map((m,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+      +'<td style="padding:8px 10px;font-weight:700">'+m.nome+'</td>'
+      +'<td style="padding:8px 10px">'+(m.telefone||'—')+'</td>'
+      +'<td style="padding:8px 10px">'+(m.habilitacao||'—')+'</td>'
+      +'<td style="padding:8px 10px;text-align:center">'
+      +(camPodeEditar()?'<button class="btn btn-sm btn-ghost" onclick="window._editarMotorista(this.dataset.id)" data-id="'+m.id+'">✏️</button>':'')
+      +'</td></tr>').join('')
+    +'</tbody></table></div>';
+  return html;
+}
+
+window._abrirNovoMotorista=function(m){
+  const edit=m&&m.id; const r=m||{};
+  showModal((edit?'Editar':'Novo')+' motorista',
+    '<div class="form-row"><div class="form-group"><label>Nome</label><input id="mot-nome" value="'+(r.nome||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Telefone</label><input id="mot-tel" value="'+(r.telefone||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div></div>'
+    +'<div class="form-group"><label>Habilitação</label><input id="mot-hab" value="'+(r.habilitacao||'')+'" placeholder="ex: D" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirMotorista(\''+r.id+'\',true)">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarMotorista(\''+(r.id||'')+'\')">Salvar</button>',true);
+};
+window._salvarMotorista=async function(id){
+  const nome=document.getElementById('mot-nome')?.value.trim();
+  if(!nome){showToast('Informe o nome.');return;}
+  const dados={nome,telefone:document.getElementById('mot-tel')?.value||'',habilitacao:document.getElementById('mot-hab')?.value||''};
+  if(id){await updateDoc(doc(db,'cam_motoristas',id),dados);}
+  else{await addDoc(collection(db,'cam_motoristas'),dados);}
+  closeModal();showToast('Motorista salvo!');
+};
+window._editarMotorista=function(id){const m=camMotoristas.find(x=>x.id===id);if(m)window._abrirNovoMotorista(m);};
+window._excluirMotorista=async function(id,fromModal){
+  if(!confirm('Excluir motorista?'))return;
+  if(fromModal)closeModal();
+  await deleteDoc(doc(db,'cam_motoristas',id));showToast('Motorista excluído.');
+};
+
+// ── Relatório ──────────────────────────────────────────────────────
+function renderCamRelatorio(){
+  if(!window._camRelAno) window._camRelAno=today().slice(0,4);
+  const ano=window._camRelAno;
+  const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const anos=[...new Set(camRotas.map(r=>(r.data||'').slice(0,4)).filter(Boolean))].sort((a,b)=>b-a);
+  if(!anos.includes(today().slice(0,4)))anos.unshift(today().slice(0,4));
+  const anoOpts=anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'">'+a+'</option>').join('');
+
+  // Resumo anual por mês
+  const dadosMes=MESES.map((_,mi)=>{
+    const mesStr=ano+'-'+String(mi+1).padStart(2,'0');
+    const rotas=camRotas.filter(r=>(r.data||'').slice(0,7)===mesStr);
+    const kmTotal=rotas.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
+    const combTotal=rotas.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
+    const manTotal=camManutencoes.filter(m=>(m.data||'').slice(0,7)===mesStr).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+    return {mes:MESES[mi],kmTotal,combTotal,manTotal,viagens:rotas.length};
+  });
+
+  const totalAnual={km:dadosMes.reduce((s,m)=>s+m.kmTotal,0),comb:dadosMes.reduce((s,m)=>s+m.combTotal,0),man:dadosMes.reduce((s,m)=>s+m.manTotal,0),viagens:dadosMes.reduce((s,m)=>s+m.viagens,0)};
+
+  // Por veículo
+  const porVeiculo=camVeiculos.map(v=>{
+    const rotasV=camRotas.filter(r=>r.veiculoId===v.id&&(r.data||'').slice(0,4)===ano);
+    const km=rotasV.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
+    const comb=rotasV.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
+    const man=camManutencoes.filter(m=>m.veiculoId===v.id&&(m.data||'').slice(0,4)===ano).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+    return {v,km,comb,man,viagens:rotasV.length,total:comb+man};
+  }).filter(x=>x.viagens>0||x.man>0).sort((a,b)=>b.total-a.total);
+
+  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <div style="font-size:16px;font-weight:700">📊 Relatório Anual</div>
+    <select onchange="window._camRelAno=this.value;reloadTab()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 10px">${anoOpts}</select>
+  </div>`;
+
+  // Stat cards anuais
+  html+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">
+    <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+      <div><div class="stat-label">Total de viagens</div><div class="stat-value">${totalAnual.viagens}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)">
+      <div><div class="stat-label">Km rodados</div><div class="stat-value">${totalAnual.km.toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
+      <div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAnual.comb)}</div></div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">
+      <div><div class="stat-label">Gasto manutenção</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAnual.man)}</div></div>
+    </div>
+  </div>`;
+
+  // Tabela mensal
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Resumo mensal</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f1f5f9">'
+    +'<th style="padding:7px 10px;text-align:left">Mês</th>'
+    +'<th style="padding:7px 10px;text-align:center">Viagens</th>'
+    +'<th style="padding:7px 10px;text-align:right">Km</th>'
+    +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
+    +'<th style="padding:7px 10px;text-align:right">Manutenção</th>'
+    +'<th style="padding:7px 10px;text-align:right">Total</th>'
+    +'</tr></thead><tbody>'
+    +dadosMes.map((m,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+(m.mes===MESES[parseInt(today().slice(5,7))-1]&&today().slice(0,4)===ano?'font-weight:700;background:#eff6ff;':'')+'">'
+      +'<td style="padding:7px 10px">'+m.mes+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+(m.viagens||'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right">'+(m.kmTotal?m.kmTotal.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(m.combTotal?fmtMoeda(m.combTotal):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;color:#dc2626">'+(m.manTotal?fmtMoeda(m.manTotal):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+(m.combTotal+m.manTotal?fmtMoeda(m.combTotal+m.manTotal):'—')+'</td>'
+      +'</tr>').join('')
+    +'<tr style="background:#f0f9ff;font-weight:700">'
+    +'<td style="padding:8px 10px">TOTAL</td>'
+    +'<td style="padding:8px 10px;text-align:center">'+totalAnual.viagens+'</td>'
+    +'<td style="padding:8px 10px;text-align:right">'+totalAnual.km.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalAnual.comb)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#dc2626">'+fmtMoeda(totalAnual.man)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalAnual.comb+totalAnual.man)+'</td>'
+    +'</tr>'
+    +'</tbody></table></div></div>';
+
+  // Por veículo
+  if(porVeiculo.length){
+    html+='<div class="card">'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Por veículo</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f1f5f9">'
+      +'<th style="padding:7px 10px;text-align:left">Veículo</th>'
+      +'<th style="padding:7px 10px;text-align:center">Viagens</th>'
+      +'<th style="padding:7px 10px;text-align:right">Km</th>'
+      +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
+      +'<th style="padding:7px 10px;text-align:right">Manutenção</th>'
+      +'<th style="padding:7px 10px;text-align:right">Total</th>'
+      +'</tr></thead><tbody>'
+      +porVeiculo.map(({v,km,comb,man,viagens,total},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+        +'<td style="padding:7px 10px;font-weight:700">'+v.modelo+' <span style="font-size:10px;color:#64748b">'+v.placa+'</span></td>'
+        +'<td style="padding:7px 10px;text-align:center">'+viagens+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(km?km.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(comb?fmtMoeda(comb):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#dc2626">'+(man?fmtMoeda(man):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtMoeda(total)+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table></div></div>';
+  }
+
+  return html;
+}
+
 function renderConfigMetal(){
   const metas=configMetal.metas||{};
   const vProd=configMetal.valoresProd||{};
@@ -5119,6 +5888,19 @@ function iniciarListeners(){
   onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
+  ['cam_veiculos','cam_motoristas','cam_rotas','cam_abastecimentos','cam_manutencoes','cam_postos'].forEach(col=>{
+    onSnapshot(collection(db,col),snap=>{
+      const data=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(col==='cam_veiculos') camVeiculos=data.sort((a,b)=>a.modelo.localeCompare(b.modelo,'pt-BR'));
+      else if(col==='cam_motoristas') camMotoristas=data.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      else if(col==='cam_rotas') camRotas=data.sort((a,b)=>b.data>a.data?1:-1);
+      else if(col==='cam_abastecimentos') camAbastecimentos=data;
+      else if(col==='cam_manutencoes') camManutencoes=data;
+      else if(col==='cam_postos') camPostos=data.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData&&currentSetor==='caminhoes')reloadTab();
+    });
+  });
+
   // Almoxarifado config
   onSnapshot(doc(db,'alm_config','geral'),snap=>{
     if(snap.exists()) almConfig={...almConfig,...snap.data()};
@@ -5222,7 +6004,11 @@ onAuthStateChanged(auth,async user=>{
     const sessaoFabrica=sessionStorage.getItem('jm_fabrica');
     const sessaoSetor=sessionStorage.getItem('jm_setor');
     // Se sessão tem almoxarifado, respeitar isso antes do setor automático
-    if(sessaoFabrica==='almoxarifado'){
+    if(sessaoFabrica==='caminhoes'){
+    currentFabrica='caminhoes';
+    currentSetor='caminhoes';
+    currentTab='cam_rotas';
+  } else if(sessaoFabrica==='almoxarifado'){
       currentFabrica='almoxarifado';
       currentSetor='almoxarifado';
       currentTab='alm_painel';
