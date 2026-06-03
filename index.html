@@ -5137,8 +5137,8 @@ window._registrarAlmMov=async(tipo)=>{
   const tipoMov=document.getElementById('alm-tipo-mov')?.value;
   const qtd=parseInt(document.getElementById('alm-qtd')?.value)||0;
   const data=document.getElementById('alm-data')?.value||today();
-  const pessoa=document.getElementById('alm-pessoa')?.value;
-  const setor=document.getElementById('alm-setor')?.value;
+  const pessoa=tipo==='saida'?(document.getElementById('alm-pessoa')?.value||''):'';
+  const setor=tipo==='saida'?(document.getElementById('alm-setor')?.value||''):'';
   const obs=document.getElementById('alm-obs')?.value||'';
   const custoUnitario=tipo==='entrada'?(parseFloat(document.getElementById('alm-custo')?.value)||0):0;
   if(!itemId||qtd<=0){showToast('Informe o item e a quantidade.');return;}
