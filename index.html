@@ -677,8 +677,8 @@ window._voltarFabrica=()=>{
   render();
 };
 window._voltarSetores=()=>{
-  // Se estiver no almoxarifado, voltar para seleção de fábricas
-  if(currentFabrica==='almoxarifado'){
+  // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
+  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'){
     currentFabrica=null;
     currentSetor=null;
     sessionStorage.removeItem('jm_fabrica');
