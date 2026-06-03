@@ -3352,7 +3352,7 @@ function renderPontoMetal(){
     +'</tr></thead><tbody>'
     +pontoFuncionarios.map((func,fi)=>{
       let totalFaltas=0; let totalHExtra=0;
-      const cells=dias.map(({d,dt,isFds})=>{
+      const cells=dias.map(({d,dt,dow,isFds})=>{
         const reg=getRegistro(func.id,dt);
         let status=reg?.status||(isFds?'FO':'');
         const hExtra=reg?.horasExtra||0;
