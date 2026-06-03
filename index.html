@@ -2907,7 +2907,7 @@ function calcGanhoSoldador(soldadorId, periodo){
           if(bateuMeta){
             // Bateu meta no dia: tudo além da meta é produção; peças sem meta são pagas inteiras
             const excedente=meta>0 ? Math.max(0,qtdDia-meta) : qtdDia;
-            const val=parseFloat(vProd[p.id])||0;
+            const val=parseFloat(vMeta[p.id])||parseFloat(vProd[p.id])||0;
             totalGanho+=excedente*val;
           } else {
             // Não bateu meta: só excedente pelo valor da meta
