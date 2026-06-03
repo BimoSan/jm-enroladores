@@ -3708,6 +3708,7 @@ function renderCamRotas(){
     +'<th style="padding:8px 10px;text-align:right">Km Fin.</th>'
     +'<th style="padding:8px 10px;text-align:right">Km Rod.</th>'
     +'<th style="padding:8px 10px;text-align:right">Combust.</th>'
+    +'<th style="padding:8px 10px;text-align:center">Média</th>'
     +'<th style="padding:8px 10px;text-align:center">Postos</th>'
     +(camPodeEditar()?'<th style="padding:8px 10px;text-align:center">Ações</th>':'')
     +'</tr></thead><tbody>'
@@ -3727,6 +3728,15 @@ function renderCamRotas(){
         +'<td style="padding:7px 10px;text-align:right">'+(r.kmFinal?parseFloat(r.kmFinal).toLocaleString('pt-BR'):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#2563eb">'+(kmRod>0?kmRod.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(totalComb>0?fmtMoeda(totalComb):'—')+'</td>'
+        +(()=>{
+          const totalLitros=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.litros)||0),0);
+          const kmRod2=parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0);
+          const media=totalLitros>0&&kmRod2>0?(kmRod2/totalLitros):0;
+          const meta=camGetVeiculo(r.veiculoId).metaKmL||0;
+          const cor=!media?'#94a3b8':meta&&media<meta?'#dc2626':'#059669';
+          const bg=!media?'#f1f5f9':meta&&media<meta?'#fef2f2':'#f0fdf4';
+          return '<td style="padding:7px 10px;text-align:center">'+(media?'<span style="background:'+bg+';color:'+cor+';padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">'+media.toFixed(2)+' km/L</span>':'<span style="color:#94a3b8;font-size:11px">—</span>')+'</td>';
+        })()
         +'<td style="padding:7px 10px;text-align:center"><span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700">'+nPostos+'x</span></td>'
         +(camPodeEditar()?'<td style="padding:7px 10px;text-align:center;white-space:nowrap">'
         +'<button class="btn btn-sm btn-ghost" onclick="window._editarRota(this.dataset.id)" data-id="'+r.id+'" style="margin-right:4px">✏️</button>'
@@ -4125,6 +4135,7 @@ function renderCamVeiculos(){
     +'<th style="padding:8px 10px;text-align:left">Tipo</th>'
     +'<th style="padding:8px 10px;text-align:left">Cor</th>'
     +'<th style="padding:8px 10px;text-align:center">Ano</th>'
+    +'<th style="padding:8px 10px;text-align:center">Meta km/L</th>'
     +'<th style="padding:8px 10px;text-align:center">Ações</th>'
     +'</tr></thead><tbody>'
     +camVeiculos.map((v,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
@@ -4133,6 +4144,7 @@ function renderCamVeiculos(){
       +'<td style="padding:8px 10px">'+v.tipo+'</td>'
       +'<td style="padding:8px 10px">'+v.cor+'</td>'
       +'<td style="padding:8px 10px;text-align:center">'+v.ano+'</td>'
+      +'<td style="padding:8px 10px;text-align:center">'+(v.metaKmL?'<span style="font-weight:700;color:#2563eb">'+v.metaKmL+' km/L</span>':'—')+'</td>'
       +'<td style="padding:8px 10px;text-align:center">'
       +(camPodeEditar()?'<button class="btn btn-sm btn-ghost" onclick="window._editarVeiculo(this.dataset.id)" data-id="'+v.id+'">✏️</button>':'')
       +'</td></tr>').join('')
@@ -4150,6 +4162,7 @@ window._abrirNovoVeiculo=function(v){
     +'<div class="form-group"><label>Placa</label><input id="v-placa" value="'+(r.placa||'')+'" placeholder="ex: HYT-2D56" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div></div>'
     +'<div class="form-row"><div class="form-group"><label>Tipo</label><select id="v-tipo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Tipo —</option>'+optsT+'</select></div>'
     +'<div class="form-group"><label>Cor</label><input id="v-cor" value="'+(r.cor||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Meta km/L</label><input id="v-meta" type="number" step="0.1" placeholder="ex: 8.5" value="'+(r.metaKmL||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Ano</label><input id="v-ano" type="number" value="'+(r.ano||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div></div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirVeiculo(\''+r.id+'\',true)">Excluir</button>':'')
@@ -4171,7 +4184,7 @@ window._salvarVeiculo=async function(id){
   const modelo=document.getElementById('v-modelo')?.value.trim();
   const placa=document.getElementById('v-placa')?.value.trim().toUpperCase();
   if(!modelo||!placa){showToast('Informe modelo e placa.');return;}
-  const dados={modelo,placa,tipo:document.getElementById('v-tipo')?.value||'',cor:document.getElementById('v-cor')?.value||'',ano:parseInt(document.getElementById('v-ano')?.value)||0};
+  const dados={modelo,placa,tipo:document.getElementById('v-tipo')?.value||'',cor:document.getElementById('v-cor')?.value||'',ano:parseInt(document.getElementById('v-ano')?.value)||0,metaKmL:parseFloat(document.getElementById('v-meta')?.value)||0};
   if(id){await updateDoc(doc(db,'cam_veiculos',id),dados);}
   else{await addDoc(collection(db,'cam_veiculos'),dados);}
   closeModal();showToast('Veículo salvo!');
