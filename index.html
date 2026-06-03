@@ -4954,7 +4954,10 @@ function renderTabMetal(tab){
   if(tab==='apontar')          return renderApontar();
   if(tab==='fichas_metal')     return renderFichasMetal();
   if(tab==='soldadores_metal') return renderSoldadoresMetal();
-  if(tab==='ponto_metal')      return renderPontoMetal();
+  if(tab==='ponto_metal'){
+    try{return renderPontoMetal();}
+    catch(e){return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'<br><small>'+e.stack+'</small></div>';}
+  }
   if(tab==='config_metal')     return renderConfigMetal();
   if(tab==='minha_prod')       return renderMinhaProd();
   if(tab==='meu_desempenho')   return renderMeuDesempenho();
