@@ -188,6 +188,11 @@
   .back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:20px;padding:0;font-family:'Nunito',sans-serif}
   .back-btn:hover{color:#1e293b}
 .alm-item-opt:hover{background:#eff6ff!important}
+@media(max-width:600px){
+  .ponto-tabela{font-size:10px}
+  .ponto-tabela th,.ponto-tabela td{padding:4px 2px!important;min-width:24px!important}
+  .ponto-nome{min-width:80px!important}
+}
 </style>
 </head>
 <body>
@@ -675,6 +680,8 @@ function renderApp(){
       tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','soldadores_metal','ponto_metal','config_metal');
     }else if(perfMetal==='apontador_metal'){
       tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','ponto_metal');
+    }else if(['financeiro','escritorio','proprietario'].includes(perfMetal)){
+      tabs.push('ponto_metal');
     }else if(perfMetal==='soldador'){
       tabs.push('minha_prod','meu_desempenho','ranking_metal');
     }else{
@@ -3288,6 +3295,7 @@ window._confirmarExcluirSoldador=async id=>{
 // ── Configurações metalúrgica ─────────────────────────────────────
 function renderPontoMetal(){
   if(!window._pontoMes) window._pontoMes=today().slice(0,7);
+  const podeEditar=['admin','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
   const mes=window._pontoMes;
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const [ano,m]=mes.split('-');
@@ -3315,8 +3323,7 @@ function renderPontoMetal(){
       <button class="btn btn-ghost btn-sm" onclick="window._pontoMes='${mesSeguinte}';reloadTab()">→</button>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-primary btn-sm" onclick="window._abrirNovoPontoFunc()">+ Funcionário</button>
-      <button class="btn btn-ghost btn-sm" onclick="window._abrirRegistroPonto()">Registrar dia</button>
+      ${podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._abrirNovoPontoFunc()">+ Funcionário</button>':''}
     </div>
   </div>`;
 
@@ -3334,16 +3341,16 @@ function renderPontoMetal(){
   for(let d=1;d<=diasNoMes;d++){
     const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const dow=new Date(dt+'T12:00:00').getDay();
-    dias.push({d,dt,dow,isFds:dow===0||dow===6,isHoje:dt===hoje_});
+    dias.push({d,dt,dow,isDom:dow===0,isSab:dow===6,isFds:dow===0,isHoje:dt===hoje_});
   }
 
   html+='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">'
-    +'<table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
+    +'<table class="ponto-tabela" style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
     +'<thead><tr style="background:#1e293b;color:#fff">'
     +'<th style="padding:8px 12px;text-align:left;position:sticky;left:0;background:#1e293b;min-width:120px">Funcionário</th>'
     +dias.map(({d,dt,dow,isFds,isHoje})=>{
       const nm=['D','S','T','Q','Q','S','S'][dow];
-      return '<th style="padding:6px 4px;text-align:center;min-width:32px;'+(isHoje?'background:#3b82f6;':isFds?'background:#374151;':'')+'">'+
+      return '<th style="padding:6px 4px;text-align:center;min-width:32px;'+(isHoje?'background:#3b82f6;':isDom?'background:#374151;':isSab?'background:#475569;':'')+'">'+
         '<div style="font-size:9px;opacity:.7">'+nm+'</div>'+
         '<div>'+d+'</div></th>';
     }).join('')
@@ -3352,9 +3359,9 @@ function renderPontoMetal(){
     +'</tr></thead><tbody>'
     +pontoFuncionarios.map((func,fi)=>{
       let totalFaltas=0; let totalHExtra=0;
-      const cells=dias.map(({d,dt,dow,isFds})=>{
+      const cells=dias.map(({d,dt,dow,isDom,isSab,isFds})=>{
         const reg=getRegistro(func.id,dt);
-        let status=reg?.status||(isFds?'FO':'');
+        let status=reg?.status||(isDom?'FO':'');
         const hExtra=reg?.horasExtra||0;
         if(status==='F'||status==='FJ'||status==='M') totalFaltas+=(status==='M'?0.5:1);
         totalHExtra+=hExtra;
@@ -3373,14 +3380,14 @@ function renderPontoMetal(){
         const COR_EXT={...COR_STATUS,FNR:'#dc2626'};
         const BG_EXT={...BG_STATUS,FNR:'#fecaca'};
         const cor=COR_EXT[status]||'#94a3b8';
-        const bg=BG_EXT[status]||'transparent';
+        const bg=BG_EXT[status]||(isSab?'#f8f9fa':'transparent');
         return '<td style="padding:3px 2px;text-align:center;background:'+bg+';cursor:pointer" onclick="window._abrirEditPonto(\''+func.id+'\',\''+dt+'\')" title="'+func.nome+' - '+dt+(hExtra?' | '+hExtra+'h extra':'')+'">'
           +'<div style="font-size:11px;font-weight:700;color:'+cor+'">'+(status||'·')+'</div>'
           +(hExtra?'<div style="font-size:8px;color:#3b82f6">+'+hExtra+'h</div>':'')
           +'</td>';
       }).join('');
       return '<tr style="'+(fi%2?'background:#f8fafc;':'background:#fff;')+'">'
-        +'<td style="padding:8px 12px;font-weight:600;position:sticky;left:0;background:'+(fi%2?'#f8fafc':'#fff')+';border-right:1px solid #e2e8f0">'
+        +'<td class="ponto-nome" style="padding:8px 12px;font-weight:600;position:sticky;left:0;background:'+(fi%2?'#f8fafc':'#fff')+';border-right:1px solid #e2e8f0">'
         +'<div>'+func.nome+'</div>'
         +(func.cargo?'<div style="font-size:10px;color:#64748b">'+func.cargo+'</div>':'')
         +'</td>'
