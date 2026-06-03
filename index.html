@@ -3873,9 +3873,14 @@ window._salvarRota=async function(rotaId){
   const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,obs,abastecimentos,
     registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
 
-  if(rotaId){await updateDoc(doc(db,'cam_rotas',rotaId),dados);}
-  else{await addDoc(collection(db,'cam_rotas'),dados);}
-  closeModal();showToast('Rota salva!');
+  try{
+    if(rotaId){await updateDoc(doc(db,'cam_rotas',rotaId),dados);}
+    else{await addDoc(collection(db,'cam_rotas'),dados);}
+    closeModal();showToast('Rota salva!');
+  }catch(e){
+    showToast('Erro ao salvar: '+e.message);
+    console.error(e);
+  }
 };
 
 window._editarRota=function(id){
