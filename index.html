@@ -3732,10 +3732,11 @@ function renderCamRotas(){
         +'<button class="btn btn-sm btn-ghost" onclick="window._editarRota(this.dataset.id)" data-id="'+r.id+'" style="margin-right:4px">✏️</button>'
         +'<button class="btn btn-sm btn-ghost" onclick="window._excluirRota(this.dataset.id)" data-id="'+r.id+'">🗑️</button>'
         +'</td>':'<td></td>')
+        +(camPodeEditar()?'<td style="padding:7px 6px;text-align:center"><button class="btn btn-sm btn-ghost" onclick="window._editarRota(this.dataset.id)" data-id="'+a.rotaId+'" title="Editar rota">✏️</button></td>':'')
         +'</tr>';
     }).join('')
     +'<tr style="background:#f0f9ff;font-weight:700">'
-    +'<td colspan="6" style="padding:8px 10px;text-align:right">TOTAL</td>'
+    +'<td colspan="'+(camPodeEditar()?'7':'6')+'" style="padding:8px 10px;text-align:right">TOTAL</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#2563eb">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+' km</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalGasto)+'</td>'
     +'<td colspan="2"></td>'
@@ -3961,7 +3962,7 @@ function renderCamAbastecimento(){
     +'<th style="padding:8px 10px;text-align:right">R$/L</th>'
     +'<th style="padding:8px 10px;text-align:right">Litros</th>'
     +'<th style="padding:8px 10px;text-align:right">Total R$</th>'
-    +'<th style="padding:8px 10px;text-align:right">Gasto Mot.</th>'
+    +(camPodeEditar()?'<th style="padding:8px 10px;text-align:center">Rota</th>':'')
     +'</tr></thead><tbody>'
     +abs.map((a,i)=>{
       const d=a.data?a.data.split('-').reverse().join('/'):'-';
@@ -3975,10 +3976,11 @@ function renderCamAbastecimento(){
         +'<td style="padding:7px 10px;text-align:right">'+(a.litros?parseFloat(a.litros).toLocaleString('pt-BR',{maximumFractionDigits:1}):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#d97706">'+(a.totalPago?fmtMoeda(parseFloat(a.totalPago)):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right">'+(a.gastoMot?fmtMoeda(parseFloat(a.gastoMot)):'—')+'</td>'
+        +(camPodeEditar()?'<td style="padding:7px 6px;text-align:center"><button class="btn btn-sm btn-ghost" onclick="window._editarRota(this.dataset.id)" data-id="'+a.rotaId+'" title="Editar rota">✏️</button></td>':'')
         +'</tr>';
     }).join('')
     +'<tr style="background:#f0f9ff;font-weight:700">'
-    +'<td colspan="6" style="padding:8px 10px;text-align:right">TOTAL</td>'
+    +'<td colspan="'+(camPodeEditar()?'7':'6')+'" style="padding:8px 10px;text-align:right">TOTAL</td>'
     +'<td style="padding:8px 10px;text-align:right">'+totalLitros.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalGasto)+'</td>'
     +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalGastoMot)+'</td>'
