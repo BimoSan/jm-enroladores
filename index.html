@@ -3348,7 +3348,7 @@ function renderPontoMetal(){
     +'<table class="ponto-tabela" style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
     +'<thead><tr style="background:#1e293b;color:#fff">'
     +'<th style="padding:8px 12px;text-align:left;position:sticky;left:0;background:#1e293b;min-width:120px">Funcionário</th>'
-    +dias.map(({d,dt,dow,isFds,isHoje})=>{
+    +dias.map(({d,dt,dow,isDom,isSab,isFds,isHoje})=>{
       const nm=['D','S','T','Q','Q','S','S'][dow];
       return '<th style="padding:6px 4px;text-align:center;min-width:32px;'+(isHoje?'background:#3b82f6;':isDom?'background:#374151;':isSab?'background:#475569;':'')+'">'+
         '<div style="font-size:9px;opacity:.7">'+nm+'</div>'+
