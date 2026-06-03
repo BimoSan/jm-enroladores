@@ -351,7 +351,10 @@ let unsubUsuarios=null;
 // ── Helpers ──────────────────────────────────────────────────────
 const avatarColor=i=>COLORS[i%COLORS.length];
 const initials=n=>n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-const today=()=>new Date().toISOString().split('T')[0];
+const today=()=>{
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+};
 const fmtDate=s=>{if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`};
 const corPill=cor=>{if(!cor)return'';const st=COR_STYLE[cor]||{bg:'#eee',color:'#333'};return`<span class="cor-pill" style="background:${st.bg};color:${st.color}">${cor}</span>`};
 const getEnr=id=>enroladores.find(e=>e.id===id);
