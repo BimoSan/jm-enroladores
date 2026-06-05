@@ -5407,6 +5407,7 @@ window._addCorFita=function(){
 
 window._salvarConfigFitas=async function(){
   const lista=document.getElementById('cf-lista');
+  console.log('cf-lista:', lista, 'filhos:', lista?.children.length);
   if(!lista) return;
   const cores=[];
   Array.from(lista.children).forEach(row=>{
