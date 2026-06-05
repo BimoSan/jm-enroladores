@@ -5194,7 +5194,13 @@ function renderSaidasFitas(){
   const hoje=today();
   const saidHoje=saidasFitas.filter(s=>s.data===hoje);
   const optsEnrInt=enroladoresInt.filter(e=>e.ativo!==false).map(e=>'<option value="enr_int:'+e.id+'">Enrolador Interno — '+e.nome+'</option>').join('');
-  const optsEnrExt=enroladores.map(e=>'<option value="enr_ext:'+e.id+'">Enrolador Terceirizado — '+e.nome+'</option>').join('');
+  // Apontadores do terceirizado (Inácio e Mirandinha)
+  const apontadores=enroladores.filter(e=>e.nome&&(e.nome.toLowerCase().includes('inácio')||e.nome.toLowerCase().includes('inacio')||e.nome.toLowerCase().includes('mirandinha')));
+  // Fallback: buscar pelos perfis apontador1 e apontador2
+  const optsApt=['apontador1','apontador2'].map(p=>{
+    const nomes={'apontador1':'Inácio','apontador2':'Mirandinha'};
+    return '<option value="apt:'+p+'">Terceirizado — '+nomes[p]+'</option>';
+  }).join('');
   const optsCores=cores.map(c=>'<option value="'+c.nome+'">'+c.nome+'</option>').join('');
 
   let html='<div class="card">'
@@ -5204,7 +5210,7 @@ function renderSaidasFitas(){
     +'<select id="sf-destino" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
     +'<option value="">— Selecione —</option>'
     +'<optgroup label="Enroladores Internos">'+optsEnrInt+'</optgroup>'
-    +'<optgroup label="Enroladores Terceirizados">'+optsEnrExt+'</optgroup>'
+    +'<optgroup label="Terceirizado">'+optsApt+'</optgroup>'
     +'<optgroup label="Outros"><option value="venda">Venda</option><option value="doacao">Doação</option><option value="outro">Outro</option></optgroup>'
     +'</select></div>'
     +'<div class="form-group"><label>Data</label>'
@@ -5270,9 +5276,9 @@ window._registrarSaidaFita=async function(){
   if(destino.startsWith('enr_int:')){
     enroladorIntId=destino.split(':')[1];
     destinoNome='Enrolador Interno — '+(enroladoresInt.find(e=>e.id===enroladorIntId)?.nome||'');
-  } else if(destino.startsWith('enr_ext:')){
-    enroladorExtId=destino.split(':')[1];
-    destinoNome='Enrolador Terceirizado — '+(enroladores.find(e=>e.id===enroladorExtId)?.nome||'');
+  } else if(destino.startsWith('apt:')){
+    const nomes={'apontador1':'Inácio','apontador2':'Mirandinha'};
+    destinoNome='Terceirizado — '+(nomes[destino.split(':')[1]]||destino);
   } else {
     const labels={venda:'Venda',doacao:'Doação',outro:'Outro'};
     destinoNome=labels[destino]||destino;
