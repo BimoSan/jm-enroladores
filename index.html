@@ -3227,6 +3227,19 @@ window._limparApontMetal=()=>{
 
 window._apontModo='meta';
 
+window._setEaModo=function(modo){
+  const bMeta=document.getElementById('ea-modo-meta');
+  const bProd=document.getElementById('ea-modo-prod');
+  if(!bMeta||!bProd) return;
+  if(modo==='meta'){
+    bMeta.style.border='2px solid #059669'; bMeta.style.background='#f0fdf4'; bMeta.style.color='#059669';
+    bProd.style.border='2px solid #e2e8f0'; bProd.style.background='#fff'; bProd.style.color='#64748b';
+  } else {
+    bProd.style.border='2px solid #2563eb'; bProd.style.background='#eff6ff'; bProd.style.color='#2563eb';
+    bMeta.style.border='2px solid #e2e8f0'; bMeta.style.background='#fff'; bMeta.style.color='#64748b';
+  }
+};
+
 window._setApontModo=function(modo){
   window._apontModo=modo;
   const bMeta=document.getElementById('ap-modo-meta');
@@ -3279,6 +3292,12 @@ window._editarApontMetal=id=>{
     +'<div class="form-group"><label>Soldador</label><select id="ea-soldador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+opts+'</select></div>'
     +'<div class="form-group"><label>Data</label><input type="date" id="ea-data" value="'+a.data+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
+    +(sol&&sol.contrato==='fichado'?'<div style="margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Modo de cálculo</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button id="ea-modo-meta" onclick="window._setEaModo(\'meta\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(a.modoCalculo==='prod'?'#e2e8f0':'#059669')+';background:'+(a.modoCalculo==='prod'?'#fff':'#f0fdf4')+';color:'+(a.modoCalculo==='prod'?'#64748b':'#059669')+';font-size:12px;font-weight:700;cursor:pointer">🎯 Meta (padrão)</button>'
+    +'<button id="ea-modo-prod" onclick="window._setEaModo(\'prod\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(a.modoCalculo==='prod'?'#2563eb':'#e2e8f0')+';background:'+(a.modoCalculo==='prod'?'#eff6ff':'#fff')+';color:'+(a.modoCalculo==='prod'?'#2563eb':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">⚡ Produção</button>'
+    +'</div></div>':'')
     +'<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px">PEÇAS PRODUZIDAS</div>'
     +'<div class="num-inputs">'+grid+'</div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
@@ -3294,7 +3313,8 @@ window._salvarEdicaoApoint=async id=>{
     const v=parseInt(document.getElementById('ea-'+p.id)?.value)||0;
     if(v>0) pecas[p.id]=v;
   });
-  await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas});
+  const modoCalculo=(document.getElementById('ea-modo-prod')?.style.borderColor==='rgb(37, 99, 235)')?'prod':'meta';
+  await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas,modoCalculo});
   closeModal();
   showToast('Apontamento atualizado!');
 };
