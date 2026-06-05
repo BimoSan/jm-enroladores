@@ -5418,11 +5418,14 @@ window._salvarConfigFitas=async function(){
     const hex=hexEl?.value||'#6366f1';
     if(nome) cores.push({nome,hex});
   });
+  console.log('Cores a salvar:', JSON.stringify(cores));
+  if(!cores.length){ showToast('Nenhuma cor para salvar.'); return; }
   try{
     await setDoc(doc(db,'config_fitas','geral'),{cores});
-    showToast('Cores salvas!');
+    showToast('Cores salvas! ('+cores.length+' cores)');
   }catch(e){
-    showToast('Erro ao salvar: '+e.message);
+    showToast('Erro: '+e.message);
+    console.error('Erro Firestore:', e);
   }
 };
 
