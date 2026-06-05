@@ -2909,12 +2909,15 @@ function calcGanhoSoldador(soldadorId, periodo){
 
       if(!pecasDia.length) return;
 
-      const bateuMeta=pecasDia.some(p=>p.meta>0&&p.qtd>=p.meta);
+      // Verificar se o apontamento do dia tem modoCalculo='prod' (ex: feriado)
+      const modoProd=apDia.some(a=>a.modoCalculo==='prod');
+      const bateuMeta=!modoProd && pecasDia.some(p=>p.meta>0&&p.qtd>=p.meta);
+      const forcarProducao=modoProd;
 
-      if(bateuMeta){
-        // Dia liberado: excedente de cada peça (ou tudo se sem meta)
+      if(forcarProducao||bateuMeta){
+        // Dia liberado: excedente de cada peça (ou tudo se sem meta ou modo produção)
         pecasDia.forEach(p=>{
-          const excedente=p.meta>0&&p.qtd>=p.meta?Math.max(0,p.qtd-p.meta):p.qtd;
+          const excedente=forcarProducao?p.qtd:(p.meta>0&&p.qtd>=p.meta?Math.max(0,p.qtd-p.meta):p.qtd);
           totalGanho+=excedente*p.val;
         });
       } else {
@@ -3179,11 +3182,18 @@ function renderApontar(){
   return `<div class="card" style="margin-bottom:16px">
     <div style="font-size:13px;font-weight:600;margin-bottom:14px">Registrar produção</div>
     <div class="form-row" style="margin-bottom:14px">
-      <div class="form-group"><label>Soldador</label><select id="ap-soldador">${opts}</select></div>
+      <div class="form-group"><label>Soldador</label><select id="ap-soldador" onchange="window._apontSoldadorChange()">${opts}</select></div>
       <div class="form-group"><label>Data</label><input type="date" id="ap-data" value="${today()}"></div>
     </div>
     <div class="section-label" style="margin-bottom:10px">Peças produzidas <span style="color:#7c3aed;font-size:10px">· roxo = reforma</span></div>
     <div class="num-inputs">${grid}</div>
+    <div id="ap-modo-container" style="margin-bottom:12px;display:none">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Modo de cálculo</div>
+      <div style="display:flex;gap:8px">
+        <button id="ap-modo-meta" onclick="window._setApontModo('meta')" style="flex:1;padding:8px;border-radius:8px;border:2px solid #059669;background:#f0fdf4;color:#059669;font-size:12px;font-weight:700;cursor:pointer">🎯 Meta (padrão)</button>
+        <button id="ap-modo-prod" onclick="window._setApontModo('prod')" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer">⚡ Produção</button>
+      </div>
+    </div>
     <div style="margin-top:14px;display:flex;gap:8px">
       <button class="btn btn-primary" onclick="window._registrarApontMetal()">Registrar produção</button>
       <button class="btn btn-ghost" onclick="window._limparApontMetal()">Limpar</button>
@@ -3205,12 +3215,38 @@ window._registrarApontMetal=async()=>{
     if(v>0){pecas[p.id]=v;totalPecas+=v;}
   });
   if(!totalPecas){showToast('Informe pelo menos uma peça.');return;}
-  await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,criadoEm:new Date().toISOString()});
+  const modoCalculo=window._apontModo||'meta';
+  await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,modoCalculo,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
   window._limparApontMetal();
 };
 window._limparApontMetal=()=>{
   PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value='';});
+  window._setApontModo('meta');
+};
+
+window._apontModo='meta';
+
+window._setApontModo=function(modo){
+  window._apontModo=modo;
+  const bMeta=document.getElementById('ap-modo-meta');
+  const bProd=document.getElementById('ap-modo-prod');
+  if(!bMeta||!bProd) return;
+  if(modo==='meta'){
+    bMeta.style.border='2px solid #059669'; bMeta.style.background='#f0fdf4'; bMeta.style.color='#059669';
+    bProd.style.border='2px solid #e2e8f0'; bProd.style.background='#fff'; bProd.style.color='#64748b';
+  } else {
+    bProd.style.border='2px solid #2563eb'; bProd.style.background='#eff6ff'; bProd.style.color='#2563eb';
+    bMeta.style.border='2px solid #e2e8f0'; bMeta.style.background='#fff'; bMeta.style.color='#64748b';
+  }
+};
+
+window._apontSoldadorChange=function(){
+  const id=document.getElementById('ap-soldador')?.value;
+  const s=soldadores.find(x=>x.id===id);
+  const container=document.getElementById('ap-modo-container');
+  if(container) container.style.display=(s&&s.contrato==='fichado')?'block':'none';
+  window._setApontModo('meta');
 };
 
 window._excluirApontMetal=id=>{
