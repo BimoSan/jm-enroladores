@@ -622,7 +622,7 @@ function renderSelecionarSetor(){
   const setoresCadeiras=[
     {id:'enrolamento_terc', nome:'Enrolamento Terceirizado', icon:'🧵', desc:'Controle de fichas e enroladores', ativo:true},
     {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:true},
-    {id:'fitas',            nome:'Setor de Fitas',           icon:'🎀', desc:'Entrega de fitas aos enroladores', ativo:true},
+    {id:'fitas',            nome:'Setor de Fitas',           icon:'🔩', desc:'Entrega de fitas aos enroladores', ativo:true},
     {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:true},
   ];
   const setoresEstofados=[
@@ -5020,7 +5020,7 @@ function renderEntregasFitas(){
   const hoje_movs=entregasFitas.filter(e=>e.data===hoje);
 
   let html='<div class="card">'
-    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">🎀 Registrar entrega de fita</div>'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">🔩 Registrar entrega de fita</div>'
     +'<div class="form-row">'
     +'<div class="form-group"><label>Enrolador</label>'
     +'<select id="ef-enrolador" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
@@ -5090,7 +5090,7 @@ function estoqueFio(){
 // ── Estoque ───────────────────────────────────────────────────────
 function renderEstoqueFitas(){
   const cores=getCoresFitas();
-  let html='<div style="font-size:15px;font-weight:700;margin-bottom:14px">🎀 Estoque de Fitas e Fio</div>';
+  let html='<div style="font-size:15px;font-weight:700;margin-bottom:14px">🔩 Estoque de Fitas e Fio</div>';
 
   if(!cores.length){
     return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Configure as cores nas Configurações.</div></div>';
@@ -5158,7 +5158,7 @@ function renderProducaoFitas(){
     +'<div class="card" style="margin-top:12px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Produção de hoje ('+prodHoje.length+')</div>'
     +(prodHoje.length?prodHoje.map((p,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-      +'<div><div style="font-weight:700;font-size:12px">'+(p.tipo==='fio'?'🧵 Fio':'🎀 Fita '+p.cor)+'</div>'
+      +'<div><div style="font-weight:700;font-size:12px">'+(p.tipo==='fio'?'🧵 Fio':'🔩 Fita '+p.cor)+'</div>'
       +(p.obs?'<div style="font-size:10px;color:#94a3b8">'+p.obs+'</div>':'')
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
@@ -5246,7 +5246,7 @@ function renderSaidasFitas(){
     +(saidHoje.length?saidHoje.map((s,i)=>{
       const destLabel=s.destinoNome||s.destino||'—';
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-        +'<div><div style="font-weight:700;font-size:12px">'+(s.tipo==='fio'?'🧵 Fio':'🎀 Fita '+s.cor)+'</div>'
+        +'<div><div style="font-weight:700;font-size:12px">'+(s.tipo==='fio'?'🧵 Fio':'🔩 Fita '+s.cor)+'</div>'
         +'<div style="font-size:10px;color:#64748b">'+destLabel+'</div>'
         +(s.obs?'<div style="font-size:10px;color:#94a3b8">'+s.obs+'</div>':'')
         +'</div>'
