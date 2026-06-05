@@ -5409,13 +5409,20 @@ window._salvarConfigFitas=async function(){
   const lista=document.getElementById('cf-lista');
   if(!lista) return;
   const cores=[];
-  Array.from(lista.children).forEach((row,i)=>{
-    const nome=document.getElementById('cf-nome-'+i)?.value.trim();
-    const hex=document.getElementById('cf-hex-'+i)?.value||'#6366f1';
+  Array.from(lista.children).forEach(row=>{
+    const inputs=Array.from(row.querySelectorAll("input"));
+    const hexEl=inputs.find(el=>el.type==="color");
+    const nomeEl=inputs.find(el=>el.type!=="color");
+    const nome=(nomeEl?.value||'').trim();
+    const hex=hexEl?.value||'#6366f1';
     if(nome) cores.push({nome,hex});
   });
-  await setDoc(doc(db,'config_fitas','geral'),{cores});
-  showToast('Cores salvas!');
+  try{
+    await setDoc(doc(db,'config_fitas','geral'),{cores});
+    showToast('Cores salvas!');
+  }catch(e){
+    showToast('Erro ao salvar: '+e.message);
+  }
 };
 
 
