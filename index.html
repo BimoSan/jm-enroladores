@@ -4465,6 +4465,38 @@ function renderCamRelatorio(){
       +'</tbody></table></div></div>';
   }
 
+  // Por motorista
+  const porMotorista=camMotoristas.map(m=>{
+    const rotasM=camRotas.filter(r=>r.motoristId===m.id&&(r.data||'').slice(0,4)===ano);
+    const km=rotasM.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
+    const comb=rotasM.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
+    const gMot=rotasM.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
+    return {m,km,comb,gMot,viagens:rotasM.length,total:comb+gMot};
+  }).filter(x=>x.viagens>0).sort((a,b)=>b.viagens-a.viagens);
+
+  if(porMotorista.length){
+    html+='<div class="card" style="margin-top:14px">'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Por motorista</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f1f5f9">'
+      +'<th style="padding:7px 10px;text-align:left">Motorista</th>'
+      +'<th style="padding:7px 10px;text-align:center">Viagens</th>'
+      +'<th style="padding:7px 10px;text-align:right">Km</th>'
+      +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
+      +'<th style="padding:7px 10px;text-align:right">Gasto Mot.</th>'
+      +'<th style="padding:7px 10px;text-align:right">Total</th>'
+      +'</tr></thead><tbody>'
+      +porMotorista.map(({m,km,comb,gMot,viagens,total},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+        +'<td style="padding:7px 10px;font-weight:700">'+m.nome+'</td>'
+        +'<td style="padding:7px 10px;text-align:center">'+viagens+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+(km?km.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(comb?fmtMoeda(comb):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#6366f1">'+(gMot?fmtMoeda(gMot):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtMoeda(total)+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table></div></div>';
+  }
+
   return html;
 }
 
