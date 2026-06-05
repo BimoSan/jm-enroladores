@@ -5766,6 +5766,61 @@ function almHistoricoDia(tipo){
     +rows+'</div>';
 }
 
+window._editarMovAlm=function(id){
+  const m=almMovimentos.find(x=>x.id===id);
+  if(!m) return;
+  const item=almItens.find(i=>i.id===m.itemId);
+  const isEnt=m.tipo==='entrada';
+  const optsItens=almItens.map(i=>'<option value="'+i.id+'"'+(i.id===m.itemId?' selected':'')+'>'+i.descricao+'</option>').join('');
+  const optsP=(almConfig.pessoas||[]).map(p=>'<option value="'+p+'"'+(p===m.pessoa?' selected':'')+'>'+p+'</option>').join('');
+  const optsS=(almConfig.setores||[]).map(s=>'<option value="'+s+'"'+(s===m.setor?' selected':'')+'>'+s+'</option>').join('');
+  showModal('Editar movimentação',
+    '<div class="form-row">'
+    +'<div class="form-group"><label>Item</label><select id="em-item" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">—</option>'+optsItens+'</select></div>'
+    +'<div class="form-group"><label>Quantidade</label><input id="em-qtd" type="number" min="1" value="'+m.quantidade+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Data</label><input id="em-data" type="date" value="'+m.data+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +(isEnt?'<div class="form-group"><label>Custo unitário R$</label><input id="em-custo" type="number" step="0.01" value="'+(m.custoUnitario||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>':'')
+    +'</div>'
+    +(!isEnt?'<div class="form-row"><div class="form-group"><label>Pessoa</label><select id="em-pessoa" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">—</option>'+optsP+'</select></div>'
+    +'<div class="form-group"><label>Setor</label><select id="em-setor" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">—</option>'+optsS+'</select></div></div>':'')
+    +'<div class="form-group"><label>Observação</label><input id="em-obs" value="'+(m.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="window._excluirMovAlm(this.dataset.id)" data-id="'+id+'">Excluir</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarMovAlm(this.dataset.id,this.dataset.tipo)" data-id="'+id+'" data-tipo="'+m.tipo+'">Salvar</button>',
+    true);
+};
+
+window._salvarMovAlm=async function(id_or_btn,tipo_or_undef){
+  const id=typeof id_or_btn==='string'?id_or_btn:id_or_btn.dataset?.id||id_or_btn;
+  const tipo=tipo_or_undef||(typeof id_or_btn==='object'?id_or_btn.dataset?.tipo:'');
+  const itemId=document.getElementById('em-item')?.value;
+  const quantidade=parseInt(document.getElementById('em-qtd')?.value)||0;
+  const data=document.getElementById('em-data')?.value;
+  if(!itemId||quantidade<=0){showToast('Informe item e quantidade.');return;}
+  const dados={itemId,quantidade,data,
+    itemDesc:(almItens.find(i=>i.id===itemId)?.descricao||''),
+    obs:document.getElementById('em-obs')?.value||''};
+  if(tipo==='entrada'){
+    const custo=parseFloat(document.getElementById('em-custo')?.value)||0;
+    if(custo>0){dados.custoUnitario=custo;dados.custoTotal=parseFloat((custo*quantidade).toFixed(2));}
+  } else {
+    dados.pessoa=document.getElementById('em-pessoa')?.value||'';
+    dados.setor=document.getElementById('em-setor')?.value||'';
+  }
+  await updateDoc(doc(db,'alm_movimentos',id),dados);
+  closeModal();showToast('Movimentação atualizada!');
+};
+
+window._excluirMovAlm=async function(id_or_btn){
+  const id=typeof id_or_btn==='string'?id_or_btn:id_or_btn.dataset?.id||id_or_btn;
+  if(!confirm('Excluir esta movimentação?')) return;
+  closeModal();
+  await deleteDoc(doc(db,'alm_movimentos',id));
+  showToast('Movimentação excluída.');
+};
+
 window._almGerarOpts=function(q){
   const lower=(q||'').toLowerCase();
   const itens=(almItens.length?almItens:ALM_ITENS_BASE.map(function(it,i){return Object.assign({},it,{id:'base-'+i});}))
