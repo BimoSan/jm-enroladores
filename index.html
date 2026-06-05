@@ -7177,6 +7177,36 @@ function iniciarListeners(){
   onSnapshot(collection(db,'fichas_metal'),snap=>{
     fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  // Enrolamento Interno
+  onSnapshot(collection(db,'enroladores_int'),snap=>{
+    enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    if(currentUserData&&currentSetor==='enrolamento_int')reloadTab();
+  });
+  onSnapshot(collection(db,'fichas_int'),snap=>{
+    fichasInt=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='enrolamento_int')reloadTab();
+  });
+  onSnapshot(doc(db,'config_int','geral'),snap=>{
+    if(snap.exists()) configInt={tipos:[],valores:{},...snap.data()};
+    if(currentUserData&&currentSetor==='enrolamento_int')reloadTab();
+  });
+  // Fitas
+  onSnapshot(doc(db,'config_fitas','geral'),snap=>{
+    configFitas=snap.exists()?{cores:[],tiposFio:['Fio Padrão'],...snap.data()}:{cores:[],tiposFio:['Fio Padrão']};
+    if(currentUserData&&currentSetor==='fitas')reloadTab();
+  });
+  onSnapshot(collection(db,'producao_fitas'),snap=>{
+    producaoFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='fitas')reloadTab();
+  });
+  onSnapshot(collection(db,'saidas_fitas'),snap=>{
+    saidasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='fitas')reloadTab();
+  });
+  onSnapshot(collection(db,'entregas_fitas'),snap=>{
+    entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&(currentSetor==='fitas'||currentSetor==='enrolamento_int'))reloadTab();
+  });
   });
 
   // Config bônus
