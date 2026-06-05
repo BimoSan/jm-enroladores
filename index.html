@@ -345,6 +345,9 @@ let configInt={tipos:[],valores:{}};
 // Fitas
 let operFitas=[];
 let entregasFitas=[];
+let producaoFitas=[];
+let saidasFitas=[];
+let configFitas={cores:[],tiposFio:['Fio Padrão']};
 // Caminhões
 let camVeiculos=[];
 let camMotoristas=[];
@@ -516,7 +519,10 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'enroladores_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   'config_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   'minha_prod_int':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
-  'entregas_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  'estoque_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+  'producao_fitas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  'saidas_fitas':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  'relatorio_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   'alm_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
   'alm_entrada':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
@@ -550,7 +556,8 @@ const TAB_LABELS={
   'painel_int':'Painel','apontar_int':'Apontamento','fichas_int':'Fichas',
   'enroladores_int':'Enroladores','config_int':'Configurações','minha_prod_int':'Minha Produção',
   // Fitas
-  'entregas_fitas':'Entregas','config_fitas':'Configurações',
+  'estoque_fitas':'Estoque','producao_fitas':'Produção','saidas_fitas':'Saídas',
+  'relatorio_fitas':'Relatórios','config_fitas':'Configurações',
 };
 // ── Seleção de fábrica ──────────────────────────────────────────
 function renderSelecionarFabrica(){
@@ -741,7 +748,7 @@ function renderApp(){
       tabs.push('painel_int','fichas_int');
     }
   } else if(currentSetor==='fitas'){
-    tabs.push('entregas_fitas','config_fitas');
+    tabs.push('estoque_fitas','producao_fitas','saidas_fitas','relatorio_fitas','config_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
     const podeEditar=['admin','apontador1'].includes(pf);
@@ -4993,11 +5000,14 @@ function renderMinhaProdInt(){
 
 function renderTabFitas(tab){
   try{
-    if(tab==='entregas_fitas') return renderEntregasFitas();
-    if(tab==='config_fitas')   return renderConfigFitas();
-    return renderEntregasFitas();
+    if(tab==='estoque_fitas')   return renderEstoqueFitas();
+    if(tab==='producao_fitas')  return renderProducaoFitas();
+    if(tab==='saidas_fitas')    return renderSaidasFitas();
+    if(tab==='relatorio_fitas') return renderRelatorioFitas();
+    if(tab==='config_fitas')    return renderConfigFitas();
+    return renderEstoqueFitas();
   }catch(e){
-    return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';
+    return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'<br><small>'+e.stack+'</small></div>';
   }
 }
 
@@ -5063,9 +5073,352 @@ window._registrarEntregaFita=async function(){
   showToast('Entrega registrada!');
 };
 
-function renderConfigFitas(){
-  return '<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Configurações do setor de fitas em breve.</div></div>';
+
+// ── Helpers Fitas ─────────────────────────────────────────────────
+function getCoresFitas(){ return configFitas.cores||[]; }
+function estoqueCor(cor){
+  const prod=producaoFitas.filter(p=>p.cor===cor).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const said=saidasFitas.filter(s=>s.cor===cor).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  return prod-said;
 }
+function estoqueFio(){
+  const prod=producaoFitas.filter(p=>p.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const said=saidasFitas.filter(s=>s.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  return prod-said;
+}
+
+// ── Estoque ───────────────────────────────────────────────────────
+function renderEstoqueFitas(){
+  const cores=getCoresFitas();
+  let html='<div style="font-size:15px;font-weight:700;margin-bottom:14px">🎀 Estoque de Fitas e Fio</div>';
+
+  if(!cores.length){
+    return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Configure as cores nas Configurações.</div></div>';
+  }
+
+  // Cards por cor
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
+  cores.forEach(c=>{
+    const qtd=estoqueCor(c.nome);
+    const cor_bg=c.hex||'#6366f1';
+    const baixo=qtd<=5;
+    html+='<div class="card" style="text-align:center;padding:14px;border-top:4px solid '+cor_bg+'">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">'+c.nome+'</div>'
+      +'<div style="font-size:28px;font-weight:800;color:'+(baixo?'#dc2626':'#1e40af')+'">'+qtd+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
+      +(baixo&&qtd>0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">⚠️ Estoque baixo</div>':'')
+      +(qtd===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
+      +'</div>';
+  });
+  html+='</div>';
+
+  // Card fio
+  const qtdFio=estoqueFio();
+  html+='<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:14px">'
+    +'<div><div style="font-size:13px;font-weight:700">🧵 Fio</div>'
+    +'<div style="font-size:11px;color:#64748b">Estoque atual</div></div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-size:28px;font-weight:800;color:'+(qtdFio<=5?'#dc2626':'#065f46')+'">'+qtdFio+'</div>'
+    +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
+    +'</div></div>';
+
+  return html;
+}
+
+// ── Produção ──────────────────────────────────────────────────────
+function renderProducaoFitas(){
+  const cores=getCoresFitas();
+  const hoje=today();
+  const prodHoje=producaoFitas.filter(p=>p.data===hoje);
+
+  const optsCores=cores.map(c=>'<option value="'+c.nome+'">'+c.nome+'</option>').join('');
+
+  let html='<div class="card">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">📦 Registrar produção</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Tipo</label>'
+    +'<select id="pf-tipo" onchange="window._pFitasTipoChange()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="fita">Fita</option>'
+    +'<option value="fio">Fio</option>'
+    +'</select></div>'
+    +'<div class="form-group" id="pf-cor-group"><label>Cor</label>'
+    +'<select id="pf-cor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="">— Cor —</option>'+optsCores+'</select></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Rolos produzidos</label>'
+    +'<input type="number" id="pf-rolos" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="pf-data" value="'+hoje+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Observação</label>'
+    +'<input id="pf-obs" placeholder="Opcional" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary" style="margin-top:8px" onclick="window._registrarProducaoFita()">Registrar</button>'
+    +'</div>'
+    +'<div class="card" style="margin-top:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Produção de hoje ('+prodHoje.length+')</div>'
+    +(prodHoje.length?prodHoje.map((p,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+      +'<div><div style="font-weight:700;font-size:12px">'+(p.tipo==='fio'?'🧵 Fio':'🎀 Fita '+p.cor)+'</div>'
+      +(p.obs?'<div style="font-size:10px;color:#94a3b8">'+p.obs+'</div>':'')
+      +'</div>'
+      +'<div style="font-weight:800;color:#065f46">+'+p.rolos+' rolos</div>'
+      +'</div>').join(''):'<div style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">Nenhuma produção hoje.</div>')
+    +'</div>';
+  return html;
+}
+
+window._pFitasTipoChange=function(){
+  const tipo=document.getElementById('pf-tipo')?.value;
+  const gr=document.getElementById('pf-cor-group');
+  if(gr) gr.style.display=tipo==='fio'?'none':'block';
+};
+
+window._registrarProducaoFita=async function(){
+  const tipo=document.getElementById('pf-tipo')?.value||'fita';
+  const cor=tipo==='fita'?document.getElementById('pf-cor')?.value:'';
+  const rolos=parseInt(document.getElementById('pf-rolos')?.value)||0;
+  const data=document.getElementById('pf-data')?.value;
+  const obs=document.getElementById('pf-obs')?.value.trim()||'';
+  if(tipo==='fita'&&!cor){showToast('Selecione a cor.');return;}
+  if(!rolos||rolos<=0){showToast('Informe a quantidade de rolos.');return;}
+  await addDoc(collection(db,'producao_fitas'),{tipo,cor,rolos,data,obs,
+    operador:currentUserData?.nome||'',criadoEm:new Date().toISOString()});
+  document.getElementById('pf-rolos').value='';
+  document.getElementById('pf-obs').value='';
+  showToast('Produção registrada!');
+};
+
+// ── Saídas ────────────────────────────────────────────────────────
+function renderSaidasFitas(){
+  const cores=getCoresFitas();
+  const hoje=today();
+  const saidHoje=saidasFitas.filter(s=>s.data===hoje);
+  const optsEnrInt=enroladoresInt.filter(e=>e.ativo!==false).map(e=>'<option value="enr_int:'+e.id+'">Enrolador Interno — '+e.nome+'</option>').join('');
+  const optsEnrExt=enroladores.map(e=>'<option value="enr_ext:'+e.id+'">Enrolador Terceirizado — '+e.nome+'</option>').join('');
+  const optsCores=cores.map(c=>'<option value="'+c.nome+'">'+c.nome+'</option>').join('');
+
+  let html='<div class="card">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">📤 Registrar saída</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Destino</label>'
+    +'<select id="sf-destino" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="">— Selecione —</option>'
+    +'<optgroup label="Enroladores Internos">'+optsEnrInt+'</optgroup>'
+    +'<optgroup label="Enroladores Terceirizados">'+optsEnrExt+'</optgroup>'
+    +'<optgroup label="Outros"><option value="venda">Venda</option><option value="doacao">Doação</option><option value="outro">Outro</option></optgroup>'
+    +'</select></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="sf-data" value="'+hoje+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Tipo</label>'
+    +'<select id="sf-tipo" onchange="window._sFitasTipoChange()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="fita">Fita</option>'
+    +'<option value="fio">Fio</option>'
+    +'</select></div>'
+    +'<div class="form-group" id="sf-cor-group"><label>Cor</label>'
+    +'<select id="sf-cor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="">— Cor —</option>'+optsCores+'</select></div>'
+    +'<div class="form-group"><label>Rolos</label>'
+    +'<input type="number" id="sf-rolos" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Observação</label>'
+    +'<input id="sf-obs" placeholder="Opcional" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary" style="margin-top:8px" onclick="window._registrarSaidaFita()">Registrar saída</button>'
+    +'</div>'
+    +'<div class="card" style="margin-top:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Saídas de hoje ('+saidHoje.length+')</div>'
+    +(saidHoje.length?saidHoje.map((s,i)=>{
+      const destLabel=s.destinoNome||s.destino||'—';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+        +'<div><div style="font-weight:700;font-size:12px">'+(s.tipo==='fio'?'🧵 Fio':'🎀 Fita '+s.cor)+'</div>'
+        +'<div style="font-size:10px;color:#64748b">'+destLabel+'</div>'
+        +(s.obs?'<div style="font-size:10px;color:#94a3b8">'+s.obs+'</div>':'')
+        +'</div>'
+        +'<div style="font-weight:800;color:#d97706">-'+s.rolos+' rolos</div>'
+        +'</div>';
+    }).join(''):'<div style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">Nenhuma saída hoje.</div>')
+    +'</div>';
+  return html;
+}
+
+window._sFitasTipoChange=function(){
+  const tipo=document.getElementById('sf-tipo')?.value;
+  const gr=document.getElementById('sf-cor-group');
+  if(gr) gr.style.display=tipo==='fio'?'none':'block';
+};
+
+window._registrarSaidaFita=async function(){
+  const destino=document.getElementById('sf-destino')?.value;
+  const tipo=document.getElementById('sf-tipo')?.value||'fita';
+  const cor=tipo==='fita'?document.getElementById('sf-cor')?.value:'';
+  const rolos=parseInt(document.getElementById('sf-rolos')?.value)||0;
+  const data=document.getElementById('sf-data')?.value;
+  const obs=document.getElementById('sf-obs')?.value.trim()||'';
+  if(!destino){showToast('Selecione o destino.');return;}
+  if(tipo==='fita'&&!cor){showToast('Selecione a cor.');return;}
+  if(!rolos||rolos<=0){showToast('Informe a quantidade.');return;}
+
+  // Verificar estoque
+  const estoqueAtual=tipo==='fio'?estoqueFio():estoqueCor(cor);
+  if(rolos>estoqueAtual){showToast('Estoque insuficiente! Disponível: '+estoqueAtual+' rolos.');return;}
+
+  // Resolver nome do destino
+  let destinoNome=destino;
+  let enroladorIntId=null;
+  let enroladorExtId=null;
+  if(destino.startsWith('enr_int:')){
+    enroladorIntId=destino.split(':')[1];
+    destinoNome='Enrolador Interno — '+(enroladoresInt.find(e=>e.id===enroladorIntId)?.nome||'');
+  } else if(destino.startsWith('enr_ext:')){
+    enroladorExtId=destino.split(':')[1];
+    destinoNome='Enrolador Terceirizado — '+(enroladores.find(e=>e.id===enroladorExtId)?.nome||'');
+  } else {
+    const labels={venda:'Venda',doacao:'Doação',outro:'Outro'};
+    destinoNome=labels[destino]||destino;
+  }
+
+  const dados={tipo,cor,rolos,data,obs,destino,destinoNome,enroladorIntId,enroladorExtId,
+    operador:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
+  await addDoc(collection(db,'saidas_fitas'),dados);
+
+  // Se destino é enrolador interno, também criar entrega_fita para a ficha dele
+  if(enroladorIntId){
+    await addDoc(collection(db,'entregas_fitas'),{
+      enroladorIntId,data,rolos:tipo==='fita'?rolos:0,fio:tipo==='fio'?rolos:0,
+      cor:cor||'',obs,registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()
+    });
+  }
+
+  document.getElementById('sf-rolos').value='';
+  document.getElementById('sf-obs').value='';
+  showToast('Saída registrada!');
+};
+
+// ── Relatório ─────────────────────────────────────────────────────
+function renderRelatorioFitas(){
+  if(!window._fitRelMes) window._fitRelMes=today().slice(0,7);
+  const mes=window._fitRelMes;
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [ano,m]=mes.split('-');
+  const mesNome=MESES[parseInt(m)-1]+' '+ano;
+  const mAnt=new Date(parseInt(ano),parseInt(m)-2,1);
+  const mProx=new Date(parseInt(ano),parseInt(m),1);
+  const mAntStr=mAnt.getFullYear()+'-'+String(mAnt.getMonth()+1).padStart(2,'0');
+  const mProxStr=mProx.getFullYear()+'-'+String(mProx.getMonth()+1).padStart(2,'0');
+
+  const prodMes=producaoFitas.filter(p=>(p.data||'').slice(0,7)===mes);
+  const saidMes=saidasFitas.filter(s=>(s.data||'').slice(0,7)===mes);
+
+  const totalProdFita=prodMes.filter(p=>p.tipo==='fita').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const totalProdFio=prodMes.filter(p=>p.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const totalSaidFita=saidMes.filter(s=>s.tipo==='fita').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const totalSaidFio=saidMes.filter(s=>s.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+
+  let html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._fitNavMes(\''+mAntStr+'\')">←</button>'
+    +'<div style="font-size:16px;font-weight:700">'+mesNome+'</div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._fitNavMes(\''+mProxStr+'\')">→</button>'
+    +'</div>';
+
+  // Stat cards
+  html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Fita produzida</div><div class="stat-value">'+totalProdFita+' rolos</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Fita saída</div><div class="stat-value">'+totalSaidFita+' rolos</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Fio produzido</div><div class="stat-value">'+totalProdFio+' rolos</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6)"><div><div class="stat-label">Fio saído</div><div class="stat-value">'+totalSaidFio+' rolos</div></div></div>'
+    +'</div>';
+
+  // Produção por cor no mês
+  const cores=getCoresFitas();
+  if(cores.length&&prodMes.length){
+    html+='<div class="card" style="margin-bottom:12px">'
+      +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">Produção por cor</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f1f5f9"><th style="padding:7px 10px;text-align:left">Cor</th><th style="padding:7px 10px;text-align:right">Produzido</th><th style="padding:7px 10px;text-align:right">Saído</th><th style="padding:7px 10px;text-align:right">Saldo</th></tr></thead><tbody>'
+      +cores.map((c,i)=>{
+        const prod=prodMes.filter(p=>p.tipo==='fita'&&p.cor===c.nome).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+        const said=saidMes.filter(s=>s.tipo==='fita'&&s.cor===c.nome).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+        return '<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+          +'<td style="padding:7px 10px;font-weight:700"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+(c.hex||'#6366f1')+';margin-right:6px"></span>'+c.nome+'</td>'
+          +'<td style="padding:7px 10px;text-align:right;color:#065f46">'+prod+'</td>'
+          +'<td style="padding:7px 10px;text-align:right;color:#dc2626">'+said+'</td>'
+          +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+(prod-said>=0?'#1e40af':'#dc2626')+'">'+(prod-said)+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div></div>';
+  }
+
+  // Saídas por destino
+  if(saidMes.length){
+    const porDest={};
+    saidMes.forEach(s=>{
+      const k=s.destinoNome||s.destino||'Outro';
+      if(!porDest[k]) porDest[k]={fita:0,fio:0};
+      if(s.tipo==='fio') porDest[k].fio+=(parseInt(s.rolos)||0);
+      else porDest[k].fita+=(parseInt(s.rolos)||0);
+    });
+    html+='<div class="card">'
+      +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">Saídas por destino</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f1f5f9"><th style="padding:7px 10px;text-align:left">Destino</th><th style="padding:7px 10px;text-align:right">Fita (rolos)</th><th style="padding:7px 10px;text-align:right">Fio (rolos)</th></tr></thead><tbody>'
+      +Object.entries(porDest).sort((a,b)=>(b[1].fita+b[1].fio)-(a[1].fita+a[1].fio)).map(([k,v],i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+        +'<td style="padding:7px 10px;font-weight:600">'+k+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+v.fita+'</td>'
+        +'<td style="padding:7px 10px;text-align:right">'+v.fio+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table></div></div>';
+  }
+
+  return html;
+}
+
+window._fitNavMes=function(mes){ window._fitRelMes=mes; reloadTab(); };
+
+// ── Config Fitas ──────────────────────────────────────────────────
+function renderConfigFitas(){
+  const cores=getCoresFitas();
+  const coresHtml=cores.map((c,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+    +'<input type="color" value="'+(c.hex||'#6366f1')+'" id="cf-hex-'+i+'" style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">'
+    +'<input value="'+c.nome+'" id="cf-nome-'+i+'" placeholder="Nome da cor" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
+    +'</div>').join('');
+
+  return '<div class="card">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🎨 Cores de fita cadastradas</div>'
+    +'<div id="cf-lista">'+coresHtml+'</div>'
+    +'<button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="window._addCorFita()">+ Adicionar cor</button>'
+    +'<div style="margin-top:14px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarConfigFitas()">Salvar</button>'
+    +'</div></div>';
+}
+
+window._addCorFita=function(){
+  const lista=document.getElementById('cf-lista');
+  if(!lista) return;
+  const i=lista.children.length;
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px';
+  div.innerHTML='<input type="color" value="#6366f1" id="cf-hex-'+i+'" style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">'
+    +'<input placeholder="Nome da cor" id="cf-nome-'+i+'" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>';
+  lista.appendChild(div);
+};
+
+window._salvarConfigFitas=async function(){
+  const lista=document.getElementById('cf-lista');
+  if(!lista) return;
+  const cores=[];
+  Array.from(lista.children).forEach((row,i)=>{
+    const nome=document.getElementById('cf-nome-'+i)?.value.trim();
+    const hex=document.getElementById('cf-hex-'+i)?.value||'#6366f1';
+    if(nome) cores.push({nome,hex});
+  });
+  await setDoc(doc(db,'config_fitas','geral'),{cores});
+  showToast('Cores salvas!');
+};
+
+
 
 function renderConfigMetal(){
   const metas=configMetal.metas||{};
