@@ -5758,6 +5758,7 @@ function almHistoricoDia(tipo){
       +'<div style="font-size:15px;font-weight:800;color:'+cor+'">'+(isEnt?'+':'-')+m.quantidade+' '+und+'</div>'
       +(m.custoTotal?'<div style="font-size:10px;color:#92400e">R$ '+parseFloat(m.custoTotal).toFixed(2)+'</div>':'')
       +'</div>'
+      +'<button onclick="window._editarMovAlm(this.dataset.id)" data-id="'+m.id+'" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px">✏️</button>'
       +'</div>';
   }).join('');
   return '<div class="card" style="margin-top:14px;border-left:4px solid '+cor+'">'
