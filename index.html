@@ -5171,6 +5171,12 @@ window._pFitasTipoChange=function(){
   const tipo=document.getElementById('pf-tipo')?.value;
   const gr=document.getElementById('pf-cor-group');
   if(gr) gr.style.display=tipo==='fio'?'none':'block';
+  // Recarregar cores dinamicamente
+  const sel=document.getElementById('pf-cor');
+  if(sel&&tipo==='fita'){
+    const cores=getCoresFitas();
+    sel.innerHTML='<option value="">— Cor —</option>'+cores.map(c=>'<option value="'+c.nome+'">'+c.nome+'</option>').join('');
+  }
 };
 
 window._registrarProducaoFita=async function(){
