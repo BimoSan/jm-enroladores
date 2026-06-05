@@ -5422,7 +5422,12 @@ window._salvarConfigFitas=async function(){
   if(!cores.length){ showToast('Nenhuma cor para salvar.'); return; }
   try{
     await setDoc(doc(db,'config_fitas','geral'),{cores});
+    // Recarregar config imediatamente
+    const snap=await getDoc(doc(db,'config_fitas','geral'));
+    if(snap.exists()) configFitas={cores:[],tiposFio:['Fio Padrão'],...snap.data()};
+    console.log('Config após save:', configFitas);
     showToast('Cores salvas! ('+cores.length+' cores)');
+    setTimeout(()=>reloadTab(),500);
   }catch(e){
     showToast('Erro: '+e.message);
     console.error('Erro Firestore:', e);
