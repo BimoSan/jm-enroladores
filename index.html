@@ -338,6 +338,13 @@ let fichasMetal=[];
 let pontoFuncionarios=[]; // lista de funcionários do ponto
 let pontoRegistros=[];    // registros de ponto
 let almItens=[];
+// Enrolamento Interno
+let enroladoresInt=[];
+let fichasInt=[];
+let configInt={tipos:[],valores:{}};
+// Fitas
+let operFitas=[];
+let entregasFitas=[];
 // Caminhões
 let camVeiculos=[];
 let camMotoristas=[];
@@ -503,6 +510,14 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'cam_veiculos':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
   'cam_motoristas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   'cam_relatorio':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'painel_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+  'apontar_int':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  'fichas_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  'enroladores_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'config_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  'minha_prod_int':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'entregas_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   'alm_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
   'alm_entrada':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
   'alm_saida':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
@@ -529,6 +544,14 @@ const TAB_LABELS={
   // Caminhões
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
+  'painel_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+  'apontar_int':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  'fichas_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  'enroladores_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'config_int':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  'minha_prod_int':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'entregas_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
 };
@@ -595,8 +618,8 @@ function renderSelecionarSetor(){
   const setoresCadeiras=[
     {id:'enrolamento_terc', nome:'Enrolamento Terceirizado', icon:'🧵', desc:'Controle de fichas e enroladores', ativo:true},
     {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:true},
-    {id:'fitas',            nome:'Setor de Fitas',           icon:'🎀', desc:'Controle de estoque de fitas', ativo:false},
-    {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:false},
+    {id:'fitas',            nome:'Setor de Fitas',           icon:'🎀', desc:'Entrega de fitas aos enroladores', ativo:true},
+    {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:true},
   ];
   const setoresEstofados=[
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
@@ -711,6 +734,17 @@ function renderApp(){
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
+  } else if(currentSetor==='enrolamento_int'){
+    const pInt=currentUserData?.perfil;
+    if(['admin','encarregado_cad','apontador_int'].includes(pInt)){
+      tabs.push('painel_int','apontar_int','fichas_int','enroladores_int','config_int');
+    } else if(pInt==='enrolador_int'){
+      tabs.push('minha_prod_int');
+    } else {
+      tabs.push('painel_int','fichas_int');
+    }
+  } else if(currentSetor==='fitas'){
+    tabs.push('entregas_fitas','config_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
     const podeEditar=['admin','apontador1'].includes(pf);
@@ -829,6 +863,8 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  if(currentSetor==='enrolamento_int') return renderTabInt(tab);
+  if(currentSetor==='fitas') return renderTabFitas(tab);
   if(currentSetor==='caminhoes') return renderTabCaminhoes(tab);
   if(currentSetor==='almoxarifado') return renderTabAlmox(tab);
   // Metalúrgica tem seu próprio sistema de tabs
@@ -4533,6 +4569,499 @@ function renderCamRelatorio(){
   }
 
   return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENROLAMENTO INTERNO
+// ═══════════════════════════════════════════════════════════════
+
+function renderTabInt(tab){
+  try{
+    if(tab==='painel_int')      return renderPainelInt();
+    if(tab==='apontar_int')     return renderApontarInt();
+    if(tab==='fichas_int')      return renderFichasInt();
+    if(tab==='enroladores_int') return renderEnroladoresInt();
+    if(tab==='config_int')      return renderConfigInt();
+    if(tab==='minha_prod_int')  return renderMinhaProdInt();
+    return renderPainelInt();
+  }catch(e){
+    return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'<br><small>'+e.stack+'</small></div>';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function getEnrInt(id){ return enroladoresInt.find(e=>e.id===id)||{}; }
+function getTiposInt(){ return configInt.tipos||[]; }
+function getValorInt(tipoId){ return parseFloat((configInt.valores||{})[tipoId])||0; }
+
+function quinzenaInt(data){
+  const d=new Date(data+'T12:00:00');
+  const dia=d.getDate();
+  return dia<=15?'1Q':'2Q';
+}
+function mesQuinzenaInt(data){
+  const d=new Date(data+'T12:00:00');
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+quinzenaInt(data);
+}
+
+function fichasIntAbertas(){ return fichasInt.filter(f=>f.status==='aberta'); }
+function fichasIntPorEnrolador(enrId){ return fichasInt.filter(f=>f.enroladorId===enrId); }
+function fichaIntAtiva(enrId){
+  return fichasInt.find(f=>f.enroladorId===enrId&&f.status==='aberta');
+}
+
+function somaProducaoFicha(ficha){
+  return (ficha.apontamentos||[]).reduce((s,a)=>{
+    getTiposInt().forEach(t=>{ s+=(parseInt((a.tipos||{})[t.id])||0)*getValorInt(t.id); });
+    return s;
+  },0);
+}
+function totalPecasFichaInt(ficha){
+  const tot={};
+  (ficha.apontamentos||[]).forEach(a=>{
+    getTiposInt().forEach(t=>{
+      tot[t.id]=(tot[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0);
+    });
+  });
+  return tot;
+}
+function totalRolosFicha(ficha){
+  // Pegar entregas de fita para esse enrolador no período da ficha
+  if(!ficha.dataAbertura) return 0;
+  return entregasFitas.filter(e=>e.enroladorIntId===ficha.enroladorId
+    &&(e.data||'')>=ficha.dataAbertura
+    &&(!ficha.dataFechamento||(e.data||'')<=ficha.dataFechamento)
+  ).reduce((s,e)=>s+(parseInt(e.rolos)||0),0);
+}
+
+// ── Painel ────────────────────────────────────────────────────────
+function renderPainelInt(){
+  const hoje=today();
+  const abertas=fichasIntAbertas();
+  const totalHoje=fichasInt.reduce((s,f)=>{
+    return s+(f.apontamentos||[]).filter(a=>a.data===hoje).reduce((ss,a)=>{
+      getTiposInt().forEach(t=>{ ss+=parseInt((a.tipos||{})[t.id])||0; });
+      return ss;
+    },0);
+  },0);
+
+  let html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Fichas abertas</div><div class="stat-value">'+abertas.length+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Peças hoje</div><div class="stat-value">'+totalHoje+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><div><div class="stat-label">Enroladores</div><div class="stat-value">'+enroladoresInt.length+'</div></div></div>'
+    +'</div>';
+
+  if(!enroladoresInt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum enrolador cadastrado ainda.</div></div>';
+
+  // Cards por enrolador
+  html+='<div style="display:flex;flex-direction:column;gap:10px">';
+  enroladoresInt.forEach(enr=>{
+    const ficha=fichaIntAtiva(enr.id);
+    const pecasHoje=fichasInt.reduce((s,f)=>f.enroladorId!==enr.id?s:
+      s+(f.apontamentos||[]).filter(a=>a.data===hoje).reduce((ss,a)=>{
+        getTiposInt().forEach(t=>{ ss+=parseInt((a.tipos||{})[t.id])||0; });
+        return ss;
+      },0),0);
+    const ganhoFicha=ficha?somaProducaoFicha(ficha):0;
+    const grupo=enr.grupo?(' · Grupo '+enr.grupo):'';
+
+    html+='<div class="card" style="padding:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:#065f46;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">'+enr.nome[0]+'</div>'
+      +'<div><div style="font-weight:700;font-size:13px">'+enr.nome+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+(ficha?'Ficha aberta desde '+fmtDate(ficha.dataAbertura):'Sem ficha aberta')+grupo+'</div>'
+      +'</div></div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:10px;color:#64748b">peças hoje</div>'
+      +'<div style="font-size:18px;font-weight:800;color:#065f46">'+pecasHoje+'</div>'
+      +(ganhoFicha?'<div style="font-size:11px;color:#10b981">'+fmtMoeda(ganhoFicha)+' na ficha</div>':'')
+      +'</div></div>';
+
+    // Barra por tipo de peça hoje
+    if(pecasHoje>0){
+      const totHoje={};
+      fichasInt.filter(f=>f.enroladorId===enr.id).forEach(f=>{
+        (f.apontamentos||[]).filter(a=>a.data===hoje).forEach(a=>{
+          getTiposInt().forEach(t=>{ totHoje[t.id]=(totHoje[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
+        });
+      });
+      html+='<div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">';
+      getTiposInt().forEach(t=>{
+        if(totHoje[t.id]>0){
+          html+='<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">'+totHoje[t.id]+'</span> '+t.label+'</div>';
+        }
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+// ── Apontamento ───────────────────────────────────────────────────
+function renderApontarInt(){
+  const optsEnr=enroladoresInt.map(e=>'<option value="'+e.id+'">'+e.nome+'</option>').join('');
+  const tiposHtml=getTiposInt().map(t=>'<div class="num-group">'
+    +'<label style="font-size:10px">'+t.label+'</label>'
+    +'<input type="number" id="ai-'+t.id+'" min="0" step="1" placeholder="0" onfocus="this.select()"'
+    +' style="font-size:13px;border:1px solid #e2e8f0;border-radius:8px;padding:5px 6px;text-align:center;width:100%">'
+    +'</div>').join('');
+
+  return '<div class="card">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar produção</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Enrolador</label>'
+    +'<select id="ai-enrolador" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="">Selecione...</option>'+optsEnr+'</select></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="ai-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +(getTiposInt().length?'<div class="section-label" style="margin-top:8px">peças produzidas</div><div class="num-inputs">'+tiposHtml+'</div>':'<div style="color:#94a3b8;font-size:12px;padding:8px">Configure os tipos de peça nas Configurações.</div>')
+    +'<div style="margin-top:12px;display:flex;gap:8px">'
+    +'<button class="btn btn-primary" onclick="window._registrarApontInt()">Registrar</button>'
+    +'<button class="btn btn-ghost" onclick="window._limparApontInt()">Limpar</button>'
+    +'</div>'
+    +'</div>'
+    +'<div class="card" style="margin-top:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Apontamentos de hoje</div>'
+    +historicoApontInt()
+    +'</div>';
+}
+
+function historicoApontInt(){
+  const hoje=today();
+  const movs=[];
+  fichasInt.forEach(f=>{
+    (f.apontamentos||[]).filter(a=>a.data===hoje).forEach(a=>{
+      const enr=getEnrInt(f.enroladorId);
+      const pecas=getTiposInt().map(t=>{
+        const v=parseInt((a.tipos||{})[t.id])||0;
+        return v>0?v+'× '+t.label:'';
+      }).filter(Boolean).join(', ');
+      if(pecas) movs.push({nome:enr.nome||'?',pecas,apontId:a.id,fichaId:f.id});
+    });
+  });
+  if(!movs.length) return '<div style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">Nenhum apontamento hoje.</div>';
+  return movs.map((m,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+    +'<div><div style="font-weight:700;font-size:12px">'+m.nome+'</div>'
+    +'<div style="font-size:11px;color:#64748b">'+m.pecas+'</div></div>'
+    +'</div>').join('');
+}
+
+window._registrarApontInt=async function(){
+  const enrId=document.getElementById('ai-enrolador')?.value;
+  const data=document.getElementById('ai-data')?.value;
+  if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
+  const tipos={};
+  let total=0;
+  getTiposInt().forEach(t=>{
+    const v=parseInt(document.getElementById('ai-'+t.id)?.value)||0;
+    if(v>0){tipos[t.id]=v;total+=v;}
+  });
+  if(!total){showToast('Registre pelo menos uma peça.');return;}
+
+  // Buscar ou criar ficha ativa
+  let ficha=fichaIntAtiva(enrId);
+  if(!ficha){
+    const enr=getEnrInt(enrId);
+    const ref=await addDoc(collection(db,'fichas_int'),{
+      enroladorId:enrId,dataAbertura:data,status:'aberta',grupo:enr.grupo||'',apontamentos:[]
+    });
+    ficha={id:ref.id,enroladorId:enrId,dataAbertura:data,status:'aberta',grupo:enr.grupo||'',apontamentos:[]};
+  }
+
+  const apontamentos=[...(ficha.apontamentos||[]),{
+    id:Date.now().toString(),data,tipos,criadoEm:new Date().toISOString(),
+    apontadorId:currentUserData?.uid||'',apontadorNome:currentUserData?.nome||''
+  }];
+  await updateDoc(doc(db,'fichas_int',ficha.id),{apontamentos});
+  showToast('Produção registrada!');
+  window._limparApontInt();
+};
+
+window._limparApontInt=function(){
+  getTiposInt().forEach(t=>{const el=document.getElementById('ai-'+t.id);if(el)el.value='';});
+};
+
+// ── Fichas ────────────────────────────────────────────────────────
+function renderFichasInt(){
+  if(!window._fichasIntFiltro) window._fichasIntFiltro='abertas';
+  const filtro=window._fichasIntFiltro;
+  const fichasFilt=filtro==='abertas'?fichasInt.filter(f=>f.status==='aberta'):
+    filtro==='fechadas'?fichasInt.filter(f=>f.status==='fechada'):fichasInt;
+  fichasFilt.sort((a,b)=>b.dataAbertura>a.dataAbertura?1:-1);
+
+  let html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +['abertas','fechadas','todas'].map(f=>'<button class="btn btn-sm '+(filtro===f?'btn-primary':'btn-ghost')+'" onclick="window._fichasIntFiltro=\''+f+'\';reloadTab()">'+f.charAt(0).toUpperCase()+f.slice(1)+'</button>').join('')
+    +'</div>';
+
+  if(!fichasFilt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha '+filtro+'.</div></div>';
+
+  html+=fichasFilt.map(f=>{
+    const enr=getEnrInt(f.enroladorId);
+    const totPecas=totalPecasFichaInt(f);
+    const ganho=somaProducaoFicha(f);
+    const rolos=totalRolosFicha(f);
+    const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
+
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+      +'<div>'
+      +'<div style="font-weight:700;font-size:14px">'+enr.nome+'</div>'
+      +'<div style="font-size:11px;color:#64748b">Aberta: '+fmtDate(f.dataAbertura)+(f.dataFechamento?' · Fechada: '+fmtDate(f.dataFechamento):'')+(f.grupo?' · Grupo '+f.grupo:'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:18px;font-weight:800;color:#065f46">'+fmtMoeda(ganho)+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+totalPecasN+' peças · '+rolos+' rolos</div>'
+      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(f.status==='aberta'?'#d1fae5':'#f1f5f9')+';color:'+(f.status==='aberta'?'#065f46':'#64748b')+'">'+f.status+'</span>'
+      +'</div></div>'
+      // Detalhes por tipo
+      +'<div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap">'
+      +getTiposInt().map(t=>totPecas[t.id]>0?'<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">'+totPecas[t.id]+'</span> '+t.label+'</div>':'').join('')
+      +'</div>'
+      +(f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil)?
+        '<div style="margin-top:10px;display:flex;gap:8px">'
+        +'<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt(this.dataset.id)" data-id="'+f.id+'">Fechar ficha</button>'
+        +'</div>':'')
+      +'</div>';
+  }).join('');
+
+  return html;
+}
+
+window._fecharFichaInt=async function(fichaId){
+  if(!confirm('Fechar esta ficha?')) return;
+  await updateDoc(doc(db,'fichas_int',fichaId),{status:'fechada',dataFechamento:today()});
+  showToast('Ficha fechada!');
+};
+
+// ── Enroladores ───────────────────────────────────────────────────
+function renderEnroladoresInt(){
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div style="font-size:15px;font-weight:700">Enroladores internos</div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._abrirNovoEnrolInt()">+ Enrolador</button>'
+    +'</div>';
+
+  if(!enroladoresInt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum enrolador cadastrado.</div></div>';
+
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="background:#065f46;color:#fff">'
+    +'<th style="padding:9px 12px;text-align:left">Nome</th>'
+    +'<th style="padding:9px 12px;text-align:center">Grupo</th>'
+    +'<th style="padding:9px 12px;text-align:center">Status</th>'
+    +'<th style="padding:9px 12px;text-align:center">Ações</th>'
+    +'</tr></thead><tbody>'
+    +enroladoresInt.map((e,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+      +'<td style="padding:8px 12px;font-weight:600">'+e.nome+'</td>'
+      +'<td style="padding:8px 12px;text-align:center"><span style="background:#dbeafe;color:#1e40af;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">'+(e.grupo?'Grupo '+e.grupo:'—')+'</span></td>'
+      +'<td style="padding:8px 12px;text-align:center"><span style="background:'+(e.ativo!==false?'#d1fae5':'#f1f5f9')+';color:'+(e.ativo!==false?'#065f46':'#94a3b8')+';padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">'+(e.ativo!==false?'Ativo':'Inativo')+'</span></td>'
+      +'<td style="padding:8px 12px;text-align:center">'
+      +'<button class="btn btn-sm btn-ghost" onclick="window._editarEnrolInt(this.dataset.id)" data-id="'+e.id+'">✏️</button>'
+      +'</td></tr>').join('')
+    +'</tbody></table></div>';
+  return html;
+}
+
+window._abrirNovoEnrolInt=function(enr){
+  const edit=enr&&enr.id;
+  const r=enr||{};
+  showModal((edit?'Editar':'Novo')+' enrolador',
+    '<div class="form-row">'
+    +'<div class="form-group"><label>Nome</label><input id="ei-nome" value="'+(r.nome||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Grupo (A ou B)</label>'
+    +'<select id="ei-grupo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
+    +'<option value="">— Sem grupo —</option>'
+    +'<option value="A"'+(r.grupo==='A'?' selected':'')+'>Grupo A</option>'
+    +'<option value="B"'+(r.grupo==='B'?' selected':'')+'>Grupo B</option>'
+    +'</select></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Status</label>'
+    +'<select id="ei-ativo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
+    +'<option value="true"'+(r.ativo!==false?' selected':'')+'>Ativo</option>'
+    +'<option value="false"'+(r.ativo===false?' selected':'')+'>Inativo</option>'
+    +'</select></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirEnrolInt(\''+r.id+'\',true)">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarEnrolInt(\''+(r.id||'')+'\')">Salvar</button>',
+    true);
+};
+window._salvarEnrolInt=async function(id){
+  const nome=document.getElementById('ei-nome')?.value.trim();
+  if(!nome){showToast('Informe o nome.');return;}
+  const dados={nome,grupo:document.getElementById('ei-grupo')?.value||'',ativo:document.getElementById('ei-ativo')?.value!=='false'};
+  if(id){await updateDoc(doc(db,'enroladores_int',id),dados);}
+  else{await addDoc(collection(db,'enroladores_int'),dados);}
+  closeModal();showToast('Enrolador salvo!');
+};
+window._editarEnrolInt=function(id){const e=enroladoresInt.find(x=>x.id===id);if(e)window._abrirNovoEnrolInt(e);};
+window._excluirEnrolInt=async function(id,fromModal){
+  if(!confirm('Excluir enrolador?'))return;
+  if(fromModal)closeModal();
+  await deleteDoc(doc(db,'enroladores_int',id));showToast('Excluído.');
+};
+
+// ── Config ────────────────────────────────────────────────────────
+function renderConfigInt(){
+  const tipos=getTiposInt();
+  const tiposHtml=tipos.map((t,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+    +'<input value="'+t.label+'" id="cit-label-'+i+'" style="flex:1;font-size:12px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<input type="number" step="0.01" placeholder="R$" value="'+(getValorInt(t.id)||'')+'" id="cit-val-'+i+'" style="width:80px;font-size:12px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<button onclick="window._removerTipoInt('+i+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
+    +'</div>').join('');
+
+  return '<div class="card">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">⚙️ Tipos de peça e valores</div>'
+    +'<div id="cit-lista">'+tiposHtml+'</div>'
+    +'<button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="window._addTipoInt()">+ Adicionar tipo</button>'
+    +'<div style="margin-top:14px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarConfigInt()">Salvar configurações</button>'
+    +'</div></div>';
+}
+
+window._addTipoInt=function(){
+  const lista=document.getElementById('cit-lista');
+  if(!lista) return;
+  const i=lista.children.length;
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:6px';
+  div.innerHTML='<input placeholder="Nome da peça" id="cit-label-'+i+'" style="flex:1;font-size:12px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<input type="number" step="0.01" placeholder="R$" id="cit-val-'+i+'" style="width:80px;font-size:12px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>';
+  lista.appendChild(div);
+};
+window._removerTipoInt=function(i){
+  const row=document.querySelector('#cit-lista > div:nth-child('+(i+1)+')');
+  if(row) row.remove();
+};
+window._salvarConfigInt=async function(){
+  const lista=document.getElementById('cit-lista');
+  if(!lista) return;
+  const tipos=[];
+  const valores={};
+  Array.from(lista.children).forEach((row,i)=>{
+    const label=document.getElementById('cit-label-'+i)?.value.trim();
+    const val=parseFloat(document.getElementById('cit-val-'+i)?.value)||0;
+    if(label){
+      const id=label.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+      tipos.push({id,label});
+      valores[id]=val;
+    }
+  });
+  await setDoc(doc(db,'config_int','geral'),{tipos,valores});
+  closeModal&&closeModal();
+  showToast('Configurações salvas!');
+};
+
+// ── Minha Produção (enrolador) ────────────────────────────────────
+function renderMinhaProdInt(){
+  const enrId=currentUserData?.uid;
+  const minhasFichas=fichasInt.filter(f=>f.enroladorId===enrId);
+  const ficha=minhasFichas.find(f=>f.status==='aberta');
+
+  let html='<div class="card">';
+  if(!ficha){
+    html+='<div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha aberta no momento.</div>';
+  } else {
+    const ganho=somaProducaoFicha(ficha);
+    const totPecas=totalPecasFicha(ficha);
+    const rolos=totalRolosFicha(ficha);
+    html+='<div style="margin-bottom:12px">'
+      +'<div style="font-size:13px;font-weight:700">Ficha atual</div>'
+      +'<div style="font-size:11px;color:#64748b">Aberta em '+fmtDate(ficha.dataAbertura)+'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">'
+      +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Ganho</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(ganho)+'</div></div></div>'
+      +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Peças</div><div class="stat-value">'+Object.values(totPecas).reduce((s,v)=>s+v,0)+'</div></div></div>'
+      +'<div class="stat-card" style="background:linear-gradient(135deg,#9333ea,#a78bfa)"><div><div class="stat-label">Rolos recebidos</div><div class="stat-value">'+rolos+'</div></div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:16px;flex-wrap:wrap">'
+      +getTiposInt().map(t=>totPecas[t.id]>0?'<div style="font-size:12px"><span style="font-weight:700;color:#1e40af">'+totPecas[t.id]+'</span> '+t.label+'</div>':'').join('')
+      +'</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETOR DE FITAS
+// ═══════════════════════════════════════════════════════════════
+
+function renderTabFitas(tab){
+  try{
+    if(tab==='entregas_fitas') return renderEntregasFitas();
+    if(tab==='config_fitas')   return renderConfigFitas();
+    return renderEntregasFitas();
+  }catch(e){
+    return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';
+  }
+}
+
+function renderEntregasFitas(){
+  const optsEnr=enroladoresInt.filter(e=>e.ativo!==false)
+    .map(e=>'<option value="'+e.id+'">'+e.nome+'</option>').join('');
+
+  // Histórico de hoje
+  const hoje=today();
+  const hoje_movs=entregasFitas.filter(e=>e.data===hoje);
+
+  let html='<div class="card">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">🎀 Registrar entrega de fita</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Enrolador</label>'
+    +'<select id="ef-enrolador" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
+    +'<option value="">Selecione...</option>'+optsEnr+'</select></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="ef-data" value="'+hoje+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Rolos de fita</label>'
+    +'<input type="number" id="ef-rolos" min="0" step="1" placeholder="0" onfocus="this.select()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Cor da fita</label>'
+    +'<input id="ef-cor" placeholder="ex: Branco" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Rolos de fio</label>'
+    +'<input type="number" id="ef-fio" min="0" step="1" placeholder="0" onfocus="this.select()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Observação</label>'
+    +'<input id="ef-obs" placeholder="Opcional" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary" style="margin-top:8px" onclick="window._registrarEntregaFita()">Registrar entrega</button>'
+    +'</div>'
+    +'<div class="card" style="margin-top:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Entregas de hoje ('+hoje_movs.length+')</div>'
+    +(hoje_movs.length?hoje_movs.map((m,i)=>{
+      const enr=getEnrInt(m.enroladorIntId);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+        +'<div><div style="font-weight:700;font-size:12px">'+enr.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+(m.rolos?m.rolos+' rolos':'')+(m.fio?' · '+m.fio+' fio':'')+(m.cor?' · '+m.cor:'')+(m.obs?' · '+m.obs:'')+'</div>'
+        +'</div>'
+        +(m.rolos?'<div style="font-weight:700;color:#9333ea">'+m.rolos+'x</div>':'')
+        +'</div>';
+    }).join(''):'<div style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">Nenhuma entrega hoje.</div>')
+    +'</div>';
+  return html;
+}
+
+window._registrarEntregaFita=async function(){
+  const enroladorIntId=document.getElementById('ef-enrolador')?.value;
+  const data=document.getElementById('ef-data')?.value;
+  const rolos=parseInt(document.getElementById('ef-rolos')?.value)||0;
+  const fio=parseInt(document.getElementById('ef-fio')?.value)||0;
+  const cor=document.getElementById('ef-cor')?.value.trim()||'';
+  const obs=document.getElementById('ef-obs')?.value.trim()||'';
+  if(!enroladorIntId||!data){showToast('Selecione o enrolador e a data.');return;}
+  if(!rolos&&!fio){showToast('Informe pelo menos rolos de fita ou fio.');return;}
+  await addDoc(collection(db,'entregas_fitas'),{enroladorIntId,data,rolos,fio,cor,obs,
+    registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()});
+  document.getElementById('ef-rolos').value='';
+  document.getElementById('ef-fio').value='';
+  document.getElementById('ef-cor').value='';
+  document.getElementById('ef-obs').value='';
+  showToast('Entrega registrada!');
+};
+
+function renderConfigFitas(){
+  return '<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Configurações do setor de fitas em breve.</div></div>';
 }
 
 function renderConfigMetal(){
