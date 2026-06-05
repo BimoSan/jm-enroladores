@@ -3330,6 +3330,12 @@ window._apontSoldadorChange=function(){
   window._setApontModo('meta');
 };
 
+window._excluirFicha=async function(id){
+  if(!confirm('Excluir esta ficha permanentemente? Esta ação não pode ser desfeita.')) return;
+  await deleteDoc(doc(db,'fichas',id));
+  showToast('Ficha excluída.');
+};
+
 window._excluirApontMetal=id=>{
   showModal('Excluir apontamento',
     '<div style="font-size:13px;color:#444">Excluir este registro de produção? Esta ação não pode ser desfeita.</div>',
