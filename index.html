@@ -1337,10 +1337,11 @@ function renderPainel(){
 
 // ── Fichas ───────────────────────────────────────────────────────
 function renderFichas(){
+  const isEnrolador=currentUserData?.perfil==='enrolador';
   const isEntregador=can('verFichasEntregador')&&!can('verFichas');
   let html='';
   if(isEntregador)html+=`<div class="info-box">Você está visualizando as fichas abertas. Dados financeiros não exibidos.</div>`;
-  if(!isEntregador){
+  if(!isEntregador&&!isEnrolador){
     html+=`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <select id="f-status" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos os status</option><option value="aberta">Em andamento</option><option value="fechada">Fechada</option>
