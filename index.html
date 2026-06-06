@@ -765,7 +765,7 @@ function renderApp(){
     if(can('registrar'))tabs.push('recolher');
     if(can('verRelatorio'))tabs.push('relatorio');
     if(can('verRanking'))tabs.push('ranking');
-    if(can('verPainel'))tabs.push('historico');
+    if(can('verPainel')&&currentUserData?.perfil!=='enrolador')tabs.push('historico');
     if(can('verValores'))tabs.push('valores');
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
@@ -2171,7 +2171,7 @@ function renderRanking(){
     +btnRankApt('apontador2','Apontador 2','#b45309')
     +'</div>';
 
-  let html = filtroAptHtml+`
+  let html = filtroAptHtml+(isEnrolador?'':` 
     <div style="background:#1e40af;border-radius:14px;padding:14px 18px;margin-bottom:12px;width:100%">
       <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">🏆 Ranking de Enroladores</div>
       <div style="font-size:12px;color:#93c5fd">Ordenado por peças enroladas em <strong style="color:#fff">${mesAtualNome} ${anoAtual}</strong></div>
@@ -2185,7 +2185,7 @@ function renderRanking(){
         <div class="metric"><div class="metric-label">Varanda Sofia</div><div class="metric-value" style="font-size:22px;color:#3266ad">${varMes}</div><div style="font-size:10px;color:#94a3b8">em ${mesAtualNome}</div></div>
         <div class="metric"><div class="metric-label">Centro Luxo</div><div class="metric-value" style="font-size:22px;color:#1D9E75">${cenMes}</div><div style="font-size:10px;color:#94a3b8">em ${mesAtualNome}</div></div>
       </div>
-    </div>`;
+    </div>`);
 
   html += dados.map((d,i)=>{
     const ci  = enroladores.findIndex(e=>e.id===d.enr.id);
