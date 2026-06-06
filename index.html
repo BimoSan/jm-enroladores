@@ -2117,9 +2117,17 @@ function renderRanking(){
   }
 
   // Filtro de apontador
-  const enroladoresFiltrados=_rankFiltroApt==='all'
-    ? enroladores
-    : enroladores.filter(e=>e.apontadorPerfil===_rankFiltroApt);
+  // Se for enrolador, filtrar apenas do mesmo apontador
+  let _enroladoresBase=enroladores;
+  if(isEnrolador){
+    const uid=currentUser?.uid||'';
+    const idUsuario=currentUserData?.id||'';
+    const meuEnr=enroladores.find(e=>e.usuarioUid===uid||e.usuarioUid===idUsuario||e.id===idUsuario);
+    if(meuEnr) _enroladoresBase=enroladores.filter(e=>e.apontadorPerfil===meuEnr.apontadorPerfil);
+  }
+  enroladoresFiltrados=_rankFiltroApt==='all'
+    ? _enroladoresBase
+    : _enroladoresBase.filter(e=>e.apontadorPerfil===_rankFiltroApt);
 
   const dados = enroladoresFiltrados.map(enr=>{
     const fichasEnr      = fichas.filter(f=>f.enroladorId===enr.id);
