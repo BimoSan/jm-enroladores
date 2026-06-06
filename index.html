@@ -2081,6 +2081,7 @@ window._salvarValores=async(ap)=>{
 
 // ── Ranking ──────────────────────────────────────────────────
 function renderRanking(){
+  const isEnrolador=currentUserData?.perfil==='enrolador';
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const hoje = today();
   const anoMeAtual = hoje.slice(0,7);
