@@ -1079,7 +1079,13 @@ function renderPainelBonus(){
 
 function renderPainelEnrolador(){
   const uid=currentUser?.uid||'';
-  const enr=enroladores.find(e=>e.usuarioUid===uid||e.id===currentUserData?.enroladorId);
+  const idUsuario=currentUserData?.id||'';
+  const enr=enroladores.find(e=>
+    e.usuarioUid===uid||
+    e.usuarioUid===idUsuario||
+    e.id===currentUserData?.enroladorId||
+    e.id===idUsuario
+  );
   if(!enr) return '<div class="card" style="text-align:center;padding:30px">'
     +'<div style="font-size:40px;margin-bottom:12px">👤</div>'
     +'<div style="font-weight:700;font-size:15px;margin-bottom:6px">Usuário não vinculado</div>'
