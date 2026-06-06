@@ -2125,7 +2125,7 @@ function renderRanking(){
     const meuEnr=enroladores.find(e=>e.usuarioUid===uid||e.usuarioUid===idUsuario||e.id===idUsuario);
     if(meuEnr) _enroladoresBase=enroladores.filter(e=>e.apontadorPerfil===meuEnr.apontadorPerfil);
   }
-  enroladoresFiltrados=_rankFiltroApt==='all'
+  let enroladoresFiltrados=_rankFiltroApt==='all'
     ? _enroladoresBase
     : _enroladoresBase.filter(e=>e.apontadorPerfil===_rankFiltroApt);
 
