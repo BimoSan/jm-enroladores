@@ -7235,7 +7235,7 @@ window._abrirSinalizacao=fichaId=>{
   const tiposInputs=tiposComPecas.map(t=>{
     const prontos=(f.prontos||{})[t.id]||0;
     const emMao=(entreguesPorTipo[t.id]||0)-(recolhidosPorTipo[t.id]||0);
-    return `<div class="num-group"><label>${t.label}${t.principal?' ★':''}<span style="font-size:9px;color:#64748b;display:block">${emMao} em mão</span></label><input type="number" id="sig-${t.id}" min="0" max="${emMao}" step="1" value="${prontos}" placeholder="0"></div>`;
+    return `<div class="num-group"><label>${t.label}${t.principal?' ★':''}<span style="font-size:9px;color:#64748b;display:block">${emMao} em mão</span></label><input type="number" id="sig-${t.id}" min="0" max="${emMao}" step="1" value="${prontos||''}" placeholder="0" onfocus="if(this.value==='0')this.value=''"></div>`;
   }).join('');
   if(!tiposComPecas.length){
     showToast('Nenhuma peça pendente nesta ficha.');return;
