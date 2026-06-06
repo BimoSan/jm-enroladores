@@ -1076,7 +1076,124 @@ function renderPainelBonus(){
 }
 
 
+
+function renderPainelEnrolador(){
+  const uid=currentUser?.uid||'';
+  const enr=enroladores.find(e=>e.usuarioUid===uid||e.id===currentUserData?.enroladorId);
+  if(!enr) return '<div class="card" style="text-align:center;padding:30px">'
+    +'<div style="font-size:40px;margin-bottom:12px">👤</div>'
+    +'<div style="font-weight:700;font-size:15px;margin-bottom:6px">Usuário não vinculado</div>'
+    +'<div style="font-size:12px;color:#94a3b8">Fale com o apontador para vincular seu usuário.</div></div>';
+
+  const fichasEnr=fichas.filter(f=>f.enroladorId===enr.id);
+  const fichaAberta=fichasEnr.find(f=>f.status==='aberta');
+  const fichasFechadas=fichasEnr.filter(f=>f.status==='fechada').sort((a,b)=>b.dataAbertura>a.dataAbertura?1:-1);
+
+  // Calcular valor a receber na ficha aberta
+  function calcValorFicha(f){
+    if(!f) return 0;
+    const entregues=totalEnv(f);
+    const recolhidos=totalRec(f);
+    return recolhidos*calcValorPeca(f);
+  }
+  function calcValorPeca(f){
+    // Valor por peça baseado nos valores configurados
+    const apt=enr.apontadorPerfil||'apontador1';
+    const vals=apt==='apontador2'?valoresPecas.apontador2:valoresPecas.apontador1;
+    // Pegar tipo principal da ficha (tipo com mais recolhidos)
+    const tiposEnv=(f.entregas||[]).reduce((s,e)=>{
+      Object.entries(e.tipos||{}).forEach(([k,v])=>{s[k]=(s[k]||0)+v;});
+      return s;
+    },{});
+    const tipoMain=Object.entries(tiposEnv).sort((a,b)=>b[1]-a[1])[0];
+    return tipoMain?parseFloat(vals[tipoMain[0]])||0:0;
+  }
+
+  const valorAberta=fichaAberta?calcGanhoFicha(fichaAberta):0;
+  const totalEntregue=fichaAberta?totalEnv(fichaAberta):0;
+  const totalRecolhido=fichaAberta?totalRec(fichaAberta):0;
+  const totalPendente=totalEntregue-totalRecolhido;
+
+  let html='';
+
+  // Card principal -- valor a receber
+  html+='<div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
+    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na ficha atual</div>'
+    +(fichaAberta
+      ?'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtMoeda(valorAberta)+'</div>'
+        +'<div style="font-size:12px;opacity:.7;margin-top:6px">Ficha aberta desde '+fmtDate(fichaAberta.dataAbertura)+'</div>'
+      :'<div style="font-size:20px;font-weight:700;opacity:.7">Sem ficha aberta</div>')
+    +'</div>';
+
+  // Cards de resumo
+  if(fichaAberta){
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+      +'<div class="card" style="text-align:center;padding:14px">'
+        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">ENTREGUES</div>'
+        +'<div style="font-size:24px;font-weight:800;color:#1e40af">'+totalEntregue+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">peças</div>'
+      +'</div>'
+      +'<div class="card" style="text-align:center;padding:14px">'
+        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">DEVOLVIDAS</div>'
+        +'<div style="font-size:24px;font-weight:800;color:#059669">'+totalRecolhido+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">peças</div>'
+      +'</div>'
+      +'<div class="card" style="text-align:center;padding:14px">'
+        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">EM MÃO</div>'
+        +'<div style="font-size:24px;font-weight:800;color:'+(totalPendente>0?'#d97706':'#94a3b8')+'">'+totalPendente+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">peças</div>'
+      +'</div>'
+    +'</div>';
+
+    // Últimas movimentações
+    const movs=[];
+    (fichaAberta.entregas||[]).forEach(e=>{
+      const d=e.data?e.data.split('-').reverse().join('/'):'';
+      const tot=Object.values(e.tipos||{}).reduce((s,v)=>s+v,0);
+      if(tot>0) movs.push({tipo:'entrega',data:e.data,label:'+'+tot+' entregue',d,cor:'#1e40af'});
+    });
+    (fichaAberta.recolhimentos||[]).forEach(r=>{
+      const tot=Object.values(r.tipos||{}).reduce((s,v)=>s+v,0);
+      if(tot>0) movs.push({tipo:'recolhimento',data:r.data,label:'-'+tot+' devolvido',d:r.data?r.data.split('-').reverse().join('/'):'',cor:'#059669'});
+    });
+    movs.sort((a,b)=>b.data>a.data?1:-1);
+
+    if(movs.length){
+      html+='<div class="card">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📋 Últimas movimentações</div>'
+        +movs.slice(0,5).map((m,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+          +'<div style="font-size:12px;color:#64748b">'+m.d+'</div>'
+          +'<div style="font-weight:700;color:'+m.cor+'">'+m.label+'</div>'
+          +'</div>').join('')
+        +'</div>';
+    }
+  }
+
+  // Histórico de fichas anteriores
+  if(fichasFechadas.length){
+    html+='<div class="card" style="margin-top:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📁 Fichas anteriores</div>'
+      +fichasFechadas.slice(0,5).map((f,i)=>{
+        const ganho=calcGanhoFicha(f);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+          +'<div>'
+            +'<div style="font-size:12px;font-weight:600">'+fmtDate(f.dataAbertura)+' → '+fmtDate(f.dataFechamento)+'</div>'
+            +'<div style="font-size:10px;color:#64748b">'+totalRec(f)+' peças devolvidas</div>'
+          +'</div>'
+          +'<div style="font-weight:800;color:#065f46">'+fmtMoeda(ganho)+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  return html;
+}
+
 function renderPainel(){
+  // Tela especial para enrolador
+  if(currentUserData?.perfil==='enrolador'){
+    return renderPainelEnrolador();
+  }
   const abertas=fichas.filter(f=>f.status==='aberta');
   const fechadas=fichas.filter(f=>f.status==='fechada'||f.status==='cancelada'); // só fechadas -- canceladas não geram pagamento
   const tEnv=fichas.reduce((a,f)=>a+totalEnv(f),0);
