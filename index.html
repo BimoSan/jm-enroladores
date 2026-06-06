@@ -1128,6 +1128,9 @@ function renderPainelEnrolador(){
     +(fichaAberta
       ?'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtMoeda(valorAberta)+'</div>'
         +'<div style="font-size:12px;opacity:.7;margin-top:6px">Ficha aberta desde '+fmtDate(fichaAberta.dataAbertura)+'</div>'
+        +'<button onclick="window._abrirSinalizacao(this.dataset.id)" data-id="'+fichaAberta.id+'"'
+        +' style="margin-top:16px;background:#fff;color:#92400e;border:none;border-radius:12px;padding:12px 24px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:10px;margin-left:auto;margin-right:auto;box-shadow:0 2px 8px rgba(0,0,0,.2)">'
+        +'🔔 <span>Sinalizar peças prontas</span></button>'
       :'<div style="font-size:20px;font-weight:700;opacity:.7">Sem ficha aberta</div>')
     +'</div>';
 
