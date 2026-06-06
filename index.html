@@ -1115,7 +1115,7 @@ function renderPainelEnrolador(){
     return tipoMain?parseFloat(vals[tipoMain[0]])||0:0;
   }
 
-  const valorAberta=fichaAberta?calcGanhoFicha(fichaAberta):0;
+  const valorAberta=fichaAberta?calcValorFicha(fichaAberta):0;
   const totalEntregue=fichaAberta?totalEnv(fichaAberta):0;
   const totalRecolhido=fichaAberta?totalRec(fichaAberta):0;
   const totalPendente=totalEntregue-totalRecolhido;
@@ -1180,7 +1180,7 @@ function renderPainelEnrolador(){
     html+='<div class="card" style="margin-top:12px">'
       +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📁 Fichas anteriores</div>'
       +fichasFechadas.slice(0,5).map((f,i)=>{
-        const ganho=calcGanhoFicha(f);
+        const ganho=calcValorFicha(f);
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
           +'<div>'
             +'<div style="font-size:12px;font-weight:600">'+fmtDate(f.dataAbertura)+' → '+fmtDate(f.dataFechamento)+'</div>'
