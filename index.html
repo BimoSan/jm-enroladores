@@ -7218,10 +7218,28 @@ function renderTabMetal(tab){
 window._abrirSinalizacao=fichaId=>{
   const f=getFicha(fichaId);
   if(!f)return;
-  const tiposInputs=TIPOS.map(t=>{
+  // Calcular quais tipos têm peças entregues na ficha (pendentes de recolhimento)
+  const entreguesPorTipo={};
+  (f.entregas||[]).forEach(e=>{
+    Object.entries(e.tipos||{}).forEach(([k,v])=>{entreguesPorTipo[k]=(entreguesPorTipo[k]||0)+v;});
+  });
+  const recolhidosPorTipo={};
+  (f.recolhimentos||[]).forEach(r=>{
+    Object.entries(r.tipos||{}).forEach(([k,v])=>{recolhidosPorTipo[k]=(recolhidosPorTipo[k]||0)+v;});
+  });
+  // Só mostrar tipos com peças ainda em mão (enviadas - recolhidas > 0)
+  const tiposComPecas=TIPOS.filter(t=>{
+    const emMao=(entreguesPorTipo[t.id]||0)-(recolhidosPorTipo[t.id]||0);
+    return emMao>0;
+  });
+  const tiposInputs=tiposComPecas.map(t=>{
     const prontos=(f.prontos||{})[t.id]||0;
-    return `<div class="num-group"><label>${t.label}${t.principal?' ★':''}</label><input type="number" id="sig-${t.id}" min="0" step="1" value="${prontos}" placeholder="0"></div>`;
+    const emMao=(entreguesPorTipo[t.id]||0)-(recolhidosPorTipo[t.id]||0);
+    return `<div class="num-group"><label>${t.label}${t.principal?' ★':''}<span style="font-size:9px;color:#64748b;display:block">${emMao} em mão</span></label><input type="number" id="sig-${t.id}" min="0" max="${emMao}" step="1" value="${prontos}" placeholder="0"></div>`;
   }).join('');
+  if(!tiposComPecas.length){
+    showToast('Nenhuma peça pendente nesta ficha.');return;
+  }
   showModal('Sinalizar peças prontas',
     `<div class="info-box" style="margin-bottom:12px">Informe quantas peças já estão enroladas e prontas para recolhimento.</div>
     <div class="num-inputs">${tiposInputs}</div>`,
