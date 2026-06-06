@@ -3126,10 +3126,11 @@ function calcGanhoSoldador(soldadorId, periodo){
       });
 
       // Peças normais do dia com produção
+      const ehSabadoDia=new Date(dia+'T12:00:00').getDay()===6;
       const pecasDia=PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>({
         id:p.id,
         qtd:apDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0),
-        meta:parseInt(metas[p.id])||0,
+        meta:ehSabadoDia?Math.round((parseInt(metas[p.id])||0)/2):(parseInt(metas[p.id])||0),
         val:parseFloat(vMeta[p.id])||parseFloat(vProd[p.id])||0,
       })).filter(p=>p.qtd>0);
 
