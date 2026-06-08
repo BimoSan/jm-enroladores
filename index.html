@@ -5826,70 +5826,124 @@ function renderMinhaProd(){
   if(!sol) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum soldador. Peça ao encarregado para vincular.</div></div>';
 
   const c=avatarColor(soldadores.findIndex(s=>s.id===sol.id));
+  const q=getQuinzenaAtual();
+  const ficha=getFichaMetal(sol.id,q);
+  const status=ficha?.status||'aberta';
+  const pago=ficha?.pago||false;
+  const totalPecasQ=totalPecasFicha(sol.id,q);
+  const ganhoQ=calcGanhoSoldador(sol.id,q);
 
-  const periodos=[
-    {key:'hoje', label:'Hoje'},
-    {key:'semana', label:'Esta semana'},
-    {key:'quinzena', label:quinzenaLabel(getQuinzenaAtual())},
-  ];
+  // ── Header ──────────────────────────────────────────────────────
+  const badgeStatus=status==='fechada'
+    ?(pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>'
+        :'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:99px;font-weight:700">Aguardando pagamento</span>')
+    :'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700">Em aberto</span>';
 
-  function cardPeriodo(p){
-    const pecasCom=PECAS_METAL_FULL.filter(pc=>totalPecaPeriodo(sol.id,pc.id,p.key)>0);
-    const total=totalGeralPeriodo(sol.id,p.key);
-    const ganho=calcGanhoSoldador(sol.id,p.key);
-    if(!total&&p.key!=='hoje') return '';
-
-    const rows=pecasCom.map(pc=>{
-      const qtd=totalPecaPeriodo(sol.id,pc.id,p.key);
-      const vals=(configMetal.valores||{})[sol.id]||{};
-      const val=parseFloat((configMetal.valoresProd||{})[pc.id])||0;
-      const meta=parseInt((configMetal.metas||{})[pc.id])||0;
-      return '<tr>'
-        +'<td style="padding:7px 10px;font-size:12px">'+pc.label+'</td>'
-        +'<td style="padding:7px 10px;font-size:13px;font-weight:700;text-align:center">'+qtd+'</td>'
-        +(meta>0?'<td style="padding:7px 10px;font-size:12px;text-align:center;color:'+(qtd>=meta?'#059669':'#d97706')+'">'+meta+'</td>':'<td style="padding:7px 10px;text-align:center;color:#94a3b8">—</td>')
-        +'<td style="padding:7px 10px;font-size:12px;text-align:right;color:#059669;font-weight:600">'+fmtR(val*qtd)+'</td>'
-        +'</tr>';
-    }).join('');
-
-    return '<div class="card" style="margin-bottom:12px;border-left:4px solid '+c+'">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(rows?'12px':'0')+'">'
-      +'<div style="font-size:14px;font-weight:700;color:'+c+'">'+p.label+'</div>'
-      +'<div style="text-align:right">'
-      +'<div style="font-size:10px;color:#64748b">ganho estimado</div>'
-      +'<div style="font-size:20px;font-weight:800;color:#059669">'+fmtR(ganho)+'</div>'
-      +'</div>'
-      +'</div>'
-      +(rows?'<table style="width:100%;border-collapse:collapse">'
-        +'<thead><tr style="background:#f8fafc">'
-        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:left">Peça</th>'
-        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Qtd.</th>'
-        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:center">Meta</th>'
-        +'<th style="padding:7px 10px;font-size:10px;font-weight:600;color:#64748b;text-align:right">Ganho</th>'
-        +'</tr></thead>'
-        +'<tbody>'+rows+'</tbody>'
-        +'<tfoot><tr style="border-top:2px solid #f1f5f9">'
-        +'<td style="padding:8px 10px;font-weight:700">Total</td>'
-        +'<td style="padding:8px 10px;font-weight:800;text-align:center">'+total+'</td>'
-        +'<td></td>'
-        +'<td style="padding:8px 10px;font-weight:800;text-align:right;color:#059669">'+fmtR(ganho)+'</td>'
-        +'</tr></tfoot>'
-        +'</table>'
-      :'<div style="color:#94a3b8;text-align:center;padding:12px;font-size:13px">Nenhuma produção registrada.</div>')
-      +'</div>';
-  }
-
-  const header='<div class="card" style="margin-bottom:14px">'
+  let html='<div class="card" style="margin-bottom:12px;border-left:4px solid '+c+'">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
     +'<div style="display:flex;align-items:center;gap:12px">'
     +'<div style="width:48px;height:48px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+initials(sol.nome)+'</div>'
     +'<div>'
     +'<div style="font-size:16px;font-weight:800">'+sol.nome+'</div>'
-    +'<div style="font-size:12px;color:#64748b">'+(sol.contrato==='producao'?'Por produção':'Fichado')+'</div>'
+    +'<div style="font-size:12px;color:#64748b">'+(sol.contrato==='producao'?'Por produção':'Fichado')+' · '+quinzenaLabel(q)+'</div>'
     +'</div>'
+    +'</div>'
+    +'<div style="text-align:right">'
+    +badgeStatus
+    +'<div style="font-size:10px;color:#64748b;margin-top:6px">a receber na quinzena</div>'
+    +'<div style="font-size:24px;font-weight:900;color:'+(pago?'#059669':'#d97706')+'">'+fmtR(ganhoQ)+'</div>'
     +'</div>'
     +'</div>';
 
-  return header+periodos.map(cardPeriodo).join('');
+  // ── Histórico por dia ────────────────────────────────────────────
+  const [qAno,qMes,qParte]=q.split('-');
+  const apontsDaQ=apontSoldador(sol.id).filter(a=>getQuinzena(a.data)===q);
+  const diasComApont=[...new Set(apontsDaQ.map(a=>a.data))].sort();
+
+  if(diasComApont.length>0){
+    const vProd=configMetal.valoresProd||{};
+    const vRef=configMetal.valoresRef||{};
+
+    const linhas=diasComApont.map((dia,i)=>{
+      const apontsDia=apontsDaQ.filter(a=>a.data===dia);
+      const totalDia=apontsDia.reduce((s,a)=>s+Object.values(a.pecas||{}).reduce((ss,v)=>ss+(parseInt(v)||0),0),0);
+      // Ganho do dia: cada peça × seu valor
+      const ganhoDia=PECAS_METAL_FULL.reduce((s,p)=>{
+        const qtd=apontsDia.reduce((ss,a)=>ss+(parseInt((a.pecas||{})[p.id])||0),0);
+        const val=p.reforma?(parseFloat(vRef[p.id.replace('ref_','')])||0):(parseFloat(vProd[p.id])||0);
+        return s+(qtd*val);
+      },0);
+      const pecasDia=PECAS_METAL_FULL.filter(p=>apontsDia.some(a=>parseInt((a.pecas||{})[p.id])>0));
+      const detalDia=pecasDia.map(p=>{
+        const qtdP=apontsDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+        return '<span style="font-size:10px;color:#64748b">'+p.label+': <strong>'+qtdP+'</strong></span>';
+      }).join(' · ');
+      const [,, dd]=dia.split('-');
+      return '<tr style="'+(i%2?'background:#f8fafc':'')+';border-bottom:1px solid #f1f5f9">'
+        +'<td style="padding:7px 10px;font-size:12px;font-weight:600;white-space:nowrap">'+dd+'/'+qMes+'/'+qAno+'</td>'
+        +'<td style="padding:7px 10px;font-size:13px;font-weight:800;color:#1e40af;text-align:center">'+totalDia+'</td>'
+        +'<td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">'+fmtR(ganhoDia)+'</td>'
+        +'<td style="padding:7px 10px;font-size:11px;color:#64748b">'+detalDia+'</td>'
+        +'</tr>';
+    }).join('');
+
+    html+='<div style="border-top:1px solid #e2e8f0;padding-top:10px;margin-top:4px">'
+      +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Produção por dia — '+quinzenaLabel(q)+'</div>'
+      +'<div style="overflow-x:auto">'
+      +'<table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:#f1f5f9">'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Data</th>'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center">Peças</th>'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:right">Ganho</th>'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Detalhes</th>'
+      +'</tr></thead>'
+      +'<tbody>'+linhas+'</tbody>'
+      +'<tfoot><tr style="background:#eff6ff;font-weight:800">'
+      +'<td style="padding:8px 10px;font-size:12px;color:#1e40af">Total quinzena</td>'
+      +'<td style="padding:8px 10px;font-size:14px;color:#1e40af;text-align:center">'+totalPecasQ+'</td>'
+      +'<td style="padding:8px 10px;font-size:14px;color:#059669;text-align:right">'+fmtR(ganhoQ)+'</td>'
+      +'<td></td>'
+      +'</tr></tfoot>'
+      +'</table>'
+      +'</div>'
+      +'</div>';
+  } else {
+    html+='<div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:4px;color:#94a3b8;text-align:center;font-size:13px">Nenhuma produção registrada nesta quinzena.</div>';
+  }
+
+  html+='</div>';
+
+  // ── Histórico de pagamentos ──────────────────────────────────────
+  const fichasPagas=fichasMetal.filter(f=>f.soldadorId===sol.id&&f.pago)
+    .sort((a,b)=>b.quinzena>a.quinzena?1:-1);
+
+  const fichasFechadasNaoPagas=fichasMetal.filter(f=>f.soldadorId===sol.id&&f.status==='fechada'&&!f.pago&&f.quinzena!==q)
+    .sort((a,b)=>b.quinzena>a.quinzena?1:-1);
+
+  const fichasHistorico=[...fichasFechadasNaoPagas,...fichasPagas];
+
+  if(fichasHistorico.length){
+    html+='<div class="card" style="margin-top:4px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📁 Histórico de pagamentos</div>'
+      +fichasHistorico.map((f,i)=>{
+        const ganho=f.ganho||calcGanhoSoldador(sol.id,f.quinzena);
+        const dpag=f.dataPagamento?fmtDate(f.dataPagamento):'—';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+          +'<div>'
+          +'<div style="font-size:12px;font-weight:700">'+quinzenaLabel(f.quinzena)+'</div>'
+          +'<div style="font-size:10px;color:#64748b">'+(f.pago?'Pago em '+dpag:'Aguardando pagamento')+'</div>'
+          +'</div>'
+          +'<div style="text-align:right">'
+          +(f.pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✓ Pago</span>'
+            :'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:2px 8px;border-radius:99px;font-weight:700">Pendente</span>')
+          +'<div style="font-size:15px;font-weight:800;color:'+(f.pago?'#059669':'#d97706')+';margin-top:3px">'+fmtR(ganho)+'</div>'
+          +'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  return html;
 }
 
 
