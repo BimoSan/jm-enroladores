@@ -386,6 +386,7 @@ const getFicha=id=>fichas.find(f=>f.id===id);
 
 function somaEntr(f,k){if(k==='fita'||k==='fio')return(f.entregas||[]).reduce((a,e)=>a+(parseInt(e[k])||0),0);return(f.entregas||[]).reduce((a,e)=>a+(parseInt((e.tipos||{})[k])||0),0)}
 function somaRecol(f,k){if(k==='fitaSobrando'||k==='fioSobrando')return(f.recolhimentos||[]).reduce((a,r)=>a+(parseInt(r[k])||0),0);return(f.recolhimentos||[]).reduce((a,r)=>a+(parseInt((r.tipos||{})[k])||0),0)}
+function somaRecolPago(f,k){return(f.recolhimentos||[]).filter(r=>!r.administrativo).reduce((a,r)=>a+(parseInt((r.tipos||{})[k])||0),0)}
 function totalEnv(f){return TIPOS.reduce((a,t)=>a+somaEntr(f,t.id),0)}
 function totalRec(f){return TIPOS.reduce((a,t)=>a+somaRecol(f,t.id),0)}
 function pendentes(f){return totalEnv(f)-totalRec(f)}
@@ -1936,6 +1937,14 @@ function calcularPagamento(f){
     return total+(qtd*valor);
   },0);
 }
+function calcularPagamentoCancelada(f){
+  const vals=getValoresPorFicha(f);
+  return TIPOS.reduce((total,t)=>{
+    const qtd=somaRecolPago(f,t.id);
+    const valor=parseFloat(vals[t.id])||0;
+    return total+(qtd*valor);
+  },0);
+}
 
 function fmtMoeda(v){
   return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -1999,7 +2008,7 @@ function renderValores(){
   const canceladasComRecol=fichas.filter(f=>
     f.status==='cancelada' &&
     (f.recolhimentos||[]).some(r=>!r.administrativo) &&
-    calcularPagamento(f)>0
+    calcularPagamentoCancelada(f)>0
   );
   const todasParaPagar=[...fechadas,...canceladasComRecol];
 
@@ -2013,11 +2022,11 @@ function renderValores(){
   html+=todasParaPagar.map(f=>{
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
-    const total=calcularPagamento(f);
-    const valsF=getValoresPorFicha(f);
     const isCancelada=f.status==='cancelada';
-    const detalhes=TIPOS.filter(t=>somaRecol(f,t.id)>0).map(t=>{
-      const qtd=somaRecol(f,t.id);
+    const total=isCancelada?calcularPagamentoCancelada(f):calcularPagamento(f);
+    const valsF=getValoresPorFicha(f);
+    const detalhes=TIPOS.filter(t=>(isCancelada?somaRecolPago(f,t.id):somaRecol(f,t.id))>0).map(t=>{
+      const qtd=isCancelada?somaRecolPago(f,t.id):somaRecol(f,t.id);
       const val=parseFloat(valsF[t.id])||0;
       const sub=qtd*val;
       return `<tr>
