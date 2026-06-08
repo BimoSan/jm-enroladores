@@ -1825,11 +1825,13 @@ function renderRelatorio(){
   }
 
   const fechadas=fichas.filter(f=>f.status==='fechada');
-  const pagas=fechadas.filter(f=>f.pago);
-  const pendentes_pag=fechadas.filter(f=>!f.pago);
+  const canceladasAPagar=fichas.filter(f=>f.status==='cancelada'&&(f.recolhimentos||[]).some(r=>!r.administrativo)&&calcularPagamentoCancelada(f)>0);
+  const todasFechadas=[...fechadas,...canceladasAPagar];
+  const pagas=todasFechadas.filter(f=>f.pago);
+  const pendentes_pag=todasFechadas.filter(f=>!f.pago);
   const totalPecas=fechadas.reduce((a,f)=>a+totalEnv(f),0);
-  const totalPagoVal=pagas.reduce((a,f)=>a+calcularPagamento(f),0);
-  const totalPendenteVal=pendentes_pag.reduce((a,f)=>a+calcularPagamento(f),0);
+  const totalPagoVal=pagas.reduce((a,f)=>a+(f.status==='cancelada'?calcularPagamentoCancelada(f):calcularPagamento(f)),0);
+  const totalPendenteVal=pendentes_pag.reduce((a,f)=>a+(f.status==='cancelada'?calcularPagamentoCancelada(f):calcularPagamento(f)),0);
 
   let html=`
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
