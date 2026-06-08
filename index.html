@@ -5839,19 +5839,20 @@ function renderMinhaProd(){
         :'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:99px;font-weight:700">Aguardando pagamento</span>')
     :'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700">Em aberto</span>';
 
-  let html='<div class="card" style="margin-bottom:12px;border-left:4px solid '+c+'">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
-    +'<div style="display:flex;align-items:center;gap:12px">'
+  // Banner verde igual ao enrolador
+  let html='<div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
+    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na quinzena atual</div>'
+    +'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtR(ganhoQ)+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+quinzenaLabel(q)+(totalPecasQ?' · '+totalPecasQ+' peças produzidas':'')+'</div>'
+    +'<div style="margin-top:10px">'+badgeStatus+'</div>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-bottom:12px;border-left:4px solid '+c+'">'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
     +'<div style="width:48px;height:48px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+initials(sol.nome)+'</div>'
     +'<div>'
     +'<div style="font-size:16px;font-weight:800">'+sol.nome+'</div>'
     +'<div style="font-size:12px;color:#64748b">'+(sol.contrato==='producao'?'Por produção':'Fichado')+' · '+quinzenaLabel(q)+'</div>'
-    +'</div>'
-    +'</div>'
-    +'<div style="text-align:right">'
-    +badgeStatus
-    +'<div style="font-size:10px;color:#64748b;margin-top:6px">a receber na quinzena</div>'
-    +'<div style="font-size:24px;font-weight:900;color:'+(pago?'#059669':'#d97706')+'">'+fmtR(ganhoQ)+'</div>'
     +'</div>'
     +'</div>';
 
