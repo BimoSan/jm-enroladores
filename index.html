@@ -1993,20 +1993,29 @@ function renderValores(){
     html+=tabelaAp('apontador2','Apontador 2','#b45309');
   }
 
-  // Lista de fichas fechadas com valor calculado
+  // Lista de fichas fechadas + canceladas com recolhimentos reais a pagar
   const fechadas=fichas.filter(f=>f.status==='fechada');
+  // Canceladas que têm pelo menos um recolhimento NÃO administrativo
+  const canceladasComRecol=fichas.filter(f=>
+    f.status==='cancelada' &&
+    (f.recolhimentos||[]).some(r=>!r.administrativo) &&
+    calcularPagamento(f)>0
+  );
+  const todasParaPagar=[...fechadas,...canceladasComRecol];
+
   html+=`<div class="section-label">fichas fechadas — valores a pagar</div>`;
 
-  if(!fechadas.length){
+  if(!todasParaPagar.length){
     html+='<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
     return html;
   }
 
-  html+=fechadas.map(f=>{
+  html+=todasParaPagar.map(f=>{
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
     const total=calcularPagamento(f);
     const valsF=getValoresPorFicha(f);
+    const isCancelada=f.status==='cancelada';
     const detalhes=TIPOS.filter(t=>somaRecol(f,t.id)>0).map(t=>{
       const qtd=somaRecol(f,t.id);
       const val=parseFloat(valsF[t.id])||0;
@@ -2018,19 +2027,24 @@ function renderValores(){
         <td style="padding:5px 6px;font-size:11px;text-align:right;font-weight:600">${fmtMoeda(sub)}</td>
       </tr>`;
     }).join('');
-    return `<div class="card" style="margin-bottom:10px">
+    return `<div class="card" style="margin-bottom:10px;${isCancelada?'border-left:4px solid #dc2626':''}">
+      ${isCancelada?`<div style="background:#fee2e2;border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:11px;color:#991b1b;display:flex;align-items:center;gap:6px">
+        <span>↩</span>
+        <span><strong>Ficha cancelada por retirada</strong> em ${fmtDate(f.dataCancelamento)}${f.justificativaCancelamento?' · '+f.justificativaCancelamento:''}. Pagamento gerado apenas pelas peças já enroladas e recolhidas.</span>
+      </div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
           <div>
             <div style="font-size:13px;font-weight:600">${enr.nome}</div>
-            <div style="font-size:11px;color:#666">Fechada em ${fmtDate(f.dataAbertura)}</div>
+            <div style="font-size:11px;color:#666">${isCancelada?'Cancelada':'Fechada'} em ${fmtDate(f.dataAbertura)}</div>
           </div>
         </div>
         <div style="text-align:right">
           <div style="font-size:11px;color:#666;margin-bottom:2px">${f.pago?'':'a pagar'}</div>
           <div style="font-size:22px;font-weight:700;color:${f.pago?'#2e7d32':'#e65100'}">${fmtMoeda(total)}</div>
-          ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
+          ${f.pago?'<span class="pago-badge">✓ Pago</span>'
+            :(can('marcarPago')?`<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="window._confirmarPago('${f.id}')">Marcar pago</button>`:'')}
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse">
