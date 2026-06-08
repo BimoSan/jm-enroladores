@@ -1826,7 +1826,11 @@ function renderRelatorio(){
 
   const fechadas=fichas.filter(f=>f.status==='fechada');
   const canceladasAPagar=fichas.filter(f=>f.status==='cancelada'&&(f.recolhimentos||[]).some(r=>!r.administrativo)&&calcularPagamentoCancelada(f)>0);
-  const todasFechadas=[...fechadas,...canceladasAPagar];
+  const todasFechadas=[...fechadas,...canceladasAPagar].sort((a,b)=>{
+  if(!a.pago&&b.pago)return -1;
+  if(a.pago&&!b.pago)return 1;
+  return (b.dataAbertura||"")>(a.dataAbertura||"")?1:-1;
+});
   const pagas=todasFechadas.filter(f=>f.pago);
   const pendentes_pag=todasFechadas.filter(f=>!f.pago);
   const totalPecas=fechadas.reduce((a,f)=>a+totalEnv(f),0);
