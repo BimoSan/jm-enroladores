@@ -525,6 +525,10 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'saidas_fitas':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   'relatorio_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  'fin_compras':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
+  'fin_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'alm_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
   'alm_entrada':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
   'alm_saida':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
@@ -552,6 +556,7 @@ const TAB_LABELS={
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
+  'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_relatorio':'Relatórios',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
   'painel_int':'Painel','apontar_int':'Apontamento','fichas_int':'Fichas',
@@ -625,6 +630,7 @@ function renderSelecionarSetor(){
     {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:true},
     {id:'fitas',            nome:'Setor de Fitas',           icon:'🔩', desc:'Entrega de fitas aos enroladores', ativo:true},
     {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:true},
+    {id:'financeiro_geral',  nome:'Financeiro',               icon:'💰', desc:'Pagamentos, compras e relatórios financeiros', ativo:['admin','proprietario','financeiro'].includes(currentUserData?.perfil)},
   ];
   const setoresEstofados=[
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
@@ -736,6 +742,9 @@ function renderApp(){
       tabs.push('painel_metal','ranking_metal');
     }
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
+  } else if(currentSetor==='financeiro_geral'){
+    tabs.push('fin_dashboard','fin_pagamentos','fin_compras','fin_relatorio');
+    if(!currentTab||!currentTab.startsWith('fin_')) currentTab='fin_dashboard';
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
@@ -868,6 +877,7 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
   if(currentSetor==='fitas') return renderTabFitas(tab);
   if(currentSetor==='caminhoes') return renderTabCaminhoes(tab);
@@ -3987,6 +3997,11 @@ window._setRelAp=function(v){
   reloadTab();
 };
 
+window._finSetFiltroSetor=function(v){ window._finPagFiltroSetor=v; reloadTab(); };
+window._finSetFiltroStatus=function(v){ window._finPagFiltroStatus=v; reloadTab(); };
+window._finSetComprasMes=function(v){ window._finComprasMes=v; reloadTab(); };
+window._finSetRelAno=function(v){ window._finRelAno=v; reloadTab(); };
+
 window._setAlmRelPeca=function(v){
   window._almRelPeca=v;
   reloadTab();
@@ -6392,6 +6407,427 @@ window._confirmarPagarFichaMetal=async id=>{
 // ── Ranking metalúrgica ───────────────────────────────────────────
 
 // ── Sistema Almoxarifado ─────────────────────────────────────────
+
+// ════════════════════════════════════════════════════════════════
+// SETOR FINANCEIRO
+// ════════════════════════════════════════════════════════════════
+
+function renderTabFinanceiro(tab){
+  try{
+    if(tab==='fin_dashboard') return renderFinDashboard();
+    if(tab==='fin_pagamentos') return renderFinPagamentos();
+    if(tab==='fin_compras') return renderFinCompras();
+    if(tab==='fin_relatorio') return renderFinRelatorio();
+    return renderFinDashboard();
+  }catch(e){
+    console.error('Erro renderTabFinanceiro('+tab+'):', e.message, e.stack);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro ao carregar: '+e.message+'</div>';
+  }
+}
+
+// ── helpers financeiros ──────────────────────────────────────────
+function finPagamentosTodos(){
+  // Recolhe todas as fichas fechadas/canceladas pagas ou a pagar de todos os setores
+  const lista=[];
+
+  // Enrolamento terceirizado
+  fichas.filter(f=>f.status==='fechada'||(f.status==='cancelada'&&(f.recolhimentos||[]).some(r=>!r.administrativo)&&calcularPagamentoCancelada(f)>0))
+    .forEach(f=>{
+      const enr=getEnr(f.enroladorId);
+      const isCancelada=f.status==='cancelada';
+      const valor=isCancelada?calcularPagamentoCancelada(f):calcularPagamento(f);
+      if(valor<=0) return;
+      lista.push({id:f.id,setor:'Enrolamento Terc.',pessoa:enr?.nome||'—',valor,pago:!!f.pago,
+        dataPagamento:f.dataPagamento||null,dataRef:f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_terc'});
+    });
+
+  // Metalúrgica
+  fichasMetal.filter(f=>f.status==='fechada').forEach(f=>{
+    const sol=soldadores.find(s=>s.id===f.soldadorId);
+    const valor=f.ganho||calcGanhoSoldador(f.soldadorId,f.quinzena);
+    if(valor<=0) return;
+    lista.push({id:f.id,setor:'Metalúrgica',pessoa:sol?.nome||'—',valor,pago:!!f.pago,
+      dataPagamento:f.dataPagamento||null,dataRef:f.quinzena||'',tipo:'quinzena',fichaObj:f,setorKey:'metalurgica'});
+  });
+
+  // Enrolamento interno
+  if(window.fichasInt){
+    fichasInt.filter(f=>f.status==='fechada').forEach(f=>{
+      const enrI=(window.enroladoresInt||[]).find(e=>e.id===f.enroladorId);
+      const valor=calcularPagamentoInt?calcularPagamentoInt(f):0;
+      if(valor<=0) return;
+      lista.push({id:f.id,setor:'Enrol. Interno',pessoa:enrI?.nome||'—',valor,pago:!!f.pago,
+        dataPagamento:f.dataPagamento||null,dataRef:f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_int'});
+    });
+  }
+
+  return lista.sort((a,b)=>{
+    if(!a.pago&&b.pago) return -1;
+    if(a.pago&&!b.pago) return 1;
+    return (b.dataRef||'')>(a.dataRef||'')?1:-1;
+  });
+}
+
+function finComprasTodos(){
+  return (almMovimentos||[]).filter(m=>m.tipo==='entrada'&&m.custoTotal>0)
+    .map(m=>{
+      const item=almItens.find(i=>i.id===m.itemId);
+      return {...m,itemDesc:item?.descricao||'Item desconhecido',itemUnidade:item?.unidade||''};
+    })
+    .sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+}
+
+// ── Dashboard ───────────────────────────────────────────────────
+function renderFinDashboard(){
+  const pagamentos=finPagamentosTodos();
+  const pendentes=pagamentos.filter(p=>!p.pago);
+  const pagas=pagamentos.filter(p=>p.pago);
+  const totalPendente=pendentes.reduce((s,p)=>s+p.valor,0);
+  const totalPago=pagas.reduce((s,p)=>s+p.valor,0);
+
+  const compras=finComprasTodos();
+  const totalCompras=compras.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+
+  // Por setor (pendente)
+  const porSetor={};
+  pendentes.forEach(p=>{
+    if(!porSetor[p.setor]) porSetor[p.setor]={nome:p.setor,valor:0,qtd:0};
+    porSetor[p.setor].valor+=p.valor;
+    porSetor[p.setor].qtd++;
+  });
+
+  // Meses com gastos (pagamentos pagos)
+  const porMes={};
+  pagas.forEach(p=>{
+    const m=(p.dataPagamento||p.dataRef||'').slice(0,7);
+    if(!m) return;
+    if(!porMes[m]) porMes[m]=0;
+    porMes[m]+=p.valor;
+  });
+  const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
+
+  const MESES_N=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES_N[parseInt(mo)-1]+'/'+y.slice(2);};
+
+  const maxBarVal=Math.max(...mesesOrdenados.map(m=>porMes[m]),1);
+
+  let html='';
+
+  // Cards de resumo
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+    <div class="card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">A PAGAR</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPendente)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${pendentes.length} pendência${pendentes.length!==1?'s':''}</div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">TOTAL PAGO</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPago)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${pagas.length} pagamento${pagas.length!==1?'s':''}</div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">COMPRAS DE MATERIAL</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalCompras)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${compras.length} entradas</div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">GASTO TOTAL GERAL</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPago+totalCompras)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">mão de obra + materiais</div>
+    </div>
+  </div>`;
+
+  // Pendências por setor
+  if(Object.keys(porSetor).length){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">⚠️ Pendências por setor</div>';
+    html+=Object.values(porSetor).map(s=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9">
+        <div style="font-size:13px;font-weight:600">${s.nome}</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:11px;color:#64748b">${s.qtd} pendência${s.qtd!==1?'s':''}</span>
+          <span style="font-size:15px;font-weight:800;color:#dc2626">${fmtMoeda(s.valor)}</span>
+        </div>
+      </div>`).join('');
+    html+='</div>';
+  }
+
+  // Gráfico de barras de pagamentos por mês
+  if(mesesOrdenados.length){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:16px">📊 Pagamentos de mão de obra por mês</div>';
+    html+='<div style="display:flex;align-items:flex-end;gap:10px;height:120px">';
+    html+=mesesOrdenados.map(m=>{
+      const val=porMes[m];
+      const h=Math.round((val/maxBarVal)*100);
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="font-size:9px;color:#64748b;font-weight:700">${fmtMoeda(val).replace('R$','').trim()}</div>
+        <div style="width:100%;background:linear-gradient(180deg,#3b82f6,#1e40af);border-radius:6px 6px 0 0;height:${h}%;min-height:4px"></div>
+        <div style="font-size:9px;color:#94a3b8">${mesLabel(m)}</div>
+      </div>`;
+    }).join('');
+    html+='</div></div>';
+  }
+
+  // Últimas transações (mistura pagamentos + compras recentes)
+  const ultimas=[
+    ...pagas.slice(0,5).map(p=>({data:p.dataPagamento||p.dataRef,desc:p.pessoa+' — '+p.setor,valor:p.valor,tipo:'pagamento'})),
+    ...compras.slice(0,5).map(c=>({data:c.data,desc:c.itemDesc,valor:parseFloat(c.custoTotal)||0,tipo:'compra'})),
+  ].sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).slice(0,8);
+
+  if(ultimas.length){
+    html+='<div class="card"><div style="font-size:13px;font-weight:700;margin-bottom:12px">🕐 Últimas transações</div>';
+    html+=ultimas.map((t,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;${i>0?'border-top:1px solid #f8fafc':''}">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:${t.tipo==='compra'?'#fef3c7':'#d1fae5'};display:flex;align-items:center;justify-content:center;font-size:14px">${t.tipo==='compra'?'🛒':'💸'}</div>
+          <div>
+            <div style="font-size:12px;font-weight:600">${t.desc}</div>
+            <div style="font-size:10px;color:#94a3b8">${t.data?t.data.split('-').reverse().join('/'):''}</div>
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:${t.tipo==='compra'?'#b45309':'#059669'}">${fmtMoeda(t.valor)}</div>
+      </div>`).join('');
+    html+='</div>';
+  }
+
+  return html;
+}
+
+// ── Pagamentos ──────────────────────────────────────────────────
+function renderFinPagamentos(){
+  if(!window._finPagFiltroSetor) window._finPagFiltroSetor='todos';
+  if(!window._finPagFiltroStatus) window._finPagFiltroStatus='todos';
+
+  const pagamentos=finPagamentosTodos();
+  const setoresDisp=['todos',...new Set(pagamentos.map(p=>p.setor))];
+
+  const filtrados=pagamentos.filter(p=>{
+    if(window._finPagFiltroSetor!=='todos'&&p.setor!==window._finPagFiltroSetor) return false;
+    if(window._finPagFiltroStatus==='pendente'&&p.pago) return false;
+    if(window._finPagFiltroStatus==='pago'&&!p.pago) return false;
+    return true;
+  });
+
+  const totalFiltrado=filtrados.reduce((s,p)=>s+p.valor,0);
+
+  const btnSetor=v=>`<button onclick="window._finSetFiltroSetor('${v}')" style="padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid ${window._finPagFiltroSetor===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroSetor===v?'#1e40af':'#fff'};color:${window._finPagFiltroSetor===v?'#fff':'#64748b'};cursor:pointer">${v==='todos'?'Todos':v}</button>`;
+  const btnStatus=v=>`<button onclick="window._finSetFiltroStatus('${v}')" style="padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid ${window._finPagFiltroStatus===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroStatus===v?'#1e40af':'#fff'};color:${window._finPagFiltroStatus===v?'#fff':'#64748b'};cursor:pointer">${v==='todos'?'Todos':v==='pendente'?'Pendentes':'Pagos'}</button>`;
+
+  let html=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${setoresDisp.map(btnSetor).join('')}</div>`;
+  html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${['todos','pendente','pago'].map(btnStatus).join('')}</div>`;
+
+  html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:12px;color:#64748b">${filtrados.length} resultado${filtrados.length!==1?'s':''}</div>
+    <div style="font-size:16px;font-weight:800;color:#1e40af">${fmtMoeda(totalFiltrado)}</div>
+  </div>`;
+
+  if(!filtrados.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:24px">Nenhum pagamento encontrado.</div>';
+    return html;
+  }
+
+  html+=filtrados.map(p=>{
+    const dataRef=p.dataRef?p.dataRef.split('-').reverse().join('/'):'—';
+    const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'';
+    const podePagar=can('marcarPago')&&!p.pago;
+    return `<div class="card" style="margin-bottom:8px;border-left:4px solid ${p.pago?'#10b981':'#f59e0b'}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:11px;background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:99px;font-weight:600">${p.setor}</span>
+            ${p.pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-weight:700">Pendente</span>'}
+          </div>
+          <div style="font-size:14px;font-weight:700">${p.pessoa}</div>
+          <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:('Ref: '+dataRef)}${dataPag?' · Pago em '+dataPag:''}</div>
+        </div>
+        <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div style="font-size:20px;font-weight:900;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
+          ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return html;
+}
+
+// ── Compras ─────────────────────────────────────────────────────
+function renderFinCompras(){
+  if(!window._finComprasMes) window._finComprasMes='';
+
+  const compras=finComprasTodos();
+  const mesesDisp=[...new Set(compras.map(c=>(c.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+
+  if(!window._finComprasMes&&mesesDisp.length) window._finComprasMes=mesesDisp[0];
+
+  const MESES_N2=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabel2=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES_N2[parseInt(mo)-1]+' '+y;};
+
+  const filtradas=window._finComprasMes?compras.filter(c=>(c.data||'').startsWith(window._finComprasMes)):compras;
+  const totalMes=filtradas.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+
+  // Por item (agrupado)
+  const porItem={};
+  filtradas.forEach(c=>{
+    if(!porItem[c.itemId]) porItem[c.itemId]={desc:c.itemDesc,unidade:c.itemUnidade,qtd:0,custo:0,movs:0};
+    porItem[c.itemId].qtd+=(parseInt(c.quantidade)||0);
+    porItem[c.itemId].custo+=(parseFloat(c.custoTotal)||0);
+    porItem[c.itemId].movs++;
+  });
+
+  const mesSelect=`<select onchange="window._finSetComprasMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">
+    <option value="">Todos os meses</option>
+    ${mesesDisp.map(m=>`<option value="${m}"${m===window._finComprasMes?' selected':''}>${mesLabel2(m)}</option>`).join('')}
+  </select>`;
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    ${mesSelect}
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#64748b">${window._finComprasMes?mesLabel2(window._finComprasMes):'Total geral'}</div>
+      <div style="font-size:22px;font-weight:900;color:#b45309">${fmtMoeda(totalMes)}</div>
+    </div>
+  </div>`;
+
+  // Resumo por item
+  const itensOrdenados=Object.entries(porItem).sort((a,b)=>b[1].custo-a[1].custo);
+  if(itensOrdenados.length){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📦 Resumo por item</div>';
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="background:#fef3c7"><th style="padding:7px 10px;text-align:left">Item</th><th style="padding:7px 10px;text-align:center">Qtd.</th><th style="padding:7px 10px;text-align:center">Entradas</th><th style="padding:7px 10px;text-align:right">Total</th></tr></thead><tbody>';
+    html+=itensOrdenados.map(([,v],i)=>`<tr style="${i%2?'background:#fafaf9':''}">
+      <td style="padding:7px 10px;font-weight:600">${v.desc}</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.qtd} ${v.unidade}</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.movs}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#b45309">${fmtMoeda(v.custo)}</td>
+    </tr>`).join('');
+    html+='<tr style="background:#fef9c3;font-weight:800"><td style="padding:7px 10px">Total</td><td colspan="2"></td><td style="padding:7px 10px;text-align:right;color:#b45309">${fmtMoeda(totalMes)}</td></tr>'.replace('${fmtMoeda(totalMes)}',fmtMoeda(totalMes));
+    html+='</tbody></table></div></div>';
+  }
+
+  // Transações individuais
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧾 Transações</div>';
+  if(!filtradas.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma compra encontrada.</div>';
+  } else {
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Data</th><th style="padding:7px 10px;text-align:left">Item</th><th style="padding:7px 10px;text-align:center">Qtd.</th><th style="padding:7px 10px;text-align:right">Unit.</th><th style="padding:7px 10px;text-align:right">Total</th><th style="padding:7px 10px;text-align:left">Fornecedor</th><th style="padding:7px 10px;text-align:left">NF</th></tr></thead><tbody>';
+    html+=filtradas.map((c,i)=>{
+      const d=(c.data||'').split('-').reverse().join('/');
+      const unit=c.custoUnitario?fmtMoeda(parseFloat(c.custoUnitario)):'—';
+      return `<tr style="${i%2?'background:#f8fafc':''}">
+        <td style="padding:7px 10px;white-space:nowrap">${d}</td>
+        <td style="padding:7px 10px;font-weight:600">${c.itemDesc}</td>
+        <td style="padding:7px 10px;text-align:center">${c.quantidade} ${c.itemUnidade}</td>
+        <td style="padding:7px 10px;text-align:right;color:#64748b">${unit}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:#b45309">${fmtMoeda(parseFloat(c.custoTotal)||0)}</td>
+        <td style="padding:7px 10px;color:#64748b">${c.fornecedor||'—'}</td>
+        <td style="padding:7px 10px;color:#64748b">${c.notaFiscal||'—'}</td>
+      </tr>`;
+    }).join('');
+    html+='</tbody></table></div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+// ── Relatório ───────────────────────────────────────────────────
+function renderFinRelatorio(){
+  if(!window._finRelAno) window._finRelAno=today().slice(0,4);
+
+  const pagamentos=finPagamentosTodos();
+  const compras=finComprasTodos();
+  const ano=window._finRelAno;
+  const MESES_N3=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const anosDisp=[...new Set([
+    ...pagamentos.map(p=>(p.dataPagamento||p.dataRef||'').slice(0,4)),
+    ...compras.map(c=>(c.data||'').slice(0,4)),
+  ].filter(Boolean))].sort().reverse();
+
+  const anoSelect=`<select onchange="window._finSetRelAno(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">
+    ${anosDisp.map(a=>`<option value="${a}"${a===ano?' selected':''}>${a}</option>`).join('')}
+  </select>`;
+
+  // Dados mensais do ano
+  const mesesData=Array.from({length:12},(_,i)=>{
+    const mes=ano+'-'+String(i+1).padStart(2,'0');
+    const pagsMes=pagamentos.filter(p=>!!(p.dataPagamento||p.dataRef||'').startsWith(mes)&&p.pago);
+    const comprasMes=compras.filter(c=>(c.data||'').startsWith(mes));
+    const pagVal=pagsMes.reduce((s,p)=>s+p.valor,0);
+    const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,total:pagVal+compVal};
+  });
+
+  const maxVal=Math.max(...mesesData.map(m=>m.total),1);
+  const totalAnoPag=mesesData.reduce((s,m)=>s+m.pagVal,0);
+  const totalAnoComp=mesesData.reduce((s,m)=>s+m.compVal,0);
+  const totalAno=totalAnoPag+totalAnoComp;
+
+  let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    ${anoSelect}
+    <div style="font-size:12px;color:#64748b">Total ${ano}: <strong style="color:#1e40af;font-size:16px">${fmtMoeda(totalAno)}</strong></div>
+  </div>`;
+
+  // Gráfico anual
+  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:16px">📊 Gastos mensais em '+ano+'</div>';
+  html+='<div style="display:flex;align-items:flex-end;gap:6px;height:140px">';
+  html+=mesesData.map(m=>{
+    const hP=Math.round((m.pagVal/maxVal)*100);
+    const hC=Math.round((m.compVal/maxVal)*100);
+    const hT=hP+hC;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+      ${m.total>0?`<div style="font-size:8px;color:#475569;font-weight:700">${(m.total/1000).toFixed(1)}k</div>`:'<div style="font-size:8px;color:#e2e8f0">—</div>'}
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:110px;gap:1px">
+        ${m.compVal>0?`<div style="width:100%;background:#f59e0b;border-radius:${m.pagVal>0?'0':'4px 4px'} 0 0;height:${hC}%;min-height:${m.compVal>0?'3px':'0'}"></div>`:''}
+        ${m.pagVal>0?`<div style="width:100%;background:#3b82f6;border-radius:4px 4px 0 0;height:${hP}%;min-height:${m.pagVal>0?'3px':'0'}"></div>`:''}
+      </div>
+      <div style="font-size:8px;color:#94a3b8">${m.label}</div>
+    </div>`;
+  }).join('');
+  html+='</div>';
+  html+=`<div style="display:flex;gap:16px;margin-top:10px">
+    <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#3b82f6;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Mão de obra ${fmtMoeda(totalAnoPag)}</span></div>
+    <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#f59e0b;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Materiais ${fmtMoeda(totalAnoComp)}</span></div>
+  </div>`;
+  html+='</div>';
+
+  // Tabela mensal detalhada
+  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Detalhamento mensal</div>';
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right">Mão de obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right;font-weight:800">Total</th></tr></thead><tbody>';
+  html+=mesesData.filter(m=>m.total>0).map((m,i)=>`<tr style="${i%2?'background:#f8fafc':''}">
+    <td style="padding:8px 10px;font-weight:600">${MESES_N3[parseInt(m.mes.slice(5))-1]}</td>
+    <td style="padding:8px 10px;text-align:right;color:#3b82f6">${m.pagVal>0?fmtMoeda(m.pagVal):'—'}</td>
+    <td style="padding:8px 10px;text-align:right;color:#f59e0b">${m.compVal>0?fmtMoeda(m.compVal):'—'}</td>
+    <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1e40af">${fmtMoeda(m.total)}</td>
+  </tr>`).join('');
+  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td></tr>`;
+  html+='</tbody></table></div></div>';
+
+  // Ranking de gastos por pessoa (mão de obra)
+  const porPessoa={};
+  pagamentos.filter(p=>p.pago&&(p.dataPagamento||p.dataRef||'').startsWith(ano)).forEach(p=>{
+    if(!porPessoa[p.pessoa]) porPessoa[p.pessoa]={nome:p.pessoa,setor:p.setor,valor:0,qtd:0};
+    porPessoa[p.pessoa].valor+=p.valor;
+    porPessoa[p.pessoa].qtd++;
+  });
+  const rankingPessoas=Object.values(porPessoa).sort((a,b)=>b.valor-a.valor);
+
+  if(rankingPessoas.length){
+    html+='<div class="card"><div style="font-size:13px;font-weight:700;margin-bottom:12px">🏆 Ranking de mão de obra em '+ano+'</div>';
+    html+=rankingPessoas.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
+        <div style="font-size:16px;font-weight:900;color:${i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#e2e8f0'};width:24px;text-align:center">${i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${p.nome}</div>
+          <div style="font-size:10px;color:#94a3b8">${p.setor} · ${p.qtd} pagamento${p.qtd!==1?'s':''}</div>
+        </div>
+        <div style="font-size:15px;font-weight:800;color:#1e40af">${fmtMoeda(p.valor)}</div>
+      </div>`).join('');
+    html+='</div>';
+  }
+
+  return html;
+}
 
 function renderTabAlmox(tab){
   try {
