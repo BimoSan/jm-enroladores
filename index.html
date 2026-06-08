@@ -1099,21 +1099,13 @@ function renderPainelEnrolador(){
   // Calcular valor a receber na ficha aberta
   function calcValorFicha(f){
     if(!f) return 0;
-    const entregues=totalEnv(f);
-    const recolhidos=totalRec(f);
-    return recolhidos*calcValorPeca(f);
-  }
-  function calcValorPeca(f){
-    // Valor por peça baseado nos valores configurados
-    const apt=enr.apontadorPerfil||'apontador1';
-    const vals=apt==='apontador2'?valoresPecas.apontador2:valoresPecas.apontador1;
-    // Pegar tipo principal da ficha (tipo com mais recolhidos)
-    const tiposEnv=(f.entregas||[]).reduce((s,e)=>{
-      Object.entries(e.tipos||{}).forEach(([k,v])=>{s[k]=(s[k]||0)+v;});
-      return s;
-    },{});
-    const tipoMain=Object.entries(tiposEnv).sort((a,b)=>b[1]-a[1])[0];
-    return tipoMain?parseFloat(vals[tipoMain[0]])||0:0;
+    // Usa o mesmo cálculo de calcularPagamento: cada tipo × seu valor unitário
+    const vals=getValoresPorFicha(f);
+    return TIPOS.reduce((total,t)=>{
+      const qtd=somaRecol(f,t.id);
+      const valor=parseFloat(vals[t.id])||0;
+      return total+(qtd*valor);
+    },0);
   }
 
   const valorAberta=fichaAberta?calcValorFicha(fichaAberta):0;
