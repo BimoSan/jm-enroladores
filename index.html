@@ -630,7 +630,7 @@ function renderSelecionarSetor(){
     {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:true},
     {id:'fitas',            nome:'Setor de Fitas',           icon:'🔩', desc:'Entrega de fitas aos enroladores', ativo:true},
     {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:true},
-    {id:'financeiro_geral',  nome:'Financeiro',               icon:'💰', desc:'Pagamentos, compras e relatórios financeiros', ativo:['admin','proprietario','financeiro'].includes(currentUserData?.perfil)},
+    ...(['admin','proprietario','financeiro'].includes(currentUserData?.perfil)?[{id:'financeiro_geral', nome:'Financeiro', icon:'💰', desc:'Pagamentos, compras e relatórios financeiros', ativo:true}]:[]),
   ];
   const setoresEstofados=[
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
