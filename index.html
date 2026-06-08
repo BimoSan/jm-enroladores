@@ -1824,20 +1824,34 @@ function renderRelatorio(){
     notificacoes=[];
   }
 
-  const fechadas=fichas.filter(f=>f.status==='fechada');
-  const canceladasAPagar=fichas.filter(f=>f.status==='cancelada'&&(f.recolhimentos||[]).some(r=>!r.administrativo)&&calcularPagamentoCancelada(f)>0);
+  if(!window._relAp||window._relAp==='todos') window._relAp='apontador1';
+  const apSel=window._relAp;
+
+  const fichaDoAp=(f)=>{
+    const enr=getEnr(f.enroladorId);
+    const ap=enr?.apontadorPerfil||'apontador1';
+    return apSel==='todos'||ap===apSel;
+  };
+
+  const fechadas=fichas.filter(f=>f.status==='fechada'&&fichaDoAp(f));
+  const canceladasAPagar=fichas.filter(f=>f.status==='cancelada'&&fichaDoAp(f)&&(f.recolhimentos||[]).some(r=>!r.administrativo)&&calcularPagamentoCancelada(f)>0);
   const todasFechadas=[...fechadas,...canceladasAPagar].sort((a,b)=>{
-  if(!a.pago&&b.pago)return -1;
-  if(a.pago&&!b.pago)return 1;
-  return (b.dataAbertura||"")>(a.dataAbertura||"")?1:-1;
-});
+    if(!a.pago&&b.pago)return -1;
+    if(a.pago&&!b.pago)return 1;
+    return (b.dataAbertura||"")>(a.dataAbertura||"")?1:-1;
+  });
   const pagas=todasFechadas.filter(f=>f.pago);
   const pendentes_pag=todasFechadas.filter(f=>!f.pago);
   const totalPecas=fechadas.reduce((a,f)=>a+totalEnv(f),0);
   const totalPagoVal=pagas.reduce((a,f)=>a+(f.status==='cancelada'?calcularPagamentoCancelada(f):calcularPagamento(f)),0);
   const totalPendenteVal=pendentes_pag.reduce((a,f)=>a+(f.status==='cancelada'?calcularPagamentoCancelada(f):calcularPagamento(f)),0);
 
+  const btnStyle=(v)=>`style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${apSel===v?'#3266ad':'#e2e8f0'};background:${apSel===v?'#3266ad':'#fff'};color:${apSel===v?'#fff':'#64748b'};cursor:pointer"`;
   let html=`
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button onclick="window._setRelAp('apontador1')" ${btnStyle('apontador1')}>Inácio</button>
+    <button onclick="window._setRelAp('apontador2')" ${btnStyle('apontador2')}>Mirandinha</button>
+  </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
     <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
       <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
@@ -3967,6 +3981,11 @@ window._salvarPontoLote=async()=>{
 // ═══════════════════════════════════════════════════════════════
 // SISTEMA DE CAMINHÕES / FROTAS
 // ═══════════════════════════════════════════════════════════════
+
+window._setRelAp=function(v){
+  window._relAp=v;
+  reloadTab();
+};
 
 window._setAlmRelPeca=function(v){
   window._almRelPeca=v;
