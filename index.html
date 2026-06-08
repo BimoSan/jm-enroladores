@@ -1903,15 +1903,19 @@ function renderRelatorio(){
   // Bônus por volume
   html+=renderRelatorioBonusMensal();
   html+=`<div class="section-label">fichas fechadas</div>`;
-  if(!fechadas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
+  if(!todasFechadas.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha fechada ainda.</div></div>';
 
-  html+=fechadas.map(f=>{
+  html+=todasFechadas.map(f=>{
     const enr=getEnr(f.enroladorId);if(!enr)return'';
     const ci=enroladores.findIndex(e=>e.id===f.enroladorId),c=avatarColor(ci);
-    const env=totalEnv(f),vTot=somaEntr(f,'varanda_sofia'),cTot=somaEntr(f,'centro_luxo');
-    const total=calcularPagamento(f);
+    const isCancelada=f.status==='cancelada';
+    const env=isCancelada?TIPOS.reduce((a,t)=>a+somaRecolPago(f,t.id),0):totalEnv(f);
+    const vTot=isCancelada?somaRecolPago(f,'varanda_sofia'):somaEntr(f,'varanda_sofia');
+    const cTot=isCancelada?somaRecolPago(f,'centro_luxo'):somaEntr(f,'centro_luxo');
+    const total=isCancelada?calcularPagamentoCancelada(f):calcularPagamento(f);
     const podePagar=can('marcarPago')&&!f.pago;
-    return `<div class="card" style="margin-bottom:8px">
+    return `<div class="card" style="margin-bottom:8px${isCancelada?';border-left:4px solid #dc2626':''}">
+      ${isCancelada?`<div style="font-size:10px;color:#991b1b;background:#fee2e2;border-radius:6px;padding:4px 8px;margin-bottom:8px">↩ Cancelada por retirada em ${fmtDate(f.dataCancelamento)} — pagamento pelas peças já enroladas</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:12px">
           <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(enr.nome)}</div>
