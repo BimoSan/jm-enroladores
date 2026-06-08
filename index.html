@@ -327,7 +327,7 @@ let currentUser=null;
 let currentUserData=null;
 let currentTab='painel';
 let currentFabrica=null;
-let _rankFiltroApt='all'; // filtro de apontador no ranking
+let _rankFiltroApt='apontador1'; // filtro de apontador no ranking
 let currentSetor=null;
 let enroladores=[];
 let notificacoes=[];
@@ -2223,7 +2223,7 @@ function renderRanking(){
       +' onclick="window._setRankFiltroApt(&quot;'+v+'&quot;)">'+l+'</button>';
   }
   const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
-    +btnRankApt('all','Todos','#475569')
+    
     +btnRankApt('apontador1','Apontador 1','#0f766e')
     +btnRankApt('apontador2','Apontador 2','#b45309')
     +'</div>';
