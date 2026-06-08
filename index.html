@@ -2622,15 +2622,19 @@ window._editarEnrolador=id=>{
     return '<div class="form-group"><label>'+label+'</label><input id="'+eid+'" type="text" value="'+(val||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>';
   };
   const enroladoresUsuarios=usuarios.filter(function(u){return u.perfil==='enrolador';});
+  var uidsVinculados=new Set(enroladores.filter(en=>en.usuarioUid&&en.id!==e.id).map(en=>en.usuarioUid));
   var optsUsuarios='<option value="">— Sem vínculo</option>'
-    +enroladoresUsuarios.map(function(u){
+    +enroladoresUsuarios.filter(function(u){
+      var uid=u.uid||u.id;
+      return !uidsVinculados.has(uid)||(e.usuarioUid===uid);
+    }).map(function(u){
       var sel=(e.usuarioUid===u.uid||e.usuarioUid===u.id)?'selected':'';
       return '<option value="'+(u.uid||u.id)+'" '+sel+'>'+u.nome+' ('+u.email+')</option>';
     }).join('');
   var apontSelect='<div class="form-group"><label>Apontador responsável</label>'
     +'<select id="ee-enr-apontador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
-    +'<option value="apontador1"'+(e.apontadorPerfil==='apontador1'?' selected':'')+'>Apontador 1</option>'
-    +'<option value="apontador2"'+(e.apontadorPerfil==='apontador2'?' selected':'')+'>Apontador 2</option>'
+    +'<option value="apontador1"'+(e.apontadorPerfil==='apontador1'?' selected':'')+'>Inácio</option>'
+    +'<option value="apontador2"'+(e.apontadorPerfil==='apontador2'?' selected':'')+'>Mirandinha</option>'
     +'</select></div>';
   var userSelect='<div class="form-group"><label>Usuário vinculado (login do enrolador)</label>'
     +'<select id="ee-enr-usuario" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
@@ -3650,8 +3654,12 @@ window._cadastrarSoldador=async()=>{
 window._editarSoldador=id=>{
   const s=soldadores.find(x=>x.id===id);if(!s)return;
   const soldadoresUsuarios=usuarios.filter(function(u){return u.perfil==='soldador';});
+  var uidsVinculadosSol=new Set(soldadores.filter(sol=>sol.usuarioUid&&sol.id!==s.id).map(sol=>sol.usuarioUid));
   var optsUsuarios='<option value="">— Sem vínculo</option>'
-    +soldadoresUsuarios.map(function(u){
+    +soldadoresUsuarios.filter(function(u){
+      var uid=u.uid||u.id;
+      return !uidsVinculadosSol.has(uid)||(s.usuarioUid===uid);
+    }).map(function(u){
       var sel=(s.usuarioUid===u.uid||s.usuarioUid===u.id)?'selected':'';
       return '<option value="'+(u.uid||u.id)+'" '+sel+'>'+u.nome+' ('+u.email+')</option>';
     }).join('');
