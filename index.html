@@ -6231,8 +6231,51 @@ function renderFichasMetal(){
       const btnPagar=isAdmin&&status==='fechada'&&!pago&&['admin','financeiro'].includes(currentUserData?.perfil)
         ?`<button class="btn btn-sm btn-primary" onclick="window._pagarFichaMetal('${ficha?.id}')">Marcar pago</button>`:'';
 
+      // Histórico por dia na quinzena
+      const [qAno,qMes,qParte]=q.split('-');
+      const diaIni=qParte==='Q1'?1:16;
+      const diaFim=qParte==='Q1'?15:new Date(parseInt(qAno),parseInt(qMes),0).getDate();
+      const apontsDaQ=apontSoldador(sol.id).filter(a=>getQuinzena(a.data)===q);
+      const diasComApont=[...new Set(apontsDaQ.map(a=>a.data))].sort();
+      let historicoHtml='';
+      if(diasComApont.length>0){
+        const linhas=diasComApont.map(dia=>{
+          const apontsDia=apontsDaQ.filter(a=>a.data===dia);
+          const totalDia=apontsDia.reduce((s,a)=>s+Object.values(a.pecas||{}).reduce((ss,v)=>ss+(parseInt(v)||0),0),0);
+          const pecasDia=PECAS_METAL_FULL.filter(p=>apontsDia.some(a=>parseInt((a.pecas||{})[p.id])>0));
+          const detalDia=pecasDia.map(p=>{
+            const qtdP=apontsDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+            return `<span style="font-size:10px;color:#64748b">${p.label}: <strong>${qtdP}</strong></span>`;
+          }).join(' · ');
+          const [,, dd]=dia.split('-');
+          return `<tr style="border-bottom:1px solid #f1f5f9">
+            <td style="padding:5px 8px;font-size:12px;font-weight:600;color:#374151;white-space:nowrap">${dd}/${qMes}/${qAno}</td>
+            <td style="padding:5px 8px;font-size:12px;font-weight:700;color:#1e40af;text-align:center">${totalDia}</td>
+            <td style="padding:5px 8px;font-size:11px;color:#64748b">${detalDia}</td>
+          </tr>`;
+        }).join('');
+        historicoHtml=`<div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:8px">
+          <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Histórico por dia</div>
+          <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:#f8fafc">
+              <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Data</th>
+              <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center">Total</th>
+              <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Detalhes</th>
+            </tr></thead>
+            <tbody>${linhas}</tbody>
+            <tfoot><tr style="background:#f0f9ff">
+              <td style="padding:5px 8px;font-size:11px;font-weight:700;color:#1e40af">Total quinzena</td>
+              <td style="padding:5px 8px;font-size:12px;font-weight:800;color:#1e40af;text-align:center">${totalPecas}</td>
+              <td></td>
+            </tr></tfoot>
+          </table>
+          </div>
+        </div>`;
+      }
+
       html+=`<div class="card" style="margin-bottom:8px${status==='fechada'?';border-left:4px solid '+(pago?'#10b981':'#8b5cf6'):';border-left:4px solid #3b82f6'}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${detalhe?'10px':'0'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${(detalhe||historicoHtml)?'10px':'0'}">
           <div style="display:flex;align-items:center;gap:12px">
             <div style="width:42px;height:42px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">${initials(sol.nome)}</div>
             <div>
@@ -6250,6 +6293,7 @@ function renderFichasMetal(){
           </div>
         </div>
         ${detalhe?`<div style="display:flex;flex-wrap:wrap;gap:2px">${detalhe}</div>`:''}
+        ${historicoHtml}
       </div>`;
     });
   });
