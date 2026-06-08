@@ -1072,7 +1072,7 @@ function renderPainelBonus(){
     +'<div style="font-size:13px;font-weight:700;color:#92400e">🌟 Bônus por volume — '+mesNome+'</div>'
     +'<div style="font-size:16px;font-weight:800;color:#92400e">'+fmtMoeda(totalBonus)+'</div>'
     +'</div>'+rows
-    +'<div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Apontador 1 que atingiram '+configBonus.meta+'+ Varandas Sofia no mês.</div>'
+    +'<div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Inácio que atingiram '+configBonus.meta+'+ Varandas Sofia no mês.</div>'
     +'</div>';
 }
 
@@ -1349,8 +1349,8 @@ function renderFichas(){
       </select>
       <select id="f-apontador" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos apontadores</option>
-        <option value="apontador1" style="color:#0f766e;font-weight:700">Apontador 1</option>
-        <option value="apontador2" style="color:#b45309;font-weight:700">Apontador 2</option>
+        <option value="apontador1" style="color:#0f766e;font-weight:700">Inácio</option>
+        <option value="apontador2" style="color:#b45309;font-weight:700">Mirandinha</option>
       </select>
       <select id="f-enr" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos enroladores</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
@@ -1982,7 +1982,7 @@ function renderValores(){
     // Config bônus
   html+=`<div class="card" style="margin-bottom:14px;border-left:4px solid #fde047">
     <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">🌟 Configuração de Bônus por Volume</div>
-    <div style="font-size:11px;color:#b45309;margin-bottom:12px">Quando uma casa do Apontador 1 atingir a meta mensal de Varandas Sofia, receberá um bônus por peça.</div>
+    <div style="font-size:11px;color:#b45309;margin-bottom:12px">Quando uma casa do Inácio atingir a meta mensal de Varandas Sofia, receberá um bônus por peça.</div>
     <div class="form-row">
       <div class="form-group"><label>Meta mensal (V.Sofia)</label>
         <input type="number" id="bonus-meta" min="0" step="1" value="${configBonus.meta||300}"
@@ -2022,8 +2022,8 @@ function renderValores(){
         <button class="btn btn-primary" onclick="window._salvarValores('${ap}')">Salvar valores do ${label}</button>
       </div>
     </div>`;
-    html+=tabelaAp('apontador1','Apontador 1','#0f766e');
-    html+=tabelaAp('apontador2','Apontador 2','#b45309');
+    html+=tabelaAp('apontador1','Inácio','#0f766e');
+    html+=tabelaAp('apontador2','Mirandinha','#b45309');
   }
 
   // Lista de fichas fechadas + canceladas com recolhimentos reais a pagar
@@ -2124,7 +2124,7 @@ window._salvarValores=async(ap)=>{
     valores[t.id]=parseFloat(document.getElementById(`vp-${ap}-${t.id}`)?.value)||0;
   });
   await setDoc(doc(db,'configuracoes',`valores_${ap}`),valores);
-  showToast('Valores do '+(ap==='apontador1'?'Apontador 1':'Apontador 2')+' salvos!');
+  showToast('Valores do '+(ap==='apontador1'?'Inácio':'Mirandinha')+' salvos!');
 };
 
 // ── Ranking ──────────────────────────────────────────────────
@@ -2224,8 +2224,8 @@ function renderRanking(){
   }
   const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     
-    +btnRankApt('apontador1','Apontador 1','#0f766e')
-    +btnRankApt('apontador2','Apontador 2','#b45309')
+    +btnRankApt('apontador1','Inácio','#0f766e')
+    +btnRankApt('apontador2','Mirandinha','#b45309')
     +'</div>';
 
   let html = (isEnrolador?'':(filtroAptHtml))+(isEnrolador?'':` 
@@ -2578,8 +2578,8 @@ function renderEnroladores(){
       <div class="form-group"><label>Telefone</label><input type="text" id="en-tel" placeholder="(88) 99999-0000"></div>
       <div class="form-group"><label>Apontador responsável</label>
         <select id="en-apontador">
-          <option value="apontador1">Apontador 1</option>
-          <option value="apontador2">Apontador 2</option>
+          <option value="apontador1">Inácio</option>
+          <option value="apontador2">Mirandinha</option>
         </select>
       </div>
     </div>
