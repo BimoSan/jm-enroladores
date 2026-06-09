@@ -575,7 +575,13 @@ function renderSelecionarFabrica(){
     {id:'estofados',    nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Costura, Grades, Tapeçamento e Espuma'},
     {id:'almoxarifado', nome:'Almoxarifado',          icon:'📦', cor:'#92400e', bg:'linear-gradient(135deg,#92400e,#f59e0b)', desc:'Controle de estoque e materiais'},
     {id:'caminhoes',    nome:'Caminhões',              icon:'🚚', cor:'#1e3a5f', bg:'linear-gradient(135deg,#1e3a5f,#2563eb)', desc:'Frotas, rotas e manutenção'},
-  ].filter(f=>f.id==='almoxarifado'?['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil):f.id==='caminhoes'?['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil):fabricasDisponiveis.includes(f.id));
+    {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
+  ].filter(f=>{
+    if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil);
+    if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
+    if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
+    return fabricasDisponiveis.includes(f.id);
+  });
 
   const cards=fabricas.map(f=>`
     <div class="fab-card" style="background:${f.bg};color:#fff" onclick="window._selecionarFabrica('${f.id}')">
@@ -616,6 +622,10 @@ window._selecionarFabrica=id=>{
     currentSetor='almoxarifado';
     sessionStorage.setItem('jm_setor','almoxarifado');
     currentTab='alm_painel';
+  } else if(id==='financeiro'){
+    currentSetor='financeiro_geral';
+    sessionStorage.setItem('jm_setor','financeiro_geral');
+    currentTab='fin_dashboard';
   } else {
     currentSetor=null;
     sessionStorage.removeItem('jm_setor');
@@ -630,7 +640,6 @@ function renderSelecionarSetor(){
     {id:'metalurgica',      nome:'Metalúrgica',              icon:'⚙️',  desc:'Produção de estruturas metálicas', ativo:true},
     {id:'fitas',            nome:'Setor de Fitas',           icon:'🔩', desc:'Entrega de fitas aos enroladores', ativo:true},
     {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:true},
-    ...(['admin','proprietario','financeiro'].includes(currentUserData?.perfil)?[{id:'financeiro_geral', nome:'Financeiro', icon:'💰', desc:'Pagamentos, compras e relatórios financeiros', ativo:true}]:[]),
   ];
   const setoresEstofados=[
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
