@@ -4007,6 +4007,8 @@ window._setRelAp=function(v){
 };
 
 window._finSetFiltroSetor=function(v){ window._finPagFiltroSetor=v; reloadTab(); };
+window._finSetPagView=function(v){ window._finPagView=v; reloadTab(); };
+window._finSetRelPagMes=function(v){ window._finRelPagMes=v; reloadTab(); };
 window._finSetFiltroStatus=function(v){ window._finPagFiltroStatus=v; reloadTab(); };
 window._finSetComprasMes=function(v){ window._finComprasMes=v; reloadTab(); };
 window._finSetRelAno=function(v){ window._finRelAno=v; reloadTab(); };
@@ -6604,6 +6606,12 @@ function renderFinDashboard(){
 // ── Pagamentos ──────────────────────────────────────────────────
 function renderFinPagamentos(){
   if(!window._finPagFiltroStatus) window._finPagFiltroStatus='pendente';
+  if(!window._finPagView) window._finPagView='lista';
+
+  // ── Modo relatório mensal ────────────────────────────────────────
+  if(window._finPagView==='relatorio'){
+    return renderFinRelPagamentos();
+  }
 
   const pagamentos=finPagamentosTodos();
 
@@ -6619,8 +6627,16 @@ function renderFinPagamentos(){
 
   const btnStatus=(v,label)=>`<button onclick="window._finSetFiltroStatus('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${window._finPagFiltroStatus===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroStatus===v?'#1e40af':'#fff'};color:${window._finPagFiltroStatus===v?'#fff':'#64748b'};cursor:pointer">${label}</button>`;
 
+  // Botão relatório
+  let html=`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button onclick="window._finSetPagView('relatorio')" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid #e2e8f0;background:#fff;color:#475569;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Relatório mensal
+    </button>
+  </div>`;
+
   // Mini-cards de resumo
-  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
     <div class="card" style="text-align:center;padding:14px;background:${window._finPagFiltroStatus==='pendente'?'linear-gradient(135deg,#d97706,#f59e0b)':'#fff'};cursor:pointer" onclick="window._finSetFiltroStatus('pendente')">
       <div style="font-size:10px;font-weight:700;color:${window._finPagFiltroStatus==='pendente'?'rgba(255,255,255,.8)':'#94a3b8'};margin-bottom:4px">A PAGAR</div>
       <div style="font-size:22px;font-weight:900;color:${window._finPagFiltroStatus==='pendente'?'#fff':'#d97706'}">${fmtMoeda(totalPendente)}</div>
@@ -6744,6 +6760,115 @@ function renderFinPagamentos(){
       <div style="padding:8px 12px">
         ${itens.map((p,i)=>renderFichaLinha(p,i)).join('')}
       </div>
+    </div>`;
+  });
+
+  return html;
+}
+
+// ── Relatório mensal de pagamentos ──────────────────────────────
+function renderFinRelPagamentos(){
+  const pagamentos=finPagamentosTodos().filter(p=>p.pago);
+  const MESES_NOME=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Agrupar por mês
+  const porMes={};
+  pagamentos.forEach(p=>{
+    const m=(p.dataPagamento||p.dataRef||'').slice(0,7);
+    if(!m) return;
+    if(!porMes[m]) porMes[m]={mes:m,total:0,itens:[]};
+    porMes[m].total+=p.valor;
+    porMes[m].itens.push(p);
+  });
+  const mesesOrdenados=Object.values(porMes).sort((a,b)=>b.mes>a.mes?1:-1);
+
+  if(!window._finRelPagMes&&mesesOrdenados.length) window._finRelPagMes=mesesOrdenados[0].mes;
+
+  const totalGeral=pagamentos.reduce((s,p)=>s+p.valor,0);
+
+  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <button onclick="window._finSetPagView('lista')" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid #e2e8f0;background:#fff;color:#475569;cursor:pointer">← Voltar</button>
+    <div style="font-size:15px;font-weight:800;color:#1e40af">Relatório de Pagamentos</div>
+  </div>`;
+
+  if(!mesesOrdenados.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:24px">Nenhum pagamento realizado ainda.</div>';
+    return html;
+  }
+
+  // Card total geral
+  html+=`<div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;text-align:center;padding:16px;margin-bottom:16px">
+    <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">TOTAL PAGO (TODOS OS MESES)</div>
+    <div style="font-size:30px;font-weight:900">${fmtMoeda(totalGeral)}</div>
+    <div style="font-size:11px;opacity:.7;margin-top:4px">${pagamentos.length} pagamentos · ${mesesOrdenados.length} ${mesesOrdenados.length===1?'mês':'meses'}</div>
+  </div>`;
+
+  // Lista de meses (accordion-style: clica no mês para ver detalhes)
+  mesesOrdenados.forEach(({mes,total,itens})=>{
+    const [ano,mo]=mes.split('-');
+    const label=MESES_NOME[parseInt(mo)-1]+' '+ano;
+    const aberto=window._finRelPagMes===mes;
+
+    // Sub-total por setor no mês
+    const porSetor={};
+    itens.forEach(p=>{
+      if(!porSetor[p.setor]) porSetor[p.setor]={nome:p.setor,valor:0};
+      porSetor[p.setor].valor+=p.valor;
+    });
+
+    html+=`<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
+      <div onclick="window._finSetRelPagMes('${aberto?'':'mes'===mes?'':mes}')" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:${aberto?'#1e40af':'#fff'}">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:16px">📅</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:${aberto?'#fff':'#1e293b'}">${label}</div>
+            <div style="font-size:11px;color:${aberto?'rgba(255,255,255,.7)':'#94a3b8'}">${itens.length} pagamento${itens.length!==1?'s':''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:18px;font-weight:900;color:${aberto?'#fff':'#059669'}">${fmtMoeda(total)}</div>
+          <span style="font-size:14px;color:${aberto?'#fff':'#94a3b8'}">${aberto?'▲':'▼'}</span>
+        </div>
+      </div>
+      ${aberto?`
+      <div style="padding:12px 16px;border-top:1px solid #e2e8f0">
+        <!-- Resumo por setor -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          ${Object.values(porSetor).map(s=>`
+            <div style="background:#f1f5f9;border-radius:10px;padding:6px 12px;text-align:center">
+              <div style="font-size:10px;color:#64748b;font-weight:600">${s.nome}</div>
+              <div style="font-size:14px;font-weight:800;color:#1e40af">${fmtMoeda(s.valor)}</div>
+            </div>`).join('')}
+        </div>
+        <!-- Lista de pagamentos do mês -->
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#f8fafc">
+            <th style="padding:7px 10px;text-align:left;color:#64748b;font-weight:700">Pessoa</th>
+            <th style="padding:7px 10px;text-align:left;color:#64748b;font-weight:700">Setor</th>
+            <th style="padding:7px 10px;text-align:left;color:#64748b;font-weight:700">Ref.</th>
+            <th style="padding:7px 10px;text-align:right;color:#64748b;font-weight:700">Valor</th>
+            <th style="padding:7px 10px;text-align:left;color:#64748b;font-weight:700">Pago em</th>
+          </tr></thead>
+          <tbody>
+            ${itens.sort((a,b)=>a.setor>b.setor?1:-1).map((p,i)=>{
+              const dataRef=p.tipo==='quinzena'?p.dataRef:(p.dataRef?p.dataRef.split('-').reverse().join('/'):'—');
+              const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
+              return `<tr style="${i%2?'background:#f8fafc':''}">
+                <td style="padding:7px 10px;font-weight:600">${p.pessoa}</td>
+                <td style="padding:7px 10px;color:#64748b">${p.setor}</td>
+                <td style="padding:7px 10px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+dataRef:'Ref: '+dataRef}</td>
+                <td style="padding:7px 10px;text-align:right;font-weight:700;color:#059669">${fmtMoeda(p.valor)}</td>
+                <td style="padding:7px 10px;color:#64748b">${dataPag}</td>
+              </tr>`;
+            }).join('')}
+            <tr style="background:#d1fae5;font-weight:800">
+              <td colspan="3" style="padding:7px 10px">Total ${label}</td>
+              <td style="padding:7px 10px;text-align:right;color:#059669">${fmtMoeda(total)}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`:''}
     </div>`;
   });
 
