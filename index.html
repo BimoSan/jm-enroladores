@@ -6603,30 +6603,34 @@ function renderFinDashboard(){
 
 // ── Pagamentos ──────────────────────────────────────────────────
 function renderFinPagamentos(){
-  if(!window._finPagFiltroSetor) window._finPagFiltroSetor='todos';
-  if(!window._finPagFiltroStatus) window._finPagFiltroStatus='todos';
+  if(!window._finPagFiltroStatus) window._finPagFiltroStatus='pendente';
 
   const pagamentos=finPagamentosTodos();
-  const setoresDisp=['todos',...new Set(pagamentos.map(p=>p.setor))];
 
   const filtrados=pagamentos.filter(p=>{
-    if(window._finPagFiltroSetor!=='todos'&&p.setor!==window._finPagFiltroSetor) return false;
     if(window._finPagFiltroStatus==='pendente'&&p.pago) return false;
     if(window._finPagFiltroStatus==='pago'&&!p.pago) return false;
     return true;
   });
 
   const totalFiltrado=filtrados.reduce((s,p)=>s+p.valor,0);
+  const totalPendente=pagamentos.filter(p=>!p.pago).reduce((s,p)=>s+p.valor,0);
+  const totalPago=pagamentos.filter(p=>p.pago).reduce((s,p)=>s+p.valor,0);
 
-  const btnSetor=v=>`<button onclick="window._finSetFiltroSetor('${v}')" style="padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid ${window._finPagFiltroSetor===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroSetor===v?'#1e40af':'#fff'};color:${window._finPagFiltroSetor===v?'#fff':'#64748b'};cursor:pointer">${v==='todos'?'Todos':v}</button>`;
-  const btnStatus=v=>`<button onclick="window._finSetFiltroStatus('${v}')" style="padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid ${window._finPagFiltroStatus===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroStatus===v?'#1e40af':'#fff'};color:${window._finPagFiltroStatus===v?'#fff':'#64748b'};cursor:pointer">${v==='todos'?'Todos':v==='pendente'?'Pendentes':'Pagos'}</button>`;
+  const btnStatus=(v,label)=>`<button onclick="window._finSetFiltroStatus('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${window._finPagFiltroStatus===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroStatus===v?'#1e40af':'#fff'};color:${window._finPagFiltroStatus===v?'#fff':'#64748b'};cursor:pointer">${label}</button>`;
 
-  let html=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${setoresDisp.map(btnSetor).join('')}</div>`;
-  html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${['todos','pendente','pago'].map(btnStatus).join('')}</div>`;
-
-  html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-    <div style="font-size:12px;color:#64748b">${filtrados.length} resultado${filtrados.length!==1?'s':''}</div>
-    <div style="font-size:16px;font-weight:800;color:#1e40af">${fmtMoeda(totalFiltrado)}</div>
+  // Mini-cards de resumo
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+    <div class="card" style="text-align:center;padding:14px;background:${window._finPagFiltroStatus==='pendente'?'linear-gradient(135deg,#d97706,#f59e0b)':'#fff'};cursor:pointer" onclick="window._finSetFiltroStatus('pendente')">
+      <div style="font-size:10px;font-weight:700;color:${window._finPagFiltroStatus==='pendente'?'rgba(255,255,255,.8)':'#94a3b8'};margin-bottom:4px">A PAGAR</div>
+      <div style="font-size:22px;font-weight:900;color:${window._finPagFiltroStatus==='pendente'?'#fff':'#d97706'}">${fmtMoeda(totalPendente)}</div>
+      <div style="font-size:10px;color:${window._finPagFiltroStatus==='pendente'?'rgba(255,255,255,.7)':'#94a3b8'};margin-top:2px">${pagamentos.filter(p=>!p.pago).length} pendências</div>
+    </div>
+    <div class="card" style="text-align:center;padding:14px;background:${window._finPagFiltroStatus==='pago'?'linear-gradient(135deg,#059669,#10b981)':'#fff'};cursor:pointer" onclick="window._finSetFiltroStatus('pago')">
+      <div style="font-size:10px;font-weight:700;color:${window._finPagFiltroStatus==='pago'?'rgba(255,255,255,.8)':'#94a3b8'};margin-bottom:4px">PAGO</div>
+      <div style="font-size:22px;font-weight:900;color:${window._finPagFiltroStatus==='pago'?'#fff':'#059669'}">${fmtMoeda(totalPago)}</div>
+      <div style="font-size:10px;color:${window._finPagFiltroStatus==='pago'?'rgba(255,255,255,.7)':'#94a3b8'};margin-top:2px">${pagamentos.filter(p=>p.pago).length} pagamentos</div>
+    </div>
   </div>`;
 
   if(!filtrados.length){
@@ -6634,27 +6638,56 @@ function renderFinPagamentos(){
     return html;
   }
 
-  html+=filtrados.map(p=>{
-    const dataRef=p.dataRef?p.dataRef.split('-').reverse().join('/'):'—';
-    const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'';
-    const podePagar=can('marcarPago')&&!p.pago;
-    return `<div class="card" style="margin-bottom:8px;border-left:4px solid ${p.pago?'#10b981':'#f59e0b'}">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:11px;background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:99px;font-weight:600">${p.setor}</span>
-            ${p.pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-weight:700">Pendente</span>'}
-          </div>
-          <div style="font-size:14px;font-weight:700">${p.pessoa}</div>
-          <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:('Ref: '+dataRef)}${dataPag?' · Pago em '+dataPag:''}</div>
+  // Agrupar por setor
+  const setoresConfig={
+    'Enrolamento Terc.': {icon:'🧵', cor:'#1e40af'},
+    'Metalúrgica':       {icon:'⚙️',  cor:'#374151'},
+    'Enrol. Interno':    {icon:'🏭', cor:'#065f46'},
+  };
+  const setoresPresentes=[...new Set(filtrados.map(p=>p.setor))];
+
+  setoresPresentes.forEach(setor=>{
+    const itens=filtrados.filter(p=>p.setor===setor);
+    const totalSetor=itens.reduce((s,p)=>s+p.valor,0);
+    const pendentesSetor=itens.filter(p=>!p.pago).length;
+    const cfg=setoresConfig[setor]||{icon:'💼',cor:'#475569'};
+
+    html+=`<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
+      <!-- Header do setor -->
+      <div style="background:${cfg.cor};padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${cfg.icon}</span>
+          <span style="font-size:14px;font-weight:700;color:#fff">${setor}</span>
+          ${pendentesSetor>0?`<span style="font-size:10px;background:rgba(255,255,255,.25);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700">${pendentesSetor} pendente${pendentesSetor>1?'s':''}</span>`:''}
         </div>
-        <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-          <div style="font-size:20px;font-weight:900;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
-          ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`:''}
+        <div style="text-align:right">
+          <div style="font-size:10px;color:rgba(255,255,255,.7)">${window._finPagFiltroStatus==='pago'?'total pago':'total'}</div>
+          <div style="font-size:18px;font-weight:900;color:#fff">${fmtMoeda(totalSetor)}</div>
         </div>
       </div>
+      <!-- Fichas do setor -->
+      <div style="padding:8px 12px">
+        ${itens.map((p,i)=>{
+          const dataRef=p.dataRef?p.dataRef.split('-').reverse().join('/'):'—';
+          const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'';
+          const podePagar=can('marcarPago')&&!p.pago;
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;${i>0?'border-top:1px solid #f1f5f9':''}">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:8px;height:8px;border-radius:50%;background:${p.pago?'#10b981':'#f59e0b'};flex-shrink:0"></div>
+              <div>
+                <div style="font-size:13px;font-weight:700">${p.pessoa}</div>
+                <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:'Ref: '+dataRef}${dataPag?' · Pago em '+dataPag:''}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
+              ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>`;
-  }).join('');
+  });
 
   return html;
 }
