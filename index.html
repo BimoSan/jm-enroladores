@@ -5052,15 +5052,6 @@ function getEnrInt(id){ return enroladoresInt.find(e=>e.id===id)||{}; }
 function getTiposInt(){ return configInt.tipos||[]; }
 function getValorInt(tipoId){ return parseFloat((configInt.valores||{})[tipoId])||0; }
 
-function quinzenaInt(data){
-  const d=new Date(data+'T12:00:00');
-  const dia=d.getDate();
-  return dia<=15?'1Q':'2Q';
-}
-function mesQuinzenaInt(data){
-  const d=new Date(data+'T12:00:00');
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+quinzenaInt(data);
-}
 
 function fichasIntAbertas(){ return fichasInt.filter(f=>f.status==='aberta'); }
 function fichasIntPorEnrolador(enrId){ return fichasInt.filter(f=>f.enroladorId===enrId); }
@@ -5073,6 +5064,9 @@ function somaProducaoFicha(ficha){
     getTiposInt().forEach(t=>{ s+=(parseInt((a.tipos||{})[t.id])||0)*getValorInt(t.id); });
     return s;
   },0);
+}
+function calcularPagamentoInt(ficha){
+  return somaProducaoFicha(ficha);
 }
 function totalPecasFichaInt(ficha){
   const tot={};
@@ -6833,15 +6827,13 @@ function finPagamentosTodos(){
   });
 
   // Enrolamento interno
-  if(window.fichasInt){
-    fichasInt.filter(f=>f.status==='fechada').forEach(f=>{
-      const enrI=(window.enroladoresInt||[]).find(e=>e.id===f.enroladorId);
-      const valor=calcularPagamentoInt?calcularPagamentoInt(f):0;
-      if(valor<=0) return;
-      lista.push({id:f.id,setor:'Enrol. Interno',pessoa:enrI?.nome||'—',valor,pago:!!f.pago,
-        dataPagamento:f.dataPagamento||null,dataRef:f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_int'});
-    });
-  }
+  fichasInt.filter(f=>f.status==='fechada').forEach(f=>{
+    const enrI=enroladoresInt.find(e=>e.id===f.enroladorId);
+    const valor=calcularPagamentoInt(f);
+    if(valor<=0) return;
+    lista.push({id:f.id,setor:'Enrol. Interno',pessoa:enrI?.nome||'—',valor,pago:!!f.pago,
+      dataPagamento:f.dataPagamento||null,dataRef:f.dataFechamento||f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_int'});
+  });
 
   // Bônus (Enrolamento Terc.)
   const mesesComBonus=[...new Set([
