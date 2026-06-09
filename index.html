@@ -4883,19 +4883,67 @@ function totalRolosFicha(ficha){
 // ── Painel ────────────────────────────────────────────────────────
 function renderPainelInt(){
   const hoje=today();
+  const mesAtual=hoje.slice(0,7);
   const abertas=fichasIntAbertas();
-  const totalHoje=fichasInt.reduce((s,f)=>{
-    return s+(f.apontamentos||[]).filter(a=>a.data===hoje).reduce((ss,a)=>{
-      getTiposInt().forEach(t=>{ ss+=parseInt((a.tipos||{})[t.id])||0; });
-      return ss;
-    },0);
-  },0);
 
-  let html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+  // Totais por tipo — hoje e mês
+  const totHojeGeral={};
+  const totMesGeral={};
+  fichasInt.forEach(f=>{
+    (f.apontamentos||[]).forEach(a=>{
+      getTiposInt().forEach(t=>{
+        const v=parseInt((a.tipos||{})[t.id])||0;
+        if(a.data===hoje) totHojeGeral[t.id]=(totHojeGeral[t.id]||0)+v;
+        if((a.data||'').startsWith(mesAtual)) totMesGeral[t.id]=(totMesGeral[t.id]||0)+v;
+      });
+    });
+  });
+  const totalHoje=Object.values(totHojeGeral).reduce((s,v)=>s+v,0);
+  const totalMes=Object.values(totMesGeral).reduce((s,v)=>s+v,0);
+  const tiposAtivos=getTiposInt().filter(t=>(totHojeGeral[t.id]||0)>0||(totMesGeral[t.id]||0)>0);
+
+  // Cards de resumo
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Fichas abertas</div><div class="stat-value">'+abertas.length+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Peças hoje</div><div class="stat-value">'+totalHoje+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><div><div class="stat-label">Enroladores</div><div class="stat-value">'+enroladoresInt.length+'</div></div></div>'
     +'</div>';
+
+  // Cards de peças por tipo
+  if(tiposAtivos.length>0){
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
+    tiposAtivos.forEach(t=>{
+      const qHoje=totHojeGeral[t.id]||0;
+      const qMes=totMesGeral[t.id]||0;
+      html+=`<div class="card" style="padding:12px;border-top:3px solid #1e40af">
+        <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px">${t.label}</div>
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="text-align:center;flex:1;background:#eff6ff;border-radius:8px;padding:6px">
+            <div style="font-size:9px;color:#64748b;font-weight:600;text-transform:uppercase">Hoje</div>
+            <div style="font-size:18px;font-weight:900;color:#1e40af">${qHoje}</div>
+          </div>
+          <div style="text-align:center;flex:1;background:#f0fdf4;border-radius:8px;padding:6px">
+            <div style="font-size:9px;color:#64748b;font-weight:600;text-transform:uppercase">Mês</div>
+            <div style="font-size:18px;font-weight:900;color:#065f46">${qMes}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+    // Card total
+    html+=`<div class="card" style="padding:12px;border-top:3px solid #7c3aed">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px">TOTAL GERAL</div>
+      <div style="display:flex;justify-content:space-between;gap:8px">
+        <div style="text-align:center;flex:1;background:#f5f3ff;border-radius:8px;padding:6px">
+          <div style="font-size:9px;color:#64748b;font-weight:600;text-transform:uppercase">Hoje</div>
+          <div style="font-size:18px;font-weight:900;color:#7c3aed">${totalHoje}</div>
+        </div>
+        <div style="text-align:center;flex:1;background:#f5f3ff;border-radius:8px;padding:6px">
+          <div style="font-size:9px;color:#64748b;font-weight:600;text-transform:uppercase">Mês</div>
+          <div style="font-size:18px;font-weight:900;color:#7c3aed">${totalMes}</div>
+        </div>
+      </div>
+    </div>`;
+    html+='</div>';
+  }
 
   if(!enroladoresInt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum enrolador cadastrado ainda.</div></div>';
 
