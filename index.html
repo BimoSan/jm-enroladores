@@ -338,6 +338,10 @@ let fichasMetal=[];
 let pontoFuncionarios=[]; // lista de funcionários do ponto
 let pontoRegistros=[];    // registros de ponto
 let almItens=[];
+// Grades
+let gradistas=[];
+let fichasGrad=[];
+let configGrad={valores:{}};
 // Enrolamento Interno
 let enroladoresInt=[];
 let fichasInt=[];
@@ -526,6 +530,11 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'relatorio_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'grad_painel':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  'grad_fichas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  'grad_gradistas':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
   'fin_compras':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
   'fin_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
@@ -557,6 +566,7 @@ const TAB_LABELS={
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_relatorio':'Relatórios',
+  'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
   'painel_int':'Painel','apontar_int':'Apontamento','fichas_int':'Fichas',
@@ -643,7 +653,7 @@ function renderSelecionarSetor(){
   ];
   const setoresEstofados=[
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
-    {id:'grades',     nome:'Grades',            icon:'🔩', desc:'Montagem de estruturas', ativo:false},
+    {id:'grades',     nome:'Grades',            icon:'🪚', desc:'Produção de estruturas de madeira', ativo:true},
     {id:'tapecamento',nome:'Tapeçamento',       icon:'🪑', desc:'Aplicação de tecidos', ativo:false},
     {id:'espuma',     nome:'Blocos de Espuma',  icon:'🧱', desc:'Corte e controle de espuma', ativo:false},
   ];
@@ -654,7 +664,7 @@ function renderSelecionarSetor(){
     :{nome:'Fábrica de Estofados',icon:'🛋️',cor:'#7c3aed'};
 
   const cards=setores.map(s=>`
-    <div class="setor-card ${s.ativo?'':'em-breve'}" onclick="${s.ativo?`window._selecionarSetor('${s.id}')`:'void(0)'}">
+    <div class="setor-card ${s.ativo?'':'em-breve'}" onclick="${s.ativo?'window._selecionarSetor(\''+s.id+'\')':'void(0)'}">
       <div class="setor-icon">${s.icon}</div>
       <div>
         <div class="setor-nome">${s.nome}</div>
@@ -757,6 +767,13 @@ function renderApp(){
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
+  } else if(currentSetor==='grades'){
+    const pg=currentUserData?.perfil;
+    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_gradistas','grad_config');
+    else if(pg==='apontador_gra') tabs.push('grad_painel','grad_apontar','grad_fichas');
+    else if(pg==='gradista') tabs.push('grad_painel');
+    else tabs.push('grad_painel');
+    if(!currentTab||!currentTab.startsWith('grad_')) currentTab='grad_painel';
   } else if(currentSetor==='enrolamento_int'){
     const pInt=currentUserData?.perfil;
     if(['admin','encarregado_cad','apontador_int'].includes(pInt)){
@@ -886,6 +903,7 @@ window._switchTab=tab=>{
 };
 function renderTab(tab){
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
+  if(currentSetor==='grades') return renderTabGrades(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
   if(currentSetor==='fitas') return renderTabFitas(tab);
   if(currentSetor==='caminhoes') return renderTabCaminhoes(tab);
@@ -5033,6 +5051,475 @@ function renderCamRelatorio(){
 // ENROLAMENTO INTERNO
 // ═══════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════
+// SETOR GRADES
+// ════════════════════════════════════════════════════════════════
+
+const PECAS_GRAD=[
+  {id:'cama_casal_pedaco',    label:'Grade Cama Casal — Pedaço',     vlrDef:5.00},
+  {id:'cama_casal_normal',    label:'Grade Cama Casal — Normal',     vlrDef:4.00},
+  {id:'cama_solt_pedaco',     label:'Grade Cama Solteiro — Pedaço',  vlrDef:5.00},
+  {id:'cama_solt_normal',     label:'Grade Cama Solteiro — Normal',  vlrDef:4.00},
+  {id:'enc2_normal',          label:'Encosto 2 Lugares — Normal',    vlrDef:2.00},
+  {id:'enc2_reforma',         label:'Encosto 2 Lugares — Reforma',   vlrDef:4.00},
+  {id:'enc3_normal',          label:'Encosto 3 Lugares — Normal',    vlrDef:2.00},
+  {id:'enc3_reforma',         label:'Encosto 3 Lugares — Reforma',   vlrDef:4.00},
+  {id:'cab_casal',            label:'Grade Cabeceira Casal',         vlrDef:7.00},
+  {id:'cab_solt',             label:'Grade Cabeceira Solteiro',      vlrDef:7.00},
+  {id:'poltrona_jm',          label:'Grade Poltrona JM',             vlrDef:10.00},
+  {id:'poltrona_quad',        label:'Grade Poltrona Quadrada',       vlrDef:3.00},
+  {id:'sofa2_normal',         label:'Grade Sofá 2 Lugares — Normal', vlrDef:3.00},
+  {id:'sofa2_reforma',        label:'Grade Sofá 2 Lugares — Reforma',vlrDef:3.00},
+  {id:'sofa3_normal',         label:'Grade Sofá 3 Lugares — Normal', vlrDef:3.00},
+  {id:'sofa3_reforma',        label:'Grade Sofá 3 Lugares — Reforma',vlrDef:3.00},
+  {id:'puf',                  label:'Grade Puf',                     vlrDef:3.00},
+  {id:'papelao',              label:'Papelão',                       vlrDef:0.50},
+  {id:'abrir_jogo_sofa',      label:'Abrir Jogo Sofá',              vlrDef:20.00},
+  {id:'cama_casal_ref',       label:'Cama Casal — Reforma',         vlrDef:8.00},
+  {id:'cama_solt_ref',        label:'Cama Solteiro — Reforma',      vlrDef:8.00},
+];
+
+function getValorGrad(id){
+  return parseFloat(configGrad.valores?.[id]??PECAS_GRAD.find(p=>p.id===id)?.vlrDef??0);
+}
+function getQuinzenaGrad(dataStr){
+  const d=dataStr||today();
+  const dia=parseInt(d.slice(8,10));
+  const anoMes=d.slice(0,7);
+  return dia<=15?`${anoMes}-Q1`:`${anoMes}-Q2`;
+}
+function getQuinzenaAtualGrad(){ return getQuinzenaGrad(today()); }
+function quinzenaLabelGrad(q){
+  if(!q) return '';
+  const [ano,mes,parte]=q.split('-');
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mNome=MESES[parseInt(mes)-1];
+  return parte==='Q1'?`1–15 ${mNome} ${ano}`:`16–fim ${mNome} ${ano}`;
+}
+function fichaGradAtiva(gradId,q){
+  return fichasGrad.find(f=>f.gradId===gradId&&f.quinzena===q&&f.status==='aberta');
+}
+function calcGanhoGrad(fichaOuAponts){
+  const aponts=Array.isArray(fichaOuAponts)?fichaOuAponts:(fichaOuAponts?.apontamentos||[]);
+  return aponts.reduce((s,a)=>{
+    PECAS_GRAD.forEach(p=>{ s+=(parseInt((a.pecas||{})[p.id])||0)*getValorGrad(p.id); });
+    return s;
+  },0);
+}
+function totalPecasGrad(aponts){
+  return aponts.reduce((s,a)=>s+PECAS_GRAD.reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+}
+
+function renderTabGrades(tab){
+  try{
+    if(tab==='grad_painel')    return renderGradPainel();
+    if(tab==='grad_apontar')   return renderGradApontar();
+    if(tab==='grad_fichas')    return renderGradFichas();
+    if(tab==='grad_gradistas') return renderGradGradistas();
+    if(tab==='grad_config')    return renderGradConfig();
+    return renderGradPainel();
+  }catch(e){
+    console.error('Erro renderTabGrades:',e);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
+  }
+}
+
+// ── Painel ───────────────────────────────────────────────────────
+function renderGradPainel(){
+  const q=getQuinzenaAtualGrad();
+  const hoje=today();
+
+  // Totais gerais hoje e quinzena
+  let totalHoje=0, totalQ=0, ganhoQ=0;
+  const porGradHoje={}, porGradQ={};
+  fichasGrad.filter(f=>f.quinzena===q).forEach(f=>{
+    (f.apontamentos||[]).forEach(a=>{
+      const t=PECAS_GRAD.reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+      if(a.data===hoje){ totalHoje+=t; porGradHoje[f.gradId]=(porGradHoje[f.gradId]||0)+t; }
+      totalQ+=t; porGradQ[f.gradId]=(porGradQ[f.gradId]||0)+t;
+      ganhoQ+=calcGanhoGrad([a]);
+    });
+  });
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">
+    <div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div>
+      <div class="stat-label">Peças hoje</div>
+      <div class="stat-value">${totalHoje}</div>
+    </div></div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div>
+      <div class="stat-label">Peças na quinzena</div>
+      <div class="stat-value">${totalQ}</div>
+    </div></div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div>
+      <div class="stat-label">A pagar quinzena</div>
+      <div class="stat-value" style="font-size:18px">${fmtMoeda(ganhoQ)}</div>
+    </div></div>
+  </div>`;
+
+  html+=`<div class="card" style="margin-bottom:12px">
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🪚 ${quinzenaLabelGrad(q)}</div>`;
+
+  if(!gradistas.length){
+    html+='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Nenhum gradista cadastrado.</div>';
+  } else {
+    gradistas.filter(g=>g.ativo!==false).forEach(g=>{
+      const qHoje=porGradHoje[g.id]||0;
+      const qQ=porGradQ[g.id]||0;
+      const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q);
+      const ganho=calcGanhoGrad(ficha?.apontamentos||[]);
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${g.nome[0]}</div>
+          <div>
+            <div style="font-size:13px;font-weight:700">${g.nome}</div>
+            <div style="font-size:10px;color:#64748b">Quinzena: ${qQ} peças · ${fmtMoeda(ganho)}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:#64748b">hoje</div>
+          <div style="font-size:20px;font-weight:800;color:${qHoje>0?'#1d4ed8':'#cbd5e1'}">${qHoje}</div>
+        </div>
+      </div>`;
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+// ── Apontamento ──────────────────────────────────────────────────
+function renderGradApontar(){
+  const q=getQuinzenaAtualGrad();
+  if(!window._gradApontSel) window._gradApontSel='';
+
+  const optsGrad=gradistas.filter(g=>g.ativo!==false)
+    .map(g=>`<option value="${g.id}"${g.id===window._gradApontSel?' selected':''}>${g.nome}</option>`).join('');
+
+  let html=`<div class="card" style="margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Selecionar gradista</div>
+    <select onchange="window._gradSelGradista(this.value)" style="width:100%;font-size:15px;padding:12px;border-radius:12px;border:2px solid #e2e8f0;background:#fff">
+      <option value="">— Selecione —</option>${optsGrad}
+    </select>
+  </div>`;
+
+  if(!window._gradApontSel){ return html; }
+
+  const grad=gradistas.find(g=>g.id===window._gradApontSel);
+  if(!grad) return html;
+
+  const hoje=today();
+  const ficha=fichasGrad.find(f=>f.gradId===grad.id&&f.quinzena===q);
+  const apontHoje=(ficha?.apontamentos||[]).filter(a=>a.data===hoje);
+  const totalHoje=totalPecasGrad(apontHoje);
+  const ganhoHoje=calcGanhoGrad(apontHoje);
+
+  // Group pieces for easier mobile display
+  const grupos=[
+    {label:'Camas', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('cama'))},
+    {label:'Encostos', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('enc'))},
+    {label:'Cabeceiras', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('cab'))},
+    {label:'Poltronas', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('poltrona'))},
+    {label:'Sofás', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('sofa'))},
+    {label:'Outros', pecas:PECAS_GRAD.filter(p=>['puf','papelao','abrir_jogo_sofa'].includes(p.id))},
+  ];
+
+  html+=`<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;text-align:center;padding:16px">
+    <div style="font-size:13px;font-weight:700;opacity:.8">${grad.nome} — Hoje</div>
+    <div style="font-size:36px;font-weight:900;margin:4px 0">${totalHoje}</div>
+    <div style="font-size:12px;opacity:.8">peças · ${fmtMoeda(ganhoHoje)}</div>
+  </div>`;
+
+  // Form
+  html+=`<div class="card" style="margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:14px">Lançar produção de hoje</div>`;
+
+  grupos.forEach(g=>{
+    if(!g.pecas.length) return;
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">${g.label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+    g.pecas.forEach(p=>{
+      const shortLabel=p.label.replace('Grade Cabeceira ','').replace('Grade Poltrona ','').replace('Grade Sofá ','').replace('Grade Cama ','Cama ').replace('Encosto ','').replace('Grade ','');
+      html+=`<div style="background:#f8fafc;border-radius:12px;padding:10px">
+        <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:6px">${shortLabel}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="window._gradDecPeca('${p.id}')" style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;border:none;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+          <input type="number" id="grad-peca-${p.id}" min="0" value="0" style="flex:1;text-align:center;font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:8px;padding:4px;width:100%">
+          <button onclick="window._gradIncPeca('${p.id}')" style="width:32px;height:32px;border-radius:50%;background:#1d4ed8;border:none;font-size:18px;font-weight:700;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px;text-align:center">${fmtMoeda(getValorGrad(p.id))} cada</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+
+  html+=`<button onclick="window._gradSalvarApontamento()" style="width:100%;padding:16px;background:#1d4ed8;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px">
+    ✓ Salvar apontamento
+  </button></div>`;
+
+  // Histórico hoje
+  if(apontHoje.length){
+    html+=`<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos de hoje</div>`;
+    apontHoje.forEach((a,i)=>{
+      const pecas=PECAS_GRAD.filter(p=>parseInt((a.pecas||{})[p.id])>0);
+      const tot=totalPecasGrad([a]);
+      const detPecas=pecas.map(p=>(parseInt((a.pecas||{})[p.id])||0)+'× '+p.label.split('—')[0].trim()).join(' · ');
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
+        <div>
+          <div style="font-size:12px;font-weight:700">${tot} peças · ${fmtMoeda(calcGanhoGrad([a]))}</div>
+          <div style="font-size:10px;color:#64748b">${detPecas}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-danger" style="font-size:11px" onclick="window._gradExcluirApont('${ficha?.id}','${a.id}')">Excluir</button>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  return html;
+}
+
+// ── Fichas ───────────────────────────────────────────────────────
+function renderGradFichas(){
+  if(!window._gradFichaFiltro) window._gradFichaFiltro='abertas';
+  const filtro=window._gradFichaFiltro;
+  const q=getQuinzenaAtualGrad();
+  const podeFechar=['admin','proprietario','encarregado_est','apontador_gra'].includes(currentUserData?.perfil);
+
+  const btnF=v=>`<button onclick="window._gradSetFichaFiltro('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${filtro===v?'#1d4ed8':'#e2e8f0'};background:${filtro===v?'#1d4ed8':'#fff'};color:${filtro===v?'#fff':'#64748b'};cursor:pointer">${v==='abertas'?'Abertas':'Fechadas'}</button>`;
+  let html=`<div style="display:flex;gap:8px;margin-bottom:14px">${btnF('abertas')}${btnF('fechadas')}</div>`;
+
+  // Quinzenas disponíveis
+  const quinzenas=filtro==='abertas'?[q]:[...new Set(fichasGrad.filter(f=>f.status==='fechada').map(f=>f.quinzena))].sort().reverse();
+
+  quinzenas.forEach(qk=>{
+    const fichasQ=fichasGrad.filter(f=>f.quinzena===qk&&(filtro==='abertas'?f.status==='aberta':f.status==='fechada'));
+    if(!fichasQ.length) return;
+
+    html+=`<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin:10px 0 6px">${quinzenaLabelGrad(qk)}</div>`;
+    fichasQ.forEach(f=>{
+      const grad=gradistas.find(g=>g.id===f.gradId);
+      const ganho=calcGanhoGrad(f.apontamentos||[]);
+      const total=totalPecasGrad(f.apontamentos||[]);
+
+      // Histórico por dia
+      const diasMap={};
+      (f.apontamentos||[]).forEach(a=>{
+        if(!a.data) return;
+        if(!diasMap[a.data]) diasMap[a.data]={};
+        PECAS_GRAD.forEach(p=>{ diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+(parseInt((a.pecas||{})[p.id])||0); });
+      });
+      const dias=Object.keys(diasMap).sort().reverse();
+
+      const histHtml=dias.length?`<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px">Produção por dia</div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="background:#f8fafc">
+            <th style="padding:5px 8px;text-align:left;color:#94a3b8">Data</th>
+            <th style="padding:5px 8px;text-align:center;color:#94a3b8">Total</th>
+            <th style="padding:5px 8px;text-align:right;color:#94a3b8">Ganho</th>
+          </tr></thead><tbody>
+          ${dias.map((dia,i)=>{
+            const tots=diasMap[dia];
+            const tDia=Object.values(tots).reduce((s,v)=>s+v,0);
+            const gDia=PECAS_GRAD.reduce((s,p)=>s+(tots[p.id]||0)*getValorGrad(p.id),0);
+            const [y,m,d]=dia.split('-');
+            const rowBg=i%2?'background:#f8fafc':'';
+            return '<tr style="'+rowBg+'">'
+              +'<td style="padding:5px 8px;font-weight:600">'+d+'/'+m+'/'+y+'</td>'
+              +'<td style="padding:5px 8px;text-align:center;font-weight:800;color:#1d4ed8">'+tDia+'</td>'
+              +'<td style="padding:5px 8px;text-align:right;color:#059669;font-weight:700">'+fmtMoeda(gDia)+'</td>'
+              +'</tr>';
+          }).join('')}
+          <tr style="background:#dbeafe;font-weight:800">
+            <td style="padding:5px 8px;color:#1d4ed8">Total</td>
+            <td style="padding:5px 8px;text-align:center;color:#1d4ed8">${total}</td>
+            <td style="padding:5px 8px;text-align:right;color:#059669">${fmtMoeda(ganho)}</td>
+          </tr>
+          </tbody></table></div></div>`:'';
+
+      const corBorda=f.status==='aberta'?'#1d4ed8':'#10b981';
+      const corValor=f.pago?'#059669':'#d97706';
+      const bgStatus=f.status==='aberta'?'#dbeafe':'#d1fae5';
+      const corStatus=f.status==='aberta'?'#1d4ed8':'#065f46';
+      const labelStatus=f.status==='aberta'?'Aberta':f.pago?'✓ Pago':'Fechada';
+      const btnFechar=podeFechar&&f.status==='aberta'
+        ?'<button class="btn btn-sm btn-warn" onclick="window._gradFecharFicha(\''+f.id+'\')">Fechar ficha</button>':'';
+
+      html+=`<div class="card" style="margin-bottom:10px;border-left:4px solid ${corBorda}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:14px;font-weight:700">${grad?.nome||'—'}</div>
+            <div style="font-size:11px;color:#64748b">${quinzenaLabelGrad(qk)} · ${total} peças</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            <div style="text-align:right">
+              <div style="font-size:18px;font-weight:800;color:${corValor}">${fmtMoeda(ganho)}</div>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${bgStatus};color:${corStatus}">${labelStatus}</span>
+            </div>
+            ${btnFechar}
+          </div>
+        </div>
+        ${histHtml}
+      </div>`;
+    });
+  });
+
+  if(!html.includes('card')) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma ficha encontrada.</div>';
+  return html;
+}
+
+// ── Gradistas ────────────────────────────────────────────────────
+function renderGradGradistas(){
+  let html=`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn btn-primary btn-sm" onclick="window._gradNovoGradista()">+ Gradista</button>
+  </div>`;
+
+  if(!gradistas.length) return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhum gradista cadastrado.</div>';
+
+  html+='<div class="card" style="padding:0;overflow:hidden"><table style="width:100%;border-collapse:collapse">';
+  html+='<thead><tr style="background:#1d4ed8;color:#fff"><th style="padding:10px 14px;text-align:left;font-size:12px">Nome</th><th style="padding:10px 14px;text-align:center;font-size:12px">Status</th><th style="padding:10px 14px;text-align:center;font-size:12px">Ações</th></tr></thead><tbody>';
+  gradistas.forEach((g,i)=>{
+    html+=`<tr style="${i%2?'background:#f8fafc':''}">
+      <td style="padding:10px 14px;font-size:13px;font-weight:600">${g.nome}</td>
+      <td style="padding:10px 14px;text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:99px;background:${g.ativo!==false?'#d1fae5':'#f1f5f9'};color:${g.ativo!==false?'#065f46':'#94a3b8'};font-weight:700">${g.ativo!==false?'Ativo':'Inativo'}</span></td>
+      <td style="padding:10px 14px;text-align:center"><button class="btn btn-sm btn-warn" onclick="window._gradEditarGradista('${g.id}')">✏️</button></td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+
+// ── Configurações ────────────────────────────────────────────────
+function renderGradConfig(){
+  let html='<div class="card" style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:14px">💰 Valores por peça</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  PECAS_GRAD.forEach(p=>{
+    const v=getValorGrad(p.id);
+    html+=`<div style="background:#f8fafc;border-radius:10px;padding:10px">
+      <div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:6px">${p.label}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:12px;color:#475569">R$</span>
+        <input type="number" id="gv-${p.id}" value="${v.toFixed(2)}" step="0.01" min="0"
+          style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px;font-size:13px;font-weight:700;width:100%">
+      </div>
+    </div>`;
+  });
+  html+=`</div><button onclick="window._gradSalvarConfig()" class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px;font-size:14px">Salvar valores</button></div>`;
+  return html;
+}
+
+// ── Handlers ─────────────────────────────────────────────────────
+window._gradSelGradista=function(v){ window._gradApontSel=v; reloadTab(); };
+window._gradSetFichaFiltro=function(v){ window._gradFichaFiltro=v; reloadTab(); };
+
+window._gradIncPeca=function(id){
+  const el=document.getElementById('grad-peca-'+id);
+  if(el) el.value=Math.max(0,(parseInt(el.value)||0)+1);
+};
+window._gradDecPeca=function(id){
+  const el=document.getElementById('grad-peca-'+id);
+  if(el) el.value=Math.max(0,(parseInt(el.value)||0)-1);
+};
+
+window._gradSalvarApontamento=async function(){
+  const gradId=window._gradApontSel;
+  if(!gradId){showToast('Selecione um gradista.');return;}
+  const q=getQuinzenaAtualGrad();
+  const pecas={};
+  let temAlgo=false;
+  PECAS_GRAD.forEach(p=>{
+    const v=parseInt(document.getElementById('grad-peca-'+p.id)?.value)||0;
+    if(v>0){pecas[p.id]=v;temAlgo=true;}
+  });
+  if(!temAlgo){showToast('Lance pelo menos uma peça.');return;}
+
+  const apontId='a'+Date.now();
+  const apont={id:apontId,data:today(),pecas};
+
+  let ficha=fichasGrad.find(f=>f.gradId===gradId&&f.quinzena===q&&f.status==='aberta');
+  if(!ficha){
+    const ref=await addDoc(collection(db,'fichas_grad'),{gradId,quinzena:q,status:'aberta',pago:false,apontamentos:[apont]});
+    fichasGrad.push({id:ref.id,gradId,quinzena:q,status:'aberta',pago:false,apontamentos:[apont]});
+  } else {
+    const apontamentos=[...(ficha.apontamentos||[]),apont];
+    await updateDoc(doc(db,'fichas_grad',ficha.id),{apontamentos});
+  }
+  showToast('Apontamento salvo!');
+  reloadTab();
+};
+
+window._gradExcluirApont=function(fichaId, apontId){
+  window._pendingGradExcluir={fichaId,apontId};
+  showModal('Excluir apontamento',
+    '<div style="font-size:13px;color:#444">Deseja excluir este apontamento?</div>',
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._gradConfirmarExcluir()">Excluir</button>`);
+};
+window._gradConfirmarExcluir=async function(){
+  const {fichaId,apontId}=window._pendingGradExcluir||{};
+  if(!fichaId||!apontId) return;
+  closeModal();
+  const ficha=fichasGrad.find(f=>f.id===fichaId);
+  if(!ficha) return;
+  await updateDoc(doc(db,'fichas_grad',fichaId),{apontamentos:ficha.apontamentos.filter(a=>a.id!==apontId)});
+  showToast('Apontamento excluído!');
+};
+
+window._gradFecharFicha=async function(fichaId){
+  window._pendingGradFechar=fichaId;
+  showModal('Fechar ficha',
+    '<div style="font-size:13px;color:#444">Confirma o fechamento desta ficha? Ela ficará disponível para pagamento no Financeiro.</div>',
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-primary" onclick="window._gradConfirmarFechar()">Fechar ficha</button>`);
+};
+window._gradConfirmarFechar=async function(){
+  const fichaId=window._pendingGradFechar;
+  if(!fichaId) return;
+  closeModal();
+  const ficha=fichasGrad.find(f=>f.id===fichaId);
+  const ganho=calcGanhoGrad(ficha?.apontamentos||[]);
+  await updateDoc(doc(db,'fichas_grad',fichaId),{status:'fechada',dataFechamento:today(),ganho});
+  showToast('Ficha fechada!');
+};
+
+window._gradNovoGradista=function(g={}){
+  showModal(g.id?'Editar gradista':'Novo gradista',
+    `<div class="form-group"><label>Nome</label>
+      <input id="gg-nome" value="${g.nome||''}" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">
+     </div>
+     <div class="form-group"><label>Status</label>
+      <select id="gg-ativo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">
+        <option value="true"${g.ativo!==false?' selected':''}>Ativo</option>
+        <option value="false"${g.ativo===false?' selected':''}>Inativo</option>
+      </select>
+     </div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-primary" onclick="window._gradSalvarGradista('${g.id||''}')">Salvar</button>`);
+};
+window._gradEditarGradista=function(id){
+  const g=gradistas.find(x=>x.id===id);
+  if(g) window._gradNovoGradista(g);
+};
+window._gradSalvarGradista=async function(id){
+  const nome=document.getElementById('gg-nome')?.value.trim();
+  const ativo=document.getElementById('gg-ativo')?.value!=='false';
+  if(!nome){showToast('Digite o nome.');return;}
+  closeModal();
+  if(id) await updateDoc(doc(db,'gradistas',id),{nome,ativo});
+  else await addDoc(collection(db,'gradistas'),{nome,ativo:true});
+  showToast('Gradista salvo!');
+};
+
+window._gradSalvarConfig=async function(){
+  const valores={};
+  PECAS_GRAD.forEach(p=>{
+    valores[p.id]=parseFloat(document.getElementById('gv-'+p.id)?.value)||p.vlrDef;
+  });
+  await setDoc(doc(db,'config_grad','geral'),{valores});
+  showToast('Valores salvos!');
+};
+
 function renderTabInt(tab){
   try{
     if(tab==='painel_int')      return renderPainelInt();
@@ -6820,6 +7307,15 @@ function finPagamentosTodos(){
       dataPagamento:f.dataPagamento||null,dataRef:f.quinzena||'',tipo:'quinzena',fichaObj:f,setorKey:'metalurgica'});
   });
 
+  // Grades
+  fichasGrad.filter(f=>f.status==='fechada').forEach(f=>{
+    const grad=gradistas.find(g=>g.id===f.gradId);
+    const valor=f.ganho||calcGanhoGrad(f.apontamentos||[]);
+    if(valor<=0) return;
+    lista.push({id:f.id,setor:'Grades',pessoa:grad?.nome||'—',valor,pago:!!f.pago,
+      dataPagamento:f.dataPagamento||null,dataRef:f.dataFechamento||f.quinzena||'',tipo:'quinzena',fichaObj:f,setorKey:'grades'});
+  });
+
   // Enrolamento interno
   fichasInt.filter(f=>f.status==='fechada').forEach(f=>{
     const enrI=enroladoresInt.find(e=>e.id===f.enroladorId);
@@ -6945,14 +7441,15 @@ function renderFinDashboard(){
   // Pendências por setor
   if(Object.keys(porSetor).length){
     html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">⚠️ Pendências por setor</div>';
-    html+=Object.values(porSetor).map(s=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9">
-        <div style="font-size:13px;font-weight:600">${s.nome}</div>
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:11px;color:#64748b">${s.qtd} pendência${s.qtd!==1?'s':''}</span>
-          <span style="font-size:15px;font-weight:800;color:#dc2626">${fmtMoeda(s.valor)}</span>
-        </div>
-      </div>`).join('');
+    html+=Object.values(porSetor).map(s=>{
+    const pLabel=s.qtd!==1?'s':'';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+      +'<div style="font-size:13px;font-weight:600">'+s.nome+'</div>'
+      +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<span style="font-size:11px;color:#64748b">'+s.qtd+' pendência'+pLabel+'</span>'
+      +'<span style="font-size:15px;font-weight:800;color:#dc2626">'+fmtMoeda(s.valor)+'</span>'
+      +'</div></div>';
+  }).join('');
     html+='</div>';
   }
 
@@ -7053,6 +7550,7 @@ function renderFinPagamentos(){
     'Enrolamento Terc.': {icon:'🧵', cor:'#1e40af'},
     'Metalúrgica':       {icon:'⚙️',  cor:'#374151'},
     'Enrol. Interno':    {icon:'🏭', cor:'#065f46'},
+    'Grades':            {icon:'🪚', cor:'#92400e'},
     'Bônus':             {icon:'⭐', cor:'#92400e'},
   };
   const setoresPresentes=[...new Set(filtrados.map(p=>p.setor))];
@@ -7075,8 +7573,10 @@ function renderFinPagamentos(){
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir
         </button>
-        ${podePagar?(p.tipo==='bonus'?`<button class="btn btn-sm btn-primary" onclick="window._pagarBonus('${p.bonusEnroladorId}','${p.bonusAnoMes}')">Marcar pago</button>`:`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`):''}
-      </div>
+        ${podePagar?(p.tipo==='bonus'
+          ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Marcar pago</button>'
+          :'<button class="btn btn-sm btn-primary" onclick="window._confirmarPago(\''+p.id+'\')">Marcar pago</button>')
+          :''}      </div>
     </div>`;
   };
 
@@ -7233,11 +7733,7 @@ function renderFinRelPagamentos(){
       <div style="padding:12px 16px;border-top:1px solid #e2e8f0">
         <!-- Resumo por setor -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          ${Object.values(porSetor).map(s=>`
-            <div style="background:#f1f5f9;border-radius:10px;padding:6px 12px;text-align:center">
-              <div style="font-size:10px;color:#64748b;font-weight:600">${s.nome}</div>
-              <div style="font-size:14px;font-weight:800;color:#1e40af">${fmtMoeda(s.valor)}</div>
-            </div>`).join('')}
+          ${Object.values(porSetor).map(s=>'<div style="background:#f1f5f9;border-radius:10px;padding:6px 12px;text-align:center"><div style="font-size:10px;color:#64748b;font-weight:600">'+s.nome+'</div><div style="font-size:14px;font-weight:800;color:#1e40af">'+fmtMoeda(s.valor)+'</div></div>').join('')}
         </div>
         <!-- Lista de pagamentos do mês -->
         <table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -7307,7 +7803,7 @@ function renderFinCompras(){
 
   const mesSelect=`<select onchange="window._finSetComprasMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">
     <option value="">Todos os meses</option>
-    ${mesesDisp.map(m=>`<option value="${m}"${m===window._finComprasMes?' selected':''}>${mesLabel2(m)}</option>`).join('')}
+    ${mesesDisp.map(m=>'<option value="'+m+'"'+(m===window._finComprasMes?' selected':'')+'>'+mesLabel2(m)+'</option>').join('')}
   </select>`;
 
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
@@ -8768,6 +9264,20 @@ function iniciarListeners(){
   onSnapshot(collection(db,'fichas_metal'),snap=>{
     fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  // Grades
+  onSnapshot(collection(db,'gradistas'),snap=>{
+    gradistas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    if(currentUserData&&currentSetor==='grades')reloadTab();
+  });
+  onSnapshot(collection(db,'fichas_grad'),snap=>{
+    fichasGrad=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='grades')reloadTab();
+  });
+  onSnapshot(doc(db,'config_grad','geral'),snap=>{
+    if(snap.exists()) configGrad={valores:{},...snap.data()};
+    if(currentUserData&&currentSetor==='grades')reloadTab();
+  });
   // Enrolamento Interno
   onSnapshot(collection(db,'enroladores_int'),snap=>{
     enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
@@ -8797,7 +9307,6 @@ function iniciarListeners(){
   onSnapshot(collection(db,'entregas_fitas'),snap=>{
     entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&(currentSetor==='fitas'||currentSetor==='enrolamento_int'))reloadTab();
-  });
   });
 
   // Config bônus
