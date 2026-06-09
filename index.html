@@ -5171,27 +5171,71 @@ function renderFichasInt(){
     const ganho=somaProducaoFicha(f);
     const rolos=totalRolosFicha(f);
     const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
+    const podeFechar=f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
 
-    return '<div class="card" style="margin-bottom:10px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-      +'<div>'
-      +'<div style="font-weight:700;font-size:14px">'+enr.nome+'</div>'
-      +'<div style="font-size:11px;color:#64748b">Aberta: '+fmtDate(f.dataAbertura)+(f.dataFechamento?' · Fechada: '+fmtDate(f.dataFechamento):'')+(f.grupo?' · Grupo '+f.grupo:'')+'</div>'
-      +'</div>'
-      +'<div style="text-align:right">'
-      +'<div style="font-size:18px;font-weight:800;color:#065f46">'+fmtMoeda(ganho)+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+totalPecasN+' peças · '+rolos+' rolos</div>'
-      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(f.status==='aberta'?'#d1fae5':'#f1f5f9')+';color:'+(f.status==='aberta'?'#065f46':'#64748b')+'">'+f.status+'</span>'
-      +'</div></div>'
-      // Detalhes por tipo
-      +'<div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap">'
-      +getTiposInt().map(t=>totPecas[t.id]>0?'<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">'+totPecas[t.id]+'</span> '+t.label+'</div>':'').join('')
-      +'</div>'
-      +(f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil)?
-        '<div style="margin-top:10px;display:flex;gap:8px">'
-        +'<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt(this.dataset.id)" data-id="'+f.id+'">Fechar ficha</button>'
-        +'</div>':'')
-      +'</div>';
+    // Histórico por dia
+    const diasMap={};
+    (f.apontamentos||[]).forEach(a=>{
+      if(!a.data) return;
+      if(!diasMap[a.data]) diasMap[a.data]={};
+      getTiposInt().forEach(t=>{
+        diasMap[a.data][t.id]=(diasMap[a.data][t.id]||0)+(parseInt((a.tipos||{})[t.id])||0);
+      });
+    });
+    const dias=Object.keys(diasMap).sort().reverse();
+
+    const historicoHtml=dias.length?`
+      <div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:10px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Histórico por dia</div>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#f8fafc">
+            <th style="padding:6px 10px;text-align:left;color:#94a3b8;font-weight:700">Data</th>
+            <th style="padding:6px 10px;text-align:center;color:#94a3b8;font-weight:700">Total</th>
+            <th style="padding:6px 10px;text-align:left;color:#94a3b8;font-weight:700">Detalhes</th>
+          </tr></thead>
+          <tbody>
+            ${dias.map((dia,i)=>{
+              const tots=diasMap[dia];
+              const totalDia=Object.values(tots).reduce((s,v)=>s+v,0);
+              const det=getTiposInt().filter(t=>tots[t.id]>0).map(t=>`<span style="font-size:10px;color:#64748b">${t.label}: <strong>${tots[t.id]}</strong></span>`).join(' · ');
+              const [y,m,d]=dia.split('-');
+              return `<tr style="${i%2?'background:#f8fafc':''}">
+                <td style="padding:6px 10px;font-weight:600;white-space:nowrap">${d}/${m}/${y}</td>
+                <td style="padding:6px 10px;text-align:center;font-weight:800;color:#1e40af">${totalDia}</td>
+                <td style="padding:6px 10px">${det}</td>
+              </tr>`;
+            }).join('')}
+            <tr style="background:#dbeafe;font-weight:800">
+              <td style="padding:6px 10px;color:#1e40af">Total</td>
+              <td style="padding:6px 10px;text-align:center;color:#1e40af">${totalPecasN}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>`:'';
+
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:700;font-size:14px">${enr.nome}</div>
+          <div style="font-size:11px;color:#64748b">Aberta: ${fmtDate(f.dataAbertura)}${f.dataFechamento?' · Fechada: '+fmtDate(f.dataFechamento):''}${f.grupo?' · Grupo '+f.grupo:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:800;color:#065f46">${fmtMoeda(ganho)}</div>
+            <div style="font-size:11px;color:#64748b">${totalPecasN} peças · ${rolos} rolos</div>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${f.status==='aberta'?'#d1fae5':'#f1f5f9'};color:${f.status==='aberta'?'#065f46':'#64748b'}">${f.status}</span>
+          </div>
+          ${podeFechar?`<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt('${f.id}')">Fechar ficha</button>`:''}
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+        ${getTiposInt().map(t=>totPecas[t.id]>0?`<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">${totPecas[t.id]}</span> ${t.label}</div>`:'').join('')}
+      </div>
+      ${historicoHtml}
+    </div>`;
   }).join('');
 
   return html;
