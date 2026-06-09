@@ -4002,6 +4002,132 @@ window._setRelAp=function(v){
   reloadTab();
 };
 
+window._imprimirFicha=function(id, tipo){
+  let titulo='', pessoa='', setor='', referencia='', valor=0, status='', dataPag='', linhas=[], obs='';
+
+  if(tipo==='ficha'||tipo==='bonus'){
+    // Busca na lista de pagamentos
+    const todos=finPagamentosTodos();
+    const p=todos.find(x=>x.id===id);
+    if(!p) return;
+
+    pessoa=p.pessoa;
+    setor=p.setor;
+    valor=p.valor;
+    status=p.pago?'PAGO':'AGUARDANDO PAGAMENTO';
+    dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
+
+    if(tipo==='bonus'){
+      referencia='Bônus de produção — '+p.dataRef;
+      linhas=[{desc:'Bônus por meta atingida ('+p.dataRef+')',valor:p.valor}];
+    } else {
+      const f=p.fichaObj;
+      referencia='Ficha — Ref: '+(p.dataRef?p.dataRef.split('-').reverse().join('/'):'—');
+      if(f){
+        const isCancelada=f.status==='cancelada';
+        const vals=getValoresPorFicha(f);
+        TIPOS.forEach(t=>{
+          const qtd=isCancelada?somaRecolPago(f,t.id):somaRecol(f,t.id);
+          const val=parseFloat(vals[t.id])||0;
+          if(qtd>0) linhas.push({desc:t.label,qtd,val,sub:qtd*val});
+        });
+        if(isCancelada) obs='Ficha cancelada por retirada em '+(f.dataCancelamento||'')+'.<br>Pagamento apenas pelas peças já enroladas.';
+      }
+    }
+  } else if(tipo==='quinzena'){
+    const todos=finPagamentosTodos();
+    const p=todos.find(x=>x.id===id);
+    if(!p) return;
+    pessoa=p.pessoa;
+    setor=p.setor;
+    valor=p.valor;
+    status=p.pago?'PAGO':'AGUARDANDO PAGAMENTO';
+    dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
+    referencia='Quinzena: '+p.dataRef;
+    const f=p.fichaObj;
+    if(f){
+      const vProd=(configMetal||{}).valoresProd||{};
+      PECAS_METAL_FULL.forEach(pc=>{
+        const qtd=apontSoldador(f.soldadorId).filter(a=>getQuinzena(a.data)===f.quinzena)
+          .reduce((s,a)=>s+(parseInt((a.pecas||{})[pc.id])||0),0);
+        const val=parseFloat(vProd[pc.id])||0;
+        if(qtd>0) linhas.push({desc:pc.label,qtd,val,sub:qtd*val});
+      });
+    }
+  }
+
+  const dataHoje=today().split('-').reverse().join('/');
+  const linhasHtml=linhas.map(l=>
+    `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">${l.desc}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">${l.qtd??'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right">${l.val?l.val.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700">${(l.sub||l.valor||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+    </tr>`
+  ).join('');
+
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Comprovante de Pagamento</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:32px;max-width:680px;margin:0 auto;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1e40af;}
+    .logo{font-size:28px;font-weight:900;color:#1e40af;letter-spacing:-1px;}
+    .logo span{display:block;font-size:11px;font-weight:600;color:#64748b;letter-spacing:0;}
+    .badge{padding:5px 14px;border-radius:99px;font-size:12px;font-weight:800;background:${status==='PAGO'?'#d1fae5':'#fef3c7'};color:${status==='PAGO'?'#065f46':'#92400e'};}
+    h2{font-size:18px;font-weight:800;margin-bottom:4px;}
+    .meta{font-size:12px;color:#64748b;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+    thead tr{background:#1e40af;color:#fff;}
+    th{padding:10px 12px;text-align:left;font-weight:700;}
+    th:nth-child(2){text-align:center;}
+    th:nth-child(3),th:nth-child(4){text-align:right;}
+    .total-row td{padding:10px 12px;font-size:15px;font-weight:800;background:#dbeafe;color:#1e40af;}
+    .total-row td:last-child{text-align:right;}
+    .obs{font-size:11px;color:#dc2626;background:#fee2e2;padding:8px 12px;border-radius:8px;margin-bottom:16px;}
+    .assinatura{margin-top:48px;display:flex;justify-content:space-between;gap:32px;}
+    .assinatura div{flex:1;border-top:1px solid #94a3b8;padding-top:6px;font-size:11px;color:#64748b;text-align:center;}
+    .footer{margin-top:24px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:12px;}
+    @media print{body{padding:16px;}button{display:none;}}
+  </style></head><body>
+  <div class="header">
+    <div class="logo">JM<span>Sistema de Gestão Fabril</span></div>
+    <span class="badge">${status}</span>
+  </div>
+  <div style="margin-bottom:20px">
+    <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px">Comprovante de Pagamento</div>
+    <h2>${pessoa}</h2>
+    <div class="meta">
+      ${setor} &nbsp;·&nbsp; ${referencia}<br>
+      ${status==='PAGO'?'Pago em: '+dataPag:'Gerado em: '+dataHoje}
+    </div>
+  </div>
+  ${obs?`<div class="obs">⚠️ ${obs}</div>`:''}
+  <table>
+    <thead><tr>
+      <th>Descrição</th><th>Qtd.</th><th>Valor unit.</th><th>Subtotal</th>
+    </tr></thead>
+    <tbody>
+      ${linhasHtml}
+      <tr class="total-row">
+        <td colspan="3">TOTAL A PAGAR</td>
+        <td>${valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="assinatura">
+    <div>Assinatura do responsável pelo pagamento</div>
+    <div>Assinatura do recebedor (${pessoa})</div>
+  </div>
+  <div class="footer">JM — Sistema de Gestão Fabril &nbsp;·&nbsp; Emitido em ${dataHoje}</div>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=750,height=900');
+  w.document.write(html);
+  w.document.close();
+};
+
 window._finSetFiltroSetor=function(v){ window._finPagFiltroSetor=v; reloadTab(); };
 window._finSetPagView=function(v){ window._finPagView=v; reloadTab(); };
 window._finSetRelPagMes=function(v){ window._finRelPagMes=v; reloadTab(); };
@@ -6871,8 +6997,12 @@ function renderFinPagamentos(){
           <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:p.tipo==='bonus'?'Bônus meta: '+p.dataRef:'Ref: '+dataRef}${dataPag?' · Pago em '+dataPag:''}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
+        <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:4px 10px;display:flex;align-items:center;gap:4px" onclick="window._imprimirFicha('${p.id}','${p.tipo}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir
+        </button>
         ${podePagar?(p.tipo==='bonus'?`<button class="btn btn-sm btn-primary" onclick="window._pagarBonus('${p.bonusEnroladorId}','${p.bonusAnoMes}')">Marcar pago</button>`:`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`):''}
       </div>
     </div>`;
