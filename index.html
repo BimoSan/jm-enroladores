@@ -4056,6 +4056,91 @@ window._imprimirFicha=function(id, tipo){
     }
   }
 
+  // ── Histórico de produção/recolhimentos ─────────────────────────
+  let historicoImpHtml='';
+  const todos2=finPagamentosTodos();
+  const pObj=todos2.find(x=>x.id===id);
+
+  if(tipo==='ficha'&&pObj?.fichaObj){
+    const f=pObj.fichaObj;
+    const isCancelada=f.status==='cancelada';
+    // Recolhimentos
+    const recols=(f.recolhimentos||[]).filter(r=>!r.administrativo);
+    if(recols.length){
+      const recRows=recols.map((r,i)=>{
+        const d=(r.data||'').split('-').reverse().join('/');
+        const det=TIPOS.map(t=>{const v=parseInt((r.tipos||{})[t.id])||0;return v>0?v+'× '+t.label:'';}).filter(Boolean).join(', ');
+        return `<tr style="${i%2?'background:#f8fafc':''}">
+          <td style="padding:7px 10px">${d}</td>
+          <td style="padding:7px 10px">${det||'—'}</td>
+          <td style="padding:7px 10px">${r.fitaSobrando||0} fita · ${r.fioSobrando||0} fio</td>
+        </tr>`;
+      }).join('');
+      historicoImpHtml=`<div style="margin-top:24px">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#475569;margin-bottom:8px;border-bottom:2px solid #e2e8f0;padding-bottom:4px">Histórico de Recolhimentos</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#f1f5f9">
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Data</th>
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Peças</th>
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Sobras</th>
+          </tr></thead>
+          <tbody>${recRows}</tbody>
+        </table>
+      </div>`;
+    }
+    // Entregas
+    const entrs=(f.entregas||[]);
+    if(entrs.length){
+      const entrRows=entrs.map((e,i)=>{
+        const d=(e.data||'').split('-').reverse().join('/');
+        const det=TIPOS.map(t=>{const v=parseInt((e.tipos||{})[t.id])||0;return v>0?v+'× '+t.label:'';}).filter(Boolean).join(', ');
+        return `<tr style="${i%2?'background:#f8fafc':''}">
+          <td style="padding:7px 10px">${d}</td>
+          <td style="padding:7px 10px">${det||'—'}</td>
+          <td style="padding:7px 10px">${e.fita||0} rolo(s) fita · ${e.fio||0} rolo(s) fio</td>
+        </tr>`;
+      }).join('');
+      historicoImpHtml=`<div style="margin-top:24px">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#475569;margin-bottom:8px;border-bottom:2px solid #e2e8f0;padding-bottom:4px">Histórico de Entregas</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#f1f5f9">
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Data</th>
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Peças</th>
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Material</th>
+          </tr></thead>
+          <tbody>${entrRows}</tbody>
+        </table>
+      </div>`+historicoImpHtml;
+    }
+  } else if(tipo==='quinzena'&&pObj?.fichaObj){
+    const f=pObj.fichaObj;
+    const aponts=apontSoldador(f.soldadorId).filter(a=>getQuinzena(a.data)===f.quinzena)
+      .sort((a,b)=>a.data>b.data?1:-1);
+    if(aponts.length){
+      const apontRows=aponts.map((a,i)=>{
+        const d=(a.data||'').split('-').reverse().join('/');
+        const det=PECAS_METAL_FULL.map(pc=>{const v=parseInt((a.pecas||{})[pc.id])||0;return v>0?v+'× '+pc.label:'';}).filter(Boolean).join(', ');
+        const totalDia=PECAS_METAL_FULL.reduce((s,pc)=>s+(parseInt((a.pecas||{})[pc.id])||0),0);
+        return `<tr style="${i%2?'background:#f8fafc':''}">
+          <td style="padding:7px 10px">${d}</td>
+          <td style="padding:7px 10px;text-align:center;font-weight:700">${totalDia}</td>
+          <td style="padding:7px 10px">${det||'—'}</td>
+        </tr>`;
+      }).join('');
+      historicoImpHtml=`<div style="margin-top:24px">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#475569;margin-bottom:8px;border-bottom:2px solid #e2e8f0;padding-bottom:4px">Histórico de Produção por Dia</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#f1f5f9">
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Data</th>
+            <th style="padding:7px 10px;text-align:center;font-weight:700;color:#475569">Total</th>
+            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#475569">Peças</th>
+          </tr></thead>
+          <tbody>${apontRows}</tbody>
+        </table>
+      </div>`;
+    }
+  }
+
   const dataHoje=today().split('-').reverse().join('/');
   const linhasHtml=linhas.map(l=>
     `<tr>
@@ -4115,6 +4200,7 @@ window._imprimirFicha=function(id, tipo){
       </tr>
     </tbody>
   </table>
+  ${historicoImpHtml}
   <div class="assinatura">
     <div>Assinatura do responsável pelo pagamento</div>
     <div>Assinatura do recebedor (${pessoa})</div>
