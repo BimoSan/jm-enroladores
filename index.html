@@ -6646,14 +6646,90 @@ function renderFinPagamentos(){
   };
   const setoresPresentes=[...new Set(filtrados.map(p=>p.setor))];
 
+  const renderFichaLinha=(p,i,border=true)=>{
+    const dataRef=p.dataRef?p.dataRef.split('-').reverse().join('/'):'—';
+    const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'';
+    const podePagar=can('marcarPago')&&!p.pago;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;${i>0&&border?'border-top:1px solid #f1f5f9':''}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${p.pago?'#10b981':'#f59e0b'};flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700">${p.pessoa}</div>
+          <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:'Ref: '+dataRef}${dataPag?' · Pago em '+dataPag:''}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
+        ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`:''}
+      </div>
+    </div>`;
+  };
+
   setoresPresentes.forEach(setor=>{
     const itens=filtrados.filter(p=>p.setor===setor);
     const totalSetor=itens.reduce((s,p)=>s+p.valor,0);
     const pendentesSetor=itens.filter(p=>!p.pago).length;
     const cfg=setoresConfig[setor]||{icon:'💼',cor:'#475569'};
 
+    // Enrolamento Terc. → dividir por apontador (Inácio / Mirandinha)
+    if(setor==='Enrolamento Terc.'){
+      const getAp=p=>{
+        const enrObj=getEnr(p.fichaObj?.enroladorId);
+        return enrObj?.apontadorPerfil||'apontador1';
+      };
+      const itensInacio=itens.filter(p=>getAp(p)==='apontador1');
+      const itensMirandinha=itens.filter(p=>getAp(p)==='apontador2');
+      const totalInacio=itensInacio.reduce((s,p)=>s+p.valor,0);
+      const totalMirandinha=itensMirandinha.reduce((s,p)=>s+p.valor,0);
+      const pendInacio=itensInacio.filter(p=>!p.pago).length;
+      const pendMirandinha=itensMirandinha.filter(p=>!p.pago).length;
+
+      html+=`<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
+        <div style="background:#1e40af;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🧵</span>
+            <span style="font-size:14px;font-weight:700;color:#fff">Enrolamento Terc.</span>
+            ${pendentesSetor>0?`<span style="font-size:10px;background:rgba(255,255,255,.25);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700">${pendentesSetor} pendente${pendentesSetor>1?'s':''}</span>`:''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;color:rgba(255,255,255,.7)">total</div>
+            <div style="font-size:18px;font-weight:900;color:#fff">${fmtMoeda(totalSetor)}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <!-- Inácio -->
+          <div style="border-right:1px solid #f1f5f9">
+            <div style="padding:8px 12px 4px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#f8fafc">
+              <span style="font-size:12px;font-weight:700;color:#0f766e">Inácio</span>
+              <div style="text-align:right">
+                ${pendInacio>0?`<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:99px;font-weight:700">${pendInacio} pend.</span>`:''}
+                <div style="font-size:13px;font-weight:800;color:#0f766e">${fmtMoeda(totalInacio)}</div>
+              </div>
+            </div>
+            <div style="padding:4px 12px">
+              ${itensInacio.length?itensInacio.map((p,i)=>renderFichaLinha(p,i)).join(''):'<div style="padding:12px 4px;font-size:12px;color:#94a3b8;text-align:center">Nenhum</div>'}
+            </div>
+          </div>
+          <!-- Mirandinha -->
+          <div>
+            <div style="padding:8px 12px 4px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#f8fafc">
+              <span style="font-size:12px;font-weight:700;color:#b45309">Mirandinha</span>
+              <div style="text-align:right">
+                ${pendMirandinha>0?`<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:99px;font-weight:700">${pendMirandinha} pend.</span>`:''}
+                <div style="font-size:13px;font-weight:800;color:#b45309">${fmtMoeda(totalMirandinha)}</div>
+              </div>
+            </div>
+            <div style="padding:4px 12px">
+              ${itensMirandinha.length?itensMirandinha.map((p,i)=>renderFichaLinha(p,i)).join(''):'<div style="padding:12px 4px;font-size:12px;color:#94a3b8;text-align:center">Nenhum</div>'}
+            </div>
+          </div>
+        </div>
+      </div>`;
+      return;
+    }
+
+    // Demais setores — layout normal
     html+=`<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
-      <!-- Header do setor -->
       <div style="background:${cfg.cor};padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:18px">${cfg.icon}</span>
@@ -6665,26 +6741,8 @@ function renderFinPagamentos(){
           <div style="font-size:18px;font-weight:900;color:#fff">${fmtMoeda(totalSetor)}</div>
         </div>
       </div>
-      <!-- Fichas do setor -->
       <div style="padding:8px 12px">
-        ${itens.map((p,i)=>{
-          const dataRef=p.dataRef?p.dataRef.split('-').reverse().join('/'):'—';
-          const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'';
-          const podePagar=can('marcarPago')&&!p.pago;
-          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;${i>0?'border-top:1px solid #f1f5f9':''}">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:8px;height:8px;border-radius:50%;background:${p.pago?'#10b981':'#f59e0b'};flex-shrink:0"></div>
-              <div>
-                <div style="font-size:13px;font-weight:700">${p.pessoa}</div>
-                <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:'Ref: '+dataRef}${dataPag?' · Pago em '+dataPag:''}</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
-              ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`:''}
-            </div>
-          </div>`;
-        }).join('')}
+        ${itens.map((p,i)=>renderFichaLinha(p,i)).join('')}
       </div>
     </div>`;
   });
