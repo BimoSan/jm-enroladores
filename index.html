@@ -5080,7 +5080,11 @@ const PECAS_GRAD=[
 ];
 
 function getValorGrad(id){
-  return parseFloat(configGrad.valores?.[id]??PECAS_GRAD.find(p=>p.id===id)?.vlrDef??0);
+  if(configGrad.valores?.[id]!==undefined) return parseFloat(configGrad.valores[id]);
+  const padrao=PECAS_GRAD.find(p=>p.id===id);
+  if(padrao) return padrao.vlrDef;
+  const custom=(configGrad.pecasCustom||[]).find(p=>p.id===id);
+  return custom?.vlrDef||0;
 }
 function getQuinzenaGrad(dataStr){
   const d=dataStr||today();
@@ -5099,15 +5103,20 @@ function quinzenaLabelGrad(q){
 function fichaGradAtiva(gradId,q){
   return fichasGrad.find(f=>f.gradId===gradId&&f.quinzena===q&&f.status==='aberta');
 }
+function getPecasGradAtivas(){
+  const excluidas=configGrad.pecasExcluidas||[];
+  const custom=configGrad.pecasCustom||[];
+  return [...PECAS_GRAD.filter(p=>!excluidas.includes(p.id)),...custom];
+}
 function calcGanhoGrad(fichaOuAponts){
   const aponts=Array.isArray(fichaOuAponts)?fichaOuAponts:(fichaOuAponts?.apontamentos||[]);
   return aponts.reduce((s,a)=>{
-    PECAS_GRAD.forEach(p=>{ s+=(parseInt((a.pecas||{})[p.id])||0)*getValorGrad(p.id); });
+    getPecasGradAtivas().forEach(p=>{ s+=(parseInt((a.pecas||{})[p.id])||0)*getValorGrad(p.id); });
     return s;
   },0);
 }
 function totalPecasGrad(aponts){
-  return aponts.reduce((s,a)=>s+PECAS_GRAD.reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+  return aponts.reduce((s,a)=>s+getPecasGradAtivas().reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0);
 }
 
 function renderTabGrades(tab){
@@ -5134,7 +5143,7 @@ function renderGradPainel(){
   const porGradHoje={}, porGradQ={};
   fichasGrad.filter(f=>f.quinzena===q).forEach(f=>{
     (f.apontamentos||[]).forEach(a=>{
-      const t=PECAS_GRAD.reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+      const t=getPecasGradAtivas().reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
       if(a.data===hoje){ totalHoje+=t; porGradHoje[f.gradId]=(porGradHoje[f.gradId]||0)+t; }
       totalQ+=t; porGradQ[f.gradId]=(porGradQ[f.gradId]||0)+t;
       ganhoQ+=calcGanhoGrad([a]);
@@ -5214,12 +5223,12 @@ function renderGradApontar(){
 
   // Group pieces for easier mobile display
   const grupos=[
-    {label:'Camas', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('cama'))},
-    {label:'Encostos', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('enc'))},
-    {label:'Cabeceiras', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('cab'))},
-    {label:'Poltronas', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('poltrona'))},
-    {label:'Sofás', pecas:PECAS_GRAD.filter(p=>p.id.startsWith('sofa'))},
-    {label:'Outros', pecas:PECAS_GRAD.filter(p=>['puf','papelao','abrir_jogo_sofa'].includes(p.id))},
+    {label:'Camas', pecas:getPecasGradAtivas().filter(p=>p.id.startsWith('cama'))},
+    {label:'Encostos', pecas:getPecasGradAtivas().filter(p=>p.id.startsWith('enc'))},
+    {label:'Cabeceiras', pecas:getPecasGradAtivas().filter(p=>p.id.startsWith('cab'))},
+    {label:'Poltronas', pecas:getPecasGradAtivas().filter(p=>p.id.startsWith('poltrona'))},
+    {label:'Sofás', pecas:getPecasGradAtivas().filter(p=>p.id.startsWith('sofa'))},
+    {label:'Outros', pecas:getPecasGradAtivas().filter(p=>!p.id.startsWith('cama')&&!p.id.startsWith('enc')&&!p.id.startsWith('cab')&&!p.id.startsWith('poltrona')&&!p.id.startsWith('sofa'))},
   ];
 
   html+=`<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;text-align:center;padding:16px">
@@ -5260,7 +5269,7 @@ function renderGradApontar(){
   if(apontHoje.length){
     html+=`<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos de hoje</div>`;
     apontHoje.forEach((a,i)=>{
-      const pecas=PECAS_GRAD.filter(p=>parseInt((a.pecas||{})[p.id])>0);
+      const pecas=getPecasGradAtivas().filter(p=>parseInt((a.pecas||{})[p.id])>0);
       const tot=totalPecasGrad([a]);
       const detPecas=pecas.map(p=>(parseInt((a.pecas||{})[p.id])||0)+'× '+p.label.split('—')[0].trim()).join(' · ');
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;${i>0?'border-top:1px solid #f1f5f9':''}">
@@ -5307,7 +5316,7 @@ function renderGradFichas(){
       (f.apontamentos||[]).forEach(a=>{
         if(!a.data) return;
         if(!diasMap[a.data]) diasMap[a.data]={};
-        PECAS_GRAD.forEach(p=>{ diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+(parseInt((a.pecas||{})[p.id])||0); });
+        getPecasGradAtivas().forEach(p=>{ diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+(parseInt((a.pecas||{})[p.id])||0); });
       });
       const dias=Object.keys(diasMap).sort().reverse();
 
@@ -5322,7 +5331,7 @@ function renderGradFichas(){
           ${dias.map((dia,i)=>{
             const tots=diasMap[dia];
             const tDia=Object.values(tots).reduce((s,v)=>s+v,0);
-            const gDia=PECAS_GRAD.reduce((s,p)=>s+(tots[p.id]||0)*getValorGrad(p.id),0);
+            const gDia=getPecasGradAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorGrad(p.id),0);
             const [y,m,d]=dia.split('-');
             const rowBg=i%2?'background:#f8fafc':'';
             return '<tr style="'+rowBg+'">'
@@ -5392,20 +5401,52 @@ function renderGradGradistas(){
 
 // ── Configurações ────────────────────────────────────────────────
 function renderGradConfig(){
-  let html='<div class="card" style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:14px">💰 Valores por peça</div>';
+  // Peças customizadas salvas no Firebase (além das padrão)
+  const pecasCustom=configGrad.pecasCustom||[];
+  const pecasExcluidas=configGrad.pecasExcluidas||[];
+  const todasPecas=[
+    ...PECAS_GRAD.filter(p=>!pecasExcluidas.includes(p.id)),
+    ...pecasCustom,
+  ];
+
+  let html='<div class="card" style="margin-bottom:14px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569">💰 Valores por peça</div>'
+    +'<button onclick="window._gradNovaPeca()" class="btn btn-sm btn-primary">+ Nova peça</button>'
+    +'</div>';
+
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  PECAS_GRAD.forEach(p=>{
+  todasPecas.forEach(p=>{
     const v=getValorGrad(p.id);
-    html+=`<div style="background:#f8fafc;border-radius:10px;padding:10px">
-      <div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:6px">${p.label}</div>
-      <div style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:12px;color:#475569">R$</span>
-        <input type="number" id="gv-${p.id}" value="${v.toFixed(2)}" step="0.01" min="0"
-          style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px;font-size:13px;font-weight:700;width:100%">
-      </div>
-    </div>`;
+    const isCustom=pecasCustom.some(c=>c.id===p.id);
+    html+='<div style="background:#f8fafc;border-radius:10px;padding:10px;position:relative">'
+      +(isCustom?'<button onclick="window._gradExcluirPeca(\''+p.id+'\')" style="position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:#dc2626" title="Excluir peça">✕</button>':'')
+      +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:6px;padding-right:'+(isCustom?'16px':'0')+'px">'+p.label+'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px">'
+      +'<span style="font-size:12px;color:#475569">R$</span>'
+      +'<input type="number" id="gv-'+p.id+'" value="'+v.toFixed(2)+'" step="0.01" min="0" style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px;font-size:13px;font-weight:700;width:100%">'
+      +'</div>'
+      +(isCustom?'':'<button onclick="window._gradOcultarPecaPadrao(\''+p.id+'\')" style="margin-top:6px;width:100%;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:3px;font-size:10px;color:#94a3b8;cursor:pointer">Remover</button>')
+      +'</div>';
   });
-  html+=`</div><button onclick="window._gradSalvarConfig()" class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px;font-size:14px">Salvar valores</button></div>`;
+  html+='</div>'
+    +'<button onclick="window._gradSalvarConfig()" class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px;font-size:14px">Salvar valores</button>'
+    +'</div>';
+
+  // Peças padrão ocultas (pode restaurar)
+  if(pecasExcluidas.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:10px">Peças removidas</div>';
+    pecasExcluidas.forEach(id=>{
+      const p=PECAS_GRAD.find(x=>x.id===id);
+      if(!p) return;
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+        +'<span style="font-size:12px;color:#94a3b8">'+p.label+'</span>'
+        +'<button onclick="window._gradRestaurarPeca(\''+id+'\')" class="btn btn-sm" style="font-size:11px">Restaurar</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+
   return html;
 }
 
@@ -5511,12 +5552,71 @@ window._gradSalvarGradista=async function(id){
   showToast('Gradista salvo!');
 };
 
+window._gradNovaPeca=function(){
+  showModal('Nova peça',
+    '<div class="form-group"><label>Nome da peça</label>'
+    +'<input id="gp-label" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%" placeholder="Ex: Grade Sofá 4 Lugares"></div>'
+    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<input id="gp-valor" type="number" step="0.01" min="0" value="0.00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._gradSalvarNovaPeca()">Adicionar</button>');
+};
+window._gradSalvarNovaPeca=async function(){
+  const label=document.getElementById('gp-label')?.value.trim();
+  const valor=parseFloat(document.getElementById('gp-valor')?.value)||0;
+  if(!label){showToast('Digite o nome da peça.');return;}
+  closeModal();
+  const id='custom_'+Date.now();
+  const pecasCustom=[...(configGrad.pecasCustom||[]),{id,label,vlrDef:valor}];
+  const valores={...(configGrad.valores||{}),[id]:valor};
+  await setDoc(doc(db,'config_grad','geral'),{...configGrad,pecasCustom,valores});
+  showToast('Peça adicionada!');
+};
+window._gradExcluirPeca=async function(id){
+  window._pendingGradExcluirPeca=id;
+  showModal('Excluir peça',
+    '<div style="font-size:13px;color:#444">Deseja excluir esta peça? Os apontamentos existentes não serão afetados.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._gradConfirmarExcluirPeca()">Excluir</button>');
+};
+window._gradConfirmarExcluirPeca=async function(){
+  const id=window._pendingGradExcluirPeca;
+  if(!id) return;
+  closeModal();
+  const pecasCustom=(configGrad.pecasCustom||[]).filter(p=>p.id!==id);
+  await setDoc(doc(db,'config_grad','geral'),{...configGrad,pecasCustom});
+  showToast('Peça excluída!');
+};
+window._gradOcultarPecaPadrao=async function(id){
+  window._pendingGradOcultar=id;
+  showModal('Remover peça',
+    '<div style="font-size:13px;color:#444">Deseja remover esta peça da lista? Você pode restaurá-la depois nas configurações.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._gradConfirmarOcultar()">Remover</button>');
+};
+window._gradConfirmarOcultar=async function(){
+  const id=window._pendingGradOcultar;
+  if(!id) return;
+  closeModal();
+  const pecasExcluidas=[...(configGrad.pecasExcluidas||[]),id];
+  await setDoc(doc(db,'config_grad','geral'),{...configGrad,pecasExcluidas});
+  showToast('Peça removida!');
+};
+window._gradRestaurarPeca=async function(id){
+  const pecasExcluidas=(configGrad.pecasExcluidas||[]).filter(x=>x!==id);
+  await setDoc(doc(db,'config_grad','geral'),{...configGrad,pecasExcluidas});
+  showToast('Peça restaurada!');
+};
+
 window._gradSalvarConfig=async function(){
+  const pecasCustom=configGrad.pecasCustom||[];
+  const pecasExcluidas=configGrad.pecasExcluidas||[];
+  const todasPecas=[...PECAS_GRAD.filter(p=>!pecasExcluidas.includes(p.id)),...pecasCustom];
   const valores={};
-  PECAS_GRAD.forEach(p=>{
-    valores[p.id]=parseFloat(document.getElementById('gv-'+p.id)?.value)||p.vlrDef;
+  todasPecas.forEach(p=>{
+    valores[p.id]=parseFloat(document.getElementById('gv-'+p.id)?.value)||p.vlrDef||0;
   });
-  await setDoc(doc(db,'config_grad','geral'),{valores});
+  await setDoc(doc(db,'config_grad','geral'),{...configGrad,valores});
   showToast('Valores salvos!');
 };
 
