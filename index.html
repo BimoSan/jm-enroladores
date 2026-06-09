@@ -3443,90 +3443,141 @@ function renderPainelMetal(){
 
 // ── Apontamento metalúrgica ───────────────────────────────────────
 function renderApontar(){
-  const isAdmin=currentUserData?.perfil==='admin'||currentUserData?.perfil==='encarregado_cad'||currentUserData?.perfil==='apontador_metal';
-  const opts=[...soldadores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
-    .map(s=>`<option value="${s.id}">${s.nome}</option>`).join('');
+  if(!window._apSolSel) window._apSolSel='';
+  const solSel=window._apSolSel;
+  const sol=soldadores.find(s=>s.id===solSel);
+  const isFichado=sol?.contrato==='fichado';
 
-  const grid=PECAS_METAL_FULL.map(p=>`
-    <div class="num-group">
-      <label style="font-size:10px;${p.reforma?'color:#7c3aed':''}">${p.label}</label>
-      <input type="number" id="ap-${p.id}" min="0" step="1" placeholder="0"
-        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif"
-        onfocus="this.select()">
-    </div>`).join('');
+  // ── Step 1: Selecionar soldador ──────────────────────────────────
+  const solOrdenados=[...soldadores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  let html='<div class="card" style="margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">👷 Soldador</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  solOrdenados.forEach(s=>{
+    const sel=s.id===solSel;
+    const ci=soldadores.findIndex(x=>x.id===s.id);
+    const c=avatarColor(ci);
+    html+='<button onclick="window._apSelSol(\''+s.id+'\')" style="padding:12px 8px;border-radius:12px;border:2px solid '+(sel?c:'#e2e8f0')+';background:'+(sel?c+'22':'#fff')+';cursor:pointer;text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;color:'+c+';margin-bottom:2px">'+initials(s.nome)+'</div>'
+      +'<div style="font-size:12px;font-weight:700;color:'+(sel?c:'#374151')+'">'+s.nome+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+( s.contrato==='producao'?'Produção':'Fichado')+'</div>'
+      +'</button>';
+  });
+  html+='</div></div>';
 
-  // Histórico dos últimos apontamentos
-  const historico=[...apontamentosMetal]
-    .sort((a,b)=>b.criadoEm>a.criadoEm?1:-1)
-    .slice(0,50);
+  if(!solSel) return html+'<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Selecione um soldador para registrar.</div>'
+    +'<div class="section-label" style="margin-top:16px">Histórico de hoje</div>'+_renderHistoricoMetal();
 
-  const historicoRows=historico.map(a=>{
+  // ── Step 2: Data ─────────────────────────────────────────────────
+  html+='<div class="card" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;flex-shrink:0">📅 Data</div>'
+    +'<input type="date" id="ap-data" value="'+today()+'" style="flex:1;font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'</div>';
+
+  // ── Step 3: Peças (grupos) ───────────────────────────────────────
+  const pecasNormais=PECAS_METAL_FULL.filter(p=>!p.reforma);
+  const pecasReforma=PECAS_METAL_FULL.filter(p=>p.reforma);
+
+  const renderGrupoPecas=(pecas,cor)=>{
+    return pecas.map(p=>{
+      return '<div style="background:#f8fafc;border-radius:12px;padding:10px">'
+        +'<div style="font-size:10px;color:'+cor+';font-weight:700;margin-bottom:8px;line-height:1.2">'+p.label+'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px">'
+        +'<button onclick="window._apDec(\''+p.id+'\')" style="width:36px;height:36px;border-radius:50%;background:#e2e8f0;border:none;font-size:20px;font-weight:700;cursor:pointer;flex-shrink:0">−</button>'
+        +'<input type="number" id="ap-'+p.id+'" min="0" placeholder="0" onfocus="this.select()" style="flex:1;text-align:center;font-size:20px;font-weight:800;border:2px solid #e2e8f0;border-radius:8px;padding:6px 4px;min-width:0">'
+        +'<button onclick="window._apInc(\''+p.id+'\')" style="width:36px;height:36px;border-radius:50%;background:'+cor+';border:none;font-size:20px;font-weight:700;cursor:pointer;color:#fff;flex-shrink:0">+</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  };
+
+  html+='<div class="card" style="margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🔧 Peças normais</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+renderGrupoPecas(pecasNormais,'#1e40af')+'</div>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:10px">🔄 Reformas</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+renderGrupoPecas(pecasReforma,'#7c3aed')+'</div>'
+    +'</div>';
+
+  // ── Step 4: Opções (fichado) ─────────────────────────────────────
+  if(isFichado){
+    html+='<div class="card" style="margin-bottom:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚙️ Opções (fichado)</div>'
+      +'<div style="margin-bottom:12px">'
+      +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Peça base para cálculo</div>'
+      +'<select id="ap-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+      +'<option value="">— Automático —</option>'
+      +pecasNormais.map(p=>'<option value="'+p.id+'">'+p.label+'</option>').join('')
+      +'</select></div>'
+      +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Modo de cálculo</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button id="ap-modo-meta" onclick="window._setApontModo(\'meta\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid #059669;background:#f0fdf4;color:#059669;font-size:13px;font-weight:700;cursor:pointer">🎯 Meta</button>'
+      +'<button id="ap-modo-prod" onclick="window._setApontModo(\'prod\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer">⚡ Produção</button>'
+      +'</div></div>';
+  }
+
+  // ── Botão salvar ─────────────────────────────────────────────────
+  html+='<button onclick="window._registrarApontMetal()" style="width:100%;padding:18px;background:#1e40af;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:16px">✓ Registrar produção</button>';
+
+  // ── Histórico ────────────────────────────────────────────────────
+  html+='<div class="section-label">Histórico de hoje</div>'+_renderHistoricoMetal();
+
+  return html;
+}
+
+function _renderHistoricoMetal(){
+  const historico=[...apontamentosMetal].sort((a,b)=>b.criadoEm>a.criadoEm?1:-1).slice(0,30);
+  if(!historico.length) return '<div class="card"><div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Nenhum apontamento registrado ainda.</div></div>';
+  return historico.map(a=>{
     const sol=soldadores.find(s=>s.id===a.soldadorId);
     const totalPecas=Object.values(a.pecas||{}).reduce((s,v)=>s+(parseInt(v)||0),0);
-    const resumo=PECAS_METAL_FULL
-      .filter(p=>(a.pecas||{})[p.id]>0)
-      .map(p=>`<span style="font-size:10px;background:${p.reforma?'#ede9fe':'#f1f5f9'};color:${p.reforma?'#7c3aed':'#475569'};padding:2px 7px;border-radius:99px;display:inline-block;margin:1px">${p.label}: ${a.pecas[p.id]}</span>`)
+    const resumo=PECAS_METAL_FULL.filter(p=>(a.pecas||{})[p.id]>0)
+      .map(p=>'<span style="font-size:10px;background:'+(p.reforma?'#ede9fe':'#f1f5f9')+';color:'+(p.reforma?'#7c3aed':'#475569')+';padding:2px 7px;border-radius:99px;display:inline-block;margin:1px">'+p.label+': '+a.pecas[p.id]+'</span>')
       .join('');
     const ci=soldadores.findIndex(s=>s.id===a.soldadorId);
     const c=avatarColor(ci);
-    return `<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:38px;height:38px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${initials(sol?.nome||'?')}</div>
-          <div>
-            <div style="font-size:13px;font-weight:700">${sol?.nome||'Desconhecido'}</div>
-            <div style="font-size:11px;color:#64748b">${fmtDate(a.data)} · ${totalPecas} peças${a.pecaBase?(' · Base: <strong>'+( PECAS_METAL_FULL.find(p=>p.id===a.pecaBase)?.label||a.pecaBase)+'</strong>')  :''}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-sm btn-warn" onclick="window._editarApontMetal('${a.id}')">Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="window._excluirApontMetal('${a.id}')">Excluir</button>
-        </div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:2px">${resumo||'<span style="font-size:11px;color:#94a3b8">Nenhuma peça registrada</span>'}</div>
-    </div>`;
+    const baseLabel=a.pecaBase?(PECAS_METAL_FULL.find(p=>p.id===a.pecaBase)?.label||''):'';
+    return '<div class="card" style="margin-bottom:8px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<div style="width:38px;height:38px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">'+initials(sol?.nome||'?')+'</div>'
+      +'<div>'
+      +'<div style="font-size:13px;font-weight:700">'+(sol?.nome||'Desconhecido')+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+fmtDate(a.data)+' · '+totalPecas+' peças'+(baseLabel?' · Base: <strong>'+baseLabel+'</strong>':'')+'</div>'
+      +'</div></div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button class="btn btn-sm btn-warn" onclick="window._editarApontMetal(\''+a.id+'\')">Editar</button>'
+      +'<button class="btn btn-sm btn-danger" onclick="window._excluirApontMetal(\''+a.id+'\')">Excluir</button>'
+      +'</div></div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:2px">'+( resumo||'<span style="font-size:11px;color:#94a3b8">Nenhuma peça</span>')+'</div>'
+      +'</div>';
   }).join('');
-
-  return `<div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:600;margin-bottom:14px">Registrar produção</div>
-    <div class="form-row" style="margin-bottom:14px">
-      <div class="form-group"><label>Soldador</label><select id="ap-soldador" onchange="window._apontSoldadorChange()">${opts}</select></div>
-      <div class="form-group"><label>Data</label><input type="date" id="ap-data" value="${today()}"></div>
-    </div>
-    <div class="section-label" style="margin-bottom:10px">Peças produzidas <span style="color:#7c3aed;font-size:10px">· roxo = reforma</span></div>
-    <div class="num-inputs">${grid}</div>
-    <div id="ap-peca-base-container" style="margin-bottom:12px;display:none">
-      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Peça base para cálculo <span style="font-size:10px;color:#94a3b8;font-weight:400">(soldador fichado)</span></div>
-      <select id="ap-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">
-        <option value="">— Automático (mais próxima da meta) —</option>
-        ${PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>`<option value="${p.id}">${p.label}</option>`).join('')}
-      </select>
-    </div>
-    <div id="ap-modo-container" style="margin-bottom:12px;display:none">
-      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Modo de cálculo</div>
-      <div style="display:flex;gap:8px">
-        <button id="ap-modo-meta" onclick="window._setApontModo('meta')" style="flex:1;padding:8px;border-radius:8px;border:2px solid #059669;background:#f0fdf4;color:#059669;font-size:12px;font-weight:700;cursor:pointer">🎯 Meta (padrão)</button>
-        <button id="ap-modo-prod" onclick="window._setApontModo('prod')" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer">⚡ Produção</button>
-      </div>
-    </div>
-    <div style="margin-top:14px;display:flex;gap:8px">
-      <button class="btn btn-primary" onclick="window._registrarApontMetal()">Registrar produção</button>
-      <button class="btn btn-ghost" onclick="window._limparApontMetal()">Limpar</button>
-    </div>
-  </div>
-  <div class="section-label">Histórico de apontamentos</div>
-  ${historico.length ? historicoRows : '<div class="card"><div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Nenhum apontamento registrado ainda.</div></div>'}`;
 }
 
 
+window._apSelSol=function(id){
+  window._apSolSel=id;
+  window._apontModo='meta';
+  reloadTab();
+};
+window._apInc=function(id){
+  const el=document.getElementById('ap-'+id);
+  if(el) el.value=Math.max(0,(parseInt(el.value)||0)+1);
+};
+window._apDec=function(id){
+  const el=document.getElementById('ap-'+id);
+  if(el) el.value=Math.max(0,(parseInt(el.value)||0)-1);
+};
 window._registrarApontMetal=async()=>{
-  const soldadorId=document.getElementById('ap-soldador').value;
-  const data=document.getElementById('ap-data').value;
+  const soldadorId=window._apSolSel;
+  const data=document.getElementById('ap-data')?.value;
   if(!soldadorId||!data){showToast('Selecione o soldador e a data.');return;}
   const pecas={};
   let totalPecas=0;
   PECAS_METAL_FULL.forEach(p=>{
-    const v=parseInt(document.getElementById(`ap-${p.id}`)?.value)||0;
+    const v=parseInt(document.getElementById('ap-'+p.id)?.value)||0;
     if(v>0){pecas[p.id]=v;totalPecas+=v;}
   });
   if(!totalPecas){showToast('Informe pelo menos uma peça.');return;}
@@ -3535,7 +3586,9 @@ window._registrarApontMetal=async()=>{
   const pecaBase=sol?.contrato!=='producao'?(document.getElementById('ap-peca-base')?.value||''):'';
   await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,modoCalculo,pecaBase,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
-  window._limparApontMetal();
+  PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value='';});
+  const pbEl=document.getElementById('ap-peca-base');if(pbEl)pbEl.value='';
+  window._setApontModo('meta');
 };
 window._limparApontMetal=()=>{
   PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value='';});
