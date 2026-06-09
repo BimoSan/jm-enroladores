@@ -721,7 +721,7 @@ window._voltarFabrica=()=>{
 };
 window._voltarSetores=()=>{
   // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
-  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'){
+  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'){
     currentFabrica=null;
     currentSetor=null;
     sessionStorage.removeItem('jm_fabrica');
