@@ -785,7 +785,6 @@ function renderApp(){
     if(can('verRelatorio'))tabs.push('relatorio');
     if(can('verRanking'))tabs.push('ranking');
     if(can('verPainel')&&currentUserData?.perfil!=='enrolador')tabs.push('historico');
-    if(can('verValores'))tabs.push('valores');
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   }
@@ -900,7 +899,6 @@ function renderTab(tab){
   if(tab==='historico')return renderHistoricoSemanal();
   if(tab==='relatorio'){try{return renderRelatorio();}catch(e){console.error('renderRelatorio ERRO:',e.message,e.stack);return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';}}
   if(tab==='ranking')return renderRanking();
-  if(tab==='valores')return renderValores();
   if(tab==='enroladores')return renderEnroladores();
   if(tab==='usuarios')return renderUsuarios();
   return '';
@@ -1480,7 +1478,6 @@ function fichasInner(lista,isEntregador){
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
           ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
           ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
-          ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}
           ${isAdmin?`<button class="btn btn-sm btn-danger" onclick="window._excluirFicha('${f.id}')">Excluir ficha</button>`:''}
           ${(can('registrar')||can('editar'))&&f.status==='aberta'?`<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5" onclick="window._abrirRetiradaAdmin('${f.id}')">↩ Retirada</button>`:''}
           ${(()=>{
@@ -1955,7 +1952,7 @@ function renderRelatorio(){
           </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          ${f.pago?'<span class="pago-badge">✓ Pago</span>':`<span class="badge badge-open">Pendente</span>${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${f.id}')">Marcar como pago</button>`:''}`}
+          ${f.pago?'<span class="pago-badge">✓ Pago</span>':'<span class="badge badge-open">Pendente</span>'}
         </div>
       </div>
     </div>`;
@@ -2087,8 +2084,7 @@ function renderValores(){
         <div style="text-align:right">
           <div style="font-size:11px;color:#666;margin-bottom:2px">${f.pago?'':'a pagar'}</div>
           <div style="font-size:22px;font-weight:700;color:${f.pago?'#2e7d32':'#e65100'}">${fmtMoeda(total)}</div>
-          ${f.pago?'<span class="pago-badge">✓ Pago</span>'
-            :(can('marcarPago')?`<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="window._confirmarPago('${f.id}')">Marcar pago</button>`:'')}
+          ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse">
@@ -6301,8 +6297,7 @@ function renderFichasMetal(){
 
       const btnFechar=isAdmin&&status==='aberta'&&totalPecas>0
         ?`<button class="btn btn-sm btn-success" onclick="window._fecharFichaMetal('${sol.id}','${q}')">Fechar ficha</button>`:'';
-      const btnPagar=isAdmin&&status==='fechada'&&!pago&&['admin','financeiro'].includes(currentUserData?.perfil)
-        ?`<button class="btn btn-sm btn-primary" onclick="window._pagarFichaMetal('${ficha?.id}')">Marcar pago</button>`:'';
+      const btnPagar='';
 
       // Histórico por dia na quinzena
       const [qAno,qMes,qParte]=q.split('-');
@@ -6471,6 +6466,43 @@ function finPagamentosTodos(){
         dataPagamento:f.dataPagamento||null,dataRef:f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_int'});
     });
   }
+
+  // Bônus (Enrolamento Terc.)
+  const mesesComBonus=[...new Set([
+    ...Object.keys(bonusPagos),
+    ...enroladores.filter(e=>e.apontadorPerfil==='apontador1').flatMap(e=>{
+      // meses dos últimos 12 meses que tiveram bonus
+      const meses=[];
+      const hoje=today();
+      for(let i=0;i<12;i++){
+        const d=new Date(hoje.slice(0,4),parseInt(hoje.slice(5,7))-1-i,1);
+        meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+      }
+      return meses;
+    }),
+  ])];
+  mesesComBonus.forEach(anoMes=>{
+    const bonusDoMes=getBonusDoMes(anoMes);
+    bonusDoMes.forEach(b=>{
+      const chave=b.enroladorId+'-'+anoMes;
+      const pagObj=bonusPagos[chave];
+      const pago=!!pagObj;
+      lista.push({
+        id:'bonus-'+chave,
+        setor:'Bônus',
+        pessoa:b.enrNome,
+        valor:b.totalBonus,
+        pago,
+        dataPagamento:pagObj?.pagoEm||null,
+        dataRef:anoMes,
+        tipo:'bonus',
+        fichaObj:null,
+        setorKey:'bonus',
+        bonusEnroladorId:b.enroladorId,
+        bonusAnoMes:anoMes,
+      });
+    });
+  });
 
   return lista.sort((a,b)=>{
     if(!a.pago&&b.pago) return -1;
@@ -6659,6 +6691,7 @@ function renderFinPagamentos(){
     'Enrolamento Terc.': {icon:'🧵', cor:'#1e40af'},
     'Metalúrgica':       {icon:'⚙️',  cor:'#374151'},
     'Enrol. Interno':    {icon:'🏭', cor:'#065f46'},
+    'Bônus':             {icon:'⭐', cor:'#92400e'},
   };
   const setoresPresentes=[...new Set(filtrados.map(p=>p.setor))];
 
@@ -6671,12 +6704,12 @@ function renderFinPagamentos(){
         <div style="width:8px;height:8px;border-radius:50%;background:${p.pago?'#10b981':'#f59e0b'};flex-shrink:0"></div>
         <div>
           <div style="font-size:13px;font-weight:700">${p.pessoa}</div>
-          <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:'Ref: '+dataRef}${dataPag?' · Pago em '+dataPag:''}</div>
+          <div style="font-size:11px;color:#64748b">${p.tipo==='quinzena'?'Quinzena: '+p.dataRef:p.tipo==='bonus'?'Bônus meta: '+p.dataRef:'Ref: '+dataRef}${dataPag?' · Pago em '+dataPag:''}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
-        ${podePagar?`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`:''}
+        ${podePagar?(p.tipo==='bonus'?`<button class="btn btn-sm btn-primary" onclick="window._pagarBonus('${p.bonusEnroladorId}','${p.bonusAnoMes}')">Marcar pago</button>`:`<button class="btn btn-sm btn-primary" onclick="window._confirmarPago('${p.id}')">Marcar pago</button>`):''}
       </div>
     </div>`;
   };
