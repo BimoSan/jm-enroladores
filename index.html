@@ -4911,6 +4911,16 @@ function renderPainelInt(){
     const ganhoFicha=ficha?somaProducaoFicha(ficha):0;
     const grupo=enr.grupo?(' · Grupo '+enr.grupo):'';
 
+    // Peças do mês por tipo
+    const mesAtual=hoje.slice(0,7);
+    const totMes={};
+    fichasInt.filter(f=>f.enroladorId===enr.id).forEach(f=>{
+      (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).forEach(a=>{
+        getTiposInt().forEach(t=>{ totMes[t.id]=(totMes[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
+      });
+    });
+    const totalMes=Object.values(totMes).reduce((s,v)=>s+v,0);
+
     html+='<div class="card" style="padding:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<div style="display:flex;align-items:center;gap:10px">'
@@ -4924,21 +4934,38 @@ function renderPainelInt(){
       +(ganhoFicha?'<div style="font-size:11px;color:#10b981">'+fmtMoeda(ganhoFicha)+' na ficha</div>':'')
       +'</div></div>';
 
-    // Barra por tipo de peça hoje
-    if(pecasHoje>0){
+    // Hoje por tipo + mês por tipo lado a lado
+    const tiposComDados=getTiposInt().filter(t=>(totMes[t.id]||0)>0||(pecasHoje>0));
+    if(tiposComDados.length>0){
+      // Hoje
       const totHoje={};
       fichasInt.filter(f=>f.enroladorId===enr.id).forEach(f=>{
         (f.apontamentos||[]).filter(a=>a.data===hoje).forEach(a=>{
           getTiposInt().forEach(t=>{ totHoje[t.id]=(totHoje[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
         });
       });
-      html+='<div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">';
-      getTiposInt().forEach(t=>{
-        if(totHoje[t.id]>0){
-          html+='<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">'+totHoje[t.id]+'</span> '+t.label+'</div>';
-        }
-      });
-      html+='</div>';
+
+      const tiposAtivos=getTiposInt().filter(t=>(totHoje[t.id]||0)>0||(totMes[t.id]||0)>0);
+      if(tiposAtivos.length>0){
+        html+='<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:10px">'
+          +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">';
+        tiposAtivos.forEach(t=>{
+          const qHoje=totHoje[t.id]||0;
+          const qMes=totMes[t.id]||0;
+          html+='<div style="background:#f8fafc;border-radius:10px;padding:8px 10px">'
+            +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">'+t.label+'</div>'
+            +'<div style="display:flex;justify-content:space-between;align-items:flex-end">'
+            +'<div>'
+            +(qHoje>0?'<div style="font-size:11px;color:#475569">Hoje: <strong style="color:#1e40af">'+qHoje+'</strong></div>':'')
+            +(qMes>0?'<div style="font-size:11px;color:#475569">Mês: <strong style="color:#065f46">'+qMes+'</strong></div>':'')
+            +'</div>'
+            +'</div>'
+            +'</div>';
+        });
+        html+='</div>'
+          +(totalMes>0?'<div style="margin-top:6px;font-size:11px;color:#64748b;text-align:right">Total no mês: <strong style="color:#065f46">'+totalMes+' peças</strong></div>':'')
+          +'</div>';
+      }
     }
     html+='</div>';
   });
