@@ -5097,13 +5097,23 @@ window._salvarEdicaoApontInt=async function(fichaId, apontId){
 };
 
 window._excluirApontInt=function(fichaId, apontId){
-  showConfirm('Excluir apontamento','Tem certeza que deseja excluir este apontamento?','Excluir','btn-danger',async()=>{
-    const ficha=fichasInt.find(f=>f.id===fichaId);
-    if(!ficha) return;
-    const apontamentos=ficha.apontamentos.filter(a=>a.id!==apontId);
-    await updateDoc(doc(db,'fichas_int',fichaId),{apontamentos});
-    showToast('Apontamento excluído!');
-  });
+  window._pendingExcluirApont={fichaId,apontId};
+  showModal('Excluir apontamento',
+    '<div style="font-size:13px;color:#444;line-height:1.6">Tem certeza que deseja excluir este apontamento?</div>',
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirApontInt()">Excluir</button>`);
+};
+
+window._confirmarExcluirApontInt=async function(){
+  const {fichaId,apontId}=window._pendingExcluirApont||{};
+  if(!fichaId||!apontId) return;
+  closeModal();
+  const ficha=fichasInt.find(f=>f.id===fichaId);
+  if(!ficha) return;
+  const apontamentos=ficha.apontamentos.filter(a=>a.id!==apontId);
+  await updateDoc(doc(db,'fichas_int',fichaId),{apontamentos});
+  window._pendingExcluirApont=null;
+  showToast('Apontamento excluído!');
 };
 
 window._registrarApontInt=async function(){
