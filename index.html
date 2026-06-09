@@ -6850,7 +6850,7 @@ function renderFinRelPagamentos(){
             <th style="padding:7px 10px;text-align:left;color:#64748b;font-weight:700">Pago em</th>
           </tr></thead>
           <tbody>
-            ${itens.sort((a,b)=>a.setor>b.setor?1:-1).map((p,i)=>{
+            ${itens.sort((a,b)=>(b.dataPagamento||'')>(a.dataPagamento||'')?1:-1).map((p,i)=>{
               const dataRef=p.tipo==='quinzena'?p.dataRef:(p.dataRef?p.dataRef.split('-').reverse().join('/'):'—');
               const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
               return `<tr style="${i%2?'background:#f8fafc':''}">
