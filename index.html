@@ -5252,7 +5252,7 @@ function renderGradApontar(){
         <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:6px">${shortLabel}</div>
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="window._gradDecPeca('${p.id}')" style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;border:none;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
-          <input type="number" id="grad-peca-${p.id}" min="0" value="0" style="flex:1;text-align:center;font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:8px;padding:4px;width:100%">
+          <input type="number" id="grad-peca-${p.id}" min="0" placeholder="0" style="flex:1;text-align:center;font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:8px;padding:4px;width:100%">
           <button onclick="window._gradIncPeca('${p.id}')" style="width:32px;height:32px;border-radius:50%;background:#1d4ed8;border:none;font-size:18px;font-weight:700;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center">+</button>
         </div>
         <div style="font-size:10px;color:#94a3b8;margin-top:4px;text-align:center">${fmtMoeda(getValorGrad(p.id))} cada</div>
