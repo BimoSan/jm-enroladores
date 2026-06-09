@@ -7906,6 +7906,7 @@ function renderAlmItens(){
 
     const editBtn=podeEditar
       ?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(this.dataset.id)" data-id="'+item.id+'">Editar</button>'
+       +'<button class="btn btn-sm" style="margin-left:4px;flex-shrink:0;background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px" onclick="window._corrigirSaldoAlmItem(&quot;'+item.id+'&quot;)" title="Corrigir saldo real">⚖️ Corrigir saldo</button>'
       :'';
 
     html+='<div class="card" style="margin-bottom:8px'+(alerta?';border-left:3px solid #dc2626':'')+'">'
@@ -7970,6 +7971,7 @@ window._filtrarAlmItens=function(q){
       :'';
     const editBtn=podeEditar
       ?'<button class="btn btn-sm btn-warn" style="margin-left:8px;flex-shrink:0" onclick="window._editarAlmItem(this.dataset.id)" data-id="'+item.id+'">Editar</button>'
+       +'<button class="btn btn-sm" style="margin-left:4px;flex-shrink:0;background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px" onclick="window._corrigirSaldoAlmItem(&quot;'+item.id+'&quot;)" title="Corrigir saldo real">⚖️ Corrigir saldo</button>'
       :'';
     html+='<div class="card" style="margin-bottom:8px'+(alerta?';border-left:3px solid #dc2626':'')+'">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
@@ -8068,6 +8070,21 @@ window._salvarAlmItem=async id=>{
   const custo=parseFloat(document.getElementById('ei-custo')?.value)||0;
   await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,custoUnitario:custo});
   closeModal();showToast('Item atualizado!');
+};
+
+// Corrige o estoqueAtual para que saldo calculado bata com o real informado
+window._corrigirSaldoAlmItem=async(id)=>{
+  const saldoRealStr=prompt('Digite o saldo REAL atual em estoque para este item:');
+  if(saldoRealStr===null) return;
+  const saldoReal=parseInt(saldoRealStr);
+  if(isNaN(saldoReal)||saldoReal<0){showToast('Valor inválido.');return;}
+  // saldoReal = estoqueAtual(base) + entradas - saidas
+  // Precisamos: estoqueAtual(base) = saldoReal - (entradas - saidas dos movimentos)
+  const movTotal=almMovimentos.filter(m=>m.itemId===id)
+    .reduce((s,m)=>m.tipo==='entrada'?s+(parseInt(m.quantidade)||0):s-(parseInt(m.quantidade)||0),0);
+  const novaBase=saldoReal-movTotal;
+  await updateDoc(doc(db,'alm_itens',id),{estoqueAtual:novaBase});
+  showToast('Saldo corrigido! Base ajustada para '+novaBase+'. Saldo calculado agora: '+saldoReal);
 };
 
 window._excluirAlmItem=async id=>{
