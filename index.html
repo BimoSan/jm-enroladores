@@ -3203,6 +3203,8 @@ function calcGanhoSoldador(soldadorId, periodo){
 
       // Peças normais do dia com produção
       const ehSabadoDia=new Date(dia+'T12:00:00').getDay()===6;
+      // Peça base definida pelo apontador (salva no apontamento)
+      const pecaBaseDefinida=apDia.map(a=>a.pecaBase).find(pb=>pb&&pb!=='');
       const pecasDia=PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>({
         id:p.id,
         qtd:apDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0),
@@ -3231,11 +3233,14 @@ function calcGanhoSoldador(soldadorId, periodo){
           pecasDia.forEach(p=>{ totalGanho+=p.qtd*p.val; });
           return;
         }
-        // Ordenar por % faltando (menor = mais próxima da meta)
-        const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
-        const principal=ordenadas[0];
+        // Peça principal: usa pecaBase definida pelo apontador, ou automaticamente a mais próxima da meta
+        let principal=pecaBaseDefinida?comMeta.find(p=>p.id===pecaBaseDefinida):null;
+        if(!principal){
+          const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
+          principal=ordenadas[0];
+        }
         let valorFaltando=(principal.meta-principal.qtd)*principal.val;
-        const secundarias=ordenadas.slice(1);
+        const secundarias=comMeta.filter(p=>p.id!==principal.id);
         const pagavel={};
         pecasDia.forEach(p=>{ pagavel[p.id]=0; });
         for(const sec of secundarias){
@@ -3470,7 +3475,7 @@ function renderApontar(){
           <div style="width:38px;height:38px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${initials(sol?.nome||'?')}</div>
           <div>
             <div style="font-size:13px;font-weight:700">${sol?.nome||'Desconhecido'}</div>
-            <div style="font-size:11px;color:#64748b">${fmtDate(a.data)} · ${totalPecas} peças</div>
+            <div style="font-size:11px;color:#64748b">${fmtDate(a.data)} · ${totalPecas} peças${a.pecaBase?(' · Base: <strong>'+( PECAS_METAL_FULL.find(p=>p.id===a.pecaBase)?.label||a.pecaBase)+'</strong>')  :''}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px">
@@ -3490,6 +3495,13 @@ function renderApontar(){
     </div>
     <div class="section-label" style="margin-bottom:10px">Peças produzidas <span style="color:#7c3aed;font-size:10px">· roxo = reforma</span></div>
     <div class="num-inputs">${grid}</div>
+    <div id="ap-peca-base-container" style="margin-bottom:12px;display:none">
+      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Peça base para cálculo <span style="font-size:10px;color:#94a3b8;font-weight:400">(soldador fichado)</span></div>
+      <select id="ap-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">
+        <option value="">— Automático (mais próxima da meta) —</option>
+        ${PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>`<option value="${p.id}">${p.label}</option>`).join('')}
+      </select>
+    </div>
     <div id="ap-modo-container" style="margin-bottom:12px;display:none">
       <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Modo de cálculo</div>
       <div style="display:flex;gap:8px">
@@ -3519,7 +3531,9 @@ window._registrarApontMetal=async()=>{
   });
   if(!totalPecas){showToast('Informe pelo menos uma peça.');return;}
   const modoCalculo=window._apontModo||'meta';
-  await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,modoCalculo,criadoEm:new Date().toISOString()});
+  const sol=soldadores.find(s=>s.id===soldadorId);
+  const pecaBase=sol?.contrato!=='producao'?(document.getElementById('ap-peca-base')?.value||''):'';
+  await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,modoCalculo,pecaBase,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
   window._limparApontMetal();
 };
@@ -3562,6 +3576,8 @@ window._apontSoldadorChange=function(){
   const s=soldadores.find(x=>x.id===id);
   const container=document.getElementById('ap-modo-container');
   if(container) container.style.display=(s&&s.contrato==='fichado')?'block':'none';
+  const pbContainer=document.getElementById('ap-peca-base-container');
+  if(pbContainer) pbContainer.style.display=(s&&s.contrato==='fichado')?'block':'none';
   window._setApontModo('meta');
 };
 
