@@ -3622,7 +3622,13 @@ window._editarApontMetal=id=>{
     +'<div style="display:flex;gap:8px">'
     +'<button id="ea-modo-meta" onclick="window._setEaModo(\'meta\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(a.modoCalculo==='prod'?'#e2e8f0':'#059669')+';background:'+(a.modoCalculo==='prod'?'#fff':'#f0fdf4')+';color:'+(a.modoCalculo==='prod'?'#64748b':'#059669')+';font-size:12px;font-weight:700;cursor:pointer">🎯 Meta (padrão)</button>'
     +'<button id="ea-modo-prod" onclick="window._setEaModo(\'prod\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(a.modoCalculo==='prod'?'#2563eb':'#e2e8f0')+';background:'+(a.modoCalculo==='prod'?'#eff6ff':'#fff')+';color:'+(a.modoCalculo==='prod'?'#2563eb':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">⚡ Produção</button>'
-    +'</div></div>':'')
+    +'</div></div>'
+    +'<div style="margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Peça base para cálculo <span style="font-size:10px;color:#94a3b8;font-weight:400">(soldador fichado)</span></div>'
+    +'<select id="ea-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<option value="">— Automático (mais próxima da meta) —</option>'
+    +PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>'<option value="'+p.id+'"'+(a.pecaBase===p.id?' selected':'')+'>'+p.label+'</option>').join('')
+    +'</select></div>':'')
     +'<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px">PEÇAS PRODUZIDAS</div>'
     +'<div class="num-inputs">'+grid+'</div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
@@ -3639,7 +3645,8 @@ window._salvarEdicaoApoint=async id=>{
     if(v>0) pecas[p.id]=v;
   });
   const modoCalculo=(document.getElementById('ea-modo-prod')?.style.borderColor==='rgb(37, 99, 235)')?'prod':'meta';
-  await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas,modoCalculo});
+  const pecaBase=document.getElementById('ea-peca-base')?.value||'';
+  await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas,modoCalculo,pecaBase});
   closeModal();
   showToast('Apontamento atualizado!');
 };
