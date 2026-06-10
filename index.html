@@ -7819,7 +7819,7 @@ function renderManPainel(){
   function calcPrazo(maquinaId, tipos, periodMeses){
     if(!periodMeses) return null;
     const ult=manutRegistros.filter(r=>r.maquinaId===maquinaId&&tipos.includes(r.tipo)).sort((a,b)=>b.data>a.data?1:-1)[0];
-    if(!ult) return {label:'Sem histórico',cor:'#94a3b8',dias:null};
+    if(!ult) return {label:'Sem histórico — '+periodMeses+'m',cor:'#94a3b8',dias:null};
     const prox=new Date(ult.data+'T12:00:00');
     prox.setMonth(prox.getMonth()+periodMeses);
     const dias=Math.round((prox-new Date())/86400000);
