@@ -3577,19 +3577,11 @@ function renderApontar(){
       +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚙️ Tipo de produção</div>'
       +'<div style="display:flex;gap:6px;margin-bottom:10px">'
       +btnModo('normal','⚒️','Normal','#065f46','#f0fdf4','#059669')
-      +btnModo('conjunta','🔗','Conjunta','#1e40af','#eff6ff','#1d4ed8')
       +btnModo('feriado','🏖️','Feriado','#92400e','#fef3c7','#f59e0b')
       +'</div>'
-      +(modoAtual==='conjunta'
-        ?'<div style="background:#eff6ff;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#1e40af">2 peças: basta atingir meia meta das duas. 3+ peças: usa equivalência com peça base.</div>'
-        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Peça base (para 3+ peças)</div>'
-        +'<select id="ap-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
-        +'<option value="">— Automático —</option>'
-        +pecasNormais.map(p=>'<option value="'+p.id+'">'+p.label+'</option>').join('')
-        +'</select>'
-        :(modoAtual==='feriado'
-          ?'<div style="background:#fef3c7;border-radius:10px;padding:8px 12px;font-size:11px;color:#92400e">Tudo pago como produção, sem meta.</div>'
-          :'<div style="background:#f0fdf4;border-radius:10px;padding:8px 12px;font-size:11px;color:#065f46">Uma peça, meta inteira. Sábado: meta pela metade.</div>'))
+      +(modoAtual==='feriado'
+        ?'<div style="background:#fef3c7;border-radius:10px;padding:8px 12px;font-size:11px;color:#92400e">Tudo pago como produção, sem meta.</div>'
+        :'<div style="background:#f0fdf4;border-radius:10px;padding:8px 12px;font-size:11px;color:#065f46">Normal ou conjunta detectado automaticamente pelo nº de peças. Sábado: meta pela metade.</div>')
       +'</div>';
   }
 
@@ -3699,8 +3691,10 @@ window._registrarApontMetal=async()=>{
     if(v>0){pecas[p.id]=v;totalPecas+=v;}
   });
   if(!totalPecas){showToast('Informe pelo menos uma peça.');return;}
-  const modoCalculo=window._apontModo||'normal';
   const sol=soldadores.find(s=>s.id===soldadorId);
+  const pecasNormaisCount=PECAS_METAL_FULL.filter(p=>!p.reforma&&(parseInt(document.getElementById('ap-'+p.id)?.value)||0)>0).length;
+  const modoBase=window._apontModo||'normal';
+  const modoCalculo=modoBase==='feriado'?'feriado':(pecasNormaisCount>1?'conjunta':'normal');
   const pecaBase=(modoCalculo==='conjunta')?(document.getElementById('ap-peca-base')?.value||''):'';
   await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,modoCalculo,pecaBase,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
@@ -3776,7 +3770,6 @@ window._editarApontMetal=id=>{
         +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Tipo de produção</div>'
         +'<div style="display:flex;gap:6px;margin-bottom:10px">'
         +btnEa('normal','⚒️','Normal','#065f46','#f0fdf4','#059669')
-        +btnEa('conjunta','🔗','Conjunta','#1e40af','#eff6ff','#1d4ed8')
         +btnEa('feriado','🏖️','Feriado','#92400e','#fef3c7','#f59e0b')
         +'</div>'
         +'<div id="ea-peca-base-container" style="display:'+(mc==='conjunta'?'block':'none')+'">'
@@ -3818,7 +3811,9 @@ window._salvarEdicaoApoint=async id=>{
     const v=parseInt(document.getElementById('ea-'+p.id)?.value)||0;
     if(v>0) pecas[p.id]=v;
   });
-  const modoCalculo=window._eaModo||document.getElementById('ea-modo-conjunta')?.style.borderColor==='rgb(37, 99, 235)'?'conjunta':document.getElementById('ea-modo-feriado')?.style.borderColor==='rgb(245, 158, 11)'?'feriado':'normal';
+  const modoBase=window._eaModo||'normal';
+  const pecasNormaisCountEa=PECAS_METAL_FULL.filter(p=>!p.reforma&&(parseInt(document.getElementById('ap-'+p.id)?.value)||0)>0).length;
+  const modoCalculo=modoBase==='feriado'?'feriado':(Object.keys(pecas).filter(k=>!PECAS_METAL_FULL.find(p=>p.id===k)?.reforma).length>1?'conjunta':'normal');
   const pecaBase=document.getElementById('ea-peca-base')?.value||'';
   await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas,modoCalculo,pecaBase});
   closeModal();
