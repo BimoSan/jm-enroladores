@@ -338,6 +338,9 @@ let fichasMetal=[];
 let pontoFuncionarios=[]; // lista de funcionários do ponto
 let pontoRegistros=[];    // registros de ponto
 let almItens=[];
+// Manutenção
+let manutMaquinas=[];
+let manutRegistros=[];
 // Grades
 let gradistas=[];
 let fichasGrad=[];
@@ -529,6 +532,9 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'saidas_fitas':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   'relatorio_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  'man_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'man_maquinas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+  'man_registros': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'grad_painel':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
@@ -566,6 +572,7 @@ const TAB_LABELS={
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_relatorio':'Relatórios',
+  'man_painel':'Painel','man_maquinas':'Máquinas','man_registros':'Manutenções',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
@@ -586,10 +593,12 @@ function renderSelecionarFabrica(){
     {id:'almoxarifado', nome:'Almoxarifado',          icon:'📦', cor:'#92400e', bg:'linear-gradient(135deg,#92400e,#f59e0b)', desc:'Controle de estoque e materiais'},
     {id:'caminhoes',    nome:'Caminhões',              icon:'🚚', cor:'#1e3a5f', bg:'linear-gradient(135deg,#1e3a5f,#2563eb)', desc:'Frotas, rotas e manutenção'},
     {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
+    {id:'manutencao',   nome:'Manutenção',             icon:'🔧', cor:'#374151', bg:'linear-gradient(135deg,#374151,#6b7280)', desc:'Máquinas, manutenções e status'},
   ].filter(f=>{
     if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil);
     if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
     if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
+    if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico'].includes(currentUserData?.perfil);
     return fabricasDisponiveis.includes(f.id);
   });
 
@@ -636,6 +645,10 @@ window._selecionarFabrica=id=>{
     currentSetor='financeiro_geral';
     sessionStorage.setItem('jm_setor','financeiro_geral');
     currentTab='fin_dashboard';
+  } else if(id==='manutencao'){
+    currentSetor='manutencao';
+    sessionStorage.setItem('jm_setor','manutencao');
+    currentTab='man_painel';
   } else {
     currentSetor=null;
     sessionStorage.removeItem('jm_setor');
@@ -731,7 +744,7 @@ window._voltarFabrica=()=>{
 };
 window._voltarSetores=()=>{
   // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
-  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'){
+  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'||currentFabrica==='manutencao'){
     currentFabrica=null;
     currentSetor=null;
     sessionStorage.removeItem('jm_fabrica');
@@ -764,6 +777,9 @@ function renderApp(){
   } else if(currentSetor==='financeiro_geral'){
     tabs.push('fin_dashboard','fin_pagamentos','fin_compras','fin_relatorio');
     if(!currentTab||!currentTab.startsWith('fin_')) currentTab='fin_dashboard';
+  } else if(currentSetor==='manutencao'){
+    tabs.push('man_painel','man_maquinas','man_registros');
+    if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
@@ -903,6 +919,7 @@ window._switchTab=tab=>{
 };
 function renderTab(tab){
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
+  if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='grades') return renderTabGrades(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
   if(currentSetor==='fitas') return renderTabFitas(tab);
@@ -7772,6 +7789,303 @@ window._confirmarPagarFichaMetal=async id=>{
 // ── Sistema Almoxarifado ─────────────────────────────────────────
 
 // ════════════════════════════════════════════════════════════════
+// SETOR MANUTENÇÃO
+// ════════════════════════════════════════════════════════════════
+
+const MANUT_SETORES=['Metalúrgica','Fitas','Grades','Tapeçaria','Outro'];
+const MANUT_TIPOS=[
+  {id:'preventiva', label:'Preventiva', cor:'#1d4ed8', bg:'#dbeafe'},
+  {id:'corretiva',  label:'Corretiva',  cor:'#dc2626', bg:'#fee2e2'},
+  {id:'oleo',       label:'Troca de Óleo', cor:'#92400e', bg:'#fef3c7'},
+];
+
+function renderTabManutencao(tab){
+  try{
+    if(tab==='man_painel')    return renderManPainel();
+    if(tab==='man_maquinas')  return renderManMaquinas();
+    if(tab==='man_registros') return renderManRegistros();
+    return renderManPainel();
+  }catch(e){
+    console.error('Erro renderTabManutencao:',e);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
+  }
+}
+
+// ── Painel ───────────────────────────────────────────────────────
+function renderManPainel(){
+  const operando=manutMaquinas.filter(m=>!m.parada);
+  const paradas=manutMaquinas.filter(m=>m.parada);
+  const totalManut=manutRegistros.length;
+  const custoTotal=manutRegistros.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Operando</div><div class="stat-value">'+operando.length+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Paradas</div><div class="stat-value">'+paradas.length+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Manutenções</div><div class="stat-value">'+totalManut+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Custo total</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(custoTotal)+'</div></div></div>'
+    +'</div>';
+
+  // Máquinas paradas em destaque
+  if(paradas.length){
+    html+='<div style="background:#fee2e2;border:2px solid #dc2626;border-radius:14px;padding:14px;margin-bottom:14px">'
+      +'<div style="font-size:13px;font-weight:800;color:#dc2626;margin-bottom:10px">🔴 '+paradas.length+' máquina'+( paradas.length>1?'s':'')+' parada'+( paradas.length>1?'s':'')+'</div>'
+      +paradas.map(m=>{
+        const desde=m.paradaDesde?new Date(m.paradaDesde):null;
+        const agora=new Date();
+        let tempo='';
+        if(desde){
+          const diff=agora-desde;
+          const h=Math.floor(diff/3600000);
+          const d=Math.floor(h/24);
+          tempo=d>0?d+'d '+( h%24)+'h':h+'h';
+        }
+        return '<div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
+          +'<div>'
+          +'<div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
+          +'<div style="font-size:11px;color:#64748b">'+m.setor+(tempo?' · Parada há '+tempo:'')+'</div>'
+          +(m.paradaMotivo?'<div style="font-size:11px;color:#dc2626;margin-top:2px">'+m.paradaMotivo+'</div>':'')
+          +'</div>'
+          +'<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="window._manVoltarOperar(\''+m.id+'\')">✅ Voltou</button>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  // Grade de todas as máquinas por setor
+  MANUT_SETORES.forEach(setor=>{
+    const maqSetor=manutMaquinas.filter(m=>m.setor===setor);
+    if(!maqSetor.length) return;
+    html+='<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">'+setor+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:8px">';
+    maqSetor.forEach(m=>{
+      const regs=manutRegistros.filter(r=>r.maquinaId===m.id).slice(0,1);
+      const ultima=regs[0];
+      const cor=m.parada?'#dc2626':'#059669';
+      const bg=m.parada?'#fee2e2':'#f0fdf4';
+      const border=m.parada?'#fca5a5':'#86efac';
+      html+='<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:12px;padding:12px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+        +'<span style="font-size:18px">'+(m.parada?'🔴':'✅')+'</span>'
+        +'<button onclick="window._manToggleParada(\''+m.id+'\')" style="font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid '+cor+';background:#fff;color:'+cor+';cursor:pointer;font-weight:700">'
+        +(m.parada?'Voltou':'Parou')+'</button>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:#1e293b">'+m.nome+'</div>'
+        +'<div style="font-size:10px;color:'+cor+';font-weight:600;margin-top:2px">'+(m.parada?'Parada':'Operando')+'</div>'
+        +(ultima?'<div style="font-size:9px;color:#94a3b8;margin-top:4px">Última manut: '+fmtDate(ultima.data)+'</div>':'')
+        +'</div>';
+    });
+    html+='</div>';
+  });
+
+  return html;
+}
+
+// ── Máquinas ─────────────────────────────────────────────────────
+function renderManMaquinas(){
+  const podeEditar=can('admin')||['admin','proprietario'].includes(currentUserData?.perfil);
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._manNovaMaquina()">+ Máquina</button>'
+    +'</div>';
+
+  MANUT_SETORES.forEach(setor=>{
+    const maq=manutMaquinas.filter(m=>m.setor===setor);
+    if(!maq.length) return;
+    html+='<div class="section-label">'+setor+'</div>';
+    maq.forEach(m=>{
+      const regs=manutRegistros.filter(r=>r.maquinaId===m.id);
+      const custoTotal=regs.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+      const ultima=regs[0];
+      html+='<div class="card" style="margin-bottom:8px;border-left:4px solid '+(m.parada?'#dc2626':'#059669')+'">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:24px">'+(m.parada?'🔴':'✅')+'</span>'
+        +'<div>'
+        +'<div style="font-size:14px;font-weight:700">'+m.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+m.setor+(m.modelo?' · '+m.modelo:'')+'</div>'
+        +(ultima?'<div style="font-size:10px;color:#94a3b8">Última manut: '+fmtDate(ultima.data)+' · '+( MANUT_TIPOS.find(t=>t.id===ultima.tipo)?.label||ultima.tipo)+'</div>':'<div style="font-size:10px;color:#94a3b8">Sem manutenções registradas</div>')
+        +'</div></div>'
+        +'<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+        +'<div style="font-size:11px;color:#64748b">'+regs.length+' manut.</div>'
+        +'<div style="font-size:13px;font-weight:700;color:#92400e">'+fmtMoeda(custoTotal)+'</div>'
+        +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarMaquina(\''+m.id+'\')">Editar</button>':'')
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    });
+  });
+
+  if(!manutMaquinas.length) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma máquina cadastrada.</div>';
+  return html;
+}
+
+// ── Manutenções ──────────────────────────────────────────────────
+function renderManRegistros(){
+  if(!window._manFiltroMaq) window._manFiltroMaq='';
+  if(!window._manFiltroTipo) window._manFiltroTipo='';
+
+  const filtrados=manutRegistros.filter(r=>{
+    if(window._manFiltroMaq&&r.maquinaId!==window._manFiltroMaq) return false;
+    if(window._manFiltroTipo&&r.tipo!==window._manFiltroTipo) return false;
+    return true;
+  });
+  const custoFiltrado=filtrados.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+
+  const selectMaq='<select onchange="window._manSetFiltroMaq(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 10px">'
+    +'<option value="">Todas as máquinas</option>'
+    +manutMaquinas.map(m=>'<option value="'+m.id+'"'+(m.id===window._manFiltroMaq?' selected':'')+'>'+m.nome+'</option>').join('')
+    +'</select>';
+
+  const selectTipo='<select onchange="window._manSetFiltroTipo(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 10px">'
+    +'<option value="">Todos os tipos</option>'
+    +MANUT_TIPOS.map(t=>'<option value="'+t.id+'"'+(t.id===window._manFiltroTipo?' selected':'')+'>'+t.label+'</option>').join('')
+    +'</select>';
+
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+selectMaq+selectTipo+'</div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._manNovoRegistro()">+ Registrar</button>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<div style="font-size:12px;color:#64748b">'+filtrados.length+' registro'+( filtrados.length!==1?'s':'')+'</div>'
+    +'<div style="font-size:14px;font-weight:700;color:#92400e">'+fmtMoeda(custoFiltrado)+'</div>'
+    +'</div>';
+
+  if(!filtrados.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma manutenção registrada.</div>';
+    return html;
+  }
+
+  html+=filtrados.map(r=>{
+    const maq=manutMaquinas.find(m=>m.id===r.maquinaId);
+    const tipo=MANUT_TIPOS.find(t=>t.id===r.tipo)||{label:r.tipo,cor:'#475569',bg:'#f1f5f9'};
+    return '<div class="card" style="margin-bottom:8px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+      +'<div style="flex:1">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+      +'<span style="font-size:11px;font-weight:700;background:'+tipo.bg+';color:'+tipo.cor+';padding:2px 8px;border-radius:99px">'+tipo.label+'</span>'
+      +'<span style="font-size:11px;color:#64748b">'+fmtDate(r.data)+'</span>'
+      +'</div>'
+      +'<div style="font-size:14px;font-weight:700">'+(maq?.nome||'—')+'</div>'
+      +(r.descricao?'<div style="font-size:12px;color:#64748b;margin-top:3px">'+r.descricao+'</div>':'')
+      +(r.responsavel?'<div style="font-size:11px;color:#94a3b8;margin-top:2px">👤 '+r.responsavel+'</div>':'')
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:16px;font-weight:800;color:#92400e">'+(r.custo?fmtMoeda(parseFloat(r.custo)):'—')+'</div>'
+      +'<button class="btn btn-sm btn-danger" style="font-size:10px;margin-top:4px" onclick="window._manExcluirRegistro(\''+r.id+'\')">Excluir</button>'
+      +'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  return html;
+}
+
+// ── Handlers ─────────────────────────────────────────────────────
+window._manSetFiltroMaq=v=>{ window._manFiltroMaq=v; reloadTab(); };
+window._manSetFiltroTipo=v=>{ window._manFiltroTipo=v; reloadTab(); };
+
+window._manToggleParada=function(id){
+  const m=manutMaquinas.find(x=>x.id===id);
+  if(!m) return;
+  if(m.parada){
+    window._manVoltarOperar(id);
+  } else {
+    window._manMarcarParada(id);
+  }
+};
+
+window._manMarcarParada=function(id){
+  const m=manutMaquinas.find(x=>x.id===id);
+  if(!m) return;
+  showModal('Marcar como parada',
+    '<div class="form-group"><label>Motivo (opcional)</label>'
+    +'<input id="mp-motivo" placeholder="Ex: Problema na correia..." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._manConfirmarParada(\''+id+'\')">Confirmar parada</button>');
+};
+window._manConfirmarParada=async function(id){
+  const motivo=document.getElementById('mp-motivo')?.value||'';
+  closeModal();
+  await updateDoc(doc(db,'manut_maquinas',id),{parada:true,paradaDesde:new Date().toISOString(),paradaMotivo:motivo});
+  showToast('Máquina marcada como parada.');
+};
+
+window._manVoltarOperar=async function(id){
+  const m=manutMaquinas.find(x=>x.id===id);
+  if(!m) return;
+  const tempoParada=m.paradaDesde?Math.round((new Date()-new Date(m.paradaDesde))/60000):0;
+  await updateDoc(doc(db,'manut_maquinas',id),{parada:false,paradaDesde:null,paradaMotivo:'',ultimaParadaMinutos:tempoParada});
+  showToast('Máquina voltou a operar!');
+};
+
+window._manNovaMaquina=function(m={}){
+  const selSetor='<select id="nm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +MANUT_SETORES.map(s=>'<option value="'+s+'"'+(m.setor===s?' selected':'')+'>'+s+'</option>').join('')+'</select>';
+  showModal(m.id?'Editar máquina':'Nova máquina',
+    '<div class="form-group"><label>Nome</label><input id="nm-nome" value="'+(m.nome||'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Setor</label>'+selSetor+'</div>'
+    +'<div class="form-group"><label>Modelo / Descrição</label><input id="nm-modelo" value="'+(m.modelo||'')+'" placeholder="Opcional" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarMaquina(\''+( m.id||'')+'\')">Salvar</button>');
+};
+window._manEditarMaquina=function(id){
+  const m=manutMaquinas.find(x=>x.id===id);
+  if(m) window._manNovaMaquina(m);
+};
+window._manSalvarMaquina=async function(id){
+  const nome=document.getElementById('nm-nome')?.value.trim();
+  const setor=document.getElementById('nm-setor')?.value;
+  const modelo=document.getElementById('nm-modelo')?.value.trim();
+  if(!nome){showToast('Digite o nome.');return;}
+  closeModal();
+  if(id) await updateDoc(doc(db,'manut_maquinas',id),{nome,setor,modelo});
+  else await addDoc(collection(db,'manut_maquinas'),{nome,setor,modelo,parada:false});
+  showToast('Máquina salva!');
+};
+
+window._manNovoRegistro=function(){
+  const selMaq='<select id="nr-maq" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +'<option value="">— Selecionar —</option>'
+    +manutMaquinas.map(m=>'<option value="'+m.id+'">'+m.nome+' ('+m.setor+')</option>').join('')+'</select>';
+  const selTipo='<select id="nr-tipo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +MANUT_TIPOS.map(t=>'<option value="'+t.id+'">'+t.label+'</option>').join('')+'</select>';
+  showModal('Registrar manutenção',
+    '<div class="form-group"><label>Máquina</label>'+selMaq+'</div>'
+    +'<div class="form-group"><label>Tipo</label>'+selTipo+'</div>'
+    +'<div class="form-group"><label>Data</label><input type="date" id="nr-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Descrição</label><textarea id="nr-desc" rows="3" placeholder="Descreva o que foi feito..." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:vertical"></textarea></div>'
+    +'<div class="form-group"><label>Responsável</label><input id="nr-resp" placeholder="Nome do mecânico" value="'+(currentUserData?.nome||'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Custo (R$)</label><input type="number" id="nr-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarRegistro()">Salvar</button>');
+};
+window._manSalvarRegistro=async function(){
+  const maquinaId=document.getElementById('nr-maq')?.value;
+  const tipo=document.getElementById('nr-tipo')?.value;
+  const data=document.getElementById('nr-data')?.value;
+  const descricao=document.getElementById('nr-desc')?.value.trim();
+  const responsavel=document.getElementById('nr-resp')?.value.trim();
+  const custo=parseFloat(document.getElementById('nr-custo')?.value)||0;
+  if(!maquinaId||!data){showToast('Selecione a máquina e a data.');return;}
+  closeModal();
+  await addDoc(collection(db,'manut_registros'),{maquinaId,tipo,data,descricao,responsavel,custo,criadoEm:new Date().toISOString()});
+  showToast('Manutenção registrada!');
+};
+window._manExcluirRegistro=function(id){
+  window._pendingManExcluir=id;
+  showModal('Excluir registro',
+    '<div style="font-size:13px;color:#444">Deseja excluir este registro de manutenção?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._manConfirmarExcluir()">Excluir</button>');
+};
+window._manConfirmarExcluir=async function(){
+  const id=window._pendingManExcluir;
+  if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'manut_registros',id));
+  showToast('Registro excluído!');
+};
+
+// ════════════════════════════════════════════════════════════════
 // SETOR FINANCEIRO
 // ════════════════════════════════════════════════════════════════
 
@@ -9806,6 +10120,15 @@ function iniciarListeners(){
   onSnapshot(collection(db,'fichas_metal'),snap=>{
     fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  // Manutenção
+  onSnapshot(collection(db,'manut_maquinas'),snap=>{
+    manutMaquinas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    if(currentUserData&&currentSetor==='manutencao')reloadTab();
+  });
+  onSnapshot(collection(db,'manut_registros'),snap=>{
+    manutRegistros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+    if(currentUserData&&currentSetor==='manutencao')reloadTab();
   });
   // Grades
   onSnapshot(collection(db,'gradistas'),snap=>{
