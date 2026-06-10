@@ -3203,8 +3203,9 @@ function calcGanhoSoldador(soldadorId, periodo){
 
       // Peças normais do dia com produção
       const ehSabadoDia=new Date(dia+'T12:00:00').getDay()===6;
-      // Peça base definida pelo apontador (salva no apontamento)
       const pecaBaseDefinida=apDia.map(a=>a.pecaBase).find(pb=>pb&&pb!=='');
+      const modoCalculo=apDia.find(a=>a.modoCalculo)?.modoCalculo||'normal';
+
       const pecasDia=PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>({
         id:p.id,
         qtd:apDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0),
@@ -3214,46 +3215,91 @@ function calcGanhoSoldador(soldadorId, periodo){
 
       if(!pecasDia.length) return;
 
-      // Verificar se o apontamento do dia tem modoCalculo='prod' (ex: feriado)
-      const modoProd=apDia.some(a=>a.modoCalculo==='prod');
-      const bateuMeta=!modoProd && pecasDia.some(p=>p.meta>0&&p.qtd>=p.meta);
-      const forcarProducao=modoProd;
+      // ── Feriado: tudo como produção ──────────────────────────────
+      if(modoCalculo==='feriado'||modoCalculo==='prod'){
+        pecasDia.forEach(p=>{ totalGanho+=p.qtd*p.val; });
+        return;
+      }
 
-      if(forcarProducao||bateuMeta){
-        // Dia liberado: excedente de cada peça (ou tudo se sem meta ou modo produção)
+      // ── Normal (1 peça) ou Conjunta ──────────────────────────────
+      const conjunta=modoCalculo==='conjunta';
+      const comMeta=pecasDia.filter(p=>p.meta>0);
+
+      if(!comMeta.length){
+        // Sem metas definidas: paga tudo
+        pecasDia.forEach(p=>{ totalGanho+=p.qtd*p.val; });
+        return;
+      }
+
+      if(!conjunta||pecasDia.length===1){
+        // Normal: verifica se bateu meta
+        const bateu=pecasDia.some(p=>p.meta>0&&p.qtd>=p.meta);
+        if(bateu){
+          pecasDia.forEach(p=>{
+            const exc=p.meta>0&&p.qtd>=p.meta?p.qtd-p.meta:p.qtd;
+            totalGanho+=exc*p.val;
+          });
+        }
+        // Se não bateu: não ganha nada
+        return;
+      }
+
+      // ── Conjunta: 2 peças ────────────────────────────────────────
+      if(comMeta.length===2){
+        const [p1,p2]=comMeta;
+        const meta1Atingida=p1.qtd>=p1.meta;
+        const meta2Atingida=p2.qtd>=p2.meta;
+        const meiaM1=p1.qtd>=(p1.meta/2);
+        const meiaM2=p2.qtd>=(p2.meta/2);
+
+        let diaLiberado=false;
+        if(meta1Atingida||meta2Atingida){
+          diaLiberado=true;
+        } else if(meiaM1&&meiaM2){
+          diaLiberado=true;
+        }
+
+        if(diaLiberado){
+          pecasDia.forEach(p=>{
+            const metaP=comMeta.find(c=>c.id===p.id);
+            const exc=metaP&&metaP.qtd>=metaP.meta?p.qtd-metaP.meta:p.qtd;
+            totalGanho+=exc*p.val;
+          });
+        }
+        // Se não liberado: não ganha nada
+        return;
+      }
+
+      // ── Conjunta: 3+ peças — lógica de equivalência ──────────────
+      const bateuAlguma=comMeta.some(p=>p.qtd>=p.meta);
+      if(bateuAlguma){
         pecasDia.forEach(p=>{
-          const excedente=forcarProducao?p.qtd:(p.meta>0&&p.qtd>=p.meta?Math.max(0,p.qtd-p.meta):p.qtd);
-          totalGanho+=excedente*p.val;
+          const metaP=comMeta.find(c=>c.id===p.id);
+          const exc=metaP&&metaP.qtd>=metaP.meta?p.qtd-metaP.meta:p.qtd;
+          totalGanho+=exc*p.val;
         });
-      } else {
-        // Nenhuma meta batida: calcular equivalência
-        const comMeta=pecasDia.filter(p=>p.meta>0);
-        if(!comMeta.length){
-          // Sem metas definidas: paga tudo
-          pecasDia.forEach(p=>{ totalGanho+=p.qtd*p.val; });
-          return;
-        }
-        // Peça principal: usa pecaBase definida pelo apontador, ou automaticamente a mais próxima da meta
-        let principal=pecaBaseDefinida?comMeta.find(p=>p.id===pecaBaseDefinida):null;
-        if(!principal){
-          const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
-          principal=ordenadas[0];
-        }
-        let valorFaltando=(principal.meta-principal.qtd)*principal.val;
-        const secundarias=comMeta.filter(p=>p.id!==principal.id);
-        const pagavel={};
-        pecasDia.forEach(p=>{ pagavel[p.id]=0; });
-        for(const sec of secundarias){
-          if(valorFaltando<=0) break;
-          if(!sec.val) continue;
-          const qtdDescontar=Math.min(sec.qtd,Math.ceil(valorFaltando/sec.val));
-          valorFaltando-=qtdDescontar*sec.val;
-          pagavel[sec.id]=Math.max(0,sec.qtd-qtdDescontar);
-        }
-        // Se cobriu a meta: paga o que sobrou nas secundárias
-        if(valorFaltando<=0.001){
-          secundarias.forEach(sec=>{ totalGanho+=pagavel[sec.id]*sec.val; });
-        }
+        return;
+      }
+
+      // Nenhuma bateu meta: tenta equivalência com peça principal
+      let principal=pecaBaseDefinida?comMeta.find(p=>p.id===pecaBaseDefinida):null;
+      if(!principal){
+        const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
+        principal=ordenadas[0];
+      }
+      let valorFaltando=(principal.meta-principal.qtd)*principal.val;
+      const secundarias=comMeta.filter(p=>p.id!==principal.id);
+      const pagavel={};
+      pecasDia.forEach(p=>{ pagavel[p.id]=0; });
+      for(const sec of secundarias){
+        if(valorFaltando<=0) break;
+        if(!sec.val) continue;
+        const qtdDescontar=Math.min(sec.qtd,Math.ceil(valorFaltando/sec.val));
+        valorFaltando-=qtdDescontar*sec.val;
+        pagavel[sec.id]=Math.max(0,sec.qtd-qtdDescontar);
+      }
+      if(valorFaltando<=0.001){
+        secundarias.forEach(sec=>{ totalGanho+=pagavel[sec.id]*sec.val; });
       }
     });
     return totalGanho;
@@ -3503,19 +3549,29 @@ function renderApontar(){
 
   // ── Step 4: Opções (fichado) ─────────────────────────────────────
   if(isFichado){
+    const modoAtual=window._apontModo||'normal';
+    const btnModo=(v,icon,label,cor,bg,bord)=>{
+      const ativo=modoAtual===v;
+      return '<button onclick="window._setApontModo(\''+v+'\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid '+(ativo?bord:'#e2e8f0')+';background:'+(ativo?bg:'#fff')+';color:'+(ativo?cor:'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">'+icon+' '+label+'</button>';
+    };
     html+='<div class="card" style="margin-bottom:12px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚙️ Opções (fichado)</div>'
-      +'<div style="margin-bottom:12px">'
-      +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Peça base para cálculo</div>'
-      +'<select id="ap-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
-      +'<option value="">— Automático —</option>'
-      +pecasNormais.map(p=>'<option value="'+p.id+'">'+p.label+'</option>').join('')
-      +'</select></div>'
-      +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Modo de cálculo</div>'
-      +'<div style="display:flex;gap:8px">'
-      +'<button id="ap-modo-meta" onclick="window._setApontModo(\'meta\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid #059669;background:#f0fdf4;color:#059669;font-size:13px;font-weight:700;cursor:pointer">🎯 Meta</button>'
-      +'<button id="ap-modo-prod" onclick="window._setApontModo(\'prod\')" style="flex:1;padding:10px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer">⚡ Produção</button>'
-      +'</div></div>';
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚙️ Tipo de produção</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+      +btnModo('normal','⚒️','Normal','#065f46','#f0fdf4','#059669')
+      +btnModo('conjunta','🔗','Conjunta','#1e40af','#eff6ff','#1d4ed8')
+      +btnModo('feriado','🏖️','Feriado','#92400e','#fef3c7','#f59e0b')
+      +'</div>'
+      +(modoAtual==='conjunta'
+        ?'<div style="background:#eff6ff;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#1e40af">2 peças: basta atingir meia meta das duas. 3+ peças: usa equivalência com peça base.</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Peça base (para 3+ peças)</div>'
+        +'<select id="ap-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+        +'<option value="">— Automático —</option>'
+        +pecasNormais.map(p=>'<option value="'+p.id+'">'+p.label+'</option>').join('')
+        +'</select>'
+        :(modoAtual==='feriado'
+          ?'<div style="background:#fef3c7;border-radius:10px;padding:8px 12px;font-size:11px;color:#92400e">Tudo pago como produção, sem meta.</div>'
+          :'<div style="background:#f0fdf4;border-radius:10px;padding:8px 12px;font-size:11px;color:#065f46">Uma peça, meta inteira. Sábado: meta pela metade.</div>'))
+      +'</div>';
   }
 
   // ── Botão salvar ─────────────────────────────────────────────────
@@ -3539,13 +3595,45 @@ function _renderHistoricoMetal(){
     const ci=soldadores.findIndex(s=>s.id===a.soldadorId);
     const c=avatarColor(ci);
     const baseLabel=a.pecaBase?(PECAS_METAL_FULL.find(p=>p.id===a.pecaBase)?.label||''):'';
+    const modoLabel=a.modoCalculo==='conjunta'?'🔗 Conjunta':a.modoCalculo==='feriado'?'🏖️ Feriado':'⚒️ Normal';
+
+    // Status do dia
+    const metas_=configMetal.metas||{};
+    const vMeta_=configMetal.valoresMeta||{};
+    const vProd_=configMetal.valoresProd||{};
+    const ehSab=new Date((a.data||today())+'T12:00:00').getDay()===6;
+    const pecasAp=PECAS_METAL_FULL.filter(p=>!p.reforma&&(a.pecas||{})[p.id]>0).map(p=>({
+      id:p.id,qtd:parseInt((a.pecas||{})[p.id])||0,
+      meta:ehSab?Math.round((parseInt(metas_[p.id])||0)/2):(parseInt(metas_[p.id])||0),
+    }));
+    let statusMsg='';
+    if(a.modoCalculo==='feriado'||a.modoCalculo==='prod'){
+      statusMsg='<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-weight:700">🏖️ Feriado — produção liberada</span>';
+    } else if(a.modoCalculo==='conjunta'&&pecasAp.length===2){
+      const [pa,pb]=pecasAp;
+      const m1=pa.meta,m2=pb.meta;
+      if(pa.qtd>=m1||pb.qtd>=m2){
+        statusMsg='<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✅ Meta atingida — produção liberada</span>';
+      } else if(pa.qtd>=(m1/2)&&pb.qtd>=(m2/2)){
+        statusMsg='<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✅ Meia meta atingida — produção liberada</span>';
+      } else {
+        statusMsg='<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:99px;font-weight:700">❌ Meta não atingida</span>';
+      }
+    } else if(a.modoCalculo!=='conjunta'){
+      const bateu=pecasAp.some(p=>p.meta>0&&p.qtd>=p.meta);
+      if(pecasAp.some(p=>p.meta>0)){
+        statusMsg=bateu
+          ?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✅ Meta atingida</span>'
+          :'<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:99px;font-weight:700">❌ Meta não atingida</span>';
+      }
+    }
     return '<div class="card" style="margin-bottom:8px">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
       +'<div style="display:flex;align-items:center;gap:10px">'
       +'<div style="width:38px;height:38px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">'+initials(sol?.nome||'?')+'</div>'
       +'<div>'
       +'<div style="font-size:13px;font-weight:700">'+(sol?.nome||'Desconhecido')+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+fmtDate(a.data)+' · '+totalPecas+' peças'+(baseLabel?' · Base: <strong>'+baseLabel+'</strong>':'')+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+fmtDate(a.data)+' · '+totalPecas+' peças · '+modoLabel+(baseLabel?' · Base: <strong>'+baseLabel+'</strong>':'')+'</div>'+(statusMsg?'<div style="margin-top:3px">'+statusMsg+'</div>':'')
       +'</div></div>'
       +'<div style="display:flex;gap:6px">'
       +'<button class="btn btn-sm btn-warn" onclick="window._editarApontMetal(\''+a.id+'\')">Editar</button>'
@@ -3581,9 +3669,9 @@ window._registrarApontMetal=async()=>{
     if(v>0){pecas[p.id]=v;totalPecas+=v;}
   });
   if(!totalPecas){showToast('Informe pelo menos uma peça.');return;}
-  const modoCalculo=window._apontModo||'meta';
+  const modoCalculo=window._apontModo||'normal';
   const sol=soldadores.find(s=>s.id===soldadorId);
-  const pecaBase=sol?.contrato!=='producao'?(document.getElementById('ap-peca-base')?.value||''):'';
+  const pecaBase=(modoCalculo==='conjunta')?(document.getElementById('ap-peca-base')?.value||''):'';
   await addDoc(collection(db,'apontamentos_metal'),{soldadorId,data,pecas,modoCalculo,pecaBase,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
   PECAS_METAL_FULL.forEach(p=>{const el=document.getElementById('ap-'+p.id);if(el)el.value='';});
@@ -3595,33 +3683,11 @@ window._limparApontMetal=()=>{
   window._setApontModo('meta');
 };
 
-window._apontModo='meta';
-
-window._setEaModo=function(modo){
-  const bMeta=document.getElementById('ea-modo-meta');
-  const bProd=document.getElementById('ea-modo-prod');
-  if(!bMeta||!bProd) return;
-  if(modo==='meta'){
-    bMeta.style.border='2px solid #059669'; bMeta.style.background='#f0fdf4'; bMeta.style.color='#059669';
-    bProd.style.border='2px solid #e2e8f0'; bProd.style.background='#fff'; bProd.style.color='#64748b';
-  } else {
-    bProd.style.border='2px solid #2563eb'; bProd.style.background='#eff6ff'; bProd.style.color='#2563eb';
-    bMeta.style.border='2px solid #e2e8f0'; bMeta.style.background='#fff'; bMeta.style.color='#64748b';
-  }
-};
+window._apontModo='normal';
 
 window._setApontModo=function(modo){
   window._apontModo=modo;
-  const bMeta=document.getElementById('ap-modo-meta');
-  const bProd=document.getElementById('ap-modo-prod');
-  if(!bMeta||!bProd) return;
-  if(modo==='meta'){
-    bMeta.style.border='2px solid #059669'; bMeta.style.background='#f0fdf4'; bMeta.style.color='#059669';
-    bProd.style.border='2px solid #e2e8f0'; bProd.style.background='#fff'; bProd.style.color='#64748b';
-  } else {
-    bProd.style.border='2px solid #2563eb'; bProd.style.background='#eff6ff'; bProd.style.color='#2563eb';
-    bMeta.style.border='2px solid #e2e8f0'; bMeta.style.background='#fff'; bMeta.style.color='#64748b';
-  }
+  reloadTab();
 };
 
 window._apontSoldadorChange=function(){
@@ -3670,23 +3736,48 @@ window._editarApontMetal=id=>{
     +'<div class="form-group"><label>Soldador</label><select id="ea-soldador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+opts+'</select></div>'
     +'<div class="form-group"><label>Data</label><input type="date" id="ea-data" value="'+a.data+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
-    +(sol&&sol.contrato==='fichado'?'<div style="margin-bottom:12px">'
-    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Modo de cálculo</div>'
-    +'<div style="display:flex;gap:8px">'
-    +'<button id="ea-modo-meta" onclick="window._setEaModo(\'meta\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(a.modoCalculo==='prod'?'#e2e8f0':'#059669')+';background:'+(a.modoCalculo==='prod'?'#fff':'#f0fdf4')+';color:'+(a.modoCalculo==='prod'?'#64748b':'#059669')+';font-size:12px;font-weight:700;cursor:pointer">🎯 Meta (padrão)</button>'
-    +'<button id="ea-modo-prod" onclick="window._setEaModo(\'prod\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(a.modoCalculo==='prod'?'#2563eb':'#e2e8f0')+';background:'+(a.modoCalculo==='prod'?'#eff6ff':'#fff')+';color:'+(a.modoCalculo==='prod'?'#2563eb':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">⚡ Produção</button>'
-    +'</div></div>'
-    +'<div style="margin-bottom:12px">'
-    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Peça base para cálculo <span style="font-size:10px;color:#94a3b8;font-weight:400">(soldador fichado)</span></div>'
-    +'<select id="ea-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
-    +'<option value="">— Automático (mais próxima da meta) —</option>'
-    +PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>'<option value="'+p.id+'"'+(a.pecaBase===p.id?' selected':'')+'>'+p.label+'</option>').join('')
-    +'</select></div>':'')
+    +(sol&&sol.contrato==='fichado'?(()=>{
+      const mc=a.modoCalculo||'normal';
+      const btnEa=(v,icon,label,cor,bg,bord)=>{
+        const ativo=mc===v;
+        return '<button id="ea-modo-'+v+'" onclick="window._setEaModo(\''+v+'\')" style="flex:1;padding:8px;border-radius:8px;border:2px solid '+(ativo?bord:'#e2e8f0')+';background:'+(ativo?bg:'#fff')+';color:'+(ativo?cor:'#64748b')+';font-size:11px;font-weight:700;cursor:pointer">'+icon+' '+label+'</button>';
+      };
+      return '<div style="margin-bottom:12px">'
+        +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Tipo de produção</div>'
+        +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+        +btnEa('normal','⚒️','Normal','#065f46','#f0fdf4','#059669')
+        +btnEa('conjunta','🔗','Conjunta','#1e40af','#eff6ff','#1d4ed8')
+        +btnEa('feriado','🏖️','Feriado','#92400e','#fef3c7','#f59e0b')
+        +'</div>'
+        +'<div id="ea-peca-base-container" style="display:'+(mc==='conjunta'?'block':'none')+'">'
+        +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Peça base (para 3+ peças)</div>'
+        +'<select id="ea-peca-base" style="width:100%;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+        +'<option value="">— Automático —</option>'
+        +PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>'<option value="'+p.id+'"'+(a.pecaBase===p.id?' selected':'')+'>'+p.label+'</option>').join('')
+        +'</select></div>'
+        +'</div>';
+    })():'')
     +'<div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px">PEÇAS PRODUZIDAS</div>'
     +'<div class="num-inputs">'+grid+'</div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarEdicaoApoint(&quot;'+id+'&quot;)">Salvar</button>',
     true);
+};
+
+window._setEaModo=function(modo){
+  window._eaModo=modo;
+  ['normal','conjunta','feriado'].forEach(m=>{
+    const el=document.getElementById('ea-modo-'+m);
+    if(!el) return;
+    const ativo=m===modo;
+    const cols={normal:['#065f46','#f0fdf4','#059669'],conjunta:['#1e40af','#eff6ff','#1d4ed8'],feriado:['#92400e','#fef3c7','#f59e0b']};
+    const [cor,bg,bord]=cols[m];
+    el.style.border='2px solid '+(ativo?bord:'#e2e8f0');
+    el.style.background=ativo?bg:'#fff';
+    el.style.color=ativo?cor:'#64748b';
+  });
+  const pbContainer=document.getElementById('ea-peca-base-container');
+  if(pbContainer) pbContainer.style.display=modo==='conjunta'?'block':'none';
 };
 
 window._salvarEdicaoApoint=async id=>{
@@ -3697,7 +3788,7 @@ window._salvarEdicaoApoint=async id=>{
     const v=parseInt(document.getElementById('ea-'+p.id)?.value)||0;
     if(v>0) pecas[p.id]=v;
   });
-  const modoCalculo=(document.getElementById('ea-modo-prod')?.style.borderColor==='rgb(37, 99, 235)')?'prod':'meta';
+  const modoCalculo=window._eaModo||document.getElementById('ea-modo-conjunta')?.style.borderColor==='rgb(37, 99, 235)'?'conjunta':document.getElementById('ea-modo-feriado')?.style.borderColor==='rgb(245, 158, 11)'?'feriado':'normal';
   const pecaBase=document.getElementById('ea-peca-base')?.value||'';
   await updateDoc(doc(db,'apontamentos_metal',id),{soldadorId,data,pecas,modoCalculo,pecaBase});
   closeModal();
