@@ -1302,8 +1302,38 @@ function renderPainel(){
     </div>
         ${gerarResumoMovimento()}
     ${renderPainelBonus()}
-    ${gerarResumoAlertas()}
-    <div class="section-label">fichas em andamento</div>`;
+    ${gerarResumoAlertas()}`;
+
+  // ── Avisos de sinalizações ────────────────────────────────────────
+  const sinalizadas=abertas.filter(f=>f.prontoSinalizado&&Object.values(f.prontos||{}).reduce((s,v)=>s+v,0)>0)
+    .filter(f=>{const enr=getEnr(f.enroladorId);return enr?.apontadorPerfil===apt;})
+    .sort((a,b)=>( b.prontoAtualizadoEm||'')>(a.prontoAtualizadoEm||'')?1:-1);
+
+  if(sinalizadas.length){
+    html+='<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:14px;padding:14px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      +'<span style="font-size:20px">🔔</span>'
+      +'<div style="font-size:13px;font-weight:800;color:#92400e">'+sinalizadas.length+' casa'+( sinalizadas.length>1?'s':'')+' com peças prontas para recolher!</div>'
+      +'</div>'
+      +sinalizadas.map(f=>{
+        const enr=getEnr(f.enroladorId);
+        const prontos=f.prontos||{};
+        const total=Object.values(prontos).reduce((s,v)=>s+v,0);
+        const itens=TIPOS.filter(t=>prontos[t.id]>0).map(t=>t.label+': <strong>'+prontos[t.id]+'</strong>').join(' · ');
+        const quando=f.prontoAtualizadoEm?new Date(f.prontoAtualizadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+        return '<div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:10px">'
+          +'<div>'
+          +'<div style="font-size:13px;font-weight:700;color:#1e293b">'+(enr?.nome||'—')+'</div>'
+          +'<div style="font-size:11px;color:#b45309;margin-top:2px">'+itens+'</div>'
+          +(quando?'<div style="font-size:10px;color:#94a3b8;margin-top:1px">Sinalizado em '+quando+'</div>':'')
+          +'</div>'
+          +'<div style="font-size:22px;font-weight:900;color:#d97706">'+total+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  html+='<div class="section-label">fichas em andamento</div>';
   const abertasVazias=abertas.filter(f=>{const enr=getEnr(f.enroladorId);return enr?.apontadorPerfil===apt;});
   if(!abertasVazias.length)return html+'<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
   const abertasFiltradas=abertas.filter(f=>{
