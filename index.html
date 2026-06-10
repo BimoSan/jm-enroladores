@@ -5284,27 +5284,25 @@ function renderGradPainel(){
       const c=avatarColor(ci);
       const mesAtualGrad=hoje.slice(0,7);
 
-      // Apontamentos de hoje e do mês
-      const totHoje={}, totMes={};
-      fichasGrad.filter(f=>f.gradId===g.id).forEach(f=>{
-        (f.apontamentos||[]).forEach(a=>{
-          getPecasGradAtivas().forEach(p=>{
-            const v=parseInt((a.pecas||{})[p.id])||0;
-            if(v>0){
-              if(a.data===hoje) totHoje[p.id]=(totHoje[p.id]||0)+v;
-              if((a.data||'').startsWith(mesAtualGrad)) totMes[p.id]=(totMes[p.id]||0)+v;
-            }
-          });
+      // Apontamentos de hoje e da quinzena
+      const totHoje={}, totQ={};
+      const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q);
+      (ficha?.apontamentos||[]).forEach(a=>{
+        getPecasGradAtivas().forEach(p=>{
+          const v=parseInt((a.pecas||{})[p.id])||0;
+          if(v>0){
+            if(a.data===hoje) totHoje[p.id]=(totHoje[p.id]||0)+v;
+            totQ[p.id]=(totQ[p.id]||0)+v;
+          }
         });
       });
 
-      const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q);
       const ganho=calcGanhoGrad(ficha?.apontamentos||[]);
       const ganhoHoje=calcGanhoGrad((ficha?.apontamentos||[]).filter(a=>a.data===hoje));
       const totalHojeG=Object.values(totHoje).reduce((s,v)=>s+v,0);
-      const totalMesG=Object.values(totMes).reduce((s,v)=>s+v,0);
+      const totalQG=Object.values(totQ).reduce((s,v)=>s+v,0);
 
-      const pecasComDados=getPecasGradAtivas().filter(p=>(totHoje[p.id]||0)>0||(totMes[p.id]||0)>0);
+      const pecasComDados=getPecasGradAtivas().filter(p=>(totHoje[p.id]||0)>0||(totQ[p.id]||0)>0);
       const shortLabel=p=>p.label.replace('Grade Cabeceira ','Cab. ').replace('Grade Poltrona ','Poltrona ').replace('Grade Sofá ','Sofá ').replace('Grade Cama ','Cama ').replace('Grade Puf','Puf').replace('Encosto ','Enc. ').replace('Grade ','').replace(' — Normal',' N.').replace(' — Reforma',' R.').replace(' — Pedaço',' P.');
 
       const barras=pecasComDados.map(p=>{
@@ -5320,7 +5318,7 @@ function renderGradPainel(){
           +'<span style="font-size:14px;font-weight:800;color:'+cor+'">'+qH+'</span>'
           +'<span style="font-size:10px;color:#94a3b8"> hj · </span>'
           +'<span style="font-size:12px;font-weight:700;color:#065f46">'+qM+'</span>'
-          +'<span style="font-size:10px;color:#94a3b8"> mês</span>'
+          +'<span style="font-size:10px;color:#94a3b8"> Q</span>'
           +'</div></div>'
           +'<div style="height:5px;background:'+bgCor+';border-radius:99px;overflow:hidden">'
           +'<div style="height:100%;width:'+(qM>0?Math.min(100,Math.round(qH/qM*100)):0)+'%;background:'+cor+';border-radius:99px"></div>'
@@ -5333,7 +5331,7 @@ function renderGradPainel(){
         +'<div style="width:44px;height:44px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">'+initials(g.nome)+'</div>'
         +'<div>'
         +'<div style="font-size:14px;font-weight:700">'+g.nome+'</div>'
-        +'<div style="font-size:11px;color:#64748b">'+totalHojeG+' peças hoje · '+totalMesG+' no mês</div>'
+        +'<div style="font-size:11px;color:#64748b">'+totalHojeG+' peças hoje · '+totalQG+' na quinzena</div>'
         +'</div></div>'
         +'<div style="text-align:right">'
         +'<div style="font-size:11px;color:#64748b">ganho hoje</div>'
