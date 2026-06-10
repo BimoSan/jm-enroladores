@@ -8350,9 +8350,9 @@ window._manSalvarMaquina=async function(id){
   const setor=document.getElementById('nm-setor')?.value;
   const modelo=document.getElementById('nm-modelo')?.value.trim();
   const periodMeses=parseInt(document.getElementById('nm-period')?.value)||0;
+  const periodOleoMeses=parseInt(document.getElementById('nm-period-oleo')?.value)||0;
   if(!nome){showToast('Digite o nome.');return;}
   closeModal();
-  const periodOleoMeses=parseInt(document.getElementById('nm-period-oleo')?.value)||0;
   if(id) await updateDoc(doc(db,'manut_maquinas',id),{nome,setor,modelo,periodMeses,periodOleoMeses});
   else await addDoc(collection(db,'manut_maquinas'),{nome,setor,modelo,periodMeses,periodOleoMeses,parada:false});
   showToast('Máquina salva!');
