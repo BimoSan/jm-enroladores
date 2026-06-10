@@ -7851,6 +7851,47 @@ function renderManPainel(){
       +'</div>';
   }
 
+  // Alertas de manutenção preventiva vencida ou próxima
+  const alertasManut=[];
+  manutMaquinas.forEach(m=>{
+    if(!m.periodMeses) return;
+    const regs=manutRegistros.filter(r=>r.maquinaId===m.id&&(r.tipo==='preventiva'||r.tipo==='corretiva')).sort((a,b)=>b.data>a.data?1:-1);
+    const ultima=regs[0];
+    if(!ultima) return;
+    const proxData=new Date(ultima.data+'T12:00:00');
+    proxData.setMonth(proxData.getMonth()+m.periodMeses);
+    const dias=Math.round((proxData-new Date())/86400000);
+    if(dias<0) alertasManut.push({m,dias,tipo:'vencida'});
+    else if(dias<=15) alertasManut.push({m,dias,tipo:'proxima'});
+  });
+  if(alertasManut.length){
+    html+='<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:14px;padding:14px;margin-bottom:14px">'
+      +'<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:10px">⏰ Alertas de manutenção preventiva</div>'
+      +alertasManut.map(({m,dias,tipo})=>{
+        const cor=tipo==='vencida'?'#dc2626':'#d97706';
+        const msg=tipo==='vencida'?'⚠️ Preventiva vencida há '+Math.abs(dias)+'d':tipo==='proxima'?'⏰ Preventiva vence em '+dias+'d':tipo==='oleo_vencida'?'🛢️ Óleo vencido há '+Math.abs(dias)+'d':'🛢️ Trocar óleo em '+dias+'d';
+        const cor2=tipo.includes('vencida')?'#dc2626':'#d97706';
+        return '<div style="background:#fff;border-radius:10px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">'
+          +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
+          +'<div style="font-size:11px;color:#64748b">'+m.setor+' · a cada '+m.periodMeses+' mês'+(m.periodMeses>1?'es':'')+'</div></div>'
+          +'<span style="font-size:11px;font-weight:700;color:'+cor+'">'+msg+'</span>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  // Alertas de troca de óleo
+  manutMaquinas.forEach(m=>{
+    if(!m.periodOleoMeses) return;
+    const ultimaOleo=manutRegistros.filter(r=>r.maquinaId===m.id&&r.tipo==='oleo').sort((a,b)=>b.data>a.data?1:-1)[0];
+    if(!ultimaOleo) return;
+    const proxOleo=new Date(ultimaOleo.data+'T12:00:00');
+    proxOleo.setMonth(proxOleo.getMonth()+m.periodOleoMeses);
+    const dias=Math.round((proxOleo-new Date())/86400000);
+    if(dias<0) alertasManut.push({m,dias,tipo:'oleo_vencida'});
+    else if(dias<=15) alertasManut.push({m,dias,tipo:'oleo_proxima'});
+  });
+
   // Grade de todas as máquinas por setor
   MANUT_SETORES.forEach(setor=>{
     const maqSetor=manutMaquinas.filter(m=>m.setor===setor);
@@ -7895,6 +7936,7 @@ function renderManMaquinas(){
       const regs=manutRegistros.filter(r=>r.maquinaId===m.id);
       const custoTotal=regs.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
       const ultima=regs[0];
+      const ultimaPreventiva=regs.find(r=>r.tipo==='preventiva'||r.tipo==='corretiva');
       html+='<div class="card" style="margin-bottom:8px;border-left:4px solid '+(m.parada?'#dc2626':'#059669')+'">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
         +'<div style="display:flex;align-items:center;gap:10px">'
@@ -7902,7 +7944,39 @@ function renderManMaquinas(){
         +'<div>'
         +'<div style="font-size:14px;font-weight:700">'+m.nome+'</div>'
         +'<div style="font-size:11px;color:#64748b">'+m.setor+(m.modelo?' · '+m.modelo:'')+'</div>'
-        +(ultima?'<div style="font-size:10px;color:#94a3b8">Última manut: '+fmtDate(ultima.data)+' · '+( MANUT_TIPOS.find(t=>t.id===ultima.tipo)?.label||ultima.tipo)+'</div>':'<div style="font-size:10px;color:#94a3b8">Sem manutenções registradas</div>')
+        +(()=>{
+          let info='';
+          if(ultima) info='<div style="font-size:10px;color:#94a3b8">Última manut: '+fmtDate(ultima.data)+' · '+(MANUT_TIPOS.find(t=>t.id===ultima.tipo)?.label||ultima.tipo)+'</div>';
+          else info='<div style="font-size:10px;color:#94a3b8">Sem manutenções registradas</div>';
+          if(m.periodMeses){
+            info+='<div style="font-size:10px;color:#64748b">Preventiva: a cada '+m.periodMeses+' mês'+(m.periodMeses>1?'es':'')+'</div>';
+            if(ultimaPreventiva){
+              const ultimaData=new Date(ultimaPreventiva.data+'T12:00:00');
+              const proxData=new Date(ultimaData);
+              proxData.setMonth(proxData.getMonth()+m.periodMeses);
+              const hoje_=new Date();
+              const diasRestantes=Math.round((proxData-hoje_)/86400000);
+              const vencida=diasRestantes<0;
+              const proxima=!vencida&&diasRestantes<=15;
+              if(vencida) info+='<div style="font-size:10px;font-weight:700;color:#dc2626">⚠️ Vencida há '+Math.abs(diasRestantes)+'d</div>';
+              else if(proxima) info+='<div style="font-size:10px;font-weight:700;color:#d97706">⏰ Vence em '+diasRestantes+'d</div>';
+              else info+='<div style="font-size:10px;color:#059669">✅ Próxima em '+diasRestantes+'d</div>';
+            }
+          }
+          if(m.periodOleoMeses){
+            info+='<div style="font-size:10px;color:#92400e">Troca de óleo: a cada '+m.periodOleoMeses+' mês'+(m.periodOleoMeses>1?'es':'')+'</div>';
+            const ultimaOleo=manutRegistros.filter(r=>r.maquinaId===m.id&&r.tipo==='oleo').sort((a,b)=>b.data>a.data?1:-1)[0];
+            if(ultimaOleo){
+              const proxOleo=new Date(ultimaOleo.data+'T12:00:00');
+              proxOleo.setMonth(proxOleo.getMonth()+m.periodOleoMeses);
+              const diasO=Math.round((proxOleo-new Date())/86400000);
+              if(diasO<0) info+='<div style="font-size:10px;font-weight:700;color:#dc2626">⚠️ Óleo vencido há '+Math.abs(diasO)+'d</div>';
+              else if(diasO<=15) info+='<div style="font-size:10px;font-weight:700;color:#d97706">🛢️ Trocar óleo em '+diasO+'d</div>';
+              else info+='<div style="font-size:10px;color:#059669">🛢️ Próxima troca em '+diasO+'d</div>';
+            }
+          }
+          return info;
+        })()
         +'</div></div>'
         +'<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
         +'<div style="font-size:11px;color:#64748b">'+regs.length+' manut.</div>'
@@ -8023,7 +8097,21 @@ window._manNovaMaquina=function(m={}){
   showModal(m.id?'Editar máquina':'Nova máquina',
     '<div class="form-group"><label>Nome</label><input id="nm-nome" value="'+(m.nome||'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Setor</label>'+selSetor+'</div>'
-    +'<div class="form-group"><label>Modelo / Descrição</label><input id="nm-modelo" value="'+(m.modelo||'')+'" placeholder="Opcional" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    +'<div class="form-group"><label>Modelo / Descrição</label><input id="nm-modelo" value="'+(m.modelo||'')+'" placeholder="Opcional" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Periodicidade de manutenção preventiva</label>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<input type="number" id="nm-period" min="1" value="'+(m.periodMeses||'')+'" placeholder="Ex: 3" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<span style="font-size:13px;color:#64748b;white-space:nowrap">meses</span>'
+    +'</div>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Deixe em branco se não houver periodicidade definida.</div>'
+    +'</div>'
+    +'<div class="form-group"><label>Periodicidade de troca de óleo</label>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<input type="number" id="nm-period-oleo" min="1" value="'+(m.periodOleoMeses||'')+'" placeholder="Ex: 6" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<span style="font-size:13px;color:#64748b;white-space:nowrap">meses</span>'
+    +'</div>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Deixe em branco se não aplicável.</div>'
+    +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarMaquina(\''+( m.id||'')+'\')">Salvar</button>');
 };
@@ -8035,10 +8123,12 @@ window._manSalvarMaquina=async function(id){
   const nome=document.getElementById('nm-nome')?.value.trim();
   const setor=document.getElementById('nm-setor')?.value;
   const modelo=document.getElementById('nm-modelo')?.value.trim();
+  const periodMeses=parseInt(document.getElementById('nm-period')?.value)||0;
   if(!nome){showToast('Digite o nome.');return;}
   closeModal();
-  if(id) await updateDoc(doc(db,'manut_maquinas',id),{nome,setor,modelo});
-  else await addDoc(collection(db,'manut_maquinas'),{nome,setor,modelo,parada:false});
+  const periodOleoMeses=parseInt(document.getElementById('nm-period-oleo')?.value)||0;
+  if(id) await updateDoc(doc(db,'manut_maquinas',id),{nome,setor,modelo,periodMeses,periodOleoMeses});
+  else await addDoc(collection(db,'manut_maquinas'),{nome,setor,modelo,periodMeses,periodOleoMeses,parada:false});
   showToast('Máquina salva!');
 };
 
