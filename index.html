@@ -3262,7 +3262,11 @@ function calcGanhoSoldador(soldadorId, periodo){
         if(diaLiberado){
           pecasDia.forEach(p=>{
             const metaP=comMeta.find(c=>c.id===p.id);
-            const exc=metaP&&metaP.qtd>=metaP.meta?p.qtd-metaP.meta:p.qtd;
+            if(!metaP){totalGanho+=p.qtd*p.val;return;}
+            // Se bateu meta completa: excedente da meta
+            // Se só bateu meia meta: excedente da meia meta
+            const limiar=metaP.qtd>=metaP.meta?metaP.meta:Math.ceil(metaP.meta/2);
+            const exc=Math.max(0,p.qtd-limiar);
             totalGanho+=exc*p.val;
           });
         }
@@ -3270,18 +3274,32 @@ function calcGanhoSoldador(soldadorId, periodo){
         return;
       }
 
-      // ── Conjunta: 3+ peças — lógica de equivalência ──────────────
+      // ── Conjunta: 3+ peças ──────────────────────────────────────
       const bateuAlguma=comMeta.some(p=>p.qtd>=p.meta);
+      const atingiramMeiaM=comMeta.filter(p=>p.qtd>=(p.meta/2));
+
       if(bateuAlguma){
+        // Pelo menos uma bateu meta completa → excedente da meta em produção
         pecasDia.forEach(p=>{
           const metaP=comMeta.find(c=>c.id===p.id);
-          const exc=metaP&&metaP.qtd>=metaP.meta?p.qtd-metaP.meta:p.qtd;
+          const exc=metaP&&metaP.qtd>=metaP.meta?Math.max(0,p.qtd-metaP.meta):p.qtd;
           totalGanho+=exc*p.val;
         });
         return;
       }
 
-      // Nenhuma bateu meta: tenta equivalência com peça principal
+      if(atingiramMeiaM.length>=2){
+        // Pelo menos 2 atingiram meia meta → excedente da meia meta em produção
+        pecasDia.forEach(p=>{
+          const metaP=comMeta.find(c=>c.id===p.id);
+          const meiaMetaP=metaP?Math.ceil(metaP.meta/2):0;
+          const exc=Math.max(0,p.qtd-meiaMetaP);
+          totalGanho+=exc*p.val;
+        });
+        return;
+      }
+
+      // Menos de 2 atingiram meia meta → equivalência com peça base
       let principal=pecaBaseDefinida?comMeta.find(p=>p.id===pecaBaseDefinida):null;
       if(!principal){
         const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
@@ -3618,6 +3636,17 @@ function _renderHistoricoMetal(){
         statusMsg='<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✅ Meia meta atingida — produção liberada</span>';
       } else {
         statusMsg='<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:99px;font-weight:700">❌ Meta não atingida</span>';
+      }
+    } else if(a.modoCalculo==='conjunta'&&pecasAp.length>=3){
+      const comMetaAp=pecasAp.filter(p=>p.meta>0);
+      const bateu=comMetaAp.some(p=>p.qtd>=p.meta);
+      const meiaCount=comMetaAp.filter(p=>p.qtd>=(p.meta/2)).length;
+      if(bateu){
+        statusMsg='<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✅ Meta atingida — produção liberada</span>';
+      } else if(meiaCount>=2){
+        statusMsg='<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:99px;font-weight:700">✅ Meia meta (2+ peças) — produção liberada</span>';
+      } else {
+        statusMsg='<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px;font-weight:700">⚖️ Equivalência aplicada</span>';
       }
     } else if(a.modoCalculo!=='conjunta'){
       const bateu=pecasAp.some(p=>p.meta>0&&p.qtd>=p.meta);
@@ -7576,6 +7605,10 @@ function renderFichasMetal(){
       const diasComApont=[...new Set(apontsDaQ.map(a=>a.data))].sort();
       let historicoHtml='';
       if(diasComApont.length>0){
+        const vProdH=configMetal.valoresProd||{};
+        const vMetaH=configMetal.valoresMeta||{};
+        const vRefH=configMetal.valoresRef||{};
+        const metasH=configMetal.metas||{};
         const linhas=diasComApont.map(dia=>{
           const apontsDia=apontsDaQ.filter(a=>a.data===dia);
           const totalDia=apontsDia.reduce((s,a)=>s+Object.values(a.pecas||{}).reduce((ss,v)=>ss+(parseInt(v)||0),0),0);
@@ -7585,9 +7618,13 @@ function renderFichasMetal(){
             return `<span style="font-size:10px;color:#64748b">${p.label}: <strong>${qtdP}</strong></span>`;
           }).join(' · ');
           const [,, dd]=dia.split('-');
+          // Calcular ganho do dia
+          const ganhoDia=calcGanhoSoldador(sol.id, dia);
+          const corGanho=ganhoDia>0?'#059669':'#94a3b8';
           return `<tr style="border-bottom:1px solid #f1f5f9">
             <td style="padding:5px 8px;font-size:12px;font-weight:600;color:#374151;white-space:nowrap">${dd}/${qMes}/${qAno}</td>
             <td style="padding:5px 8px;font-size:12px;font-weight:700;color:#1e40af;text-align:center">${totalDia}</td>
+            <td style="padding:5px 8px;font-size:12px;font-weight:700;color:${corGanho};text-align:right;white-space:nowrap">${ganhoDia>0?fmtR(ganhoDia):'—'}</td>
             <td style="padding:5px 8px;font-size:11px;color:#64748b">${detalDia}</td>
           </tr>`;
         }).join('');
@@ -7598,12 +7635,14 @@ function renderFichasMetal(){
             <thead><tr style="background:#f8fafc">
               <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Data</th>
               <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center">Total</th>
+              <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:right">Ganho</th>
               <th style="padding:5px 8px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Detalhes</th>
             </tr></thead>
             <tbody>${linhas}</tbody>
             <tfoot><tr style="background:#f0f9ff">
               <td style="padding:5px 8px;font-size:11px;font-weight:700;color:#1e40af">Total quinzena</td>
               <td style="padding:5px 8px;font-size:12px;font-weight:800;color:#1e40af;text-align:center">${totalPecas}</td>
+              <td style="padding:5px 8px;font-size:12px;font-weight:800;color:#059669;text-align:right">${fmtR(ganho)}</td>
               <td></td>
             </tr></tfoot>
           </table>
