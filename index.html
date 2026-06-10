@@ -7912,7 +7912,7 @@ function renderManPainel(){
 function renderManMaquinas(){
   const podeEditar=['admin','proprietario','mecanico'].includes(currentUserData?.perfil);
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
-    +'<button class="btn btn-primary btn-sm" onclick="window._manNovaMaquina()">+ Máquina</button>'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._manNovaMaquina()">+ Máquina</button>':'')
     +'</div>';
 
   MANUT_SETORES.forEach(setor=>{
