@@ -342,6 +342,7 @@ let almItens=[];
 // Manutenção
 let manutMaquinas=[];
 let manutRegistros=[];
+let manutQuadros=[];
 // Grades
 let gradistas=[];
 let fichasGrad=[];
@@ -7952,6 +7953,47 @@ function renderManMaquinas(){
   });
 
   if(!manutMaquinas.length) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma máquina cadastrada.</div>';
+
+  // ── Quadros de energia ───────────────────────────────────────────
+  html+='<div style="margin-top:20px;border-top:2px solid #e2e8f0;padding-top:16px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569">⚡ Quadros de energia</div>'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._manNovoQuadro()">+ Quadro</button>':'')
+    +'</div>';
+
+  if(!manutQuadros.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:16px">Nenhum quadro cadastrado.</div>';
+  } else {
+    manutQuadros.forEach(q=>{
+      const regs=manutRegistros.filter(r=>r.maquinaId==='quadro_'+q.id);
+      const ultima=regs[0];
+      const proximaInfo=(()=>{
+        if(!q.periodMeses||!ultima) return '';
+        const prox=new Date(ultima.data+'T12:00:00');
+        prox.setMonth(prox.getMonth()+q.periodMeses);
+        const dias=Math.round((prox-new Date())/86400000);
+        if(dias<0) return '<span style="font-size:10px;font-weight:700;color:#dc2626">⚠️ Vencida há '+Math.abs(dias)+'d</span>';
+        if(dias<=15) return '<span style="font-size:10px;font-weight:700;color:#d97706">⏰ Vence em '+dias+'d</span>';
+        return '<span style="font-size:10px;color:#059669">✅ Próxima em '+dias+'d</span>';
+      })();
+      html+='<div class="card" style="margin-bottom:8px;border-left:4px solid #f59e0b">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:24px">⚡</span>'
+        +'<div>'
+        +'<div style="font-size:14px;font-weight:700">'+q.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+q.setor+(q.periodMeses?' · Manutenção a cada '+q.periodMeses+' mês'+(q.periodMeses>1?'es':''):'')+'</div>'
+        +(ultima?'<div style="font-size:10px;color:#94a3b8">Última: '+fmtDate(ultima.data)+'</div>':'<div style="font-size:10px;color:#94a3b8">Sem manutenções</div>')
+        +(proximaInfo?'<div style="margin-top:2px">'+proximaInfo+'</div>':'')
+        +'</div></div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+        +'<div style="font-size:11px;color:#64748b">'+regs.length+' manut.</div>'
+        +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarQuadro(\''+q.id+'\')">Editar</button>':'')
+        +'<button class="btn btn-sm" style="font-size:11px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e" onclick="window._manRegistrarQuadro(\''+q.id+'\')">+ Manut.</button>'
+        +'</div></div></div>';
+    });
+  }
+  html+='</div>';
   return html;
 }
 
@@ -8153,6 +8195,55 @@ window._manToggleParada=function(id){
 };
 window._manMarcarParada=function(id){ window._manAbrirMaquina(id); };
 window._manVoltarOperar=function(id){ window._manAbrirMaquina(id); };
+
+window._manNovoQuadro=function(q={}){
+  const selSetor='<select id="nq-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +MANUT_SETORES.map(s=>'<option value="'+s+'"'+(q.setor===s?' selected':'')+'>'+s+'</option>').join('')+'</select>';
+  showModal(q.id?'Editar quadro':'Novo quadro de energia',
+    '<div class="form-group"><label>Nome</label><input id="nq-nome" value="'+(q.nome||'')+'" placeholder="Ex: Quadro Geral, Quadro Metalúrgica..." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Setor</label>'+selSetor+'</div>'
+    +'<div class="form-group"><label>Periodicidade de manutenção</label>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<input type="number" id="nq-period" min="1" value="'+(q.periodMeses||'')+'" placeholder="Ex: 6" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<span style="font-size:13px;color:#64748b;white-space:nowrap">meses</span>'
+    +'</div></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarQuadro(\''+( q.id||'')+'\')">Salvar</button>');
+};
+window._manEditarQuadro=function(id){
+  const q=manutQuadros.find(x=>x.id===id);
+  if(q) window._manNovoQuadro(q);
+};
+window._manSalvarQuadro=async function(id){
+  const nome=document.getElementById('nq-nome')?.value.trim();
+  const setor=document.getElementById('nq-setor')?.value;
+  const periodMeses=parseInt(document.getElementById('nq-period')?.value)||0;
+  if(!nome){showToast('Digite o nome.');return;}
+  closeModal();
+  if(id) await updateDoc(doc(db,'manut_quadros',id),{nome,setor,periodMeses});
+  else await addDoc(collection(db,'manut_quadros'),{nome,setor,periodMeses});
+  showToast('Quadro salvo!');
+};
+window._manRegistrarQuadro=function(quadroId){
+  showModal('⚡ Manutenção do quadro',
+    '<div class="form-group"><label>O que foi feito (opcional)</label>'
+    +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>'
+    +'<div class="form-group"><label>Custo (R$) — opcional</label>'
+    +'<input type="number" id="mc-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarManutQuadro(\''+quadroId+'\')">Salvar</button>');
+};
+window._manSalvarManutQuadro=async function(quadroId){
+  const descricao=document.getElementById('mc-desc')?.value.trim()||'';
+  const custo=parseFloat(document.getElementById('mc-custo')?.value)||0;
+  closeModal();
+  await addDoc(collection(db,'manut_registros'),{
+    maquinaId:'quadro_'+quadroId, tipo:'preventiva', data:today(),
+    descricao, custo, responsavel:currentUserData?.nome||'',
+    criadoEm:new Date().toISOString()
+  });
+  showToast('Manutenção registrada!');
+};
 
 window._manNovaMaquina=function(m={}){
   const selSetor='<select id="nm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
@@ -10281,6 +10372,10 @@ function iniciarListeners(){
   });
   onSnapshot(collection(db,'manut_registros'),snap=>{
     manutRegistros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+    if(currentUserData&&currentSetor==='manutencao')reloadTab();
+  });
+  onSnapshot(collection(db,'manut_quadros'),snap=>{
+    manutQuadros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
     if(currentUserData&&currentSetor==='manutencao')reloadTab();
   });
   // Grades
