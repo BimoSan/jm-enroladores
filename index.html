@@ -9601,8 +9601,29 @@ window._confirmarRemoverSinal=async function(){
 };
 
 window._salvarSinalizacao=async fichaId=>{
+  const f=getFicha(fichaId);
+  if(!f) return;
+  // Calcular máximo disponível por tipo
+  const entreguesPorTipo={};
+  (f.entregas||[]).forEach(e=>{Object.entries(e.tipos||{}).forEach(([k,v])=>{entreguesPorTipo[k]=(entreguesPorTipo[k]||0)+v;});});
+  const recolhidosPorTipo={};
+  (f.recolhimentos||[]).forEach(r=>{Object.entries(r.tipos||{}).forEach(([k,v])=>{recolhidosPorTipo[k]=(recolhidosPorTipo[k]||0)+v;});});
+
   const prontos={};
-  TIPOS.forEach(t=>{prontos[t.id]=parseInt(document.getElementById(`sig-${t.id}`)?.value)||0;});
+  let erros=[];
+  TIPOS.forEach(t=>{
+    const emMao=(entreguesPorTipo[t.id]||0)-(recolhidosPorTipo[t.id]||0);
+    const val=parseInt(document.getElementById('sig-'+t.id)?.value)||0;
+    if(val>emMao){
+      erros.push(t.label+': máximo é '+emMao);
+    } else {
+      prontos[t.id]=val;
+    }
+  });
+  if(erros.length){
+    showToast('Quantidade maior que o disponível: '+erros.join(', '));
+    return;
+  }
   const total=Object.values(prontos).reduce((a,v)=>a+v,0);
   await updateDoc(doc(db,'fichas',fichaId),{prontos,prontoSinalizado:total>0,prontoAtualizadoEm:new Date().toISOString()});
   closeModal();
