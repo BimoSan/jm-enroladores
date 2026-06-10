@@ -5252,19 +5252,51 @@ function renderGradPainel(){
       const qQ=porGradQ[g.id]||0;
       const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q);
       const ganho=calcGanhoGrad(ficha?.apontamentos||[]);
-      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${g.nome[0]}</div>
-          <div>
-            <div style="font-size:13px;font-weight:700">${g.nome}</div>
-            <div style="font-size:10px;color:#64748b">Quinzena: ${qQ} peças · ${fmtMoeda(ganho)}</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:10px;color:#64748b">hoje</div>
-          <div style="font-size:20px;font-weight:800;color:${qHoje>0?'#1d4ed8':'#cbd5e1'}">${qHoje}</div>
-        </div>
-      </div>`;
+
+      // Totais por tipo — hoje e mês
+      const mesAtualGrad=hoje.slice(0,7);
+      const totHoje={}, totMes={};
+      fichasGrad.filter(f=>f.gradId===g.id).forEach(f=>{
+        (f.apontamentos||[]).forEach(a=>{
+          getPecasGradAtivas().forEach(p=>{
+            const v=parseInt((a.pecas||{})[p.id])||0;
+            if(v>0){
+              if(a.data===hoje) totHoje[p.id]=(totHoje[p.id]||0)+v;
+              if((a.data||'').startsWith(mesAtualGrad)) totMes[p.id]=(totMes[p.id]||0)+v;
+            }
+          });
+        });
+      });
+      const tiposComDados=getPecasGradAtivas().filter(p=>(totHoje[p.id]||0)>0||(totMes[p.id]||0)>0);
+      const shortLabel=p=>p.label.replace('Grade Cabeceira ','Cab. ').replace('Grade Poltrona ','Poltrona ').replace('Grade Sofá ','Sofá ').replace('Grade Cama ','Cama ').replace('Grade Puf','Puf').replace('Encosto ','Enc. ').replace('Grade ','').replace(' — Normal',' N.').replace(' — Reforma',' R.').replace(' — Pedaço',' P.');
+
+      const pecasHtml=tiposComDados.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">'
+        +tiposComDados.map(p=>{
+          const qH=totHoje[p.id]||0;
+          const qM=totMes[p.id]||0;
+          return '<div style="background:#f1f5f9;border-radius:8px;padding:4px 8px;font-size:10px">'
+            +'<span style="color:#64748b;font-weight:600">'+shortLabel(p)+'</span>'
+            +(qH>0?' <span style="color:#1d4ed8;font-weight:800">'+qH+' hj</span>':'')
+            +'<span style="color:#475569"> / </span>'
+            +'<span style="color:#065f46;font-weight:700">'+qM+' mês</span>'
+            +'</div>';
+        }).join('')
+        +'</div>':'';
+
+      html+='<div style="padding:10px 0;border-bottom:1px solid #f1f5f9">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">'+g.nome[0]+'</div>'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:700">'+g.nome+'</div>'
+        +'<div style="font-size:10px;color:#64748b">Quinzena: '+qQ+' peças · '+fmtMoeda(ganho)+'</div>'
+        +'</div></div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:10px;color:#64748b">hoje</div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+(qHoje>0?'#1d4ed8':'#cbd5e1')+'">'+qHoje+'</div>'
+        +'</div></div>'
+        +pecasHtml
+        +'</div>';
     });
   }
   html+='</div>';
