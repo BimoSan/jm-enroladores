@@ -1164,6 +1164,29 @@ function renderPainelEnrolador(){
 
   // Cards de resumo
   if(fichaAberta){
+    // Bloco de sinalização ativa
+    if(fichaAberta.prontoSinalizado){
+      const prontos=fichaAberta.prontos||{};
+      const totalProntos=Object.values(prontos).reduce((s,v)=>s+v,0);
+      const itensProntos=TIPOS.filter(t=>prontos[t.id]>0).map(t=>t.label+': <strong>'+prontos[t.id]+'</strong>').join(' · ');
+      const quando=fichaAberta.prontoAtualizadoEm?new Date(fichaAberta.prontoAtualizadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      html+='<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:14px;padding:14px;margin-bottom:16px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:24px">🔔</span>'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:800;color:#92400e">Peças sinalizadas como prontas</div>'
+        +'<div style="font-size:12px;color:#b45309;margin-top:3px">'+itensProntos+'</div>'
+        +(quando?'<div style="font-size:10px;color:#94a3b8;margin-top:2px">Sinalizado em '+quando+'</div>':'')
+        +'</div></div>'
+        +'<div style="font-size:26px;font-weight:900;color:#d97706;flex-shrink:0">'+totalProntos+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:10px">'
+        +'<button onclick="window._abrirSinalizacao(\''+fichaAberta.id+'\')" style="flex:1;padding:8px;border-radius:10px;background:#fff;border:1.5px solid #f59e0b;color:#92400e;font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>'
+        +'<button onclick="window._removerSinalizacao(\''+fichaAberta.id+'\')" style="flex:1;padding:8px;border-radius:10px;background:#fff;border:1.5px solid #dc2626;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer">✕ Cancelar aviso</button>'
+        +'</div>'
+        +'</div>';
+    }
     html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
       +'<div class="card" style="text-align:center;padding:14px">'
         +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">ENTREGUES</div>'
@@ -9560,6 +9583,21 @@ window._abrirSinalizacao=fichaId=>{
     <div class="num-inputs">${tiposInputs}</div>`,
     `<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>
      <button class="btn btn-primary btn-sm" onclick="window._salvarSinalizacao('${fichaId}')">Sinalizar</button>`);
+};
+
+window._removerSinalizacao=function(fichaId){
+  window._pendingRemoverSinal=fichaId;
+  showModal('Cancelar aviso',
+    '<div style="font-size:13px;color:#444">Deseja cancelar o aviso de peças prontas? A fábrica não verá mais a sinalização.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._confirmarRemoverSinal()">Confirmar</button>');
+};
+window._confirmarRemoverSinal=async function(){
+  const fichaId=window._pendingRemoverSinal;
+  if(!fichaId) return;
+  closeModal();
+  await updateDoc(doc(db,'fichas',fichaId),{prontos:{},prontoSinalizado:false,prontoAtualizadoEm:null});
+  showToast('Aviso cancelado!');
 };
 
 window._salvarSinalizacao=async fichaId=>{
