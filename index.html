@@ -403,8 +403,8 @@ function can(p){
   if(!currentUserData)return false;
   const perfil=currentUserData.perfil;
   const rules={
-    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp'],
-    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral'],
+    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico'],
+    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','mecanico'],
     verFichasEntregador: ['entregador'],
     verFichasEnrolador:  ['enrolador'],
     registrar:       ['admin','apontador1','apontador2'],
@@ -412,11 +412,11 @@ function can(p){
     marcarPago:      ['admin','financeiro'],
     cadastrarEnrolador:  ['admin'],
     gerenciarUsuarios:   ['admin'],
-    verRelatorio:    ['admin','proprietario','financeiro'],
-    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp'],
+    verRelatorio:    ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','mecanico'],
+    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico'],
     verValores:      ['admin','proprietario','financeiro'],
     editar:          ['admin'],
-    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral'],
+    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral','mecanico'],
     sinalizarProntos:['enrolador'],
   };
   return(rules[p]||[]).includes(perfil);
@@ -596,8 +596,8 @@ function renderSelecionarFabrica(){
     {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
     {id:'manutencao',   nome:'Manutenção',             icon:'🔧', cor:'#374151', bg:'linear-gradient(135deg,#374151,#6b7280)', desc:'Máquinas, manutenções e status'},
   ].filter(f=>{
-    if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1'].includes(currentUserData?.perfil);
-    if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador_metal','mecanico'].includes(currentUserData?.perfil);
+    if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1','mecanico'].includes(currentUserData?.perfil);
+    if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio'].includes(currentUserData?.perfil);
     if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
     if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico','encarregado_cad','encarregado_est','financeiro','escritorio'].includes(currentUserData?.perfil);
     return fabricasDisponiveis.includes(f.id);
