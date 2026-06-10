@@ -7813,113 +7813,75 @@ function renderTabManutencao(tab){
 
 // ── Painel ───────────────────────────────────────────────────────
 function renderManPainel(){
-  const operando=manutMaquinas.filter(m=>!m.parada);
-  const paradas=manutMaquinas.filter(m=>m.parada);
-  const totalManut=manutRegistros.length;
-  const custoTotal=manutRegistros.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+  // Helper: calcular status de prazo
+  function calcPrazo(maquinaId, tipos, periodMeses){
+    if(!periodMeses) return null;
+    const ult=manutRegistros.filter(r=>r.maquinaId===maquinaId&&tipos.includes(r.tipo)).sort((a,b)=>b.data>a.data?1:-1)[0];
+    if(!ult) return {label:'Sem histórico',cor:'#94a3b8',dias:null};
+    const prox=new Date(ult.data+'T12:00:00');
+    prox.setMonth(prox.getMonth()+periodMeses);
+    const dias=Math.round((prox-new Date())/86400000);
+    if(dias<0) return {label:'Vencida há '+Math.abs(dias)+'d',cor:'#dc2626',dias,ult};
+    if(dias<=15) return {label:'Vence em '+dias+'d',cor:'#d97706',dias,ult};
+    return {label:'Próxima em '+dias+'d',cor:'#059669',dias,ult};
+  }
 
-  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Operando</div><div class="stat-value">'+operando.length+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Paradas</div><div class="stat-value">'+paradas.length+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Manutenções</div><div class="stat-value">'+totalManut+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Custo total</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(custoTotal)+'</div></div></div>'
+  // Cards de status resumido
+  const operando=manutMaquinas.filter(m=>!m.parada).length;
+  const paradas=manutMaquinas.filter(m=>m.parada).length;
+  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Operando</div><div class="stat-value">'+operando+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Paradas</div><div class="stat-value">'+paradas+'</div></div></div>'
     +'</div>';
 
-  // Máquinas paradas em destaque
-  if(paradas.length){
-    html+='<div style="background:#fee2e2;border:2px solid #dc2626;border-radius:14px;padding:14px;margin-bottom:14px">'
-      +'<div style="font-size:13px;font-weight:800;color:#dc2626;margin-bottom:10px">🔴 '+paradas.length+' máquina'+( paradas.length>1?'s':'')+' parada'+( paradas.length>1?'s':'')+'</div>'
-      +paradas.map(m=>{
-        const desde=m.paradaDesde?new Date(m.paradaDesde):null;
-        const agora=new Date();
-        let tempo='';
-        if(desde){
-          const diff=agora-desde;
-          const h=Math.floor(diff/3600000);
-          const d=Math.floor(h/24);
-          tempo=d>0?d+'d '+( h%24)+'h':h+'h';
-        }
-        return '<div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
-          +'<div>'
-          +'<div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
-          +'<div style="font-size:11px;color:#64748b">'+m.setor+(tempo?' · Parada há '+tempo:'')+'</div>'
-          +(m.paradaMotivo?'<div style="font-size:11px;color:#dc2626;margin-top:2px">'+m.paradaMotivo+'</div>':'')
-          +'</div>'
-          +'<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="window._manVoltarOperar(\''+m.id+'\')">✅ Voltou</button>'
-          +'</div>';
-      }).join('')
-      +'</div>';
-  }
-
-  // Alertas de manutenção preventiva vencida ou próxima
-  const alertasManut=[];
-  manutMaquinas.forEach(m=>{
-    if(!m.periodMeses) return;
-    const regs=manutRegistros.filter(r=>r.maquinaId===m.id&&(r.tipo==='preventiva'||r.tipo==='corretiva')).sort((a,b)=>b.data>a.data?1:-1);
-    const ultima=regs[0];
-    if(!ultima) return;
-    const proxData=new Date(ultima.data+'T12:00:00');
-    proxData.setMonth(proxData.getMonth()+m.periodMeses);
-    const dias=Math.round((proxData-new Date())/86400000);
-    if(dias<0) alertasManut.push({m,dias,tipo:'vencida'});
-    else if(dias<=15) alertasManut.push({m,dias,tipo:'proxima'});
-  });
-  if(alertasManut.length){
-    html+='<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:14px;padding:14px;margin-bottom:14px">'
-      +'<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:10px">⏰ Alertas de manutenção preventiva</div>'
-      +alertasManut.map(({m,dias,tipo})=>{
-        const cor=tipo==='vencida'?'#dc2626':'#d97706';
-        const msg=tipo==='vencida'?'⚠️ Preventiva vencida há '+Math.abs(dias)+'d':tipo==='proxima'?'⏰ Preventiva vence em '+dias+'d':tipo==='oleo_vencida'?'🛢️ Óleo vencido há '+Math.abs(dias)+'d':'🛢️ Trocar óleo em '+dias+'d';
-        const cor2=tipo.includes('vencida')?'#dc2626':'#d97706';
-        return '<div style="background:#fff;border-radius:10px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">'
-          +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
-          +'<div style="font-size:11px;color:#64748b">'+m.setor+' · a cada '+m.periodMeses+' mês'+(m.periodMeses>1?'es':'')+'</div></div>'
-          +'<span style="font-size:11px;font-weight:700;color:'+cor+'">'+msg+'</span>'
-          +'</div>';
-      }).join('')
-      +'</div>';
-  }
-
-  // Alertas de troca de óleo
-  manutMaquinas.forEach(m=>{
-    if(!m.periodOleoMeses) return;
-    const ultimaOleo=manutRegistros.filter(r=>r.maquinaId===m.id&&r.tipo==='oleo').sort((a,b)=>b.data>a.data?1:-1)[0];
-    if(!ultimaOleo) return;
-    const proxOleo=new Date(ultimaOleo.data+'T12:00:00');
-    proxOleo.setMonth(proxOleo.getMonth()+m.periodOleoMeses);
-    const dias=Math.round((proxOleo-new Date())/86400000);
-    if(dias<0) alertasManut.push({m,dias,tipo:'oleo_vencida'});
-    else if(dias<=15) alertasManut.push({m,dias,tipo:'oleo_proxima'});
-  });
-
-  // Grade de todas as máquinas por setor
+  // Cards de máquinas por setor — clicável
   MANUT_SETORES.forEach(setor=>{
     const maqSetor=manutMaquinas.filter(m=>m.setor===setor);
     if(!maqSetor.length) return;
-    html+='<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">'+setor+'</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:8px">';
+    html+='<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px">'+setor+'</div>';
     maqSetor.forEach(m=>{
-      const regs=manutRegistros.filter(r=>r.maquinaId===m.id).slice(0,1);
-      const ultima=regs[0];
-      const cor=m.parada?'#dc2626':'#059669';
-      const bg=m.parada?'#fee2e2':'#f0fdf4';
-      const border=m.parada?'#fca5a5':'#86efac';
-      html+='<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:12px;padding:12px">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-        +'<span style="font-size:18px">'+(m.parada?'🔴':'✅')+'</span>'
-        +'<button onclick="window._manToggleParada(\''+m.id+'\')" style="font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid '+cor+';background:#fff;color:'+cor+';cursor:pointer;font-weight:700">'
-        +(m.parada?'Voltou':'Parou')+'</button>'
+      const parada=m.parada;
+      const cor=parada?'#dc2626':'#059669';
+      const bg=parada?'#fff5f5':'#f0fdf4';
+      const border=parada?'#fca5a5':'#86efac';
+
+      // Tempo parada
+      let tempoParada='';
+      if(parada&&m.paradaDesde){
+        const diff=new Date()-new Date(m.paradaDesde);
+        const h=Math.floor(diff/3600000);
+        const d=Math.floor(h/24);
+        tempoParada=d>0?d+'d '+(h%24)+'h':h+'h';
+      }
+
+      // Prazos
+      const prazoPrev=calcPrazo(m.id,['preventiva','corretiva'],m.periodMeses);
+      const prazoOleo=calcPrazo(m.id,['oleo'],m.periodOleoMeses);
+      const prazoHtml=(prazoPrev?'<span style="font-size:10px;font-weight:600;color:'+prazoPrev.cor+'">🔧 '+prazoPrev.label+'</span>  ':'')
+        +(prazoOleo?'<span style="font-size:10px;font-weight:600;color:'+prazoOleo.cor+'">🛢️ '+prazoOleo.label+'</span>':'');
+      const ultimaReg=manutRegistros.filter(r=>r.maquinaId===m.id)[0];
+
+      html+='<div style="background:'+bg+';border:2px solid '+border+';border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirMaquina(&quot;'+m.id+'&quot;)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:28px">'+(parada?'🔴':'✅')+'</span>'
+        +'<div>'
+        +'<div style="font-size:15px;font-weight:800;color:#1e293b">'+m.nome+'</div>'
+        +'<div style="font-size:11px;font-weight:700;color:'+cor+'">'+(parada?'PARADA'+(tempoParada?' há '+tempoParada:''):'OPERANDO')+'</div>'
+        +(m.paradaMotivo?'<div style="font-size:11px;color:#dc2626">'+m.paradaMotivo+'</div>':'')
+        +'</div></div>'
+        +'<span style="font-size:22px;color:#94a3b8">›</span>'
         +'</div>'
-        +'<div style="font-size:13px;font-weight:700;color:#1e293b">'+m.nome+'</div>'
-        +'<div style="font-size:10px;color:'+cor+';font-weight:600;margin-top:2px">'+(m.parada?'Parada':'Operando')+'</div>'
-        +(ultima?'<div style="font-size:9px;color:#94a3b8;margin-top:4px">Última manut: '+fmtDate(ultima.data)+'</div>':'')
+        +(prazoHtml?'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid '+(parada?'#fecaca':'#bbf7d0')+'">'+prazoHtml+'</div>':'')
+        +(ultimaReg?'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Última manut: '+fmtDate(ultimaReg.data)+' · '+(MANUT_TIPOS.find(t=>t.id===ultimaReg.tipo)?.label||ultimaReg.tipo)+'</div>':'')
         +'</div>';
     });
-    html+='</div>';
   });
 
+  if(!manutMaquinas.length) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:24px">Nenhuma máquina cadastrada.</div>';
   return html;
 }
+
 
 // ── Máquinas ─────────────────────────────────────────────────────
 function renderManMaquinas(){
@@ -8057,39 +8019,93 @@ function renderManRegistros(){
 window._manSetFiltroMaq=v=>{ window._manFiltroMaq=v; reloadTab(); };
 window._manSetFiltroTipo=v=>{ window._manFiltroTipo=v; reloadTab(); };
 
-window._manToggleParada=function(id){
+window._manAbrirMaquina=function(id){
   const m=manutMaquinas.find(x=>x.id===id);
   if(!m) return;
+
   if(m.parada){
-    window._manVoltarOperar(id);
+    // Máquina parada — pergunta se fez corretiva
+    const desde=m.paradaDesde?new Date(m.paradaDesde):null;
+    const diff=desde?new Date()-desde:0;
+    const h=Math.floor(diff/3600000);
+    const d=Math.floor(h/24);
+    const tempo=d>0?d+'d '+(h%24)+'h':h+'h';
+    showModal('🔴 '+m.nome+' — Parada'+(tempo?' há '+tempo:''),
+      (m.paradaMotivo?'<div style="font-size:12px;color:#dc2626;margin-bottom:12px">Motivo: '+m.paradaMotivo+'</div>':'')
+      +'<div style="font-size:13px;color:#444;margin-bottom:14px">A manutenção corretiva foi realizada?</div>'
+      +'<div class="form-group"><label>O que foi feito (opcional)</label>'
+      +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>'
+      +'<div class="form-group"><label>Custo (R$) — opcional</label>'
+      +'<input type="number" id="mc-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+      '<button class="btn btn-sm" onclick="window._closeModal()">Ainda não</button>'
+      +'<button class="btn btn-sm btn-primary" onclick="window._manCorretivaConcluida(\''+id+'\')">✅ Sim, voltou!</button>');
   } else {
-    window._manMarcarParada(id);
+    // Máquina operando — menu de ações
+    showModal('🔧 '+m.nome,
+      '<div style="display:flex;flex-direction:column;gap:10px">'
+      +'<button onclick="window._manAcao(\'parou\',\''+id+'\')" style="padding:16px;border-radius:12px;background:#fee2e2;border:2px solid #fca5a5;font-size:15px;font-weight:700;color:#dc2626;cursor:pointer;text-align:left">🔴 A máquina parou</button>'
+      +'<button onclick="window._manAcao(\'preventiva\',\''+id+'\')" style="padding:16px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;text-align:left">🔧 Manutenção preventiva</button>'
+      +'<button onclick="window._manAcao(\'oleo\',\''+id+'\')" style="padding:16px;border-radius:12px;background:#fef3c7;border:2px solid #fcd34d;font-size:15px;font-weight:700;color:#92400e;cursor:pointer;text-align:left">🛢️ Troca de óleo</button>'
+      +'</div>',
+      '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
   }
 };
 
-window._manMarcarParada=function(id){
-  const m=manutMaquinas.find(x=>x.id===id);
-  if(!m) return;
-  showModal('Marcar como parada',
-    '<div class="form-group"><label>Motivo (opcional)</label>'
-    +'<input id="mp-motivo" placeholder="Ex: Problema na correia..." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
-    +'<button class="btn btn-sm btn-danger" onclick="window._manConfirmarParada(\''+id+'\')">Confirmar parada</button>');
-};
-window._manConfirmarParada=async function(id){
-  const motivo=document.getElementById('mp-motivo')?.value||'';
+window._manAcao=function(acao, id){
   closeModal();
-  await updateDoc(doc(db,'manut_maquinas',id),{parada:true,paradaDesde:new Date().toISOString(),paradaMotivo:motivo});
-  showToast('Máquina marcada como parada.');
+  if(acao==='parou'){
+    showModal('🔴 Máquina parou',
+      '<div class="form-group"><label>Motivo (opcional)</label>'
+      +'<input id="mp-motivo" placeholder="Ex: Problema na correia..." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+      '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+      +'<button class="btn btn-sm btn-danger" onclick="window._manConfirmarParada(\''+id+'\')">Confirmar</button>');
+  } else {
+    // preventiva ou oleo — pede desc e custo
+    const label=acao==='preventiva'?'Manutenção preventiva':'Troca de óleo';
+    showModal('✅ '+label,
+      '<div class="form-group"><label>O que foi feito (opcional)</label>'
+      +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>'
+      +'<div class="form-group"><label>Custo (R$) — opcional</label>'
+      +'<input type="number" id="mc-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+      '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+      +'<button class="btn btn-sm btn-primary" onclick="window._manRegistrarAcao(\''+acao+'\',\''+id+'\')">Salvar</button>');
+  }
 };
 
-window._manVoltarOperar=async function(id){
-  const m=manutMaquinas.find(x=>x.id===id);
-  if(!m) return;
-  const tempoParada=m.paradaDesde?Math.round((new Date()-new Date(m.paradaDesde))/60000):0;
-  await updateDoc(doc(db,'manut_maquinas',id),{parada:false,paradaDesde:null,paradaMotivo:'',ultimaParadaMinutos:tempoParada});
-  showToast('Máquina voltou a operar!');
+window._manRegistrarAcao=async function(tipo, maquinaId){
+  const descricao=document.getElementById('mc-desc')?.value.trim()||'';
+  const custo=parseFloat(document.getElementById('mc-custo')?.value)||0;
+  closeModal();
+  await addDoc(collection(db,'manut_registros'),{
+    maquinaId, tipo, data:today(),
+    descricao, custo,
+    responsavel:currentUserData?.nome||'',
+    criadoEm:new Date().toISOString()
+  });
+  showToast('Registrado com sucesso!');
 };
+
+window._manCorretivaConcluida=async function(id){
+  const descricao=document.getElementById('mc-desc')?.value.trim()||'';
+  const custo=parseFloat(document.getElementById('mc-custo')?.value)||0;
+  closeModal();
+  const m=manutMaquinas.find(x=>x.id===id);
+  const tempoParada=m?.paradaDesde?Math.round((new Date()-new Date(m.paradaDesde))/60000):0;
+  await updateDoc(doc(db,'manut_maquinas',id),{parada:false,paradaDesde:null,paradaMotivo:'',ultimaParadaMinutos:tempoParada});
+  await addDoc(collection(db,'manut_registros'),{
+    maquinaId:id, tipo:'corretiva', data:today(),
+    descricao, custo,
+    responsavel:currentUserData?.nome||'',
+    criadoEm:new Date().toISOString()
+  });
+  showToast('Máquina voltou a operar! Corretiva registrada.');
+};
+
+window._manToggleParada=function(id){
+  window._manAbrirMaquina(id);
+};
+window._manMarcarParada=function(id){ window._manAbrirMaquina(id); };
+window._manVoltarOperar=function(id){ window._manAbrirMaquina(id); };
 
 window._manNovaMaquina=function(m={}){
   const selSetor='<select id="nm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
