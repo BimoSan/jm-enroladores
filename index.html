@@ -7881,6 +7881,29 @@ function renderManPainel(){
   });
 
   if(!manutMaquinas.length) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:24px">Nenhuma máquina cadastrada.</div>';
+
+  // ── Quadros de energia no painel ─────────────────────────────────
+  if(manutQuadros.length){
+    html+='<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px">⚡ Quadros de energia</div>';
+    manutQuadros.forEach(q=>{
+      const prazoQ=calcPrazo('quadro_'+q.id,['preventiva'],q.periodMeses);
+      const ultimaQ=manutRegistros.filter(r=>r.maquinaId==='quadro_'+q.id)[0];
+      html+='<div style="background:#fffbeb;border:2px solid #fcd34d;border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirQuadro(&quot;'+q.id+'&quot;)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:28px">⚡</span>'
+        +'<div>'
+        +'<div style="font-size:15px;font-weight:800;color:#1e293b">'+q.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+q.setor+'</div>'
+        +'</div></div>'
+        +'<span style="font-size:22px;color:#94a3b8">›</span>'
+        +'</div>'
+        +(prazoQ?'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #fde68a"><span style="font-size:10px;font-weight:600;color:'+prazoQ.cor+'">🔧 '+prazoQ.label+'</span></div>':'')
+        +(ultimaQ?'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Última manut: '+fmtDate(ultimaQ.data)+'</div>':'')
+        +'</div>';
+    });
+  }
+
   return html;
 }
 
@@ -8109,6 +8132,21 @@ function renderManRelatorio(){
 window._manSetRelFiltroMaq=v=>{ window._manRelFiltroMaq=v; reloadTab(); };
 window._manSetRelFiltroTipo=v=>{ window._manRelFiltroTipo=v; reloadTab(); };
 window._manSetRelAno=v=>{ window._manRelAno=v; reloadTab(); };
+
+window._manAbrirQuadro=function(id){
+  const q=manutQuadros.find(x=>x.id===id);
+  if(!q) return;
+  const ultima=manutRegistros.filter(r=>r.maquinaId==='quadro_'+id)[0];
+  showModal('⚡ '+q.nome,
+    '<div style="font-size:12px;color:#64748b;margin-bottom:14px">'+q.setor+(q.periodMeses?' · Manutenção a cada '+q.periodMeses+' mês'+(q.periodMeses>1?'es':''):'')+'</div>'
+    +(ultima?'<div style="font-size:12px;color:#94a3b8;margin-bottom:14px">Última manutenção: '+fmtDate(ultima.data)+'</div>':'')
+    +'<div class="form-group"><label>O que foi feito (opcional)</label>'
+    +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>'
+    +'<div class="form-group"><label>Custo (R$) — opcional</label>'
+    +'<input type="number" id="mc-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarManutQuadro(\''+id+'\')">✅ Registrar manutenção</button>');
+};
 
 window._manAbrirMaquina=function(id){
   const m=manutMaquinas.find(x=>x.id===id);
