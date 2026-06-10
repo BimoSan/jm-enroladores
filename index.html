@@ -7945,7 +7945,8 @@ function renderManMaquinas(){
         +'<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
         +'<div style="font-size:11px;color:#64748b">'+regs.length+' manut.</div>'
         +'<div style="font-size:13px;font-weight:700;color:#92400e">'+fmtMoeda(custoTotal)+'</div>'
-        +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarMaquina(\''+m.id+'\')">Editar</button>':'')
+        +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarMaquina(\''+m.id+'\')">Editar</button>'
+          +'<button class="btn btn-sm btn-danger" style="font-size:11px;margin-top:2px" onclick="window._manExcluirMaquina(\''+m.id+'\')">Excluir</button>':'')
         +'</div>'
         +'</div>'
         +'</div>';
@@ -7988,7 +7989,8 @@ function renderManMaquinas(){
         +'</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
         +'<div style="font-size:11px;color:#64748b">'+regs.length+' manut.</div>'
-        +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarQuadro(\''+q.id+'\')">Editar</button>':'')
+        +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarQuadro(\''+q.id+'\')">Editar</button>'
+          +'<button class="btn btn-sm btn-danger" style="font-size:11px;margin-top:2px" onclick="window._manExcluirQuadro(\''+q.id+'\')">Excluir</button>':'')
         +'<button class="btn btn-sm" style="font-size:11px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e" onclick="window._manRegistrarQuadro(\''+q.id+'\')">+ Manut.</button>'
         +'</div></div></div>';
     });
@@ -8243,6 +8245,38 @@ window._manSalvarManutQuadro=async function(quadroId){
     criadoEm:new Date().toISOString()
   });
   showToast('Manutenção registrada!');
+};
+
+window._manExcluirMaquina=function(id){
+  window._pendingManExcluirMaq=id;
+  const m=manutMaquinas.find(x=>x.id===id);
+  showModal('Excluir máquina',
+    '<div style="font-size:13px;color:#444">Deseja excluir <strong>'+(m?.nome||'esta máquina')+'</strong>? Os registros de manutenção não serão afetados.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._manConfirmarExcluirMaq()">Excluir</button>');
+};
+window._manConfirmarExcluirMaq=async function(){
+  const id=window._pendingManExcluirMaq;
+  if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'manut_maquinas',id));
+  showToast('Máquina excluída!');
+};
+
+window._manExcluirQuadro=function(id){
+  window._pendingManExcluirQuadro=id;
+  const q=manutQuadros.find(x=>x.id===id);
+  showModal('Excluir quadro',
+    '<div style="font-size:13px;color:#444">Deseja excluir <strong>'+(q?.nome||'este quadro')+'</strong>?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._manConfirmarExcluirQuadro()">Excluir</button>');
+};
+window._manConfirmarExcluirQuadro=async function(){
+  const id=window._pendingManExcluirQuadro;
+  if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'manut_quadros',id));
+  showToast('Quadro excluído!');
 };
 
 window._manNovaMaquina=function(m={}){
