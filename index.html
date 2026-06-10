@@ -5502,24 +5502,52 @@ function renderGradFichas(){
       const corStatus=f.status==='aberta'?'#1d4ed8':'#065f46';
       const labelStatus=f.status==='aberta'?'Aberta':f.pago?'✓ Pago':'Fechada';
       const btnFechar=podeFechar&&f.status==='aberta'
-        ?'<button class="btn btn-sm btn-warn" onclick="window._gradFecharFicha(\''+f.id+'\')">Fechar ficha</button>':'';
+        ?'<button class="btn btn-sm btn-warn" onclick="window._gradFecharFicha(\''+f.id+'\')">Fechar</button>':'';
+      const btnExcluirFicha=podeFechar
+        ?'<button class="btn btn-sm btn-danger" onclick="window._gradExcluirFicha(\''+f.id+'\')">Excluir ficha</button>':'';
 
-      html+=`<div class="card" style="margin-bottom:10px;border-left:4px solid ${corBorda}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:14px;font-weight:700">${grad?.nome||'—'}</div>
-            <div style="font-size:11px;color:#64748b">${quinzenaLabelGrad(qk)} · ${total} peças</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-            <div style="text-align:right">
-              <div style="font-size:18px;font-weight:800;color:${corValor}">${fmtMoeda(ganho)}</div>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${bgStatus};color:${corStatus}">${labelStatus}</span>
-            </div>
-            ${btnFechar}
-          </div>
-        </div>
-        ${histHtml}
-      </div>`;
+      // Histórico expandido com botões editar/excluir por lançamento
+      const histExpandido=dias.length?'<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px">'
+        +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px">Lançamentos por dia</div>'
+        +dias.map((dia,i)=>{
+          const tots=diasMap[dia];
+          const tDia=Object.values(tots).reduce((s,v)=>s+v,0);
+          const gDia=getPecasGradAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorGrad(p.id),0);
+          const [y,m,d]=dia.split('-');
+          // Find all apontamentos for this day
+          const apontsDia=(f.apontamentos||[]).filter(a=>a.data===dia);
+          const det=getPecasGradAtivas().filter(p=>tots[p.id]>0).map(p=>'<span style="font-size:10px;background:#f1f5f9;padding:1px 6px;border-radius:99px">'+p.label.split('—')[0].trim().replace('Grade ','').replace('Encosto ','Enc. ')+': '+tots[p.id]+'</span>').join(' ');
+          return '<div style="padding:8px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+            +'<div>'
+            +'<span style="font-size:12px;font-weight:700">'+d+'/'+m+'/'+y+'</span>'
+            +'<span style="font-size:11px;color:#1d4ed8;font-weight:800;margin-left:8px">'+tDia+' peças</span>'
+            +'<span style="font-size:11px;color:#059669;font-weight:700;margin-left:6px">'+fmtMoeda(gDia)+'</span>'
+            +'</div>'
+            +'<div style="display:flex;gap:4px">'
+            +apontsDia.map(a=>'<button class="btn btn-sm btn-warn" style="font-size:10px;padding:2px 8px" onclick="window._gradEditarApont(\''+f.id+'\',\''+a.id+'\')">Editar</button>'
+              +'<button class="btn btn-sm btn-danger" style="font-size:10px;padding:2px 8px" onclick="window._gradExcluirApont(\''+f.id+'\',\''+a.id+'\')">Excluir</button>').join('')
+            +'</div></div>'
+            +'<div style="display:flex;flex-wrap:wrap;gap:3px">'+det+'</div>'
+            +'</div>';
+        }).join('')
+        +'</div>':'';
+
+      html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+corBorda+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+        +'<div>'
+        +'<div style="font-size:14px;font-weight:700">'+(grad?.nome||'—')+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelGrad(qk)+' · '+total+' peças</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:18px;font-weight:800;color:'+corValor+'">'+fmtMoeda(ganho)+'</div>'
+        +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+bgStatus+';color:'+corStatus+'">'+labelStatus+'</span>'
+        +'</div>'
+        +btnFechar+btnExcluirFicha
+        +'</div></div>'
+        +histExpandido
+        +'</div>';
     });
   });
 
@@ -5643,9 +5671,59 @@ window._gradExcluirApont=function(fichaId, apontId){
   window._pendingGradExcluir={fichaId,apontId};
   showModal('Excluir apontamento',
     '<div style="font-size:13px;color:#444">Deseja excluir este apontamento?</div>',
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-danger" onclick="window._gradConfirmarExcluir()">Excluir</button>`);
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._gradConfirmarExcluir()">Excluir</button>');
 };
+
+window._gradEditarApont=function(fichaId, apontId){
+  const ficha=fichasGrad.find(f=>f.id===fichaId);
+  if(!ficha) return;
+  const apont=ficha.apontamentos.find(a=>a.id===apontId);
+  if(!apont) return;
+  const grad=gradistas.find(g=>g.id===ficha.gradId);
+  const campos=getPecasGradAtivas().map(p=>{
+    const v=parseInt((apont.pecas||{})[p.id])||0;
+    const shortLabel=p.label.replace('Grade Cabeceira ','').replace('Grade Poltrona ','').replace('Grade Sofá ','').replace('Grade Cama ','Cama ').replace('Encosto ','').replace('Grade ','');
+    return '<div style="background:#f8fafc;border-radius:10px;padding:8px;margin-bottom:6px">'
+      +'<div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:4px">'+shortLabel+'</div>'
+      +'<input type="number" id="gedit-'+p.id+'" min="0" value="'+v+'" style="width:100%;font-size:14px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px">'
+      +'</div>';
+  }).join('');
+  showModal('Editar lançamento — '+(grad?.nome||''),
+    '<div style="font-size:12px;color:#64748b;margin-bottom:10px">Data: '+apont.data.split('-').reverse().join('/')+'</div>'
+    +'<div style="max-height:60vh;overflow-y:auto">'+campos+'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._gradSalvarEdicaoApont(\''+fichaId+'\',\''+apontId+'\')">Salvar</button>');
+};
+window._gradSalvarEdicaoApont=async function(fichaId,apontId){
+  const ficha=fichasGrad.find(f=>f.id===fichaId);
+  if(!ficha) return;
+  const pecas={};
+  getPecasGradAtivas().forEach(p=>{
+    const v=parseInt(document.getElementById('gedit-'+p.id)?.value)||0;
+    if(v>0) pecas[p.id]=v;
+  });
+  const apontamentos=ficha.apontamentos.map(a=>a.id===apontId?{...a,pecas}:a);
+  closeModal();
+  await updateDoc(doc(db,'fichas_grad',fichaId),{apontamentos});
+  showToast('Lançamento atualizado!');
+};
+
+window._gradExcluirFicha=function(fichaId){
+  window._pendingGradExcluirFicha=fichaId;
+  showModal('Excluir ficha',
+    '<div style="font-size:13px;color:#444">Deseja excluir esta ficha e todos os seus lançamentos? Esta ação não pode ser desfeita.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._gradConfirmarExcluirFicha()">Excluir</button>');
+};
+window._gradConfirmarExcluirFicha=async function(){
+  const fichaId=window._pendingGradExcluirFicha;
+  if(!fichaId) return;
+  closeModal();
+  await deleteDoc(doc(db,'fichas_grad',fichaId));
+  showToast('Ficha excluída!');
+};
+
 window._gradConfirmarExcluir=async function(){
   const {fichaId,apontId}=window._pendingGradExcluir||{};
   if(!fichaId||!apontId) return;
@@ -5660,8 +5738,8 @@ window._gradFecharFicha=async function(fichaId){
   window._pendingGradFechar=fichaId;
   showModal('Fechar ficha',
     '<div style="font-size:13px;color:#444">Confirma o fechamento desta ficha? Ela ficará disponível para pagamento no Financeiro.</div>',
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-primary" onclick="window._gradConfirmarFechar()">Fechar ficha</button>`);
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._gradConfirmarFechar()">Fechar ficha</button>');
 };
 window._gradConfirmarFechar=async function(){
   const fichaId=window._pendingGradFechar;
