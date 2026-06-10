@@ -5307,7 +5307,7 @@ function renderGradPainel(){
 
       const barras=pecasComDados.map(p=>{
         const qH=totHoje[p.id]||0;
-        const qM=totMes[p.id]||0;
+        const qM=totQ[p.id]||0;
         const isReforma=p.id.includes('reforma')||p.id.includes('ref');
         const cor=isReforma?'#7c3aed':'#1d4ed8';
         const bgCor=isReforma?'#ede9fe':'#dbeafe';
