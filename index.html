@@ -7910,7 +7910,7 @@ function renderManPainel(){
 
 // ── Máquinas ─────────────────────────────────────────────────────
 function renderManMaquinas(){
-  const podeEditar=can('admin')||['admin','proprietario'].includes(currentUserData?.perfil);
+  const podeEditar=['admin','proprietario','mecanico'].includes(currentUserData?.perfil);
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
     +'<button class="btn btn-primary btn-sm" onclick="window._manNovaMaquina()">+ Máquina</button>'
     +'</div>';
