@@ -2332,12 +2332,13 @@ function renderRanking(){
     <div style="background:#1e40af;border-radius:14px;padding:14px 18px;margin-bottom:12px;width:100%">
       <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">🏆 Ranking de Enroladores</div>
       <div style="font-size:12px;color:#93c5fd">Ordenado por peças enroladas em <strong style="color:#fff">${mesAtualNome} ${anoAtual}</strong></div>
+      <div style="font-size:11px;color:#bfdbfe;margin-top:4px;background:rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;display:inline-block">⚠️ Contabiliza apenas cadeiras — centros não entram no ranking</div>
     </div>
 
     <div style="background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px;width:100%">
       <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Totais de ${mesAtualNome} — todas as casas</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%">
-        <div class="metric"><div class="metric-label">Total enrolado</div><div class="metric-value" style="font-size:22px;color:#1e40af">${totalGeralMes}</div><div style="font-size:10px;color:#94a3b8">peças em ${mesAtualNome}</div></div>
+        <div class="metric"><div class="metric-label">Total cadeiras</div><div class="metric-value" style="font-size:22px;color:#1e40af">${totalGeralMes}</div><div style="font-size:10px;color:#94a3b8">sem centros · ${mesAtualNome}</div></div>
         <div class="metric"><div class="metric-label">Casas ativas</div><div class="metric-value" style="font-size:22px">${totalCasas}</div><div style="font-size:10px;color:#94a3b8">enroladoras</div></div>
         <div class="metric"><div class="metric-label">Varanda Sofia</div><div class="metric-value" style="font-size:22px;color:#3266ad">${varMes}</div><div style="font-size:10px;color:#94a3b8">em ${mesAtualNome}</div></div>
         <div class="metric"><div class="metric-label">Centro Luxo</div><div class="metric-value" style="font-size:22px;color:#1D9E75">${cenMes}</div><div style="font-size:10px;color:#94a3b8">em ${mesAtualNome}</div></div>
