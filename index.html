@@ -231,6 +231,9 @@ const TIPOS=[
   {id:'namoradeira',label:'Namoradeira'},
   {id:'centro_sofia',label:'Centro Sofia'},
 ];
+// IDs de centros — excluídos do ranking e do bônus
+const IDS_CENTROS=['centro_luxo','centro_novo','centro_sofia'];
+const TIPOS_CADEIRAS=TIPOS.filter(t=>!IDS_CENTROS.includes(t.id));
 
 // ── Peças da Metalúrgica ─────────────────────────────────────────
 const PECAS_METAL = [
@@ -2254,7 +2257,7 @@ function renderRanking(){
     fichasEnr.forEach(f=>{
       (f.recolhimentos||[]).forEach(r=>{
         if((r.data||'').slice(0,7)===anoMes){
-          TIPOS.forEach(t=>{total+=(parseInt((r.tipos||{})[t.id])||0);});
+          TIPOS_CADEIRAS.forEach(t=>{total+=(parseInt((r.tipos||{})[t.id])||0);});
         }
       });
     });
@@ -2293,7 +2296,7 @@ function renderRanking(){
   const maximoMes = Math.max(...dados.map(d=>d.enroladoMesAtual), 1);
   const medalhas = ['🥇','🥈','🥉'];
 
-  // Totais do mês atual
+  // Totais do mês atual (só cadeiras, sem centros)
   const totalGeralMes  = dados.reduce((a,d)=>a+d.enroladoMesAtual,0);
 
   // Varanda Sofia e Centro Luxo do mês atual
