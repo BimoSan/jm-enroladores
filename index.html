@@ -8121,6 +8121,7 @@ function renderManRelatorio(){
       +'</div>'
       +'<div style="font-size:13px;font-weight:600">'+(maq?.nome||'—')+'</div>'
       +(r.descricao?'<div style="font-size:11px;color:#64748b">'+r.descricao+'</div>':'')
+      +(r.litros?'<div style="font-size:11px;color:#64748b">🛢️ '+r.litros+'L</div>':'')
       +(r.responsavel?'<div style="font-size:10px;color:#94a3b8">'+r.responsavel+'</div>':'')
       +'</div>'
       +'<div style="text-align:right">'
@@ -8195,9 +8196,18 @@ window._manAcao=function(acao, id){
   } else {
     // preventiva ou oleo — pede desc e custo
     const label=acao==='preventiva'?'Manutenção preventiva':'Troca de óleo';
+    const campos=acao==='oleo'
+      ?'<div class="form-group"><label>Quantidade de óleo (litros)</label>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<input type="number" id="mc-litros" min="0" step="0.1" placeholder="Ex: 3.5" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+        +'<span style="font-size:13px;color:#64748b">litros</span>'
+        +'</div></div>'
+        +'<div class="form-group"><label>Tipo de óleo (opcional)</label>'
+        +'<input id="mc-desc" placeholder="Ex: SAE 40, 10W30..." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+      :'<div class="form-group"><label>O que foi feito (opcional)</label>'
+        +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>';
     showModal('✅ '+label,
-      '<div class="form-group"><label>O que foi feito (opcional)</label>'
-      +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>'
+      campos
       +'<div class="form-group"><label>Custo (R$) — opcional</label>'
       +'<input type="number" id="mc-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
       '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
@@ -8208,13 +8218,11 @@ window._manAcao=function(acao, id){
 window._manRegistrarAcao=async function(tipo, maquinaId){
   const descricao=document.getElementById('mc-desc')?.value.trim()||'';
   const custo=parseFloat(document.getElementById('mc-custo')?.value)||0;
+  const litros=tipo==='oleo'?(parseFloat(document.getElementById('mc-litros')?.value)||0):0;
   closeModal();
-  await addDoc(collection(db,'manut_registros'),{
-    maquinaId, tipo, data:today(),
-    descricao, custo,
-    responsavel:currentUserData?.nome||'',
-    criadoEm:new Date().toISOString()
-  });
+  const dados={maquinaId, tipo, data:today(), descricao, custo, responsavel:currentUserData?.nome||'', criadoEm:new Date().toISOString()};
+  if(tipo==='oleo'&&litros>0) dados.litros=litros;
+  await addDoc(collection(db,'manut_registros'),dados);
   showToast('Registrado com sucesso!');
 };
 
