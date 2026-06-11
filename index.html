@@ -8168,112 +8168,183 @@ function renderManMaquinas(){
 
 // ── Relatórios ───────────────────────────────────────────────────
 function renderManRelatorio(){
-  if(!window._manRelFiltroMaq) window._manRelFiltroMaq='';
-  if(!window._manRelFiltroTipo) window._manRelFiltroTipo='';
   if(!window._manRelAno) window._manRelAno=today().slice(0,4);
-
+  const ano=window._manRelAno;
   const anos=[...new Set(manutRegistros.map(r=>(r.data||'').slice(0,4)).filter(Boolean))].sort().reverse();
-  if(!anos.includes(window._manRelAno)&&anos.length) window._manRelAno=anos[0];
+  if(!anos.includes(ano)&&anos.length) window._manRelAno=anos[0];
 
-  const filtrados=manutRegistros.filter(r=>{
-    if(window._manRelFiltroMaq&&r.maquinaId!==window._manRelFiltroMaq) return false;
-    if(window._manRelFiltroTipo&&r.tipo!==window._manRelFiltroTipo) return false;
-    if(window._manRelAno&&!(r.data||'').startsWith(window._manRelAno)) return false;
-    return true;
+  const regsAno=manutRegistros.filter(r=>(r.data||'').startsWith(ano));
+  const custoTotal=regsAno.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+
+  // Por tipo
+  const porTipo={preventiva:{qtd:0,custo:0},corretiva:{qtd:0,custo:0},oleo:{qtd:0,custo:0}};
+  regsAno.forEach(r=>{ if(porTipo[r.tipo]){porTipo[r.tipo].qtd++;porTipo[r.tipo].custo+=parseFloat(r.custo)||0;} });
+
+  // Por mês (custo)
+  const MESES_ABREV=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const porMes=Array.from({length:12},(_,i)=>({mes:i+1,qtd:0,custo:0}));
+  regsAno.forEach(r=>{
+    const m=parseInt((r.data||'').slice(5,7));
+    if(m>=1&&m<=12){ porMes[m-1].qtd++; porMes[m-1].custo+=parseFloat(r.custo)||0; }
   });
-  const custoTotal=filtrados.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+  const maxCusto=Math.max(...porMes.map(m=>m.custo),1);
+  const maxQtd=Math.max(...porMes.map(m=>m.qtd),1);
 
-  // Filtros
-  const selectAno='<select onchange="window._manSetRelAno(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 10px">'
-    +anos.map(a=>'<option value="'+a+'"'+(a===window._manRelAno?' selected':'')+'>'+a+'</option>').join('')+'</select>';
-  const selectMaq='<select onchange="window._manSetRelFiltroMaq(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 10px">'
-    +'<option value="">Todas</option>'
-    +manutMaquinas.map(m=>'<option value="'+m.id+'"'+(m.id===window._manRelFiltroMaq?' selected':'')+'>'+m.nome+'</option>').join('')+'</select>';
-  const selectTipo='<select onchange="window._manSetRelFiltroTipo(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 10px">'
-    +'<option value="">Todos</option>'
-    +MANUT_TIPOS.map(t=>'<option value="'+t.id+'"'+(t.id===window._manRelFiltroTipo?' selected':'')+'>'+t.label+'</option>').join('')+'</select>';
-
-  let html='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+selectAno+selectMaq+selectTipo+'</div>';
-
-  // Cards resumo
-  const porTipo={};
-  MANUT_TIPOS.forEach(t=>{ porTipo[t.id]={qtd:0,custo:0}; });
-  filtrados.forEach(r=>{
-    if(porTipo[r.tipo]){ porTipo[r.tipo].qtd++; porTipo[r.tipo].custo+=parseFloat(r.custo)||0; }
+  // Por máquina
+  const porMaq={};
+  regsAno.forEach(r=>{
+    if(!porMaq[r.maquinaId]) porMaq[r.maquinaId]={qtd:0,custo:0};
+    porMaq[r.maquinaId].qtd++;
+    porMaq[r.maquinaId].custo+=parseFloat(r.custo)||0;
   });
-  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px">';
-  MANUT_TIPOS.forEach(t=>{
-    html+='<div style="background:'+t.bg+';border-radius:12px;padding:10px;text-align:center">'
-      +'<div style="font-size:10px;font-weight:700;color:'+t.cor+';margin-bottom:4px">'+t.label+'</div>'
-      +'<div style="font-size:22px;font-weight:900;color:'+t.cor+'">'+porTipo[t.id].qtd+'</div>'
-      +'<div style="font-size:10px;color:'+t.cor+';opacity:.8">'+fmtMoeda(porTipo[t.id].custo)+'</div>'
-      +'</div>';
-  });
-  html+='</div>';
+  const maqRank=Object.entries(porMaq).sort((a,b)=>b[1].custo-a[1].custo).slice(0,6);
+  const maxMaqCusto=Math.max(...maqRank.map(([,d])=>d.custo),1);
 
-  // Total
-  html+='<div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">'
-    +'<div style="font-size:13px;color:#64748b">'+filtrados.length+' registro'+( filtrados.length!==1?'s':'')+' em '+window._manRelAno+'</div>'
-    +'<div style="font-size:18px;font-weight:800;color:#92400e">'+fmtMoeda(custoTotal)+'</div>'
+  // Máquinas paradas agora
+  const paradasAgora=manutMaquinas.filter(m=>m.parada);
+
+  const selectAno='<select onchange="window._manSetRelAno(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px">'
+    +(anos.length?anos:[''+new Date().getFullYear()]).map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+'</select>';
+
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div style="font-size:15px;font-weight:800;color:#1e293b">📊 Dashboard de Manutenção</div>'
+    +selectAno
     +'</div>';
 
-  // Custo por máquina
-  if(filtrados.length){
-    const porMaq={};
-    filtrados.forEach(r=>{
-      if(!porMaq[r.maquinaId]) porMaq[r.maquinaId]={qtd:0,custo:0};
-      porMaq[r.maquinaId].qtd++;
-      porMaq[r.maquinaId].custo+=parseFloat(r.custo)||0;
-    });
-    const maqOrdenadas=Object.entries(porMaq).sort((a,b)=>b[1].custo-a[1].custo);
-    html+='<div class="card" style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Custo por máquina</div>';
-    maqOrdenadas.forEach(([mid,d])=>{
+  // ── Cards topo ────────────────────────────────────────────────
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
+    // Custo total
+    +'<div style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:14px;padding:14px;color:#fff">'
+    +'<div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">CUSTO TOTAL</div>'
+    +'<div style="font-size:20px;font-weight:900">'+fmtMoeda(custoTotal)+'</div>'
+    +'<div style="font-size:10px;opacity:.7;margin-top:4px">'+regsAno.length+' registros em '+ano+'</div>'
+    +'</div>'
+    // Corretivas
+    +'<div style="background:linear-gradient(135deg,#dc2626,#ef4444);border-radius:14px;padding:14px;color:#fff">'
+    +'<div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">CORRETIVAS</div>'
+    +'<div style="font-size:28px;font-weight:900">'+porTipo.corretiva.qtd+'</div>'
+    +'<div style="font-size:10px;opacity:.7;margin-top:4px">'+fmtMoeda(porTipo.corretiva.custo)+'</div>'
+    +'</div>'
+    // Preventivas
+    +'<div style="background:linear-gradient(135deg,#1d4ed8,#6366f1);border-radius:14px;padding:14px;color:#fff">'
+    +'<div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">PREVENTIVAS</div>'
+    +'<div style="font-size:28px;font-weight:900">'+porTipo.preventiva.qtd+'</div>'
+    +'<div style="font-size:10px;opacity:.7;margin-top:4px">'+fmtMoeda(porTipo.preventiva.custo)+'</div>'
+    +'</div>'
+    // Trocas de óleo
+    +'<div style="background:linear-gradient(135deg,#92400e,#f59e0b);border-radius:14px;padding:14px;color:#fff">'
+    +'<div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">TROCAS DE ÓLEO</div>'
+    +'<div style="font-size:28px;font-weight:900">'+porTipo.oleo.qtd+'</div>'
+    +'<div style="font-size:10px;opacity:.7;margin-top:4px">'+fmtMoeda(porTipo.oleo.custo)+'</div>'
+    +'</div>'
+    // Paradas agora
+    +'<div style="background:linear-gradient(135deg,#374151,#6b7280);border-radius:14px;padding:14px;color:#fff">'
+    +'<div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">PARADAS AGORA</div>'
+    +'<div style="font-size:28px;font-weight:900">'+paradasAgora.length+'</div>'
+    +'<div style="font-size:10px;opacity:.7;margin-top:4px">de '+manutMaquinas.length+' máquinas</div>'
+    +'</div>'
+    +'</div>';
+
+  // ── Custo por mês (barras) ────────────────────────────────────
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💰 Custo por mês</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:4px;height:100px">';
+  porMes.forEach((m,i)=>{
+    const h=maxCusto>0?Math.round((m.custo/maxCusto)*90):0;
+    html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +(m.custo>0?'<div style="font-size:8px;color:#475569;font-weight:700">'+fmtMoeda(m.custo).replace('R$ ','').replace('R$ ','')+'</div>':'<div style="font-size:8px;color:transparent">0</div>')
+      +'<div style="width:100%;background:'+(m.custo>0?'#1d4ed8':'#e2e8f0')+';border-radius:4px 4px 0 0;height:'+h+'px;min-height:2px"></div>'
+      +'<div style="font-size:8px;color:#94a3b8">'+MESES_ABREV[i]+'</div>'
+      +'</div>';
+  });
+  html+='</div></div>';
+
+  // ── Qtd por mês (barras) ──────────────────────────────────────
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">🔧 Manutenções por mês</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:4px;height:80px">';
+  porMes.forEach((m,i)=>{
+    const h=maxQtd>0?Math.round((m.qtd/maxQtd)*70):0;
+    html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +(m.qtd>0?'<div style="font-size:9px;color:#475569;font-weight:700">'+m.qtd+'</div>':'<div style="font-size:9px;color:transparent">0</div>')
+      +'<div style="width:100%;background:'+(m.qtd>0?'#059669':'#e2e8f0')+';border-radius:4px 4px 0 0;height:'+h+'px;min-height:2px"></div>'
+      +'<div style="font-size:8px;color:#94a3b8">'+MESES_ABREV[i]+'</div>'
+      +'</div>';
+  });
+  html+='</div></div>';
+
+  // ── Custo por máquina (horizontal bars) ──────────────────────
+  if(maqRank.length){
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">🏭 Custo por máquina</div>';
+    maqRank.forEach(([mid,d])=>{
       const m=manutMaquinas.find(x=>x.id===mid);
-      const pct=custoTotal>0?Math.round(d.custo/custoTotal*100):0;
-      html+='<div style="margin-bottom:8px">'
+      const pct=Math.round(d.custo/maxMaqCusto*100);
+      html+='<div style="margin-bottom:10px">'
         +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
         +'<span style="font-size:12px;font-weight:600">'+(m?.nome||'—')+'</span>'
         +'<span style="font-size:12px;color:#92400e;font-weight:700">'+fmtMoeda(d.custo)+'</span>'
         +'</div>'
-        +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
-        +'<div style="height:100%;width:'+pct+'%;background:#f59e0b;border-radius:99px"></div>'
+        +'<div style="height:8px;background:#f1f5f9;border-radius:99px">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div>'
         +'</div>'
+        +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+d.qtd+' manutenção'+(d.qtd!==1?'ões':'')+'</div>'
         +'</div>';
     });
     html+='</div>';
   }
 
-  // Lista de registros
-  if(!filtrados.length){
-    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma manutenção registrada.</div>';
-    return html;
+  // ── Máquinas paradas ─────────────────────────────────────────
+  if(paradasAgora.length){
+    html+='<div class="card" style="margin-bottom:14px;border-left:4px solid #dc2626">'
+      +'<div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:10px">🔴 Máquinas paradas agora</div>';
+    paradasAgora.forEach(m=>{
+      const desde=m.paradaDesde?new Date(m.paradaDesde):null;
+      const diff=desde?new Date()-desde:0;
+      const h=Math.floor(diff/3600000);
+      const d=Math.floor(h/24);
+      const tempo=d>0?d+'d '+(h%24)+'h':h+'h';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #fee2e2">'
+        +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+m.setor+(m.paradaMotivo?' · '+m.paradaMotivo:'')+'</div></div>'
+        +'<div style="font-size:12px;font-weight:700;color:#dc2626">há '+tempo+'</div>'
+        +'</div>';
+    });
+    html+='</div>';
   }
-  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Histórico</div>';
-  html+=filtrados.map((r,i)=>{
-    const maq=manutMaquinas.find(m=>m.id===r.maquinaId);
-    const tipo=MANUT_TIPOS.find(t=>t.id===r.tipo)||{label:r.tipo,cor:'#475569',bg:'#f1f5f9'};
-    return '<div style="padding:8px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between">'
-      +'<div>'
-      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'
-      +'<span style="font-size:10px;font-weight:700;background:'+tipo.bg+';color:'+tipo.cor+';padding:1px 7px;border-radius:99px">'+tipo.label+'</span>'
-      +'<span style="font-size:11px;color:#64748b">'+fmtDate(r.data)+'</span>'
-      +'</div>'
-      +'<div style="font-size:13px;font-weight:600">'+(maq?.nome||'—')+'</div>'
-      +(r.descricao?'<div style="font-size:11px;color:#64748b">'+r.descricao+'</div>':'')
-      +(r.litros?'<div style="font-size:11px;color:#64748b">🛢️ '+r.litros+'L</div>':'')
-      +(r.responsavel?'<div style="font-size:10px;color:#94a3b8">'+r.responsavel+'</div>':'')
-      +'</div>'
-      +'<div style="text-align:right">'
-      +'<div style="font-size:14px;font-weight:700;color:#92400e">'+(r.custo?fmtMoeda(parseFloat(r.custo)):'—')+'</div>'
-      +'<button class="btn btn-sm btn-danger" style="font-size:10px;margin-top:4px" onclick="window._manExcluirRegistro(\''+r.id+'\')">✕</button>'
-      +'</div></div></div>';
-  }).join('');
-  html+='</div>';
+
+  // ── Histórico ─────────────────────────────────────────────────
+  if(regsAno.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📋 Histórico '+ano+'</div>';
+    html+=regsAno.map((r,i)=>{
+      const maq=manutMaquinas.find(m=>m.id===r.maquinaId);
+      const tipo=MANUT_TIPOS.find(t=>t.id===r.tipo)||{label:r.tipo,cor:'#475569',bg:'#f1f5f9'};
+      return '<div style="padding:8px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div>'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'
+        +'<span style="font-size:10px;font-weight:700;background:'+tipo.bg+';color:'+tipo.cor+';padding:1px 7px;border-radius:99px">'+tipo.label+'</span>'
+        +'<span style="font-size:11px;color:#64748b">'+fmtDate(r.data)+'</span>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:600">'+(maq?.nome||'—')+'</div>'
+        +(r.descricao?'<div style="font-size:11px;color:#64748b">'+r.descricao+'</div>':'')
+        +(r.litros?'<div style="font-size:11px;color:#64748b">🛢️ '+r.litros+'L</div>':'')
+        +(r.responsavel?'<div style="font-size:10px;color:#94a3b8">'+r.responsavel+'</div>':'')
+        +'</div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:14px;font-weight:700;color:#92400e">'+(r.custo?fmtMoeda(parseFloat(r.custo)):'—')+'</div>'
+        +'<button class="btn btn-sm btn-danger" style="font-size:10px;margin-top:4px" onclick="window._manExcluirRegistro(\''+r.id+'\')">✕</button>'
+        +'</div></div></div>';
+    }).join('');
+    html+='</div>';
+  } else {
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma manutenção registrada em '+ano+'.</div>';
+  }
+
   return html;
 }
 
-// ── Handlers ─────────────────────────────────────────────────────
+
 window._manSetRelFiltroMaq=v=>{ window._manRelFiltroMaq=v; reloadTab(); };
 window._manSetRelFiltroTipo=v=>{ window._manRelFiltroTipo=v; reloadTab(); };
 window._manSetRelAno=v=>{ window._manRelAno=v; reloadTab(); };
