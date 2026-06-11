@@ -7870,7 +7870,7 @@ function renderManPainel(){
       // Card estilo app moderno — fundo colorido, ícone à direita
       const cardBg=parada?'#dc2626':'#16a34a';
       const iconBg=parada?'rgba(0,0,0,0.15)':'rgba(0,0,0,0.12)';
-      html+='<div style="background:'+cardBg+';border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="window._manAbrirMaquina(&quot;'+m.id+'&quot;)">'
+      html+='<div style="background:'+cardBg+';border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="window._manAbrirMaquina(\''+m.id+'\')">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
         +'<div style="flex:1;padding-right:12px">'
         +'<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:3px">'+m.nome+'</div>'
@@ -7896,7 +7896,7 @@ function renderManPainel(){
     manutQuadros.forEach(q=>{
       const prazoQ=calcPrazo('quadro_'+q.id,['preventiva'],q.periodMeses);
       const ultimaQ=manutRegistros.filter(r=>r.maquinaId==='quadro_'+q.id)[0];
-      html+='<div style="background:#d97706;border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirQuadro(&quot;'+q.id+'&quot;)">'
+      html+='<div style="background:#d97706;border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirQuadro(\''+q.id+'\')">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
         +'<div style="flex:1;padding-right:12px">'
         +'<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:3px">'+q.nome+'</div>'
