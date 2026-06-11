@@ -805,7 +805,7 @@ function renderApp(){
       tabs.push('painel_int','fichas_int');
     }
   } else if(currentSetor==='fitas'){
-    tabs.push('estoque_fitas','producao_fitas','saidas_fitas','relatorio_fitas','config_fitas');
+    tabs.push('estoque_fitas','relatorio_fitas','config_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
     const podeEditar=['admin','apontador1'].includes(pf);
@@ -6719,17 +6719,20 @@ function renderEstoqueFitas(){
   });
   html+='</div>';
 
-  // Card fio — clicável
+  // Card fio — igual aos outros
   const qtdFio=estoqueFio();
-  html+='<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:14px;cursor:pointer" onclick="window._fitasAbrirFio()">'
-    +'<div><div style="font-size:13px;font-weight:700">🧵 Fio</div>'
-    +'<div style="font-size:11px;color:#64748b">Toque para lançar</div></div>'
-    +'<div style="text-align:right">'
-    +'<div style="font-size:28px;font-weight:800;color:'+(qtdFio<=5?'#dc2626':'#065f46')+'">'+qtdFio+'</div>'
+  const baixoFio=qtdFio<=5;
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="card" style="text-align:center;padding:14px;border-top:4px solid #6b7280;cursor:pointer" onclick="window._fitasAbrirFio()">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">🧵 Fio</div>'
+    +'<div style="font-size:28px;font-weight:800;color:'+(baixoFio?'#dc2626':'#065f46')+'">'+qtdFio+'</div>'
     +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
+    +(baixoFio&&qtdFio>0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">⚠️ Estoque baixo</div>':'')
+    +(qtdFio===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
     +'</div></div>';
 
-  // Movimentos de hoje
+  // Movimentos de hoje com editar/excluir
   const hoje=today();
   const movHoje=[
     ...producaoFitas.filter(p=>p.data===hoje).map(p=>({...p,_tipo:'prod'})),
@@ -6740,9 +6743,16 @@ function renderEstoqueFitas(){
     html+='<div class="card" style="margin-top:4px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Movimentos de hoje</div>';
     movHoje.forEach((m,i)=>{
       const isProd=m._tipo==='prod';
+      const label=m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||''));
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-        +'<div style="font-size:12px;font-weight:600">'+(m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||'')))+'</div>'
+        +'<div>'
+        +'<div style="font-size:12px;font-weight:600">'+label+'</div>'
+        +(m.obs?'<div style="font-size:10px;color:#94a3b8">'+m.obs+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
         +'<div style="font-size:13px;font-weight:800;color:'+(isProd?'#059669':'#dc2626')+'">'+(isProd?'+':'-')+m.rolos+' rolos</div>'
+        +'<button class="btn btn-sm btn-danger" style="font-size:10px;padding:2px 7px" onclick="window._fitasExcluirMov(\''+m._tipo+'\',\''+m.id+'\')">✕</button>'
+        +'</div>'
         +'</div>';
     });
     html+='</div>';
@@ -6795,6 +6805,22 @@ function renderProducaoFitas(){
     +'</div>';
   return html;
 }
+
+window._fitasExcluirMov=function(tipo, id){
+  window._pendingFitasMov={tipo,id};
+  showModal('Excluir movimento',
+    '<div style="font-size:13px;color:#444">Deseja excluir este lançamento?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._fitasConfirmarExcluirMov()">Excluir</button>');
+};
+window._fitasConfirmarExcluirMov=async function(){
+  const {tipo,id}=window._pendingFitasMov||{};
+  if(!id) return;
+  closeModal();
+  const col=tipo==='prod'?'producao_fitas':'saidas_fitas';
+  await deleteDoc(doc(db,col,id));
+  showToast('Lançamento excluído!');
+};
 
 window._fitasAbrirCor=function(cor){
   const qtd=estoqueCor(cor);
