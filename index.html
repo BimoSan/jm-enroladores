@@ -6702,31 +6702,51 @@ function renderEstoqueFitas(){
     return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Configure as cores nas Configurações.</div></div>';
   }
 
-  // Cards por cor
+  // Cards por cor — clicáveis
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
   cores.forEach(c=>{
     const qtd=estoqueCor(c.nome);
     const cor_bg=c.hex||'#6366f1';
     const baixo=qtd<=5;
-    html+='<div class="card" style="text-align:center;padding:14px;border-top:4px solid '+cor_bg+'">'
+    html+='<div class="card" style="text-align:center;padding:14px;border-top:4px solid '+cor_bg+';cursor:pointer" onclick="window._fitasAbrirCor(\''+c.nome+'\')">'
       +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">'+c.nome+'</div>'
       +'<div style="font-size:28px;font-weight:800;color:'+(baixo?'#dc2626':'#1e40af')+'">'+qtd+'</div>'
       +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
       +(baixo&&qtd>0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">⚠️ Estoque baixo</div>':'')
       +(qtd===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
+      +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
       +'</div>';
   });
   html+='</div>';
 
-  // Card fio
+  // Card fio — clicável
   const qtdFio=estoqueFio();
-  html+='<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:14px">'
+  html+='<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:14px;cursor:pointer" onclick="window._fitasAbrirFio()">'
     +'<div><div style="font-size:13px;font-weight:700">🧵 Fio</div>'
-    +'<div style="font-size:11px;color:#64748b">Estoque atual</div></div>'
+    +'<div style="font-size:11px;color:#64748b">Toque para lançar</div></div>'
     +'<div style="text-align:right">'
     +'<div style="font-size:28px;font-weight:800;color:'+(qtdFio<=5?'#dc2626':'#065f46')+'">'+qtdFio+'</div>'
     +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
     +'</div></div>';
+
+  // Movimentos de hoje
+  const hoje=today();
+  const movHoje=[
+    ...producaoFitas.filter(p=>p.data===hoje).map(p=>({...p,_tipo:'prod'})),
+    ...saidasFitas.filter(s=>s.data===hoje).map(s=>({...s,_tipo:'saida'})),
+  ].sort((a,b)=>(b.criadoEm||'')>(a.criadoEm||'')?1:-1);
+
+  if(movHoje.length){
+    html+='<div class="card" style="margin-top:4px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Movimentos de hoje</div>';
+    movHoje.forEach((m,i)=>{
+      const isProd=m._tipo==='prod';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+        +'<div style="font-size:12px;font-weight:600">'+(m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||'')))+'</div>'
+        +'<div style="font-size:13px;font-weight:800;color:'+(isProd?'#059669':'#dc2626')+'">'+(isProd?'+':'-')+m.rolos+' rolos</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
 
   return html;
 }
@@ -6775,6 +6795,88 @@ function renderProducaoFitas(){
     +'</div>';
   return html;
 }
+
+window._fitasAbrirCor=function(cor){
+  const qtd=estoqueCor(cor);
+  showModal('🔩 '+cor+' — '+qtd+' rolos',
+    '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<button onclick="window._fitasModalAcao(\'prod\',\''+cor+'\')" style="padding:18px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1e40af;cursor:pointer;text-align:left">📦 Registrar produção</button>'
+    +'<button onclick="window._fitasModalAcao(\'saida\',\''+cor+'\')" style="padding:18px;border-radius:12px;background:#fee2e2;border:2px solid #fca5a5;font-size:15px;font-weight:700;color:#dc2626;cursor:pointer;text-align:left">📤 Registrar saída</button>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+};
+
+window._fitasAbrirFio=function(){
+  const qtd=estoqueFio();
+  showModal('🧵 Fio — '+qtd+' rolos',
+    '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<button onclick="window._fitasModalAcao(\'prod\',\'__fio__\')" style="padding:18px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1e40af;cursor:pointer;text-align:left">📦 Registrar produção</button>'
+    +'<button onclick="window._fitasModalAcao(\'saida\',\'__fio__\')" style="padding:18px;border-radius:12px;background:#fee2e2;border:2px solid #fca5a5;font-size:15px;font-weight:700;color:#dc2626;cursor:pointer;text-align:left">📤 Registrar saída</button>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+};
+
+window._fitasModalAcao=function(acao, cor){
+  closeModal();
+  const isFio=cor==='__fio__';
+  const titulo=acao==='prod'?'📦 Produção':'📤 Saída';
+  const itemLabel=isFio?'Fio':'Fita '+cor;
+  const hoje=today();
+
+  // Build form based on action
+  let campos='<div class="form-group"><label>Rolos</label>'
+    +'<input type="number" id="fm-rolos" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%;text-align:center"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="fm-data" value="'+hoje+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>';
+
+  // Saída de fita ou fio precisa de enrolador
+  if(acao==='saida'){
+    const optsEnr=enroladoresInt.filter(e=>e.ativo!==false)
+      .map(e=>'<option value="'+e.id+'">'+e.nome+'</option>').join('');
+    const optsApt='<option value="apontador1">Inácio</option><option value="apontador2">Mirandinha</option>';
+    campos='<div class="form-group"><label>Enrolador (interno)</label>'
+      +'<select id="fm-enrolador-int" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+      +'<option value="">— Nenhum —</option>'+optsEnr+'</select></div>'
+      +'<div class="form-group"><label>Apontador (terceirizado)</label>'
+      +'<select id="fm-apt" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+      +'<option value="">— Nenhum —</option>'+optsApt+'</select></div>'
+      +campos;
+  }
+
+  campos+='<div class="form-group"><label>Observação (opcional)</label>'
+    +'<input id="fm-obs" placeholder="" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>';
+
+  showModal(titulo+' — '+itemLabel, campos,
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._fitasSalvarAcao(\''+acao+'\',\''+cor+'\')">Salvar</button>');
+};
+
+window._fitasSalvarAcao=async function(acao, cor){
+  const isFio=cor==='__fio__';
+  const rolos=parseInt(document.getElementById('fm-rolos')?.value)||0;
+  const data=document.getElementById('fm-data')?.value||today();
+  const obs=document.getElementById('fm-obs')?.value.trim()||'';
+  if(!rolos){showToast('Informe a quantidade de rolos.');return;}
+  closeModal();
+
+  if(acao==='prod'){
+    await addDoc(collection(db,'producao_fitas'),{
+      tipo:isFio?'fio':'fita', cor:isFio?null:cor,
+      rolos, data, obs, criadoEm:new Date().toISOString()
+    });
+  } else {
+    const enroladorIntId=document.getElementById('fm-enrolador-int')?.value||null;
+    const apontadorPerfil=document.getElementById('fm-apt')?.value||null;
+    await addDoc(collection(db,'saidas_fitas'),{
+      tipo:isFio?'fio':'fita', cor:isFio?null:cor,
+      rolos, data, obs,
+      enroladorIntId:enroladorIntId||null,
+      apontadorPerfil:apontadorPerfil||null,
+      criadoEm:new Date().toISOString()
+    });
+  }
+  showToast(acao==='prod'?'Produção registrada!':'Saída registrada!');
+};
 
 window._pFitasTipoChange=function(){
   const tipo=document.getElementById('pf-tipo')?.value;
@@ -8130,6 +8232,13 @@ window._manAbrirQuadro=function(id){
     +'<input type="number" id="mc-custo" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._manSalvarManutQuadro(\''+id+'\')">✅ Registrar manutenção</button>');
+};
+
+window._manConfirmarParada=async function(id){
+  const motivo=document.getElementById('mp-motivo')?.value||'';
+  closeModal();
+  await updateDoc(doc(db,'manut_maquinas',id),{parada:true,paradaDesde:new Date().toISOString(),paradaMotivo:motivo});
+  showToast('Máquina marcada como parada.');
 };
 
 window._manAbrirMaquina=function(id){
