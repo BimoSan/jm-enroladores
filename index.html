@@ -7279,7 +7279,7 @@ window._salvarConfigFitas=async function(){
   });
   if(!cores.length){showToast('Nenhuma cor para salvar.');return;}
   try{
-    await setDoc(doc(db,'config_fitas','geral'),{...configFitas,cores,estoqueMin});
+    await setDoc(doc(db,'config_fitas','geral'),{cores,estoqueMin},{merge:true});
     const snap=await getDoc(doc(db,'config_fitas','geral'));
     if(snap.exists()) configFitas={cores:[],tiposFio:['Fio Padrão'],...snap.data()};
     showToast('Cores salvas! ('+cores.length+' cores)');
@@ -7292,8 +7292,10 @@ window._salvarConfigFitas=async function(){
 window._salvarMinFio=async function(){
   const min=parseInt(document.getElementById('cf-min-fio')?.value)||0;
   const estoqueMin={...(configFitas.estoqueMin||{}),'__fio__':min};
-  await setDoc(doc(db,'config_fitas','geral'),{...configFitas,estoqueMin});
+  await setDoc(doc(db,'config_fitas','geral'),{estoqueMin},{merge:true});
+  configFitas.estoqueMin=estoqueMin;
   showToast('Estoque mínimo do fio salvo!');
+  reloadTab();
 };
 
 
