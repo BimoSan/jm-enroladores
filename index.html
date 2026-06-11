@@ -7863,19 +7863,23 @@ function renderManPainel(){
         +(prazoOleo?'<span style="font-size:10px;font-weight:600;color:'+prazoOleo.cor+'">🛢️ '+prazoOleo.label+'</span>':'');
       const ultimaReg=manutRegistros.filter(r=>r.maquinaId===m.id)[0];
 
-      html+='<div style="background:'+bg+';border:2px solid '+border+';border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirMaquina(&quot;'+m.id+'&quot;)">'
+      // Card estilo app moderno — fundo colorido, ícone à direita
+      const cardBg=parada?'#dc2626':'#16a34a';
+      const iconBg=parada?'rgba(0,0,0,0.15)':'rgba(0,0,0,0.12)';
+      html+='<div style="background:'+cardBg+';border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden" onclick="window._manAbrirMaquina(&quot;'+m.id+'&quot;)">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
-        +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<span style="font-size:28px">'+(parada?'🔴':'✅')+'</span>'
-        +'<div>'
-        +'<div style="font-size:15px;font-weight:800;color:#1e293b">'+m.nome+'</div>'
-        +'<div style="font-size:11px;font-weight:700;color:'+cor+'">'+(parada?'PARADA'+(tempoParada?' há '+tempoParada:''):'OPERANDO')+'</div>'
-        +(m.paradaMotivo?'<div style="font-size:11px;color:#dc2626">'+m.paradaMotivo+'</div>':'')
-        +'</div></div>'
-        +'<span style="font-size:22px;color:#94a3b8">›</span>'
+        +'<div style="flex:1;padding-right:12px">'
+        +'<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:3px">'+m.nome+'</div>'
+        +'<div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:8px">'+(parada?'Parada'+(tempoParada?' há '+tempoParada:''):m.setor)+'</div>'
+        +(m.paradaMotivo?'<div style="font-size:11px;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.15);border-radius:8px;padding:3px 8px;display:inline-block;margin-bottom:6px">'+m.paradaMotivo+'</div>':'')
+        +(prazoPrev?'<div style="font-size:11px;color:rgba(255,255,255,0.95);display:flex;align-items:center;gap:4px"><span style="font-size:13px">🔧</span> '+prazoPrev.label+'</div>':'')
+        +(prazoOleo?'<div style="font-size:11px;color:rgba(255,255,255,0.95);display:flex;align-items:center;gap:4px;margin-top:3px"><span style="font-size:13px">🛢️</span> '+prazoOleo.label+'</div>':'')
         +'</div>'
-        +(prazoHtml?'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid '+(parada?'#fecaca':'#bbf7d0')+'">'+prazoHtml+'</div>':'')
-        +(ultimaReg?'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Última manut: '+fmtDate(ultimaReg.data)+' · '+(MANUT_TIPOS.find(t=>t.id===ultimaReg.tipo)?.label||ultimaReg.tipo)+'</div>':'')
+        +'<div style="background:'+iconBg+';border-radius:14px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        +'<span style="font-size:30px">'+(parada?'🔴':'⚙️')+'</span>'
+        +'</div>'
+        +'</div>'
+        +(ultimaReg?'<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:8px">Última: '+fmtDate(ultimaReg.data)+' · '+(MANUT_TIPOS.find(t=>t.id===ultimaReg.tipo)?.label||ultimaReg.tipo)+'</div>':'')
         +'</div>';
     });
   });
@@ -7888,18 +7892,18 @@ function renderManPainel(){
     manutQuadros.forEach(q=>{
       const prazoQ=calcPrazo('quadro_'+q.id,['preventiva'],q.periodMeses);
       const ultimaQ=manutRegistros.filter(r=>r.maquinaId==='quadro_'+q.id)[0];
-      html+='<div style="background:#fffbeb;border:2px solid #fcd34d;border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirQuadro(&quot;'+q.id+'&quot;)">'
+      html+='<div style="background:#d97706;border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer" onclick="window._manAbrirQuadro(&quot;'+q.id+'&quot;)">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
-        +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<span style="font-size:28px">⚡</span>'
-        +'<div>'
-        +'<div style="font-size:15px;font-weight:800;color:#1e293b">'+q.nome+'</div>'
-        +'<div style="font-size:11px;color:#64748b">'+q.setor+'</div>'
-        +'</div></div>'
-        +'<span style="font-size:22px;color:#94a3b8">›</span>'
+        +'<div style="flex:1;padding-right:12px">'
+        +'<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:3px">'+q.nome+'</div>'
+        +'<div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:8px">'+q.setor+'</div>'
+        +(prazoQ?'<div style="font-size:11px;color:rgba(255,255,255,0.95);display:flex;align-items:center;gap:4px"><span style="font-size:13px">🔧</span> '+prazoQ.label+'</div>':'')
+        +(ultimaQ?'<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:6px">Última: '+fmtDate(ultimaQ.data)+'</div>':'')
         +'</div>'
-        +(prazoQ?'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #fde68a"><span style="font-size:10px;font-weight:600;color:'+prazoQ.cor+'">🔧 '+prazoQ.label+'</span></div>':'')
-        +(ultimaQ?'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Última manut: '+fmtDate(ultimaQ.data)+'</div>':'')
+        +'<div style="background:rgba(0,0,0,0.12);border-radius:14px;width:56px;height:56px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        +'<span style="font-size:30px">⚡</span>'
+        +'</div>'
+        +'</div>'
         +'</div>';
     });
   }
