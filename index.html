@@ -6704,15 +6704,17 @@ function renderEstoqueFitas(){
 
   // Cards por cor — clicáveis
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
+  const estoqMin=configFitas.estoqueMin||{};
   cores.forEach(c=>{
     const qtd=estoqueCor(c.nome);
+    const minimo=estoqMin[c.nome]||5;
     const cor_bg=c.hex||'#6366f1';
-    const baixo=qtd<=5;
+    const baixo=qtd>0&&qtd<=minimo;
     html+='<div class="card" style="text-align:center;padding:14px;border-top:4px solid '+cor_bg+';cursor:pointer" onclick="window._fitasAbrirCor(\''+c.nome+'\')">'
       +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">'+c.nome+'</div>'
-      +'<div style="font-size:28px;font-weight:800;color:'+(baixo?'#dc2626':'#1e40af')+'">'+qtd+'</div>'
-      +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
-      +(baixo&&qtd>0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">⚠️ Estoque baixo</div>':'')
+      +'<div style="font-size:28px;font-weight:800;color:'+(qtd===0?'#dc2626':baixo?'#d97706':'#1e40af')+'">'+qtd+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">rolos'+(estoqMin[c.nome]?' · mín: '+estoqMin[c.nome]:'')+'</div>'
+      +(baixo?'<div style="font-size:10px;color:#d97706;margin-top:4px">⚠️ Estoque baixo</div>':'')
       +(qtd===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
       +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
       +'</div>';
@@ -6721,12 +6723,13 @@ function renderEstoqueFitas(){
 
   // Card fio — igual aos outros
   const qtdFio=estoqueFio();
-  const baixoFio=qtdFio<=5;
+  const minimoFio=estoqMin['__fio__']||5;
+  const baixoFio=qtdFio>0&&qtdFio<=minimoFio;
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="card" style="text-align:center;padding:14px;border-top:4px solid #6b7280;cursor:pointer" onclick="window._fitasAbrirFio()">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">🧵 Fio</div>'
     +'<div style="font-size:28px;font-weight:800;color:'+(baixoFio?'#dc2626':'#065f46')+'">'+qtdFio+'</div>'
-    +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
+    +'<div style="font-size:10px;color:#94a3b8">rolos'+(estoqMin['__fio__']?' · mín: '+estoqMin['__fio__']:'')+'</div>'
     +(baixoFio&&qtdFio>0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">⚠️ Estoque baixo</div>':'')
     +(qtdFio===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
     +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
@@ -7220,19 +7223,30 @@ window._fitNavMes=function(mes){ window._fitRelMes=mes; reloadTab(); };
 // ── Config Fitas ──────────────────────────────────────────────────
 function renderConfigFitas(){
   const cores=getCoresFitas();
+  const estoqMin=configFitas.estoqueMin||{};
   const coresHtml=cores.map((c,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
     +'<input type="color" value="'+(c.hex||'#6366f1')+'" id="cf-hex-'+i+'" style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">'
     +'<input value="'+c.nome+'" id="cf-nome-'+i+'" placeholder="Nome da cor" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<input type="number" value="'+(estoqMin[c.nome]||'')+'" id="cf-min-'+i+'" min="0" placeholder="Mín." title="Estoque mínimo" style="width:60px;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px;text-align:center">'
     +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
     +'</div>').join('');
 
-  return '<div class="card">'
-    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🎨 Cores de fita cadastradas</div>'
+  return '<div class="card" style="margin-bottom:12px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:4px">🎨 Cores de fita</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Nome · Cor · Estoque mínimo (rolos)</div>'
     +'<div id="cf-lista">'+coresHtml+'</div>'
     +'<button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="window._addCorFita()">+ Adicionar cor</button>'
     +'<div style="margin-top:14px">'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarConfigFitas()">Salvar</button>'
-    +'</div></div>';
+    +'</div></div>'
+    +'<div class="card">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🧵 Estoque mínimo — Fio</div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<input type="number" id="cf-min-fio" value="'+(estoqMin['__fio__']||'')+'" min="0" placeholder="Ex: 10" style="flex:1;font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<span style="font-size:13px;color:#64748b">rolos</span>'
+    +'</div>'
+    +'<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="window._salvarMinFio()">Salvar</button>'
+    +'</div>';
 }
 
 window._addCorFita=function(){
@@ -7243,37 +7257,43 @@ window._addCorFita=function(){
   div.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px';
   div.innerHTML='<input type="color" value="#6366f1" id="cf-hex-'+i+'" style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">'
     +'<input placeholder="Nome da cor" id="cf-nome-'+i+'" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<input type="number" placeholder="Mín." id="cf-min-'+i+'" min="0" style="width:60px;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px;text-align:center">'
     +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>';
   lista.appendChild(div);
 };
 
 window._salvarConfigFitas=async function(){
   const lista=document.getElementById('cf-lista');
-  console.log('cf-lista:', lista, 'filhos:', lista?.children.length);
   if(!lista) return;
   const cores=[];
+  const estoqueMin={...(configFitas.estoqueMin||{})};
   Array.from(lista.children).forEach(row=>{
-    const inputs=Array.from(row.querySelectorAll("input"));
-    const hexEl=inputs.find(el=>el.type==="color");
-    const nomeEl=inputs.find(el=>el.type!=="color");
+    const inputs=Array.from(row.querySelectorAll('input'));
+    const hexEl=inputs.find(el=>el.type==='color');
+    const nomeEl=inputs.find(el=>el.type!=='color'&&el.id.startsWith('cf-nome'));
+    const minEl=inputs.find(el=>el.type==='number');
     const nome=(nomeEl?.value||'').trim();
     const hex=hexEl?.value||'#6366f1';
-    if(nome) cores.push({nome,hex});
+    const min=parseInt(minEl?.value)||0;
+    if(nome){ cores.push({nome,hex}); if(min>0) estoqueMin[nome]=min; }
   });
-  console.log('Cores a salvar:', JSON.stringify(cores));
-  if(!cores.length){ showToast('Nenhuma cor para salvar.'); return; }
+  if(!cores.length){showToast('Nenhuma cor para salvar.');return;}
   try{
-    await setDoc(doc(db,'config_fitas','geral'),{cores});
-    // Recarregar config imediatamente
+    await setDoc(doc(db,'config_fitas','geral'),{...configFitas,cores,estoqueMin});
     const snap=await getDoc(doc(db,'config_fitas','geral'));
     if(snap.exists()) configFitas={cores:[],tiposFio:['Fio Padrão'],...snap.data()};
-    console.log('Config após save:', configFitas);
     showToast('Cores salvas! ('+cores.length+' cores)');
     setTimeout(()=>reloadTab(),500);
   }catch(e){
     showToast('Erro: '+e.message);
-    console.error('Erro Firestore:', e);
   }
+};
+
+window._salvarMinFio=async function(){
+  const min=parseInt(document.getElementById('cf-min-fio')?.value)||0;
+  const estoqueMin={...(configFitas.estoqueMin||{}),'__fio__':min};
+  await setDoc(doc(db,'config_fitas','geral'),{...configFitas,estoqueMin});
+  showToast('Estoque mínimo do fio salvo!');
 };
 
 
