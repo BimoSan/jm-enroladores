@@ -3377,11 +3377,16 @@ function calcGanhoSoldador(soldadorId, periodo){
           pecasDia.forEach(p=>{
             const metaP=comMeta.find(c=>c.id===p.id);
             if(!metaP){totalGanho+=p.qtd*p.val;return;}
-            // Se bateu meta completa: excedente da meta
-            // Se só bateu meia meta: excedente da meia meta
-            const limiar=metaP.qtd>=metaP.meta?metaP.meta:Math.ceil(metaP.meta/2);
-            const exc=Math.max(0,p.qtd-limiar);
-            totalGanho+=exc*p.val;
+            if(meta1Atingida||meta2Atingida){
+              // Uma peça bateu meta completa → peças que bateram: excedente; demais: tudo
+              const exc=metaP.qtd>=metaP.meta?Math.max(0,p.qtd-metaP.meta):p.qtd;
+              totalGanho+=exc*p.val;
+            } else {
+              // Ambas bateram só meia meta → excedente da meia meta
+              const limiar=Math.ceil(metaP.meta/2);
+              const exc=Math.max(0,p.qtd-limiar);
+              totalGanho+=exc*p.val;
+            }
           });
         }
         // Se não liberado: não ganha nada
