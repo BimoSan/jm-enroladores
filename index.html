@@ -5454,14 +5454,14 @@ function renderEspPainel(){
 
   const blocosHoje=espumaProducao.filter(p=>p.data===hoje).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
   const blocosMes=espumaProducao.filter(p=>(p.data||'').startsWith(mes)).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
-  const blocosQ=espumaProducao.filter(p=>p.quinzena===q).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+  const ganhoDia=blocosHoje*getValorBloco();
+  const ganhoMes=blocosMes*getValorBloco();
   const disponiveis=blocosDisponiveis();
   const vol=(DIMENSOES_BLOCO.l*DIMENSOES_BLOCO.a*DIMENSOES_BLOCO.c).toFixed(2);
 
   let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos hoje</div><div class="stat-value">'+blocosHoje+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Blocos no mês</div><div class="stat-value">'+blocosMes+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Blocos na quinzena</div><div class="stat-value">'+blocosQ+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos hoje</div><div class="stat-value">'+blocosHoje+'</div><div style="font-size:10px;opacity:.8">'+fmtMoeda(ganhoDia)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Blocos no mês</div><div class="stat-value">'+blocosMes+'</div><div style="font-size:10px;opacity:.8">'+fmtMoeda(ganhoMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,'+(disponiveis<5?'#dc2626,#ef4444':'#374151,#6b7280')+')"><div><div class="stat-label">Possíveis agora</div><div class="stat-value">'+disponiveis+'</div></div></div>'
     +'</div>';
 
