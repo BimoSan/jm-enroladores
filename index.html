@@ -4066,6 +4066,7 @@ function renderPontoMetal(){
     </div>
     <div style="display:flex;gap:8px">
       ${podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._abrirNovoPontoFunc()">+ Funcionário</button>':''}
+      <button class="btn btn-ghost btn-sm" onclick="window._imprimirPonto('${mes}')">🖨️ Imprimir</button>
     </div>
   </div>`;
 
@@ -4204,6 +4205,91 @@ function renderPontoMetal(){
 }
 
 // ── Funções do ponto ──────────────────────────────────────────────
+
+window._imprimirPonto=function(mes){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [ano,m]=mes.split('-');
+  const mesNome=MESES[parseInt(m)-1]+' '+ano;
+  const diasNoMes=new Date(parseInt(ano),parseInt(m),0).getDate();
+  const STATUS_BG={P:'#d1fae5',F:'#fee2e2',FJ:'#fef3c7',M:'#dbeafe',FO:'#ede9fe'};
+  const STATUS_COR={P:'#065f46',F:'#991b1b',FJ:'#92400e',M:'#1e40af',FO:'#5b21b6'};
+
+  const dias=[];
+  for(let d=1;d<=diasNoMes;d++){
+    const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dow=new Date(dt+'T12:00:00').getDay();
+    dias.push({d,dt,dow,isDom:dow===0,isSab:dow===6});
+  }
+
+  const theadDias=dias.map(({d,dow,isDom,isSab})=>{
+    const nm=['D','S','T','Q','Q','S','S'][dow];
+    const bg=isDom?'#374151':isSab?'#4b5563':'#1e293b';
+    return '<th style="padding:4px 2px;text-align:center;width:26px;background:'+bg+';color:#fff;font-size:9px"><div>'+nm+'</div><div>'+d+'</div></th>';
+  }).join('');
+
+  const tbody=pontoFuncionarios.map(func=>{
+    const cells=dias.map(({dt,isDom,isSab})=>{
+      const reg=pontoRegistros.find(r=>r.funcId===func.id&&r.data===dt);
+      const st=reg?.status||'';
+      const bg=st&&STATUS_BG[st]?STATUS_BG[st]:(isDom||isSab?'#f3f4f6':'#fff');
+      const cor=st&&STATUS_COR[st]?STATUS_COR[st]:'#94a3b8';
+      return '<td style="text-align:center;padding:3px 1px;font-size:9px;font-weight:700;background:'+bg+';color:'+cor+'">'+(st||'')+'</td>';
+    }).join('');
+    const faltas=dias.filter(({dt,isDom})=>!isDom&&pontoRegistros.find(r=>r.funcId===func.id&&r.data===dt)?.status==='F').length;
+    const faltasJ=dias.filter(({dt,isDom})=>!isDom&&pontoRegistros.find(r=>r.funcId===func.id&&r.data===dt)?.status==='FJ').length;
+    const hExtra=dias.reduce((s,{dt})=>{const r=pontoRegistros.find(x=>x.funcId===func.id&&x.data===dt);return s+(r?.horasExtra&&r.status==='P'?parseFloat(r.horasExtra)||0:0);},0);
+    return '<tr>'
+      +'<td style="padding:4px 8px;font-size:10px;font-weight:600;white-space:nowrap;background:#f8fafc">'+func.nome
+      +(func.cargo?'<div style="font-size:8px;color:#64748b">'+func.cargo+'</div>':'')
+      +'</td>'+cells
+      +'<td style="text-align:center;font-size:10px;font-weight:700;color:#dc2626">'+faltas+(faltasJ?'<br><span style="color:#d97706">'+faltasJ+'FJ</span>':'')+'</td>'
+      +'<td style="text-align:center;font-size:10px;font-weight:700;color:#3b82f6">'+(hExtra>0?'+'+hExtra+'h':'—')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Folha de Ponto — ${mesNome}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;margin:16px;color:#1e293b;font-size:11px}
+  h2{text-align:center;margin:0 0 2px;font-size:16px}
+  .sub{text-align:center;color:#64748b;font-size:10px;margin-bottom:12px}
+  table{border-collapse:collapse;width:100%}
+  th{padding:5px 3px;font-size:9px}
+  td{border:1px solid #e5e7eb}
+  .legenda{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .leg{padding:2px 8px;border-radius:4px;font-weight:600;font-size:9px}
+  .assinatura{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;padding-top:10px}
+  .ass{border-top:1px solid #000;padding-top:4px;text-align:center;font-size:10px;color:#475569}
+  @media print{@page{size:A4 landscape;margin:8mm}body{margin:0}}
+</style></head><body>
+<h2>📋 Folha de Ponto — ${mesNome}</h2>
+<div class="sub">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+<div class="legenda">
+  <span class="leg" style="background:#d1fae5;color:#065f46">P = Presente</span>
+  <span class="leg" style="background:#fee2e2;color:#991b1b">F = Falta</span>
+  <span class="leg" style="background:#fef3c7;color:#92400e">FJ = Falta Justificada</span>
+  <span class="leg" style="background:#dbeafe;color:#1e40af">M = Meio Período</span>
+  <span class="leg" style="background:#ede9fe;color:#5b21b6">FO = Folga</span>
+</div>
+<table>
+  <thead><tr style="background:#1e293b;color:#fff">
+    <th style="text-align:left;padding:5px 8px;min-width:120px">Funcionário</th>
+    ${theadDias}
+    <th style="width:42px">Faltas</th>
+    <th style="width:42px">H.Extra</th>
+  </tr></thead>
+  <tbody>${tbody}</tbody>
+</table>
+<div class="assinatura">
+  <div class="ass">Responsável / Encarregado</div>
+  <div class="ass">Gerência / Administração</div>
+</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),600);
+};
 
 window._abrirNovoPontoFunc=()=>{
   showModal('Novo funcionário',
