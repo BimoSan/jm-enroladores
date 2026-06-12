@@ -5485,10 +5485,11 @@ function renderEspPainel(){
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Estoque de matérias-primas</div>';
   FORMULA_BLOCO.forEach(mp=>{
-    const est=estoqueAtualMp(mpConf.id);
+    const mpConf=getMpById(mp.id);
+    const est=estoqueAtualMp(mp.id);
     const tambores=est/mp.kgTambor;
     const blocosPos=Math.floor(est/mp.kgBloco);
-    const mpConf=getMpById(mp.id);const minimo=mpConf?.estoqueMin||mp.kgTambor;const cor=est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669';
+    const minimo=mpConf?.estoqueMin||mp.kgTambor;const cor=est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669';
     html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">'
       +'<div style="font-size:12px;font-weight:600">'+mp.label+'</div>'
       +'<div style="text-align:right">'
