@@ -5409,7 +5409,7 @@ function estoqueAtualMp(mpId){
 
 function blocosDisponiveis(){
   return Math.min(...FORMULA_BLOCO.map(mp=>{
-    const est=estoqueAtualMp(mp.id);
+    const est=estoqueAtualMp(mpConf.id);
     return Math.floor(est/mp.kgBloco);
   }));
 }
@@ -5466,18 +5466,17 @@ function renderEspPainel(){
     +'</div>';
 
   // Alerta de estoque crítico
-  const criticos=FORMULA_BLOCO.filter(mp=>{
-    const est=estoqueAtualMp(mp.id);
-    const mpConfig=getMpById(mp.id);
-    const minimo=mpConfig?.estoqueMin||mp.kgTambor; // default: 1 tambor
-    return est<minimo;
+  const criticos=(configEspuma.materiasPrimas||[]).filter(mpConf=>{
+    const est=estoqueAtualMp(mpConf.id);
+    const minimo=mpConf.estoqueMin||mpConf.kgTambor||0;
+    return minimo>0&&est<minimo;
   });
   if(criticos.length){
     html+='<div style="background:#fee2e2;border:2px solid #fca5a5;border-radius:12px;padding:12px;margin-bottom:14px">'
       +'<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ Matéria-prima baixa!</div>'
-      +criticos.map(mp=>{
-        const est=estoqueAtualMp(mp.id);
-        return '<div style="font-size:12px;color:#dc2626">• '+mp.label+': '+est.toFixed(2)+'kg restantes</div>';
+      +criticos.map(mpConf=>{
+        const est=estoqueAtualMp(mpConf.id);
+        return '<div style="font-size:12px;color:#dc2626">• '+mpConf.label+': '+est.toFixed(2)+'kg restantes</div>';
       }).join('')
       +'</div>';
   }
@@ -5486,7 +5485,7 @@ function renderEspPainel(){
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Estoque de matérias-primas</div>';
   FORMULA_BLOCO.forEach(mp=>{
-    const est=estoqueAtualMp(mp.id);
+    const est=estoqueAtualMp(mpConf.id);
     const tambores=est/mp.kgTambor;
     const blocosPos=Math.floor(est/mp.kgBloco);
     const mpConf=getMpById(mp.id);const minimo=mpConf?.estoqueMin||mp.kgTambor;const cor=est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669';
@@ -5520,34 +5519,39 @@ function renderEspPainel(){
 function renderEspApontar(){
   const hoje=today();
   const disponiveis=blocosDisponiveis();
-  const optsOp=espumaOperadores.filter(o=>o.ativo!==false)
-    .map(o=>'<option value="'+o.id+'">'+o.nome+'</option>').join('');
+  const formulas=configEspuma.formulas||[];
 
+  // Operador padrão: Diego ou primeiro ativo
+  if(!window._espOpSel){
+    const diego=espumaOperadores.find(o=>o.ativo!==false&&o.nome.toLowerCase().includes('diego'));
+    window._espOpSel=(diego||espumaOperadores.find(o=>o.ativo!==false))?.id||'';
+  }
+
+  // Banner blocos possíveis
   let html='<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;text-align:center;padding:16px">'
     +'<div style="font-size:13px;font-weight:700;opacity:.8">Blocos possíveis agora</div>'
-    +'<div style="font-size:42px;font-weight:900;margin:4px 0">'+disponiveis+'</div>'
-    +'<div style="font-size:11px;opacity:.7">baseado no estoque atual de matérias-primas</div>'
+    +'<div style="font-size:48px;font-weight:900;margin:4px 0">'+disponiveis+'</div>'
+    +'<div style="font-size:11px;opacity:.7">baseado no estoque atual</div>'
     +'</div>';
 
-  html+='<div class="card" style="margin-bottom:12px">'
-    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📦 Registrar produção</div>'
-    +'<div class="form-group"><label>Operador</label>'
-    +'<select id="esp-op" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
-    +'<option value="">— Selecione —</option>'+optsOp+'</select></div>'
-    +'<div class="form-group"><label>Data</label>'
-    +'<input type="date" id="esp-data" value="'+hoje+'" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Quantidade de blocos</label>'
-    +'<div style="display:flex;align-items:center;gap:8px">'
-    +'<button onclick="window._espDec()" style="width:44px;height:44px;border-radius:50%;background:#e2e8f0;border:none;font-size:22px;cursor:pointer">−</button>'
-    +'<input type="number" id="esp-blocos" min="1" placeholder="0" onfocus="this.select()" style="flex:1;text-align:center;font-size:24px;font-weight:800;border:2px solid #e2e8f0;border-radius:10px;padding:8px">'
-    +'<button onclick="window._espInc()" style="width:44px;height:44px;border-radius:50%;background:#1d4ed8;border:none;font-size:22px;cursor:pointer;color:#fff">+</button>'
-    +'</div></div>'
-    +'<div id="esp-preview" style="display:none;background:#f0fdf4;border-radius:10px;padding:10px;margin-bottom:12px">'
-    +'<div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:6px">Consumo estimado</div>'
-    +'<div id="esp-consumo"></div>'
-    +'</div>'
-    +'<button onclick="window._espSalvarProd()" style="width:100%;padding:16px;background:#1d4ed8;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer">✓ Registrar produção</button>'
-    +'</div>';
+  // Cards de fórmulas (blocos cadastrados)
+  if(!formulas.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhum bloco cadastrado. Configure em Configurações.</div>';
+    return html;
+  }
+
+  html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Selecione o bloco:</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
+  formulas.forEach(f=>{
+    const isAtiva=f.id===configEspuma.formulaAtiva;
+    html+='<div onclick="window._espAbrirFormulaProd(\''+f.id+'\')" style="background:'+(isAtiva?'#1d4ed8':'#fff')+';border:2px solid '+(isAtiva?'#1d4ed8':'#e2e8f0')+';border-radius:14px;padding:16px;text-align:center;cursor:pointer">'
+      +'<div style="font-size:28px;margin-bottom:6px">🧱</div>'
+      +'<div style="font-size:14px;font-weight:800;color:'+(isAtiva?'#fff':'#1e293b')+'">'+f.label+'</div>'
+      +(f.dims?'<div style="font-size:10px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">'+f.dims.l+'×'+f.dims.a+'×'+f.dims.c+'m</div>':'')
+      +'<div style="font-size:12px;font-weight:700;color:'+(isAtiva?'rgba(255,255,255,.9)':'#059669')+';margin-top:4px">'+fmtMoeda(f.valorBloco||0)+'/bloco</div>'
+      +'</div>';
+  });
+  html+='</div>';
 
   // Histórico do dia
   const prodHoje=espumaProducao.filter(p=>p.data===hoje);
@@ -5555,11 +5559,12 @@ function renderEspApontar(){
     html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Lançamentos de hoje</div>';
     prodHoje.forEach((p,i)=>{
       const op=espumaOperadores.find(o=>o.id===p.operadorId);
+      const f=formulas.find(x=>x.id===p.formulaId);
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-        +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+p.blocos+' bloco'+(p.blocos>1?'s':'')+'</div>'
+        +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+(f?.label||'Bloco')+' · '+p.blocos+'un</div>'
         +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+'</div></div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
-        +'<span style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(p.blocos*VALOR_BLOCO)+'</span>'
+        +'<span style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(p.blocos*(p.valorBloco||f?.valorBloco||VALOR_BLOCO))+'</span>'
         +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._espExcluirProd(\''+p.id+'\')">✕</button>'
         +'</div></div>';
     });
@@ -5568,34 +5573,66 @@ function renderEspApontar(){
   return html;
 }
 
-// ── Estoque ──────────────────────────────────────────────────────
+window._espAbrirFormulaProd=function(formulaId){
+  const f=(configEspuma.formulas||[]).find(x=>x.id===formulaId);
+  if(!f) return;
+  const ops=espumaOperadores.filter(o=>o.ativo!==false);
+  const opSel=window._espOpSel||ops[0]?.id||'';
+  const optsOp=ops.map(o=>'<option value="'+o.id+'"'+(o.id===opSel?' selected':'')+'>'+o.nome+'</option>').join('');
+
+  showModal('🧱 '+f.label,
+    '<div class="form-group"><label>Operador</label>'
+    +'<select id="esp-op" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:10px;width:100%">'
+    +optsOp+'</select></div>'
+    +'<div class="form-group"><label>Quantidade de blocos</label>'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<button onclick="window._espDec()" style="width:48px;height:48px;border-radius:50%;background:#e2e8f0;border:none;font-size:24px;cursor:pointer;flex-shrink:0">−</button>'
+    +'<input type="number" id="esp-blocos" min="1" placeholder="0" onfocus="this.select()" oninput="window._espAtualizarPreview()" style="flex:1;text-align:center;font-size:28px;font-weight:900;border:2px solid #e2e8f0;border-radius:10px;padding:10px">'
+    +'<button onclick="window._espInc()" style="width:48px;height:48px;border-radius:50%;background:#1d4ed8;border:none;font-size:24px;cursor:pointer;color:#fff;flex-shrink:0">+</button>'
+    +'</div></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="esp-data" value="'+today()+'" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div id="esp-preview" style="display:none;background:#f0fdf4;border-radius:10px;padding:10px">'
+    +'<div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:4px">Consumo estimado</div>'
+    +'<div id="esp-consumo"></div>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._espSalvarProd(\''+formulaId+'\')">✓ Registrar</button>');
+};
+
 function renderEspEstoque(){
   let html='';
+  const todasMps=configEspuma.materiasPrimas||[];
+  const formulaMps=FORMULA_BLOCO; // para pegar kgBloco
 
-  FORMULA_BLOCO.forEach(mp=>{
-    const est=estoqueAtualMp(mp.id);
-    const tambores=est/mp.kgTambor;
-    const blocosPoss=Math.floor(est/mp.kgBloco);
-    const mpConf=getMpById(mp.id);const minimo=mpConf?.estoqueMin||mp.kgTambor;const cor=est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669';
-    const entradas=espumaEstoque.filter(e=>e.mpId===mp.id).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+  if(!todasMps.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma matéria-prima cadastrada.</div>';
 
-    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+cor+';cursor:pointer" onclick="window._espAbrirMp(\''+mp.id+'\')">'
+  todasMps.forEach(mpConf=>{
+    const mpFormula=formulaMps.find(f=>f.id===mpConf.id);
+    const est=estoqueAtualMp(mpConf.id);
+    const tambores=mpConf.kgTambor>0?est/mpConf.kgTambor:0;
+    const blocosPoss=mpFormula&&mpFormula.kgBloco>0?Math.floor(est/mpFormula.kgBloco):null;
+    const minimo=mpConf.estoqueMin||mpConf.kgTambor||0;
+    const cor=minimo>0?(est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669'):'#059669';
+    const entradas=espumaEstoque.filter(e=>e.mpId===mpConf.id).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+cor+';cursor:pointer" onclick="window._espAbrirMp(\''+mpConf.id+'\')">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
       +'<div>'
-      +'<div style="font-size:14px;font-weight:700">'+mp.label+'</div>'
-      +'<div style="font-size:11px;color:#64748b">Tambor: '+mp.kgTambor+'kg · '+mp.kgBloco+'kg/bloco</div>'
-      +(mpConf?.estoqueMin?'<div style="font-size:10px;color:#d97706">Mín: '+mpConf.estoqueMin+'kg'+(mpConf.estoqueMinTambores?' ('+mpConf.estoqueMinTambores+'t)':'')+'</div>':'')
+      +'<div style="font-size:14px;font-weight:700">'+mpConf.label+'</div>'
+      +'<div style="font-size:11px;color:#64748b">Tambor: '+mpConf.kgTambor+'kg'+(mpFormula?' · '+mpFormula.kgBloco+'kg/bloco':'')+'</div>'
+      +(mpConf.estoqueMin?'<div style="font-size:10px;color:#d97706">Mín: '+mpConf.estoqueMin+'kg'+(mpConf.estoqueMinTambores?' ('+mpConf.estoqueMinTambores+'t)':'')+'</div>':'')
       +'</div>'
       +'<div style="text-align:right">'
       +'<div style="font-size:20px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'<span style="font-size:12px">kg</span></div>'
-      +'<div style="font-size:10px;color:#94a3b8">'+tambores.toFixed(1)+' tambores · '+blocosPoss+' blocos poss.</div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+tambores.toFixed(1)+' tambores'+(blocosPoss!==null?' · '+blocosPoss+' blocos poss.':'')+'</div>'
       +'</div></div>'
       +'<div style="font-size:10px;color:#94a3b8;text-align:right">toque para lançar ›</div>'
       +(entradas.length?'<div style="border-top:1px solid #f1f5f9;padding-top:8px;margin-top:6px" onclick="event.stopPropagation()">'
         +'<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:4px">Movimentos recentes</div>'
         +entradas.slice(0,3).map(e=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
           +'<span style="color:'+(e._saida?'#dc2626':'#059669')+';font-weight:600">'+(e._saida?'↓ Saída':'↑ Entrada')+'</span>'
-          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' tambor'+(e.tambores>1?'es':'')+' · '+e.kg+'kg</span>'
+          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' tambor'+(e.tambores>1?'es':'')+' · '+Math.abs(e.kg)+'kg</span>'
           +'<button class="btn btn-sm btn-danger" style="font-size:9px;padding:1px 6px" onclick="window._espExcluirEntrada(\''+e.id+'\')">✕</button>'
           +'</div>').join('')
         +'</div>':'')
@@ -5910,7 +5947,7 @@ window._espAtualizarPreview=function(){
     preview.style.display='block';
     consumo.innerHTML=FORMULA_BLOCO.map(mp=>{
       const kg=(mp.kgBloco*blocos).toFixed(3);
-      const est=estoqueAtualMp(mp.id);
+      const est=estoqueAtualMp(mpConf.id);
       const ok=est>=parseFloat(kg);
       return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
         +'<span>'+mp.label+'</span>'
@@ -5923,23 +5960,27 @@ window._espAtualizarPreview=function(){
   }
 };
 
-window._espSalvarProd=async function(){
+window._espSalvarProd=async function(formulaId){
+  const fId=formulaId||configEspuma.formulaAtiva;
+  const f=(configEspuma.formulas||[]).find(x=>x.id===fId);
   const opId=document.getElementById('esp-op')?.value;
   const data=document.getElementById('esp-data')?.value;
   const blocos=parseInt(document.getElementById('esp-blocos')?.value)||0;
   if(!opId){showToast('Selecione o operador.');return;}
   if(!blocos){showToast('Informe a quantidade de blocos.');return;}
   // Verificar estoque
-  const semEstoque=FORMULA_BLOCO.filter(mp=>estoqueAtualMp(mp.id)<mp.kgBloco*blocos);
+  const formula=f?f.ingredientes:FORMULA_BLOCO.map(mp=>({mpId:mp.id,kgBloco:mp.kgBloco}));
+  const semEstoque=(formula||[]).filter(ing=>estoqueAtualMp(ing.mpId)<ing.kgBloco*blocos);
   if(semEstoque.length){
-    showToast('Estoque insuficiente: '+semEstoque.map(mp=>mp.label).join(', '));
+    const nomes=semEstoque.map(ing=>getMpById(ing.mpId)?.label||ing.mpId);
+    showToast('Estoque insuficiente: '+nomes.join(', '));
     return;
   }
+  window._espOpSel=opId;
   const q=getQuinzenaEsp(data);
-  await addDoc(collection(db,'esp_producao'),{operadorId:opId,data,blocos,quinzena:q,status:'aberta',pago:false,criadoEm:new Date().toISOString()});
+  closeModal();
+  await addDoc(collection(db,'esp_producao'),{operadorId:opId,data,blocos,formulaId:fId,valorBloco:f?.valorBloco||VALOR_BLOCO,quinzena:q,status:'aberta',pago:false,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
-  document.getElementById('esp-blocos').value='';
-  document.getElementById('esp-preview').style.display='none';
 };
 
 window._espExcluirProd=function(id){
