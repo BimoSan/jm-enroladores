@@ -5409,7 +5409,7 @@ function estoqueAtualMp(mpId){
 
 function blocosDisponiveis(){
   return Math.min(...FORMULA_BLOCO.map(mp=>{
-    const est=estoqueAtualMp(mpConf.id);
+    const est=estoqueAtualMp(mp.id);
     return Math.floor(est/mp.kgBloco);
   }));
 }
@@ -5948,7 +5948,7 @@ window._espAtualizarPreview=function(){
     preview.style.display='block';
     consumo.innerHTML=FORMULA_BLOCO.map(mp=>{
       const kg=(mp.kgBloco*blocos).toFixed(3);
-      const est=estoqueAtualMp(mpConf.id);
+      const est=estoqueAtualMp(mp.id);
       const ok=est>=parseFloat(kg);
       return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
         +'<span>'+mp.label+'</span>'
