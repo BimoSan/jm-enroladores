@@ -11064,7 +11064,9 @@ function renderAlmRelatorio(){
 
   function getItem(id){return itens.find(i=>i.id===id)||{};}
 
-  // ── Últimos 7 dias ──────────────────────────────────────────
+  // Valor total em estoque
+  const valorEstoque=itens.reduce((s,i)=>{const est=almEstoqueItem(i.id);const custo=parseFloat(i.custoUnitario)||0;return s+(est>0?est*custo:0);},0);
+  const itensComCusto=itens.filter(i=>i.custoUnitario>0).length;
   const dias7=[];
   for(let i=6;i>=0;i--){
     const d=new Date(today()+'T00:00:00');
@@ -11180,6 +11182,42 @@ function renderAlmRelatorio(){
   </svg>`;
 
   const html=`
+  <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff">
+    <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">💎 VALOR TOTAL EM ESTOQUE</div>
+    <div style="font-size:30px;font-weight:900">${fmtMoeda(valorEstoque)}</div>
+    <div style="font-size:11px;opacity:.7;margin-top:4px">Baseado no custo unitário de ${itensComCusto} iten${itensComCusto!==1?'s':''} cadastrado${itensComCusto!==1?'s':''}</div>
+  </div>
+
+  ${(()=>{
+    const top10=itens.map(i=>{
+      const est=almEstoqueItem(i.id);
+      const custo=parseFloat(i.custoUnitario)||0;
+      return {item:i,est,valorTotal:est*custo};
+    }).filter(x=>x.valorTotal>0).sort((a,b)=>b.valorTotal-a.valorTotal).slice(0,10);
+    if(!top10.length) return '';
+    const maxVal=top10[0].valorTotal;
+    return '<div class="card" style="margin-bottom:16px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:2px">📦 Itens com maior valor em estoque</div>'
+      +'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px">Quantidade atual × custo unitário</div>'
+      +top10.map((r,i)=>{
+        const pct=Math.round(r.valorTotal/maxVal*100);
+        return '<div style="margin-bottom:8px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">'
+          +'<div style="display:flex;align-items:center;gap:6px">'
+          +'<span style="font-size:12px;font-weight:800;color:#94a3b8;min-width:16px">'+(i+1)+'.</span>'
+          +'<span style="font-size:12px;font-weight:600">'+r.item.descricao+'</span>'
+          +'</div>'
+          +'<span style="font-size:12px;font-weight:800;color:#1e40af">'+fmtMoeda(r.valorTotal)+'</span>'
+          +'</div>'
+          +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
+          +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div>'
+          +'</div>'
+          +'<div style="font-size:10px;color:#94a3b8;margin-top:1px">'+r.est+' '+(r.item.unidade||'un')+' × '+fmtMoeda(parseFloat(r.item.custoUnitario))+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  })()}
+
   <div class="section-label">ANÁLISE DOS ÚLTIMOS 7 DIAS</div>
   <div class="card" style="margin-bottom:14px">
     <div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px;text-transform:uppercase">Custos com entradas nos últ. 7 dias</div>
@@ -11252,22 +11290,21 @@ function renderAlmRelatorio(){
     const top5Qtd=[...rank].sort((a,b)=>b.qtd-a.qtd).slice(0,5);
     const top5Custo=[...rank].sort((a,b)=>b.custo-a.custo).slice(0,5);
 
-    const buildTable=(rows,title,icon,valorFn,valueCor)=>{
+    const buildTable=(rows,title,icon,displayFn,rawFn,valueCor)=>{
       if(!rows.length) return '<div class="card" style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">'+icon+' '+title+'</div><div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">Nenhuma saída em '+nomeMesAtual+'.</div></div>';
-      const max=rows[0]?valorFn(rows[0]):1;
+      const max=rows[0]?rawFn(rows[0]):1;
       return '<div class="card" style="margin-bottom:14px">'
         +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:2px">'+icon+' '+title+'</div>'
         +'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px">'+nomeMesAtual+'</div>'
         +rows.map((r,i)=>{
-          const val=valorFn(r);
-          const pct=Math.round(val/max*100);
+          const pct=max>0?Math.round(rawFn(r)/max*100):0;
           return '<div style="margin-bottom:8px">'
             +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
             +'<div style="display:flex;align-items:center;gap:6px">'
             +'<span style="font-size:13px;font-weight:800;color:#94a3b8">'+(i+1)+'.</span>'
-            +'<span style="font-size:12px;font-weight:600">'+( r.item?.descricao||'—')+'</span>'
+            +'<span style="font-size:11px;font-weight:600">'+(r.item?.descricao||'—')+'</span>'
             +'</div>'
-            +'<span style="font-size:12px;font-weight:800;color:'+valueCor+'">'+val+'</span>'
+            +'<span style="font-size:12px;font-weight:800;color:'+valueCor+'">'+displayFn(r)+'</span>'
             +'</div>'
             +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
             +'<div style="height:100%;width:'+pct+'%;background:'+valueCor+';border-radius:99px;opacity:.7"></div>'
@@ -11279,8 +11316,8 @@ function renderAlmRelatorio(){
     };
 
     return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-      +buildTable(top5Qtd,'Itens mais retirados','📦',r=>r.qtd,'#d97706')
-      +buildTable(top5Custo,'Maior custo de saída','💰',r=>parseFloat(fmtMoeda(r.custo).replace('R$\u00a0','').replace('.','').replace(',','.')),  '#dc2626')
+      +buildTable(top5Qtd,'Mais retirados','📦',r=>r.qtd,r=>r.qtd,'#d97706')
+      +buildTable(top5Custo,'Maior custo','💰',r=>fmtMoeda(r.custo),r=>r.custo,'#dc2626')
       +'</div>';
   })()}
 
