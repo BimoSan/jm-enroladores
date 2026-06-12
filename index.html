@@ -593,7 +593,7 @@ const TAB_LABELS={
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_gradistas':'Gradistas','grad_config':'Configurações',
-  'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_config':'Configurações',
+  'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_relatorio':'Relatórios','esp_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
   'painel_int':'Painel','apontar_int':'Apontamento','fichas_int':'Fichas',
@@ -899,7 +899,20 @@ function renderApp(){
           </button>
           <div>
             <div class="topbar-title">${TAB_LABELS[currentTab]||currentTab}</div>
-            <div class="topbar-sub">Fibra sintética</div>
+            <div class="topbar-sub">${
+              currentSetor==='enrolamento_terceirizado'?'Fibra sintética':
+              currentSetor==='metalurgica'?'Metalúrgica':
+              currentSetor==='enrolamento_int'?'Enrolamento Interno':
+              currentSetor==='fitas'?'Fitas':
+              currentSetor==='grades'?'Grades':
+              currentSetor==='espuma'?'Blocos de Espuma':
+              currentSetor==='financeiro_geral'?'Financeiro':
+              currentSetor==='manutencao'?'Manutenção':
+              currentSetor==='almoxarifado'?'Almoxarifado':
+              currentSetor==='caminhoes'?'Caminhões':
+              (currentFabrica==='cadeiras'?'Fábrica de Cadeiras':
+               currentFabrica==='estofados'?'Fábrica de Estofados':'')
+            }</div>
           </div>
         </div>
         <div class="topbar-right">
