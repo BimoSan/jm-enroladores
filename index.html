@@ -6049,6 +6049,13 @@ window._espSalvarMovMp=async function(tipo, mpId){
   const data=document.getElementById('emp-data')?.value;
   const obs=document.getElementById('emp-obs')?.value.trim()||'';
   if(!kg){showToast('Informe a quantidade em kg.');return;}
+  if(tipo==='saida'){
+    const estoqueAtual=estoqueAtualMp(mpId);
+    if(kg>estoqueAtual){
+      showToast('Estoque insuficiente! Disponível: '+estoqueAtual.toFixed(1)+'kg');
+      return;
+    }
+  }
   closeModal();
   await addDoc(collection(db,'esp_estoque'),{mpId,tambores,kg:tipo==='saida'?-kg:kg,data,obs,_saida:tipo==='saida',criadoEm:new Date().toISOString()});
   showToast(tipo==='entrada'?'Entrada registrada!':'Saída registrada!');
