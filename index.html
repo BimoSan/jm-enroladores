@@ -686,7 +686,7 @@ function renderSelecionarSetor(){
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
     {id:'grades',     nome:'Grades',            icon:'🪚', desc:'Produção de estruturas de madeira', ativo:true},
     {id:'tapecamento',nome:'Tapeçamento',       icon:'🪑', desc:'Aplicação de tecidos', ativo:false},
-    {id:'espuma',     nome:'Blocos de Espuma',  icon:'🧱', desc:'Produção e controle de blocos D20', ativo:true},
+    {id:'espuma',     nome:'Blocos de Espuma',  icon:'⬜', desc:'Produção e controle de blocos D20', ativo:true},
   ];
 
   const setores=currentFabrica==='cadeiras'?setoresCadeiras:setoresEstofados;
@@ -5546,7 +5546,7 @@ function renderEspApontar(){
   formulas.forEach(f=>{
     const isAtiva=f.id===configEspuma.formulaAtiva;
     html+='<div onclick="window._espAbrirFormulaProd(\''+f.id+'\')" style="background:'+(isAtiva?'#1d4ed8':'#fff')+';border:2px solid '+(isAtiva?'#1d4ed8':'#e2e8f0')+';border-radius:14px;padding:16px;text-align:center;cursor:pointer">'
-      +'<div style="font-size:28px;margin-bottom:6px">🧱</div>'
+      +'<div style="font-size:28px;margin-bottom:6px">⬜</div>'
       +'<div style="font-size:14px;font-weight:800;color:'+(isAtiva?'#fff':'#1e293b')+'">'+f.label+'</div>'
       +(f.dims?'<div style="font-size:10px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">'+f.dims.l+'×'+f.dims.a+'×'+f.dims.c+'m</div>':'')
       +'<div style="font-size:12px;font-weight:700;color:'+(isAtiva?'rgba(255,255,255,.9)':'#059669')+';margin-top:4px">'+fmtMoeda(f.valorBloco||0)+'/bloco</div>'
@@ -5581,7 +5581,7 @@ window._espAbrirFormulaProd=function(formulaId){
   const opSel=window._espOpSel||ops[0]?.id||'';
   const optsOp=ops.map(o=>'<option value="'+o.id+'"'+(o.id===opSel?' selected':'')+'>'+o.nome+'</option>').join('');
 
-  showModal('🧱 '+f.label,
+  showModal('⬜ '+f.label,
     '<div class="form-group"><label>Operador</label>'
     +'<select id="esp-op" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
     +optsOp+'</select></div>'
