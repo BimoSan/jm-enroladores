@@ -311,6 +311,7 @@ const PERFIS={
   apontador_metal:  {label:'Apontador Metalúrgica',color:'#374151',bg:'#f3f4f6', fabricas:['cadeiras'],            setor:'metalurgica',      fichaColor:null},
   soldador:         {label:'Soldador',             color:'#6b7280',bg:'#f9fafb', fabricas:['cadeiras'],            setor:'metalurgica',      fichaColor:null},
   encarregado_est:  {label:'Encarregado Estofados', color:'#065f46',bg:'#d1fae5', fabricas:['estofados'], setor:null, fichaColor:null},
+  encarregado_esp:  {label:'Encarregado Espuma',   color:'#1d4ed8',bg:'#dbeafe', fabricas:['estofados'], setor:'espuma', fichaColor:null},
   operador_esp:     {label:'Operador Espuma',       color:'#7c3aed',bg:'#ede9fe', fabricas:['estofados'], setor:'espuma', fichaColor:null},
   mecanico:         {label:'Mecânico',             color:'#374151',bg:'#f3f4f6', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null, fichaColor:null},
   apontador_int:    {label:'Apontador Interno',    color:'#065f46',bg:'#d1fae5', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
@@ -552,6 +553,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'esp_estoque':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
   'esp_fichas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   'esp_operadores':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+  'esp_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'esp_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'grad_painel':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
@@ -803,7 +805,7 @@ function renderApp(){
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
   } else if(currentSetor==='espuma'){
     const pg=currentUserData?.perfil;
-    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_config');
+    if(['admin','proprietario','encarregado_est','encarregado_esp'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_relatorio','esp_config');
     else if(pg==='operador_esp') tabs.push('esp_painel','esp_fichas');
     else tabs.push('esp_painel');
     if(!currentTab||!currentTab.startsWith('esp_')) currentTab='esp_painel';
@@ -5438,6 +5440,7 @@ function renderTabEspuma(tab){
     if(tab==='esp_estoque')   return renderEspEstoque();
     if(tab==='esp_fichas')    return renderEspFichas();
     if(tab==='esp_operadores')return renderEspOperadores();
+    if(tab==='esp_relatorio') return renderEspRelatorio();
     if(tab==='esp_config')    return renderEspConfig();
     return renderEspPainel();
   }catch(e){
@@ -5647,7 +5650,7 @@ function renderEspFichas(){
   if(!window._espFichaFiltro) window._espFichaFiltro='abertas';
   const filtro=window._espFichaFiltro;
   const q=getQuinzenaEsp();
-  const podeFechar=['admin','proprietario','encarregado_est'].includes(currentUserData?.perfil);
+  const podeFechar=['admin','proprietario','encarregado_est','encarregado_esp'].includes(currentUserData?.perfil);
 
   const btnF=v=>'<button onclick="window._espSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#1d4ed8':'#e2e8f0')+';background:'+(filtro===v?'#1d4ed8':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
   let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
@@ -5714,6 +5717,139 @@ function renderEspOperadores(){
   return html;
 }
 
+// ── Relatórios ───────────────────────────────────────────────────
+function renderEspRelatorio(){
+  if(!window._espRelAno) window._espRelAno=today().slice(0,4);
+  const ano=window._espRelAno;
+  const anos=[...new Set([
+    ...espumaProducao.map(p=>(p.data||'').slice(0,4)),
+    ...espumaEstoque.map(e=>(e.data||'').slice(0,4)),
+  ].filter(Boolean))].sort().reverse();
+  if(!anos.length) anos.push(ano);
+  if(!anos.includes(ano)) window._espRelAno=anos[0];
+
+  const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mps=configEspuma.materiasPrimas||[];
+  const formulas=configEspuma.formulas||[];
+
+  const prodMes=Array.from({length:12},()=>0);
+  espumaProducao.filter(p=>(p.data||'').startsWith(ano)).forEach(p=>{
+    const m=parseInt((p.data||'').slice(5,7));
+    if(m>=1&&m<=12) prodMes[m-1]+=(parseInt(p.blocos)||0);
+  });
+  const maxProd=Math.max(...prodMes,1);
+  const totalBlocos=prodMes.reduce((s,v)=>s+v,0);
+
+  const formulaAtiva=getFormulaAtiva();
+  const custoPorBloco=formulaAtiva?(formulaAtiva.ingredientes||[]).reduce((s,ing)=>{
+    const mp=getMpById(ing.mpId);
+    return s+(mp?.custoPorKg||0)*ing.kgBloco;
+  },0):0;
+  const custoTotalMps=totalBlocos*custoPorBloco;
+
+  const usoMpMes={};
+  mps.forEach(mp=>{ usoMpMes[mp.id]=Array.from({length:12},()=>0); });
+  espumaProducao.filter(p=>(p.data||'').startsWith(ano)).forEach(p=>{
+    const m=parseInt((p.data||'').slice(5,7))-1;
+    if(m<0||m>11) return;
+    const fId=p.formulaId||configEspuma.formulaAtiva;
+    const f=formulas.find(x=>x.id===fId)||formulaAtiva;
+    (f?.ingredientes||[]).forEach(ing=>{
+      if(usoMpMes[ing.mpId]) usoMpMes[ing.mpId][m]+=(parseInt(p.blocos)||0)*ing.kgBloco;
+    });
+  });
+
+  const gastoMp=mps.map(mp=>{
+    const totalKg=(usoMpMes[mp.id]||[]).reduce((s,v)=>s+v,0);
+    const custo=totalKg*(mp.custoPorKg||0);
+    return {mp,totalKg,custo};
+  }).filter(x=>x.totalKg>0).sort((a,b)=>b.custo-a.custo);
+  const maxGasto=Math.max(...gastoMp.map(g=>g.custo),1);
+
+  const selectAno='<select onchange="window._espRelSetAno(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px">'
+    +anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+'</select>';
+
+  // Valor em estoque
+  const valorEstoque=(configEspuma.materiasPrimas||[]).reduce((s,mp)=>{
+    const est=estoqueAtualMp(mp.id);
+    return s+est*(mp.custoPorKg||0);
+  },0);
+
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+    +'<div style="font-size:15px;font-weight:800;color:#1e293b">📊 Relatórios</div>'+selectAno+'</div>';
+
+  // Card destaque estoque
+  html+='<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:16px;margin-bottom:14px;color:#fff">'
+    +'<div style="font-size:12px;font-weight:700;opacity:.8;margin-bottom:4px">💎 Valor total em estoque agora</div>'
+    +'<div style="font-size:32px;font-weight:900">'+(valorEstoque>0?fmtMoeda(valorEstoque):'—')+'</div>'
+    +(valorEstoque===0?'<div style="font-size:11px;opacity:.7">Cadastre o custo por kg nas configurações das MPs</div>':'<div style="font-size:11px;opacity:.7">Baseado no estoque atual e custo/kg cadastrado</div>')
+    +'</div>';
+
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos produzidos</div><div class="stat-value">'+totalBlocos+'</div><div style="font-size:10px;opacity:.8">em '+ano+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Custo/bloco (MP)</div><div class="stat-value" style="font-size:18px">'+(custoPorBloco>0?fmtMoeda(custoPorBloco):'—')+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Custo total MP</div><div class="stat-value" style="font-size:16px">'+(custoTotalMps>0?fmtMoeda(custoTotalMps):'—')+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">A pagar operadores</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalBlocos*getValorBloco())+'</div></div></div>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">⬜ Produção de blocos por mês</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:4px;height:100px">';
+  prodMes.forEach((v,i)=>{
+    const h=Math.round(v/maxProd*90);
+    html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +(v>0?'<div style="font-size:8px;color:#475569;font-weight:700">'+v+'</div>':'<div style="font-size:8px;color:transparent">0</div>')
+      +'<div style="width:100%;background:'+(v>0?'#1d4ed8':'#e2e8f0')+';border-radius:4px 4px 0 0;height:'+h+'px;min-height:2px"></div>'
+      +'<div style="font-size:8px;color:#94a3b8">'+MESES[i]+'</div>'
+      +'</div>';
+  });
+  html+='</div></div>';
+
+  if(gastoMp.length){
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💰 Gasto por matéria-prima</div>';
+    gastoMp.forEach(({mp,totalKg,custo})=>{
+      const pct=Math.round(custo/maxGasto*100);
+      html+='<div style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+        +'<div><span style="font-size:12px;font-weight:600">'+mp.label+'</span>'
+        +'<span style="font-size:10px;color:#94a3b8;margin-left:6px">'+totalKg.toFixed(1)+'kg</span></div>'
+        +'<span style="font-size:12px;font-weight:700;color:#92400e">'+(custo>0?fmtMoeda(custo):'sem custo cadastrado')+'</span>'
+        +'</div>'
+        +'<div style="height:7px;background:#fef3c7;border-radius:99px">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:99px"></div>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  }
+
+  const mpsComUso=mps.filter(mp=>(usoMpMes[mp.id]||[]).some(v=>v>0));
+  if(mpsComUso.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Consumo de MP por mês (kg)</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'
+      +'<thead><tr style="background:#f8fafc"><th style="padding:5px 8px;text-align:left;white-space:nowrap">MP</th>'
+      +MESES.map(m=>'<th style="padding:5px 4px;text-align:right;color:#94a3b8;white-space:nowrap">'+m+'</th>').join('')
+      +'<th style="padding:5px 8px;text-align:right;color:#475569;font-weight:700">Total</th>'
+      +'</tr></thead><tbody>';
+    mpsComUso.forEach((mp,i)=>{
+      const vals=usoMpMes[mp.id]||Array(12).fill(0);
+      const total=vals.reduce((s,v)=>s+v,0);
+      html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+        +'<td style="padding:5px 8px;font-weight:600;white-space:nowrap">'+mp.label+'</td>'
+        +vals.map(v=>'<td style="padding:5px 4px;text-align:right;color:'+(v>0?'#1d4ed8':'#cbd5e1')+'">'+(v>0?v.toFixed(1):'—')+'</td>').join('')
+        +'<td style="padding:5px 8px;text-align:right;font-weight:800;color:#1d4ed8">'+total.toFixed(1)+'</td>'
+        +'</tr>';
+    });
+    html+='</tbody></table></div></div>';
+  } else {
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma produção registrada em '+ano+'.</div>';
+  }
+  return html;
+}
+
+window._espRelSetAno=v=>{ window._espRelAno=v; reloadTab(); };
+
+
 // ── Configurações ────────────────────────────────────────────────
 function renderEspConfig(){
   const mps=configEspuma.materiasPrimas||[];
@@ -5731,6 +5867,7 @@ function renderEspConfig(){
     +'<th style="padding:6px 8px;text-align:left">Nome</th>'
     +'<th style="padding:6px 8px;text-align:right">kg/tambor</th>'
     +'<th style="padding:6px 8px;text-align:right">Mín. (kg)</th>'
+    +'<th style="padding:6px 8px;text-align:right">R$/kg</th>'
     +'<th style="padding:6px 8px;text-align:center">Ações</th>'
     +'</tr></thead><tbody>';
   mps.forEach((mp,i)=>{
@@ -5795,10 +5932,52 @@ function renderEspConfig(){
 
   if(!formulas.length) html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma fórmula cadastrada.</div>';
   html+='</div>';
+  // ── Usuários do setor ────────────────────────────────────────
+  const perfisEsp=[['encarregado_esp',PERFIS['encarregado_esp']],['operador_esp',PERFIS['operador_esp']]];
+  const usuariosEsp=usuarios.filter(u=>['encarregado_esp','operador_esp'].includes(u.perfil));
+  const optsPerfilEsp=perfisEsp.map(([id,p])=>'<option value="'+id+'">'+p.label+'</option>').join('');
+
+  html+='<div class="card" style="margin-top:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:12px">👤 Usuários do setor</div>'
+    +'<div class="form-group"><label>Nome</label><input id="nesp-nome" placeholder="Nome completo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Perfil</label><select id="nesp-perfil" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+optsPerfilEsp+'</select></div>'
+    +'<div class="form-group"><label>E-mail (login)</label><input type="email" id="nesp-email" placeholder="email@empresa.com" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="nesp-senha" placeholder="mín. 6 caracteres" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._espCadastrarUsuario()">Cadastrar</button>'
+    +'</div>'
+    +(usuariosEsp.length?'<div class="section-label" style="margin-top:14px">Usuários cadastrados</div>'
+      +usuariosEsp.map(u=>{
+        const p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
+        return '<div class="card" style="margin-bottom:8px">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between">'
+          +'<div style="display:flex;align-items:center;gap:10px">'
+          +'<div style="width:36px;height:36px;border-radius:50%;background:'+p.bg+';color:'+p.color+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(u.nome)+'</div>'
+          +'<div><div style="font-size:13px;font-weight:700">'+u.nome+'</div>'
+          +'<div style="font-size:11px;color:#64748b">'+u.email+'</div></div></div>'
+          +'<div style="display:flex;gap:6px;align-items:center">'
+          +'<span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+p.bg+';color:'+p.color+'">'+p.label+'</span>'
+          +(u.uid!==currentUser?.uid?'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirUsuario(&quot;'+u.id+'&quot;)">Excluir</button>':'')
+          +'</div></div></div>';
+      }).join(''):'');
+
   return html;
 }
 
 // ── Config handlers ───────────────────────────────────────────────
+window._espCadastrarUsuario=async function(){
+  const nome=document.getElementById('nesp-nome')?.value.trim();
+  const perfil=document.getElementById('nesp-perfil')?.value;
+  const email=document.getElementById('nesp-email')?.value.trim();
+  const senha=document.getElementById('nesp-senha')?.value.trim();
+  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
+  if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;}
+  try{
+    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
+    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    reloadTab();
+  }catch(e){showToast('Erro: '+e.message);}
+};
+
 async function _saveConfigEspuma(){
   await setDoc(doc(db,'config_espuma','geral'),configEspuma);
 }
@@ -5839,11 +6018,12 @@ window._espSalvarMp=async function(id){
   const kgTambor=parseFloat(document.getElementById('cmp-tambor')?.value)||0;
   const estoqueMin=parseFloat(document.getElementById('cmp-minimo')?.value)||0;
   const estoqueMinTambores=parseFloat(document.getElementById('cmp-min-tambores')?.value)||0;
+  const custoPorKg=parseFloat(document.getElementById('cmp-custo-kg')?.value)||0;
   if(!label){showToast('Digite o nome.');return;}
   closeModal();
   const mps=[...(configEspuma.materiasPrimas||[])];
-  if(id){ const i=mps.findIndex(m=>m.id===id); if(i>=0) mps[i]={...mps[i],label,kgTambor,estoqueMin,estoqueMinTambores}; }
-  else mps.push({id:'mp_'+Date.now(),label,kgTambor,estoqueMin,estoqueMinTambores});
+  if(id){ const i=mps.findIndex(m=>m.id===id); if(i>=0) mps[i]={...mps[i],label,kgTambor,estoqueMin,estoqueMinTambores,custoPorKg}; }
+  else mps.push({id:'mp_'+Date.now(),label,kgTambor,estoqueMin,estoqueMinTambores,custoPorKg});
   configEspuma.materiasPrimas=mps;
   await _saveConfigEspuma();
   showToast('Matéria-prima salva!');
