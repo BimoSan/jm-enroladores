@@ -6247,17 +6247,20 @@ window._espLancarMp=function(tipo, mpId){
   const isEntrada=tipo==='entrada';
   const titulo=isEntrada?'📦 Entrada — '+mp.label:'📤 Saída — '+mp.label;
   showModal(titulo,
-    '<div class="form-group"><label>Tambores</label>'
-    +'<input type="number" id="emp-tambores" min="1" value="1" step="0.5" oninput="window._espCalcKgMp(\''+mpId+'\')" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Total em kg</label>'
-    +'<input type="number" id="emp-kg" step="0.1" oninput="window._espCalcTamboresMp(\''+mpId+'\')" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">Preencha tambores <strong>ou</strong> kg — o outro campo é calculado automaticamente.</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+    +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Tambores</label>'
+    +'<input type="number" id="emp-tambores" min="0" step="0.5" placeholder="0" oninput="window._espCalcKgMp(\''+mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
+    +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Quilos (kg)</label>'
+    +'<input type="number" id="emp-kg" min="0" step="0.1" placeholder="0" oninput="window._espCalcTamboresMp(\''+mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
+    +'</div>'
+    +(mp?.kgTambor?'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px;text-align:center">1 tambor = '+mp.kgTambor+'kg</div>':'')
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="emp-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Obs. (opcional)</label>'
     +'<input id="emp-obs" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm '+(isEntrada?'btn-primary':'btn-danger')+'" onclick="window._espSalvarMovMp(\''+tipo+'\',\''+mpId+'\')">Salvar</button>');
-  setTimeout(()=>window._espCalcKgMp(mpId),100);
 };
 
 window._espCalcKgMp=function(mpId){
