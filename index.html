@@ -11182,23 +11182,11 @@ function renderAlmRelatorio(){
   const html=`
   <div class="section-label">ANÁLISE DOS ÚLTIMOS 7 DIAS</div>
   <div class="card" style="margin-bottom:14px">
-    <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
-      <div>
-        <div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px;text-transform:uppercase">Custos com entradas nos últ. 7 dias</div>
-        ${tabela7}
-        <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:4px;border-top:2px solid #e2e8f0">
-          <span style="font-size:12px;font-weight:700">Custo total (semana)</span>
-          <span style="font-size:13px;font-weight:800;color:#dc2626">${fmtMoeda(totalCusto7)}</span>
-        </div>
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase">Evolução de entradas e saídas (qtd)</div>
-        <div style="display:flex;gap:10px;margin-bottom:4px">
-          <span style="font-size:10px;color:#059669;display:flex;align-items:center;gap:3px">● Entradas</span>
-          <span style="font-size:10px;color:#dc2626;display:flex;align-items:center;gap:3px">● Saídas</span>
-        </div>
-        ${grafico7}
-      </div>
+    <div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:8px;text-transform:uppercase">Custos com entradas nos últ. 7 dias</div>
+    ${tabela7}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:4px;border-top:2px solid #e2e8f0">
+      <span style="font-size:12px;font-weight:700">Custo total (semana)</span>
+      <span style="font-size:13px;font-weight:800;color:#dc2626">${fmtMoeda(totalCusto7)}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
       <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center">
@@ -11242,6 +11230,59 @@ function renderAlmRelatorio(){
       </div>
     </div>
   </div>
+
+  ${(()=>{
+    // Calcular saídas do mês atual por item
+    const mesAtual=today().slice(0,7);
+    const MESES_PT2=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const nomeMesAtual=MESES_PT2[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+    const saidasMes=almMovimentos.filter(m=>m.tipo==='saida'&&(m.data||'').slice(0,7)===mesAtual);
+
+    // Agrupar por item
+    const porItem={};
+    saidasMes.forEach(m=>{
+      if(!porItem[m.itemId]) porItem[m.itemId]={qtd:0,custo:0};
+      const qtd=parseInt(m.quantidade)||0;
+      const item=itens.find(i=>i.id===m.itemId);
+      porItem[m.itemId].qtd+=qtd;
+      porItem[m.itemId].custo+=qtd*(parseFloat(item?.custoUnitario)||0);
+    });
+
+    const rank=Object.entries(porItem).map(([id,d])=>({item:itens.find(i=>i.id===id),...d})).filter(x=>x.item);
+    const top5Qtd=[...rank].sort((a,b)=>b.qtd-a.qtd).slice(0,5);
+    const top5Custo=[...rank].sort((a,b)=>b.custo-a.custo).slice(0,5);
+
+    const buildTable=(rows,title,icon,valorFn,valueCor)=>{
+      if(!rows.length) return '<div class="card" style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">'+icon+' '+title+'</div><div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">Nenhuma saída em '+nomeMesAtual+'.</div></div>';
+      const max=rows[0]?valorFn(rows[0]):1;
+      return '<div class="card" style="margin-bottom:14px">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:2px">'+icon+' '+title+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px">'+nomeMesAtual+'</div>'
+        +rows.map((r,i)=>{
+          const val=valorFn(r);
+          const pct=Math.round(val/max*100);
+          return '<div style="margin-bottom:8px">'
+            +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+            +'<div style="display:flex;align-items:center;gap:6px">'
+            +'<span style="font-size:13px;font-weight:800;color:#94a3b8">'+(i+1)+'.</span>'
+            +'<span style="font-size:12px;font-weight:600">'+( r.item?.descricao||'—')+'</span>'
+            +'</div>'
+            +'<span style="font-size:12px;font-weight:800;color:'+valueCor+'">'+val+'</span>'
+            +'</div>'
+            +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
+            +'<div style="height:100%;width:'+pct+'%;background:'+valueCor+';border-radius:99px;opacity:.7"></div>'
+            +'</div>'
+            +(r.item?.unidade?'<div style="font-size:10px;color:#94a3b8">'+r.qtd+' '+r.item.unidade+'</div>':'')
+            +'</div>';
+        }).join('')
+        +'</div>';
+    };
+
+    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      +buildTable(top5Qtd,'Itens mais retirados','📦',r=>r.qtd,'#d97706')
+      +buildTable(top5Custo,'Maior custo de saída','💰',r=>parseFloat(fmtMoeda(r.custo).replace('R$\u00a0','').replace('.','').replace(',','.')),  '#dc2626')
+      +'</div>';
+  })()}
 
   <div class="section-label">TOTAL GERAL</div>
   <div class="card" style="margin-bottom:14px">
