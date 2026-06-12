@@ -310,6 +310,8 @@ const PERFIS={
   // Fábrica de Cadeiras — outros setores (em breve)
   apontador_metal:  {label:'Apontador Metalúrgica',color:'#374151',bg:'#f3f4f6', fabricas:['cadeiras'],            setor:'metalurgica',      fichaColor:null},
   soldador:         {label:'Soldador',             color:'#6b7280',bg:'#f9fafb', fabricas:['cadeiras'],            setor:'metalurgica',      fichaColor:null},
+  encarregado_est:  {label:'Encarregado Estofados', color:'#065f46',bg:'#d1fae5', fabricas:['estofados'], setor:null, fichaColor:null},
+  operador_esp:     {label:'Operador Espuma',       color:'#7c3aed',bg:'#ede9fe', fabricas:['estofados'], setor:'espuma', fichaColor:null},
   mecanico:         {label:'Mecânico',             color:'#374151',bg:'#f3f4f6', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null, fichaColor:null},
   apontador_int:    {label:'Apontador Interno',    color:'#065f46',bg:'#d1fae5', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
   enrolador_int:    {label:'Enrolador Interno',    color:'#047857',bg:'#a7f3d0', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
@@ -342,6 +344,10 @@ let fichasMetal=[];
 let pontoFuncionarios=[]; // lista de funcionários do ponto
 let pontoRegistros=[];    // registros de ponto
 let almItens=[];
+// Espuma
+let espumaProducao=[];
+let espumaEstoque=[];
+let espumaOperadores=[];
 // Manutenção
 let manutMaquinas=[];
 let manutRegistros=[];
@@ -541,6 +547,12 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'man_maquinas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'man_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'esp_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'esp_apontar':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  'esp_estoque':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+  'esp_fichas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  'esp_operadores':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+  'esp_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'grad_painel':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   'grad_fichas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
@@ -579,6 +591,7 @@ const TAB_LABELS={
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_gradistas':'Gradistas','grad_config':'Configurações',
+  'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
   'painel_int':'Painel','apontar_int':'Apontamento','fichas_int':'Fichas',
@@ -673,7 +686,7 @@ function renderSelecionarSetor(){
     {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
     {id:'grades',     nome:'Grades',            icon:'🪚', desc:'Produção de estruturas de madeira', ativo:true},
     {id:'tapecamento',nome:'Tapeçamento',       icon:'🪑', desc:'Aplicação de tecidos', ativo:false},
-    {id:'espuma',     nome:'Blocos de Espuma',  icon:'🧱', desc:'Corte e controle de espuma', ativo:false},
+    {id:'espuma',     nome:'Blocos de Espuma',  icon:'🧱', desc:'Produção e controle de blocos D20', ativo:true},
   ];
 
   const setores=currentFabrica==='cadeiras'?setoresCadeiras:setoresEstofados;
@@ -788,6 +801,12 @@ function renderApp(){
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
+  } else if(currentSetor==='espuma'){
+    const pg=currentUserData?.perfil;
+    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_config');
+    else if(pg==='operador_esp') tabs.push('esp_painel','esp_fichas');
+    else tabs.push('esp_painel');
+    if(!currentTab||!currentTab.startsWith('esp_')) currentTab='esp_painel';
   } else if(currentSetor==='grades'){
     const pg=currentUserData?.perfil;
     if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_gradistas','grad_config');
@@ -925,6 +944,7 @@ window._switchTab=tab=>{
 function renderTab(tab){
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
+  if(currentSetor==='espuma') return renderTabEspuma(tab);
   if(currentSetor==='grades') return renderTabGrades(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
   if(currentSetor==='fitas') return renderTabFitas(tab);
@@ -5320,6 +5340,464 @@ function renderCamRelatorio(){
 // ═══════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════════════
+// SETOR ESPUMA
+// ════════════════════════════════════════════════════════════════
+
+const FORMULA_BLOCO=[
+  {id:'poliol',   label:'Poliol Pro 33%', kgBloco:66.5,  kgTambor:210},
+  {id:'tdi',      label:'TDI',            kgBloco:41.2,  kgTambor:250},
+  {id:'cloreto',  label:'Cloreto',        kgBloco:4.5,   kgTambor:270},
+  {id:'silicone', label:'Silicone',       kgBloco:1.1,   kgTambor:200},
+  {id:'amina',    label:'Amina',          kgBloco:0.095, kgTambor:25},
+  {id:'estanho',  label:'Estanho',        kgBloco:0.16,  kgTambor:25},
+];
+const VALOR_BLOCO=20.00;
+const DIMENSOES_BLOCO={l:1.08,a:1.9,c:2.8}; // metros
+
+function estoqueAtualMp(mpId){
+  const entradas=espumaEstoque.filter(e=>e.mpId===mpId).reduce((s,e)=>s+(parseFloat(e.kg)||0),0);
+  const saidas=espumaProducao.reduce((s,p)=>{
+    const mp=FORMULA_BLOCO.find(f=>f.id===mpId);
+    return s+(mp?(parseInt(p.blocos)||0)*mp.kgBloco:0);
+  },0);
+  return Math.max(0,entradas-saidas);
+}
+
+function blocosDisponiveis(){
+  return Math.min(...FORMULA_BLOCO.map(mp=>{
+    const est=estoqueAtualMp(mp.id);
+    return Math.floor(est/mp.kgBloco);
+  }));
+}
+
+function getQuinzenaEsp(data){
+  const d=data||today();
+  const dia=parseInt(d.slice(8,10));
+  const anoMes=d.slice(0,7);
+  return dia<=15?anoMes+'-Q1':anoMes+'-Q2';
+}
+function quinzenaLabelEsp(q){
+  if(!q) return '';
+  const [ano,mes,parte]=q.split('-');
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return (parte==='Q1'?'1–15 ':'16–fim ')+MESES[parseInt(mes)-1]+' '+ano;
+}
+function fichaEspAtiva(opId){
+  const q=getQuinzenaEsp();
+  return espumaProducao.filter(p=>p.operadorId===opId&&p.quinzena===q&&p.status==='aberta');
+}
+
+function renderTabEspuma(tab){
+  try{
+    if(tab==='esp_painel')    return renderEspPainel();
+    if(tab==='esp_apontar')   return renderEspApontar();
+    if(tab==='esp_estoque')   return renderEspEstoque();
+    if(tab==='esp_fichas')    return renderEspFichas();
+    if(tab==='esp_operadores')return renderEspOperadores();
+    if(tab==='esp_config')    return renderEspConfig();
+    return renderEspPainel();
+  }catch(e){
+    console.error('Erro espuma:',e);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
+  }
+}
+
+// ── Painel ───────────────────────────────────────────────────────
+function renderEspPainel(){
+  const hoje=today();
+  const mes=hoje.slice(0,7);
+  const q=getQuinzenaEsp();
+
+  const blocosHoje=espumaProducao.filter(p=>p.data===hoje).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+  const blocosMes=espumaProducao.filter(p=>(p.data||'').startsWith(mes)).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+  const blocosQ=espumaProducao.filter(p=>p.quinzena===q).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+  const disponiveis=blocosDisponiveis();
+  const vol=(DIMENSOES_BLOCO.l*DIMENSOES_BLOCO.a*DIMENSOES_BLOCO.c).toFixed(2);
+
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos hoje</div><div class="stat-value">'+blocosHoje+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Blocos no mês</div><div class="stat-value">'+blocosMes+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Blocos na quinzena</div><div class="stat-value">'+blocosQ+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,'+(disponiveis<5?'#dc2626,#ef4444':'#374151,#6b7280')+')"><div><div class="stat-label">Possíveis agora</div><div class="stat-value">'+disponiveis+'</div></div></div>'
+    +'</div>';
+
+  // Alerta de estoque crítico
+  const criticos=FORMULA_BLOCO.filter(mp=>{
+    const est=estoqueAtualMp(mp.id);
+    const tambores=est/mp.kgTambor;
+    return tambores<1;
+  });
+  if(criticos.length){
+    html+='<div style="background:#fee2e2;border:2px solid #fca5a5;border-radius:12px;padding:12px;margin-bottom:14px">'
+      +'<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ Matéria-prima baixa!</div>'
+      +criticos.map(mp=>{
+        const est=estoqueAtualMp(mp.id);
+        return '<div style="font-size:12px;color:#dc2626">• '+mp.label+': '+est.toFixed(2)+'kg restantes</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  // Estoque de MPs resumido
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Estoque de matérias-primas</div>';
+  FORMULA_BLOCO.forEach(mp=>{
+    const est=estoqueAtualMp(mp.id);
+    const tambores=est/mp.kgTambor;
+    const blocosPos=Math.floor(est/mp.kgBloco);
+    const cor=tambores<1?'#dc2626':tambores<2?'#d97706':'#059669';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">'
+      +'<div style="font-size:12px;font-weight:600">'+mp.label+'</div>'
+      +'<div style="text-align:right">'
+      +'<span style="font-size:13px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'kg</span>'
+      +'<span style="font-size:10px;color:#94a3b8;margin-left:6px">'+tambores.toFixed(1)+' tambores · '+blocosPos+' blocos</span>'
+      +'</div></div>';
+  });
+  html+='</div>';
+
+  // Produção recente
+  const recente=espumaProducao.slice(0,5);
+  if(recente.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📦 Última produção</div>';
+    recente.forEach((p,i)=>{
+      const op=espumaOperadores.find(o=>o.id===p.operadorId);
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+        +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+p.blocos+' bloco'+(p.blocos>1?'s':'')+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+'</div></div>'
+        +'<div style="font-size:13px;font-weight:700;color:#1d4ed8">'+fmtMoeda(p.blocos*VALOR_BLOCO)+'</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  return html;
+}
+
+// ── Apontamento ──────────────────────────────────────────────────
+function renderEspApontar(){
+  const hoje=today();
+  const disponiveis=blocosDisponiveis();
+  const optsOp=espumaOperadores.filter(o=>o.ativo!==false)
+    .map(o=>'<option value="'+o.id+'">'+o.nome+'</option>').join('');
+
+  let html='<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;text-align:center;padding:16px">'
+    +'<div style="font-size:13px;font-weight:700;opacity:.8">Blocos possíveis agora</div>'
+    +'<div style="font-size:42px;font-weight:900;margin:4px 0">'+disponiveis+'</div>'
+    +'<div style="font-size:11px;opacity:.7">baseado no estoque atual de matérias-primas</div>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📦 Registrar produção</div>'
+    +'<div class="form-group"><label>Operador</label>'
+    +'<select id="esp-op" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +'<option value="">— Selecione —</option>'+optsOp+'</select></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="esp-data" value="'+hoje+'" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Quantidade de blocos</label>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<button onclick="window._espDec()" style="width:44px;height:44px;border-radius:50%;background:#e2e8f0;border:none;font-size:22px;cursor:pointer">−</button>'
+    +'<input type="number" id="esp-blocos" min="1" placeholder="0" onfocus="this.select()" style="flex:1;text-align:center;font-size:24px;font-weight:800;border:2px solid #e2e8f0;border-radius:10px;padding:8px">'
+    +'<button onclick="window._espInc()" style="width:44px;height:44px;border-radius:50%;background:#1d4ed8;border:none;font-size:22px;cursor:pointer;color:#fff">+</button>'
+    +'</div></div>'
+    +'<div id="esp-preview" style="display:none;background:#f0fdf4;border-radius:10px;padding:10px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:6px">Consumo estimado</div>'
+    +'<div id="esp-consumo"></div>'
+    +'</div>'
+    +'<button onclick="window._espSalvarProd()" style="width:100%;padding:16px;background:#1d4ed8;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer">✓ Registrar produção</button>'
+    +'</div>';
+
+  // Histórico do dia
+  const prodHoje=espumaProducao.filter(p=>p.data===hoje);
+  if(prodHoje.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Lançamentos de hoje</div>';
+    prodHoje.forEach((p,i)=>{
+      const op=espumaOperadores.find(o=>o.id===p.operadorId);
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+        +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+p.blocos+' bloco'+(p.blocos>1?'s':'')+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(p.blocos*VALOR_BLOCO)+'</span>'
+        +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._espExcluirProd(\''+p.id+'\')">✕</button>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  }
+  return html;
+}
+
+// ── Estoque ──────────────────────────────────────────────────────
+function renderEspEstoque(){
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._espEntradaMp()">+ Entrada de MP</button>'
+    +'</div>';
+
+  FORMULA_BLOCO.forEach(mp=>{
+    const est=estoqueAtualMp(mp.id);
+    const tambores=est/mp.kgTambor;
+    const blocosPoss=Math.floor(est/mp.kgBloco);
+    const cor=tambores<1?'#dc2626':tambores<2?'#d97706':'#059669';
+    const entradas=espumaEstoque.filter(e=>e.mpId===mp.id).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+cor+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+      +'<div>'
+      +'<div style="font-size:14px;font-weight:700">'+mp.label+'</div>'
+      +'<div style="font-size:11px;color:#64748b">Tambor: '+mp.kgTambor+'kg · '+mp.kgBloco+'kg/bloco</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:20px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'<span style="font-size:12px">kg</span></div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+tambores.toFixed(1)+' tambores · '+blocosPoss+' blocos poss.</div>'
+      +'</div></div>'
+      +(entradas.length?'<div style="border-top:1px solid #f1f5f9;padding-top:8px">'
+        +'<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:4px">Entradas recentes</div>'
+        +entradas.slice(0,3).map(e=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
+          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' tambor'+(e.tambores>1?'es':'')+' · '+e.kg+'kg</span>'
+          +'<button class="btn btn-sm btn-danger" style="font-size:9px;padding:1px 6px" onclick="window._espExcluirEntrada(\''+e.id+'\')">✕</button>'
+          +'</div>').join('')
+        +'</div>':'')
+      +'</div>';
+  });
+  return html;
+}
+
+// ── Fichas ───────────────────────────────────────────────────────
+function renderEspFichas(){
+  if(!window._espFichaFiltro) window._espFichaFiltro='abertas';
+  const filtro=window._espFichaFiltro;
+  const q=getQuinzenaEsp();
+  const podeFechar=['admin','proprietario','encarregado_est'].includes(currentUserData?.perfil);
+
+  const btnF=v=>'<button onclick="window._espSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#1d4ed8':'#e2e8f0')+';background:'+(filtro===v?'#1d4ed8':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
+  let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
+
+  // Agrupar por operador e quinzena
+  const grupos={};
+  espumaProducao.filter(p=>{
+    if(filtro==='abertas') return p.status==='aberta'&&p.quinzena===q;
+    return p.status==='fechada';
+  }).forEach(p=>{
+    const key=p.operadorId+'_'+p.quinzena;
+    if(!grupos[key]) grupos[key]={opId:p.operadorId,quinzena:p.quinzena,blocos:0,ganho:0,prods:[]};
+    grupos[key].blocos+=parseInt(p.blocos)||0;
+    grupos[key].ganho+=(parseInt(p.blocos)||0)*VALOR_BLOCO;
+    grupos[key].prods.push(p);
+  });
+
+  Object.values(grupos).sort((a,b)=>b.quinzena>a.quinzena?1:-1).forEach(g=>{
+    const op=espumaOperadores.find(o=>o.id===g.opId);
+    const isAberta=filtro==='abertas';
+    const pago=g.prods.every(p=>p.pago);
+
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+(isAberta?'#1d4ed8':'#10b981')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+      +'<div>'
+      +'<div style="font-size:14px;font-weight:700">'+(op?.nome||'—')+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelEsp(g.quinzena)+' · '+g.blocos+' bloco'+(g.blocos!==1?'s':'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;display:flex;align-items:center;gap:8px">'
+      +'<div>'
+      +'<div style="font-size:18px;font-weight:800;color:'+(pago?'#059669':'#d97706')+'">'+fmtMoeda(g.ganho)+'</div>'
+      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(isAberta?'#dbeafe':pago?'#d1fae5':'#fef3c7')+';color:'+(isAberta?'#1d4ed8':pago?'#065f46':'#92400e')+'">'+( isAberta?'Aberta':pago?'✓ Pago':'Fechada')+'</span>'
+      +'</div>'
+      +(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._espFecharFicha(\''+g.opId+'\',\''+g.quinzena+'\')">Fechar</button>':'')
+      +'</div></div>'
+      +'<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">'
+      +g.prods.sort((a,b)=>b.data>a.data?1:-1).map(p=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
+        +'<span>'+fmtDate(p.data)+' · '+p.blocos+' bloco'+(p.blocos>1?'s':'')+'</span>'
+        +'<span style="color:#059669;font-weight:700">'+fmtMoeda(p.blocos*VALOR_BLOCO)+'</span>'
+        +'</div>').join('')
+      +'</div></div>';
+  });
+
+  if(!Object.keys(grupos).length) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma ficha encontrada.</div>';
+  return html;
+}
+
+// ── Operadores ───────────────────────────────────────────────────
+function renderEspOperadores(){
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._espNovoOp()">+ Operador</button>'
+    +'</div>';
+  if(!espumaOperadores.length) return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhum operador cadastrado.</div>';
+  html+='<div class="card" style="padding:0;overflow:hidden"><table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:#1d4ed8;color:#fff"><th style="padding:10px 14px;text-align:left;font-size:12px">Nome</th><th style="padding:10px 14px;text-align:center;font-size:12px">Status</th><th style="padding:10px 14px;text-align:center;font-size:12px">Ações</th></tr></thead><tbody>';
+  espumaOperadores.forEach((o,i)=>{
+    html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+      +'<td style="padding:10px 14px;font-size:13px;font-weight:600">'+o.nome+'</td>'
+      +'<td style="padding:10px 14px;text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:99px;background:'+(o.ativo!==false?'#d1fae5':'#f1f5f9')+';color:'+(o.ativo!==false?'#065f46':'#94a3b8')+';font-weight:700">'+(o.ativo!==false?'Ativo':'Inativo')+'</span></td>'
+      +'<td style="padding:10px 14px;text-align:center"><button class="btn btn-sm btn-warn" onclick="window._espEditarOp(\''+o.id+'\')">✏️</button></td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+
+// ── Configurações ────────────────────────────────────────────────
+function renderEspConfig(){
+  let html='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:12px">🧱 Fórmula do Bloco D20</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Dimensões: '+DIMENSOES_BLOCO.l+'m × '+DIMENSOES_BLOCO.a+'m × '+DIMENSOES_BLOCO.c+'m · Volume: '+(DIMENSOES_BLOCO.l*DIMENSOES_BLOCO.a*DIMENSOES_BLOCO.c).toFixed(2)+'m³</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f8fafc"><th style="padding:6px 8px;text-align:left">Matéria-prima</th><th style="padding:6px 8px;text-align:right">kg/bloco</th><th style="padding:6px 8px;text-align:right">kg/tambor</th></tr></thead><tbody>';
+  FORMULA_BLOCO.forEach((mp,i)=>{
+    html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+      +'<td style="padding:6px 8px;font-weight:600">'+mp.label+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#1d4ed8;font-weight:700">'+mp.kgBloco+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+mp.kgTambor+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>'
+    +'<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px;font-size:12px;color:#475569">'
+    +'<strong>Total por bloco:</strong> '+FORMULA_BLOCO.reduce((s,mp)=>s+mp.kgBloco,0).toFixed(3)+'kg · '
+    +'<strong>Valor por bloco:</strong> '+fmtMoeda(VALOR_BLOCO)
+    +'</div></div>';
+  return html;
+}
+
+// ── Handlers ─────────────────────────────────────────────────────
+window._espInc=function(){
+  const el=document.getElementById('esp-blocos');
+  if(el){ el.value=Math.max(1,(parseInt(el.value)||0)+1); window._espAtualizarPreview(); }
+};
+window._espDec=function(){
+  const el=document.getElementById('esp-blocos');
+  if(el){ el.value=Math.max(1,(parseInt(el.value)||0)-1); window._espAtualizarPreview(); }
+};
+window._espAtualizarPreview=function(){
+  const blocos=parseInt(document.getElementById('esp-blocos')?.value)||0;
+  const preview=document.getElementById('esp-preview');
+  const consumo=document.getElementById('esp-consumo');
+  if(!preview||!consumo) return;
+  if(blocos>0){
+    preview.style.display='block';
+    consumo.innerHTML=FORMULA_BLOCO.map(mp=>{
+      const kg=(mp.kgBloco*blocos).toFixed(3);
+      const est=estoqueAtualMp(mp.id);
+      const ok=est>=parseFloat(kg);
+      return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
+        +'<span>'+mp.label+'</span>'
+        +'<span style="font-weight:700;color:'+(ok?'#059669':'#dc2626')+'">'+kg+'kg '+(ok?'✓':'⚠️ insuf.')+'</span>'
+        +'</div>';
+    }).join('')
+    +'<div style="margin-top:6px;font-size:12px;font-weight:700;color:#1d4ed8">💰 Ganho: '+fmtMoeda(blocos*VALOR_BLOCO)+'</div>';
+  } else {
+    preview.style.display='none';
+  }
+};
+
+window._espSalvarProd=async function(){
+  const opId=document.getElementById('esp-op')?.value;
+  const data=document.getElementById('esp-data')?.value;
+  const blocos=parseInt(document.getElementById('esp-blocos')?.value)||0;
+  if(!opId){showToast('Selecione o operador.');return;}
+  if(!blocos){showToast('Informe a quantidade de blocos.');return;}
+  // Verificar estoque
+  const semEstoque=FORMULA_BLOCO.filter(mp=>estoqueAtualMp(mp.id)<mp.kgBloco*blocos);
+  if(semEstoque.length){
+    showToast('Estoque insuficiente: '+semEstoque.map(mp=>mp.label).join(', '));
+    return;
+  }
+  const q=getQuinzenaEsp(data);
+  await addDoc(collection(db,'esp_producao'),{operadorId:opId,data,blocos,quinzena:q,status:'aberta',pago:false,criadoEm:new Date().toISOString()});
+  showToast('Produção registrada!');
+  document.getElementById('esp-blocos').value='';
+  document.getElementById('esp-preview').style.display='none';
+};
+
+window._espExcluirProd=function(id){
+  window._pendingEspProd=id;
+  showModal('Excluir lançamento','<div style="font-size:13px">Deseja excluir este lançamento?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._espConfirmarExcluirProd()">Excluir</button>');
+};
+window._espConfirmarExcluirProd=async function(){
+  const id=window._pendingEspProd;
+  if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'esp_producao',id));
+  showToast('Lançamento excluído!');
+};
+
+window._espEntradaMp=function(){
+  const optsMP=FORMULA_BLOCO.map(mp=>'<option value="'+mp.id+'">'+mp.label+' ('+mp.kgTambor+'kg/tambor)</option>').join('');
+  showModal('+ Entrada de matéria-prima',
+    '<div class="form-group"><label>Matéria-prima</label>'
+    +'<select id="emp-mp" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+optsMP+'</select></div>'
+    +'<div class="form-group"><label>Tambores recebidos</label>'
+    +'<input type="number" id="emp-tambores" min="1" value="1" oninput="window._espCalcKg()" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Total em kg</label>'
+    +'<input type="number" id="emp-kg" step="0.1" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="emp-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._espSalvarEntradaMp()">Salvar</button>');
+  setTimeout(()=>window._espCalcKg(),100);
+};
+window._espCalcKg=function(){
+  const mpId=document.getElementById('emp-mp')?.value;
+  const tambores=parseInt(document.getElementById('emp-tambores')?.value)||1;
+  const mp=FORMULA_BLOCO.find(f=>f.id===mpId);
+  const kgEl=document.getElementById('emp-kg');
+  if(mp&&kgEl) kgEl.value=(mp.kgTambor*tambores).toFixed(1);
+};
+window._espSalvarEntradaMp=async function(){
+  const mpId=document.getElementById('emp-mp')?.value;
+  const tambores=parseInt(document.getElementById('emp-tambores')?.value)||1;
+  const kg=parseFloat(document.getElementById('emp-kg')?.value)||0;
+  const data=document.getElementById('emp-data')?.value;
+  if(!kg){showToast('Informe a quantidade em kg.');return;}
+  closeModal();
+  await addDoc(collection(db,'esp_estoque'),{mpId,tambores,kg,data,criadoEm:new Date().toISOString()});
+  showToast('Entrada registrada!');
+};
+window._espExcluirEntrada=function(id){
+  window._pendingEspEnt=id;
+  showModal('Excluir entrada','<div style="font-size:13px">Deseja excluir esta entrada de estoque?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._espConfirmarExcluirEnt()">Excluir</button>');
+};
+window._espConfirmarExcluirEnt=async function(){
+  const id=window._pendingEspEnt;
+  if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'esp_estoque',id));
+  showToast('Entrada excluída!');
+};
+window._espSetFiltro=v=>{ window._espFichaFiltro=v; reloadTab(); };
+window._espFecharFicha=async function(opId,quinzena){
+  window._pendingEspFechar={opId,quinzena};
+  showModal('Fechar ficha','<div style="font-size:13px">Confirma o fechamento desta ficha? Ela ficará disponível para pagamento no Financeiro.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._espConfirmarFechar()">Fechar</button>');
+};
+window._espConfirmarFechar=async function(){
+  const {opId,quinzena}=window._pendingEspFechar||{};
+  if(!opId) return;
+  closeModal();
+  const prods=espumaProducao.filter(p=>p.operadorId===opId&&p.quinzena===quinzena&&p.status==='aberta');
+  for(const p of prods) await updateDoc(doc(db,'esp_producao',p.id),{status:'fechada',dataFechamento:today()});
+  showToast('Ficha fechada!');
+};
+window._espNovoOp=function(o={}){
+  showModal(o.id?'Editar operador':'Novo operador',
+    '<div class="form-group"><label>Nome</label><input id="eo-nome" value="'+(o.nome||'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Status</label><select id="eo-ativo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +'<option value="true"'+(o.ativo!==false?' selected':'')+'>Ativo</option>'
+    +'<option value="false"'+(o.ativo===false?' selected':'')+'>Inativo</option>'
+    +'</select></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._espSalvarOp(\''+( o.id||'')+'\')">Salvar</button>');
+};
+window._espEditarOp=function(id){ const o=espumaOperadores.find(x=>x.id===id); if(o) window._espNovoOp(o); };
+window._espSalvarOp=async function(id){
+  const nome=document.getElementById('eo-nome')?.value.trim();
+  const ativo=document.getElementById('eo-ativo')?.value!=='false';
+  if(!nome){showToast('Digite o nome.');return;}
+  closeModal();
+  if(id) await updateDoc(doc(db,'esp_operadores',id),{nome,ativo});
+  else await addDoc(collection(db,'esp_operadores'),{nome,ativo:true});
+  showToast('Operador salvo!');
+};
+
+// ════════════════════════════════════════════════════════════════
 // SETOR GRADES
 // ════════════════════════════════════════════════════════════════
 
@@ -8762,6 +9240,22 @@ function finPagamentosTodos(){
       dataPagamento:f.dataPagamento||null,dataRef:f.dataFechamento||f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_int'});
   });
 
+  // Espuma
+  const espGrupos={};
+  espumaProducao.filter(p=>p.status==='fechada').forEach(p=>{
+    const key=p.operadorId+'_'+p.quinzena;
+    if(!espGrupos[key]) espGrupos[key]={opId:p.operadorId,quinzena:p.quinzena,blocos:0,pago:p.pago,ids:[]};
+    espGrupos[key].blocos+=parseInt(p.blocos)||0;
+    espGrupos[key].ids.push(p.id);
+  });
+  Object.values(espGrupos).forEach(g=>{
+    const op=espumaOperadores.find(o=>o.id===g.opId);
+    const valor=g.blocos*VALOR_BLOCO;
+    if(valor<=0) return;
+    lista.push({id:'esp_'+g.opId+'_'+g.quinzena,setor:'Espuma',pessoa:op?.nome||'—',valor,pago:!!g.pago,
+      dataPagamento:null,dataRef:g.quinzena,tipo:'quinzena',fichaObj:{...g,_espuma:true},setorKey:'espuma'});
+  });
+
   // Bônus (Enrolamento Terc.)
   const mesesComBonus=[...new Set([
     ...Object.keys(bonusPagos),
@@ -10737,6 +11231,19 @@ function iniciarListeners(){
   onSnapshot(collection(db,'fichas_metal'),snap=>{
     fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='metalurgica')reloadTab();
+  });
+  // Espuma
+  onSnapshot(collection(db,'esp_producao'),snap=>{
+    espumaProducao=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+    if(currentUserData&&currentSetor==='espuma')reloadTab();
+  });
+  onSnapshot(collection(db,'esp_estoque'),snap=>{
+    espumaEstoque=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='espuma')reloadTab();
+  });
+  onSnapshot(collection(db,'esp_operadores'),snap=>{
+    espumaOperadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    if(currentUserData&&currentSetor==='espuma')reloadTab();
   });
   // Manutenção
   onSnapshot(collection(db,'manut_maquinas'),snap=>{
