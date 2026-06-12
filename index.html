@@ -850,7 +850,7 @@ function renderApp(){
   if(!tabs.includes(currentTab))currentTab=tabs[0]||'fichas';
 
   const perfisFixos=['soldador','enrolador','entregador',
-    'enrolador_int','costureira','gradista','tapecador'];
+    'enrolador_int','costureira','gradista','tapecador','encarregado_esp','operador_esp'];
   const perfilAtual=currentUserData?.perfil;
   const podeVoltarSetor=!perfisFixos.includes(perfilAtual);
   const btnVoltar=podeVoltarSetor?`
