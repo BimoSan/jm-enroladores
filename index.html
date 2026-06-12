@@ -5466,65 +5466,100 @@ function renderTabEspuma(tab){
 function renderEspPainel(){
   const hoje=today();
   const mes=hoje.slice(0,7);
-  const q=getQuinzenaEsp();
+  const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const nomeMes=MESES_PT[parseInt(mes.slice(5,7))-1];
 
   const blocosHoje=espumaProducao.filter(p=>p.data===hoje).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
   const blocosMes=espumaProducao.filter(p=>(p.data||'').startsWith(mes)).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
-  const ganhoDia=blocosHoje*getValorBloco();
-  const ganhoMes=blocosMes*getValorBloco();
   const disponiveis=blocosDisponiveis();
-  const vol=(DIMENSOES_BLOCO.l*DIMENSOES_BLOCO.a*DIMENSOES_BLOCO.c).toFixed(2);
+  const valorBloco=getValorBloco();
+  const dims=getDimensoes();
+  const vol=dims?(dims.l*dims.a*dims.c).toFixed(2):'—';
 
-  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos hoje</div><div class="stat-value">'+blocosHoje+'</div><div style="font-size:10px;opacity:.8">'+fmtMoeda(ganhoDia)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Blocos no mês</div><div class="stat-value">'+blocosMes+'</div><div style="font-size:10px;opacity:.8">'+fmtMoeda(ganhoMes)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,'+(disponiveis<5?'#dc2626,#ef4444':'#374151,#6b7280')+')"><div><div class="stat-label">Possíveis agora</div><div class="stat-value">'+disponiveis+'</div></div></div>'
+  // ── Banner principal ────────────────────────────────────────────
+  let html='<div style="background:linear-gradient(135deg,#1d4ed8,#4f46e5);border-radius:16px;padding:18px;margin-bottom:14px;color:#fff">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+    // Hoje
+    +'<div style="background:rgba(255,255,255,.12);border-radius:12px;padding:12px;text-align:center">'
+    +'<div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:4px">HOJE</div>'
+    +'<div style="font-size:36px;font-weight:900;line-height:1">'+blocosHoje+'</div>'
+    +'<div style="font-size:11px;opacity:.8">blocos</div>'
+    +'<div style="font-size:13px;font-weight:700;margin-top:4px">'+fmtMoeda(blocosHoje*valorBloco)+'</div>'
+    +'</div>'
+    // Mês
+    +'<div style="background:rgba(255,255,255,.12);border-radius:12px;padding:12px;text-align:center">'
+    +'<div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:4px">'+nomeMes.toUpperCase()+'</div>'
+    +'<div style="font-size:36px;font-weight:900;line-height:1">'+blocosMes+'</div>'
+    +'<div style="font-size:11px;opacity:.8">blocos</div>'
+    +'<div style="font-size:13px;font-weight:700;margin-top:4px">'+fmtMoeda(blocosMes*valorBloco)+'</div>'
+    +'</div>'
+    +'</div>'
+    // Possíveis
+    +'<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:space-between">'
+    +'<div>'
+    +'<div style="font-size:12px;opacity:.8">Blocos possíveis agora</div>'
+    +(dims?'<div style="font-size:10px;opacity:.6">'+dims.l+'×'+dims.a+'×'+dims.c+'m · '+vol+'m³/bloco</div>':'')
+    +'</div>'
+    +'<div style="font-size:32px;font-weight:900;color:'+(disponiveis<5?'#fca5a5':'#bbf7d0')+'">'+disponiveis+'</div>'
+    +'</div>'
     +'</div>';
 
-  // Alerta de estoque crítico
+  // ── Alerta MPs críticas ────────────────────────────────────────
   const criticos=(configEspuma.materiasPrimas||[]).filter(mpConf=>{
     const est=estoqueAtualMp(mpConf.id);
     const minimo=mpConf.estoqueMin||mpConf.kgTambor||0;
     return minimo>0&&est<minimo;
   });
   if(criticos.length){
-    html+='<div style="background:#fee2e2;border:2px solid #fca5a5;border-radius:12px;padding:12px;margin-bottom:14px">'
-      +'<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ Matéria-prima baixa!</div>'
+    html+='<div style="background:#fee2e2;border:2px solid #fca5a5;border-radius:12px;padding:12px;margin-bottom:12px">'
+      +'<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ Estoque baixo!</div>'
       +criticos.map(mpConf=>{
         const est=estoqueAtualMp(mpConf.id);
-        return '<div style="font-size:12px;color:#dc2626">• '+mpConf.label+': '+est.toFixed(2)+'kg restantes</div>';
+        return '<div style="font-size:12px;color:#dc2626;padding:2px 0">• '+mpConf.label+' — '+est.toFixed(1)+'kg restantes</div>';
       }).join('')
       +'</div>';
   }
 
-  // Estoque de MPs resumido
-  html+='<div class="card" style="margin-bottom:14px">'
+  // ── Estoque de MPs ─────────────────────────────────────────────
+  const todasMps=configEspuma.materiasPrimas||[];
+  html+='<div class="card" style="margin-bottom:12px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Estoque de matérias-primas</div>';
-  FORMULA_BLOCO.forEach(mp=>{
-    const mpConf=getMpById(mp.id);
-    const est=estoqueAtualMp(mp.id);
-    const tambores=est/mp.kgTambor;
-    const blocosPos=Math.floor(est/mp.kgBloco);
-    const minimo=mpConf?.estoqueMin||mp.kgTambor;const cor=est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669';
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">'
-      +'<div style="font-size:12px;font-weight:600">'+mp.label+'</div>'
+  (todasMps.length?todasMps:FORMULA_BLOCO).forEach(mpConf=>{
+    const mp=FORMULA_BLOCO.find(f=>f.id===mpConf.id)||{kgTambor:mpConf.kgTambor||1,kgBloco:0};
+    const est=estoqueAtualMp(mpConf.id);
+    const tambores=mp.kgTambor>0?est/mp.kgTambor:0;
+    const blocosPos=mp.kgBloco>0?Math.floor(est/mp.kgBloco):0;
+    const minimo=mpConf.estoqueMin||mp.kgTambor||0;
+    const cor=minimo>0?(est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669'):'#059669';
+    const pct=minimo>0?Math.min(100,Math.round(est/minimo*100)):100;
+    html+='<div style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">'
+      +'<span style="font-size:12px;font-weight:600">'+mpConf.label+'</span>'
       +'<div style="text-align:right">'
       +'<span style="font-size:13px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'kg</span>'
-      +'<span style="font-size:10px;color:#94a3b8;margin-left:6px">'+tambores.toFixed(1)+' tambores · '+blocosPos+' blocos</span>'
-      +'</div></div>';
+      +'<span style="font-size:10px;color:#94a3b8;margin-left:4px">'+tambores.toFixed(1)+'t'+(blocosPos>0?' · '+blocosPos+'bl':'')+'</span>'
+      +'</div></div>'
+      +'<div style="height:5px;background:#f1f5f9;border-radius:99px">'
+      +'<div style="height:100%;width:'+pct+'%;background:'+cor+';border-radius:99px;transition:width .3s"></div>'
+      +'</div>'
+      +'</div>';
   });
   html+='</div>';
 
-  // Produção recente
+  // ── Produção recente ───────────────────────────────────────────
   const recente=espumaProducao.slice(0,5);
   if(recente.length){
-    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📦 Última produção</div>';
+    html+='<div class="card">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📦 Produção recente</div>';
     recente.forEach((p,i)=>{
       const op=espumaOperadores.find(o=>o.id===p.operadorId);
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-        +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+p.blocos+' bloco'+(p.blocos>1?'s':'')+'</div>'
-        +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+'</div></div>'
-        +'<div style="font-size:13px;font-weight:700;color:#1d4ed8">'+fmtMoeda(p.blocos*VALOR_BLOCO)+'</div>'
+      const f=(configEspuma.formulas||[]).find(x=>x.id===p.formulaId);
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+        +'<div>'
+        +'<div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+' · '+(f?.label||'Bloco')+' · '+p.blocos+'un</div>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(p.blocos*(p.valorBloco||valorBloco))+'</div>'
         +'</div>';
     });
     html+='</div>';
