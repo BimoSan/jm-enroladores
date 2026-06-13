@@ -9129,12 +9129,14 @@ function renderManPainel(){
   const custoPreventivas=preventivas.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
   const custoOleo=trocasOleo.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
 
-  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Corretivas</div><div class="stat-value">'+corretivas.length+'</div><div style="font-size:11px;opacity:.85">'+fmtMoeda(custoCorretivas)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#6366f1)"><div><div class="stat-label">Preventivas</div><div class="stat-value">'+preventivas.length+'</div><div style="font-size:11px;opacity:.85">'+fmtMoeda(custoPreventivas)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Trocas de Óleo</div><div class="stat-value">'+trocasOleo.length+'</div><div style="font-size:11px;opacity:.85">'+fmtMoeda(custoOleo)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Operando</div><div class="stat-value">'+operando+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Paradas</div><div class="stat-value">'+paradas+'</div></div></div>'
+  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff"><div><div class="stat-label">Operando</div><div class="stat-value" style="font-size:36px">'+operando+'</div><div style="font-size:11px;opacity:.8">máquinas</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff"><div><div class="stat-label">Paradas</div><div class="stat-value" style="font-size:36px">'+paradas+'</div><div style="font-size:11px;opacity:.8">máquinas</div></div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;padding:12px"><div><div class="stat-label" style="font-size:10px">Preventivas</div><div class="stat-value" style="font-size:22px">'+preventivas.length+'</div><div style="font-size:10px;opacity:.85">'+fmtMoeda(custoPreventivas)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#ea580c,#f97316);color:#fff;padding:12px"><div><div class="stat-label" style="font-size:10px">Corretivas</div><div class="stat-value" style="font-size:22px">'+corretivas.length+'</div><div style="font-size:10px;opacity:.85">'+fmtMoeda(custoCorretivas)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#b45309);color:#fff;padding:12px"><div><div class="stat-label" style="font-size:10px">Trocas de Óleo</div><div class="stat-value" style="font-size:22px">'+trocasOleo.length+'</div><div style="font-size:10px;opacity:.85">'+fmtMoeda(custoOleo)+'</div></div></div>'
     +'</div>';
 
   // Cards de máquinas por setor — clicável
