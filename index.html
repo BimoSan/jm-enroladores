@@ -9118,9 +9118,23 @@ function renderManPainel(){
   // Cards de status resumido
   const operando=manutMaquinas.filter(m=>!m.parada).length;
   const paradas=manutMaquinas.filter(m=>m.parada).length;
-  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+
+  // Manutenções do mês atual
+  const mesAtual=today().slice(0,7);
+  const regsMes=manutRegistros.filter(r=>(r.data||'').startsWith(mesAtual));
+  const corretivas=regsMes.filter(r=>r.tipo==='corretiva');
+  const preventivas=regsMes.filter(r=>r.tipo==='preventiva');
+  const trocasOleo=regsMes.filter(r=>r.tipo==='oleo');
+  const custoCorretivas=corretivas.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+  const custoPreventivas=preventivas.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+  const custoOleo=trocasOleo.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
+
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Corretivas</div><div class="stat-value">'+corretivas.length+'</div><div style="font-size:11px;opacity:.85">'+fmtMoeda(custoCorretivas)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#6366f1)"><div><div class="stat-label">Preventivas</div><div class="stat-value">'+preventivas.length+'</div><div style="font-size:11px;opacity:.85">'+fmtMoeda(custoPreventivas)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Trocas de Óleo</div><div class="stat-value">'+trocasOleo.length+'</div><div style="font-size:11px;opacity:.85">'+fmtMoeda(custoOleo)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Operando</div><div class="stat-value">'+operando+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Paradas</div><div class="stat-value">'+paradas+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Paradas</div><div class="stat-value">'+paradas+'</div></div></div>'
     +'</div>';
 
   // Cards de máquinas por setor — clicável
@@ -9144,7 +9158,7 @@ function renderManPainel(){
       }
 
       // Prazos
-      const prazoPrev=calcPrazo(m.id,['preventiva','corretiva'],m.periodMeses);
+      const prazoPrev=calcPrazo(m.id,['preventiva'],m.periodMeses);
       const prazoOleo=calcPrazo(m.id,['oleo'],m.periodOleoMeses);
       const prazoHtml=(prazoPrev?'<span style="font-size:10px;font-weight:600;color:'+prazoPrev.cor+'">🔧 '+prazoPrev.label+'</span>  ':'')
         +(prazoOleo?'<span style="font-size:10px;font-weight:600;color:'+prazoOleo.cor+'">🛢️ '+prazoOleo.label+'</span>':'');
@@ -9189,7 +9203,7 @@ function renderManMaquinas(){
       const regs=manutRegistros.filter(r=>r.maquinaId===m.id);
       const custoTotal=regs.reduce((s,r)=>s+(parseFloat(r.custo)||0),0);
       const ultima=regs[0];
-      const ultimaPreventiva=regs.find(r=>r.tipo==='preventiva'||r.tipo==='corretiva');
+      const ultimaPreventiva=regs.find(r=>r.tipo==='preventiva');
       html+='<div class="card" style="margin-bottom:8px;border-left:4px solid '+(m.parada?'#dc2626':'#059669')+'">'
         +'<div style="display:flex;align-items:center;justify-content:space-between">'
         +'<div style="display:flex;align-items:center;gap:10px">'
