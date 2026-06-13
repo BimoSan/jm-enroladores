@@ -9868,13 +9868,13 @@ function renderFinCustos(){
   // Navegação
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div style="display:flex;align-items:center;gap:8px">
-      <button class="btn btn-ghost btn-sm" onclick="window._custoMes=&quot;${mesAnterior}&quot;;reloadTab()">←</button>
+      <button class="btn btn-ghost btn-sm" onclick="window._setCustoMes('${mesAnterior}')">←</button>
       <div style="font-size:15px;font-weight:700">${mesNome}</div>
-      <button class="btn btn-ghost btn-sm" onclick="window._custoMes=&quot;${mesSeguinte}&quot;;reloadTab()">→</button>
+      <button class="btn btn-ghost btn-sm" onclick="window._setCustoMes('${mesSeguinte}')">→</button>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="window._custoView=&quot;mensal&quot;;reloadTab()" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid ${window._custoView==='mensal'?'#1d4ed8':'#e2e8f0'};background:${window._custoView==='mensal'?'#1d4ed8':'#fff'};color:${window._custoView==='mensal'?'#fff':'#64748b'};cursor:pointer;font-weight:600">Mensal</button>
-      <button onclick="window._custoView=&quot;historico&quot;;reloadTab()" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid ${window._custoView==='historico'?'#1d4ed8':'#e2e8f0'};background:${window._custoView==='historico'?'#1d4ed8':'#fff'};color:${window._custoView==='historico'?'#fff':'#64748b'};cursor:pointer;font-weight:600">Histórico</button>
+      <button onclick="window._setCustoView('mensal')" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid ${window._custoView==='mensal'?'#1d4ed8':'#e2e8f0'};background:${window._custoView==='mensal'?'#1d4ed8':'#fff'};color:${window._custoView==='mensal'?'#fff':'#64748b'};cursor:pointer;font-weight:600">Mensal</button>
+      <button onclick="window._setCustoView('historico')" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid ${window._custoView==='historico'?'#1d4ed8':'#e2e8f0'};background:${window._custoView==='historico'?'#1d4ed8':'#fff'};color:${window._custoView==='historico'?'#fff':'#64748b'};cursor:pointer;font-weight:600">Histórico</button>
       <button class="btn btn-primary btn-sm" onclick="window._custoNovo()">+ Lançamento</button>
     </div>
   </div>`;
@@ -9949,7 +9949,7 @@ function renderFinCustos(){
     totaisMes.forEach(({mes,label,total})=>{
       const h=Math.round(total/maxTotal*90);
       const isAtual=mes===window._custoMes;
-      html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="window._custoMes=&quot;'+mes+'&quot;;window._custoView=&quot;mensal&quot;;reloadTab()">'
+      html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer" onclick="window._setCustoMesView(\''+mes+'\')">'
         +'<div style="font-size:8px;color:#475569;font-weight:700">'+fmtMoeda(total).replace('R$\u00a0','').replace('R$ ','')+'</div>'
         +'<div style="width:100%;background:'+(isAtual?'#1d4ed8':'#dc2626')+';border-radius:4px 4px 0 0;height:'+h+'px;min-height:3px;opacity:'+(isAtual?'1':'.7')+'"></div>'
         +'<div style="font-size:8px;color:'+(isAtual?'#1d4ed8':'#94a3b8')+';font-weight:'+(isAtual?'700':'400')+'">'+label+'</div>'
@@ -9987,6 +9987,10 @@ function renderFinCustos(){
   }
   return html;
 }
+
+window._setCustoMes=function(mes){ window._custoMes=mes; reloadTab(); };
+window._setCustoView=function(view){ window._custoView=view; reloadTab(); };
+window._setCustoMesView=function(mes){ window._custoMes=mes; window._custoView='mensal'; reloadTab(); };
 
 window._custoNovo=function(){
   const opts=CATEGORIAS_CUSTOS.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
