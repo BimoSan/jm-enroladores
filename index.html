@@ -5525,6 +5525,15 @@ function blocosDisponiveis(){
   }));
 }
 
+function blocosDisponiveisFormula(formulaId){
+  const f=(configEspuma.formulas||[]).find(x=>x.id===formulaId);
+  if(!f||!f.ingredientes||!f.ingredientes.length) return 0;
+  return Math.min(...f.ingredientes.map(ing=>{
+    const est=estoqueAtualMp(ing.mpId);
+    return ing.kgBloco>0?Math.floor(est/ing.kgBloco):0;
+  }));
+}
+
 function getQuinzenaEsp(data){
   const d=data||today();
   const dia=parseInt(d.slice(8,10));
@@ -5666,7 +5675,6 @@ function renderEspPainel(){
 // ── Apontamento ──────────────────────────────────────────────────
 function renderEspApontar(){
   const hoje=today();
-  const disponiveis=blocosDisponiveis();
   const formulas=configEspuma.formulas||[];
 
   // Operador padrão: Diego ou primeiro ativo
@@ -5675,12 +5683,7 @@ function renderEspApontar(){
     window._espOpSel=(diego||espumaOperadores.find(o=>o.ativo!==false))?.id||'';
   }
 
-  // Banner blocos possíveis
-  let html='<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;text-align:center;padding:16px">'
-    +'<div style="font-size:13px;font-weight:700;opacity:.8">Blocos possíveis agora</div>'
-    +'<div style="font-size:48px;font-weight:900;margin:4px 0">'+disponiveis+'</div>'
-    +'<div style="font-size:11px;opacity:.7">baseado no estoque atual</div>'
-    +'</div>';
+  let html='';
 
   // Cards de fórmulas (blocos cadastrados)
   if(!formulas.length){
@@ -5692,11 +5695,16 @@ function renderEspApontar(){
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
   formulas.forEach(f=>{
     const isAtiva=f.id===configEspuma.formulaAtiva;
+    const poss=blocosDisponiveisFormula(f.id);
     html+='<div onclick="window._espAbrirFormulaProd(\''+f.id+'\')" style="background:'+(isAtiva?'#1d4ed8':'#fff')+';border:2px solid '+(isAtiva?'#1d4ed8':'#e2e8f0')+';border-radius:14px;padding:16px;text-align:center;cursor:pointer">'
       +'<div style="font-size:28px;margin-bottom:6px">⬜</div>'
       +'<div style="font-size:14px;font-weight:800;color:'+(isAtiva?'#fff':'#1e293b')+'">'+f.label+'</div>'
       +(f.dims?'<div style="font-size:10px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">'+f.dims.l+'×'+f.dims.a+'×'+f.dims.c+'m</div>':'')
       +'<div style="font-size:12px;font-weight:700;color:'+(isAtiva?'rgba(255,255,255,.9)':'#059669')+';margin-top:4px">'+fmtMoeda(f.valorBloco||0)+'/bloco</div>'
+      +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid '+(isAtiva?'rgba(255,255,255,.2)':'#f1f5f9')+'">'
+      +'<div style="font-size:20px;font-weight:900;color:'+(isAtiva?'#fff':(poss<5?'#dc2626':'#1e293b'))+'">'+poss+'</div>'
+      +'<div style="font-size:9px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">possíveis agora</div>'
+      +'</div>'
       +'</div>';
   });
   html+='</div>';
