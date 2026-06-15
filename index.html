@@ -5557,8 +5557,10 @@ Object.defineProperty(window,'DIMENSOES_BLOCO',{get:()=>getDimensoes()});
 function estoqueAtualMp(mpId){
   const entradas=espumaEstoque.filter(e=>e.mpId===mpId).reduce((s,e)=>s+(parseFloat(e.kg)||0),0);
   const saidas=espumaProducao.reduce((s,p)=>{
-    const mp=FORMULA_BLOCO.find(f=>f.id===mpId);
-    return s+(mp?(parseInt(p.blocos)||0)*mp.kgBloco:0);
+    const fId=p.formulaId||configEspuma.formulaAtiva;
+    const f=(configEspuma.formulas||[]).find(x=>x.id===fId);
+    const ing=f?.ingredientes?.find(i=>i.mpId===mpId);
+    return s+(ing?(parseInt(p.blocos)||0)*ing.kgBloco:0);
   },0);
   return Math.max(0,entradas-saidas);
 }
