@@ -11342,9 +11342,15 @@ window._salvarAlmItem=async id=>{
   const cl=document.getElementById('ei-class')?.value;
   const min=parseInt(document.getElementById('ei-min')?.value)||0;
   const max=parseInt(document.getElementById('ei-max')?.value)||0;
-  const atual=parseInt(document.getElementById('ei-atual')?.value)||0;
+  const novoAtualDesejado=parseInt(document.getElementById('ei-atual')?.value)||0;
   const custo=parseFloat(document.getElementById('ei-custo')?.value)||0;
-  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,custoUnitario:custo});
+  // O campo "estoque atual" mostra o valor JÁ COM os movimentos somados.
+  // Para o cálculo final continuar correto, o novo "base" precisa subtrair
+  // a soma dos movimentos existentes, de forma que base+movimentos = valor desejado.
+  const somaMovimentos=almMovimentos.filter(m=>m.itemId===id)
+    .reduce((s,m)=>m.tipo==='entrada'?s+(parseInt(m.quantidade)||0):s-(parseInt(m.quantidade)||0),0);
+  const novoBase=novoAtualDesejado-somaMovimentos;
+  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:novoBase,custoUnitario:custo});
   closeModal();showToast('Item atualizado!');
 };
 
