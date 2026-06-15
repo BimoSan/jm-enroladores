@@ -8702,18 +8702,11 @@ function renderMinhaProd(){
   const diasComApont=[...new Set(apontsDaQ.map(a=>a.data))].sort();
 
   if(diasComApont.length>0){
-    const vProd=configMetal.valoresProd||{};
-    const vRef=configMetal.valoresRef||{};
-
     const linhas=diasComApont.map((dia,i)=>{
       const apontsDia=apontsDaQ.filter(a=>a.data===dia);
       const totalDia=apontsDia.reduce((s,a)=>s+Object.values(a.pecas||{}).reduce((ss,v)=>ss+(parseInt(v)||0),0),0);
-      // Ganho do dia: cada peça × seu valor
-      const ganhoDia=PECAS_METAL_FULL.reduce((s,p)=>{
-        const qtd=apontsDia.reduce((ss,a)=>ss+(parseInt((a.pecas||{})[p.id])||0),0);
-        const val=p.reforma?(parseFloat(vRef[p.id.replace('ref_','')])||0):(parseFloat(vProd[p.id])||0);
-        return s+(qtd*val);
-      },0);
+      // Ganho do dia: usa a mesma lógica de meta/conjunta/equivalência do cálculo oficial
+      const ganhoDia=calcGanhoSoldador(sol.id, dia);
       const pecasDia=PECAS_METAL_FULL.filter(p=>apontsDia.some(a=>parseInt((a.pecas||{})[p.id])>0));
       const detalDia=pecasDia.map(p=>{
         const qtdP=apontsDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
@@ -8723,7 +8716,7 @@ function renderMinhaProd(){
       return '<tr style="'+(i%2?'background:#f8fafc':'')+';border-bottom:1px solid #f1f5f9">'
         +'<td style="padding:7px 10px;font-size:12px;font-weight:600;white-space:nowrap">'+dd+'/'+qMes+'/'+qAno+'</td>'
         +'<td style="padding:7px 10px;font-size:13px;font-weight:800;color:#1e40af;text-align:center">'+totalDia+'</td>'
-        +'<td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">'+fmtR(ganhoDia)+'</td>'
+        +'<td style="padding:7px 10px;font-size:12px;font-weight:700;color:'+(ganhoDia>0?'#059669':'#94a3b8')+';text-align:right">'+(ganhoDia>0?fmtR(ganhoDia):'—')+'</td>'
         +'<td style="padding:7px 10px;font-size:11px;color:#64748b">'+detalDia+'</td>'
         +'</tr>';
     }).join('');
