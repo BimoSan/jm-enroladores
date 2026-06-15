@@ -5484,6 +5484,8 @@ function getFormulaAtiva(){
 function getMpById(mpId){
   return configEspuma.materiasPrimas.find(m=>m.id===mpId)||null;
 }
+const UNIDADE_EMB_PLURAL={tambor:'tambores',bobina:'bobinas',saco:'sacos',caixa:'caixas',lata:'latas',galao:'galões',unidade:'unidades'};
+const UNIDADE_EMB_ICON={tambor:'🛢️',bobina:'🧵',saco:'🛍️',caixa:'📦',lata:'🥫',galao:'🪣',unidade:'📦'};
 // Legacy compatibility
 const FORMULA_BLOCO_DEFAULT=[
   {id:'poliol',kgBloco:66.5,kgTambor:210,label:'Poliol Pro 33%'},
@@ -5642,6 +5644,9 @@ function renderEspPainel(){
     const minimo=mpConf.estoqueMin||mp.kgTambor||0;
     const cor=minimo>0?(est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669'):'#059669';
     const pct=minimo>0?Math.min(100,Math.round(est/minimo*100)):100;
+    const unidEmb=mpConf.unidadeEmbalagem||'tambor';
+    const unidLabel=UNIDADE_EMB_PLURAL[unidEmb]||'tambores';
+    const unidIcon=UNIDADE_EMB_ICON[unidEmb]||'🛢️';
     html+='<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f1f5f9">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'
       +'<span style="font-size:13px;font-weight:700">'+mpConf.label+'</span>'
@@ -5651,7 +5656,7 @@ function renderEspPainel(){
       +'<div style="height:100%;width:'+pct+'%;background:'+cor+';border-radius:99px;transition:width .3s"></div>'
       +'</div>'
       +'<div style="display:flex;gap:8px">'
-      +'<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-weight:700">🛢️ '+tambores.toFixed(1)+' tambores</span>'
+      +'<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-weight:700">'+unidIcon+' '+tambores.toFixed(1)+' '+unidLabel+'</span>'
       +(mp.kgBloco>0?'<span style="font-size:11px;background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700">⬜ '+blocosPos+' blocos</span>':'')
       +'</div>'
       +'</div>';
@@ -5778,24 +5783,27 @@ function renderEspEstoque(){
     const minimo=mpConf.estoqueMin||mpConf.kgTambor||0;
     const cor=minimo>0?(est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669'):'#059669';
     const entradas=espumaEstoque.filter(e=>e.mpId===mpConf.id).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+    const unidEmb=mpConf.unidadeEmbalagem||'tambor';
+    const unidSing=unidEmb;
+    const unidPlural=UNIDADE_EMB_PLURAL[unidEmb]||'tambores';
 
     html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+cor+';cursor:pointer" onclick="window._espAbrirMp(\''+mpConf.id+'\')">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
       +'<div>'
       +'<div style="font-size:14px;font-weight:700">'+mpConf.label+'</div>'
-      +'<div style="font-size:11px;color:#64748b">Tambor: '+mpConf.kgTambor+'kg'+(mpFormula?' · '+mpFormula.kgBloco+'kg/bloco':'')+'</div>'
-      +(mpConf.estoqueMin?'<div style="font-size:10px;color:#d97706">Mín: '+mpConf.estoqueMin+'kg'+(mpConf.estoqueMinTambores?' ('+mpConf.estoqueMinTambores+'t)':'')+'</div>':'')
+      +'<div style="font-size:11px;color:#64748b">'+(unidEmb==='tambor'?'Tambor':unidEmb.charAt(0).toUpperCase()+unidEmb.slice(1))+': '+mpConf.kgTambor+'kg'+(mpFormula?' · '+mpFormula.kgBloco+'kg/bloco':'')+'</div>'
+      +(mpConf.estoqueMin?'<div style="font-size:10px;color:#d97706">Mín: '+mpConf.estoqueMin+'kg'+(mpConf.estoqueMinTambores?' ('+mpConf.estoqueMinTambores+' '+unidPlural+')':'')+'</div>':'')
       +'</div>'
       +'<div style="text-align:right">'
       +'<div style="font-size:20px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'<span style="font-size:12px">kg</span></div>'
-      +'<div style="font-size:10px;color:#94a3b8">'+tambores.toFixed(1)+' tambores'+(blocosPoss!==null?' · '+blocosPoss+' blocos poss.':'')+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+tambores.toFixed(1)+' '+unidPlural+(blocosPoss!==null?' · '+blocosPoss+' blocos poss.':'')+'</div>'
       +'</div></div>'
       +'<div style="font-size:10px;color:#94a3b8;text-align:right">toque para lançar ›</div>'
       +(entradas.length?'<div style="border-top:1px solid #f1f5f9;padding-top:8px;margin-top:6px" onclick="event.stopPropagation()">'
         +'<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:4px">Movimentos recentes</div>'
         +entradas.slice(0,3).map(e=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
           +'<span style="color:'+(e._saida?'#dc2626':'#059669')+';font-weight:600">'+(e._saida?'↓ Saída':'↑ Entrada')+'</span>'
-          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' tambor'+(e.tambores>1?'es':'')+' · '+Math.abs(e.kg)+'kg</span>'
+          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' '+(e.tambores===1?unidSing:unidPlural)+' · '+Math.abs(e.kg)+'kg</span>'
           +'<button class="btn btn-sm btn-danger" style="font-size:9px;padding:1px 6px" onclick="window._espExcluirEntrada(\''+e.id+'\')">✕</button>'
           +'</div>').join('')
         +'</div>':'')
@@ -6143,14 +6151,25 @@ async function _saveConfigEspuma(){
 }
 
 window._espNovaMp=function(mp={}){
+  const unidade=mp.unidadeEmbalagem||'tambor';
   showModal(mp.id?'Editar matéria-prima':'Nova matéria-prima',
     '<div class="form-group"><label>Nome</label>'
     +'<input id="cmp-label" value="'+(mp.label||'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Peso do tambor (kg)</label>'
+    +'<div class="form-group"><label>Unidade de embalagem</label>'
+    +'<select id="cmp-unidade" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +'<option value="tambor"'+(unidade==='tambor'?' selected':'')+'>Tambor</option>'
+    +'<option value="bobina"'+(unidade==='bobina'?' selected':'')+'>Bobina</option>'
+    +'<option value="saco"'+(unidade==='saco'?' selected':'')+'>Saco</option>'
+    +'<option value="caixa"'+(unidade==='caixa'?' selected':'')+'>Caixa</option>'
+    +'<option value="lata"'+(unidade==='lata'?' selected':'')+'>Lata</option>'
+    +'<option value="galao"'+(unidade==='galao'?' selected':'')+'>Galão</option>'
+    +'<option value="unidade"'+(unidade==='unidade'?' selected':'')+'>Unidade</option>'
+    +'</select></div>'
+    +'<div class="form-group"><label>Peso por unidade de embalagem (kg)</label>'
     +'<input type="number" id="cmp-tambor" value="'+(mp.kgTambor||'')+'" min="0" step="0.1" oninput="window._espCalcMinimo()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Estoque mínimo</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
-    +'<div><label style="font-size:11px;color:#64748b">Em tambores</label>'
+    +'<div><label style="font-size:11px;color:#64748b">Em embalagens</label>'
     +'<input type="number" id="cmp-min-tambores" value="'+(mp.estoqueMinTambores||'')+'" min="0" step="0.5" placeholder="Ex: 1" oninput="window._espCalcMinimo()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div><label style="font-size:11px;color:#64748b">Em kg</label>'
     +'<input type="number" id="cmp-minimo" value="'+(mp.estoqueMin||'')+'" min="0" step="0.1" placeholder="Ex: 210" oninput="window._espCalcMinimoKg()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
@@ -6177,6 +6196,7 @@ window._espCalcMinimoKg=function(){
 window._espEditarMp=function(id){ const mp=(configEspuma.materiasPrimas||[]).find(m=>m.id===id); if(mp) window._espNovaMp(mp); };
 window._espSalvarMp=async function(id){
   const label=document.getElementById('cmp-label')?.value.trim();
+  const unidadeEmbalagem=document.getElementById('cmp-unidade')?.value||'tambor';
   const kgTambor=parseFloat(document.getElementById('cmp-tambor')?.value)||0;
   const estoqueMin=parseFloat(document.getElementById('cmp-minimo')?.value)||0;
   const estoqueMinTambores=parseFloat(document.getElementById('cmp-min-tambores')?.value)||0;
@@ -6184,8 +6204,8 @@ window._espSalvarMp=async function(id){
   if(!label){showToast('Digite o nome.');return;}
   closeModal();
   const mps=[...(configEspuma.materiasPrimas||[])];
-  if(id){ const i=mps.findIndex(m=>m.id===id); if(i>=0) mps[i]={...mps[i],label,kgTambor,estoqueMin,estoqueMinTambores,custoPorKg}; }
-  else mps.push({id:'mp_'+Date.now(),label,kgTambor,estoqueMin,estoqueMinTambores,custoPorKg});
+  if(id){ const i=mps.findIndex(m=>m.id===id); if(i>=0) mps[i]={...mps[i],label,unidadeEmbalagem,kgTambor,estoqueMin,estoqueMinTambores,custoPorKg}; }
+  else mps.push({id:'mp_'+Date.now(),label,unidadeEmbalagem,kgTambor,estoqueMin,estoqueMinTambores,custoPorKg});
   configEspuma.materiasPrimas=mps;
   await _saveConfigEspuma();
   showToast('Matéria-prima salva!');
@@ -6357,15 +6377,18 @@ window._espLancarMp=function(tipo, mpId){
   const mp=getMpById(mpId)||FORMULA_BLOCO.find(f=>f.id===mpId);
   const isEntrada=tipo==='entrada';
   const titulo=isEntrada?'📦 Entrada — '+mp.label:'📤 Saída — '+mp.label;
+  const unidEmb=mp?.unidadeEmbalagem||'tambor';
+  const unidLabel=(UNIDADE_EMB_PLURAL[unidEmb]||'tambores').charAt(0).toUpperCase()+(UNIDADE_EMB_PLURAL[unidEmb]||'tambores').slice(1);
+  const unidSing=unidEmb;
   showModal(titulo,
-    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">Preencha tambores <strong>ou</strong> kg — o outro campo é calculado automaticamente.</div>'
+    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">Preencha '+unidLabel.toLowerCase()+' <strong>ou</strong> kg — o outro campo é calculado automaticamente.</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
-    +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Tambores</label>'
+    +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">'+unidLabel+'</label>'
     +'<input type="number" id="emp-tambores" min="0" step="0.5" placeholder="0" oninput="window._espCalcKgMp(\''+mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
     +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Quilos (kg)</label>'
     +'<input type="number" id="emp-kg" min="0" step="0.1" placeholder="0" oninput="window._espCalcTamboresMp(\''+mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
     +'</div>'
-    +(mp?.kgTambor?'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px;text-align:center">1 tambor = '+mp.kgTambor+'kg</div>':'')
+    +(mp?.kgTambor?'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px;text-align:center">1 '+unidSing+' = '+mp.kgTambor+'kg</div>':'')
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="emp-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Obs. (opcional)</label>'
