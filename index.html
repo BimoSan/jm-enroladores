@@ -3450,26 +3450,32 @@ function calcGanhoSoldador(soldadorId, periodo){
         return;
       }
 
-      // Menos de 2 atingiram meia meta → equivalência com peça base
+      // Menos de 2 atingiram meia meta → equivalência: usa produção de outras
+      // peças (com ou sem meta própria) para completar o déficit da principal
       let principal=pecaBaseDefinida?comMeta.find(p=>p.id===pecaBaseDefinida):null;
       if(!principal){
         const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
         principal=ordenadas[0];
       }
-      let valorFaltando=(principal.meta-principal.qtd)*principal.val;
-      const secundarias=comMeta.filter(p=>p.id!==principal.id);
+      let deficitPrincipal=Math.max(0,principal.meta-principal.qtd);
+      const outras=pecasDia.filter(p=>p.id!==principal.id);
       const pagavel={};
-      pecasDia.forEach(p=>{ pagavel[p.id]=0; });
-      for(const sec of secundarias){
-        if(valorFaltando<=0) break;
-        if(!sec.val) continue;
-        const qtdDescontar=Math.min(sec.qtd,Math.ceil(valorFaltando/sec.val));
-        valorFaltando-=qtdDescontar*sec.val;
-        pagavel[sec.id]=Math.max(0,sec.qtd-qtdDescontar);
+      pecasDia.forEach(p=>{ pagavel[p.id]=p.qtd; }); // por padrão, paga tudo (será ajustado)
+      pagavel[principal.id]=Math.max(0,principal.qtd-principal.meta); // excedente da principal (0 se não bateu)
+
+      for(const sec of outras){
+        if(deficitPrincipal<=0) break;
+        const qtdCedida=Math.min(sec.qtd,deficitPrincipal);
+        deficitPrincipal-=qtdCedida;
+        pagavel[sec.id]=Math.max(0,sec.qtd-qtdCedida);
       }
-      if(valorFaltando<=0.001){
-        secundarias.forEach(sec=>{ totalGanho+=pagavel[sec.id]*sec.val; });
+
+      if(deficitPrincipal<=0){
+        // Déficit coberto → dia liberado, paga conforme calculado
+        pecasDia.forEach(p=>{ totalGanho+=(pagavel[p.id]||0)*p.val; });
       }
+      // Se não cobriu: dia não liberado, não ganha nada
+      return;
     });
     return totalGanho;
   }
