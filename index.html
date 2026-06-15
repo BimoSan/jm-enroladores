@@ -5637,15 +5637,17 @@ function renderEspPainel(){
     const minimo=mpConf.estoqueMin||mp.kgTambor||0;
     const cor=minimo>0?(est<minimo?'#dc2626':est<minimo*2?'#d97706':'#059669'):'#059669';
     const pct=minimo>0?Math.min(100,Math.round(est/minimo*100)):100;
-    html+='<div style="margin-bottom:10px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">'
-      +'<span style="font-size:12px;font-weight:600">'+mpConf.label+'</span>'
-      +'<div style="text-align:right">'
-      +'<span style="font-size:13px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'kg</span>'
-      +'<span style="font-size:10px;color:#94a3b8;margin-left:4px">'+tambores.toFixed(1)+'t'+(blocosPos>0?' · '+blocosPos+'bl':'')+'</span>'
-      +'</div></div>'
-      +'<div style="height:5px;background:#f1f5f9;border-radius:99px">'
+    html+='<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f1f5f9">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'
+      +'<span style="font-size:13px;font-weight:700">'+mpConf.label+'</span>'
+      +'<span style="font-size:15px;font-weight:800;color:'+cor+'">'+est.toFixed(1)+'<span style="font-size:11px">kg</span></span>'
+      +'</div>'
+      +'<div style="height:5px;background:#f1f5f9;border-radius:99px;margin-bottom:5px">'
       +'<div style="height:100%;width:'+pct+'%;background:'+cor+';border-radius:99px;transition:width .3s"></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-weight:700">🛢️ '+tambores.toFixed(1)+' tambores</span>'
+      +(mp.kgBloco>0?'<span style="font-size:11px;background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700">⬜ '+blocosPos+' blocos</span>':'')
       +'</div>'
       +'</div>';
   });
