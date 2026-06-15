@@ -9906,13 +9906,17 @@ function renderFinCustos(){
     if(!doMes.length){
       html+='<div class="card" style="text-align:center;color:#94a3b8;padding:24px">Nenhum lançamento em '+mesNome+'. Clique em "+ Lançamento" para adicionar.</div>';
     } else {
+      if(!window._custoFiltroCat) window._custoFiltroCat='';
+      const filtroCat=window._custoFiltroCat;
+
       // Por categoria
-      html+='<div class="card" style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Por categoria</div>';
+      html+='<div class="card" style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Por categoria <span style="font-size:10px;color:#94a3b8;font-weight:400">(toque para filtrar)</span></div>';
       catOrdenadas.forEach(([cat,val])=>{
         const pct=Math.round(val/maxCat*100);
-        html+='<div style="margin-bottom:8px">'
+        const ativa=filtroCat===cat;
+        html+='<div style="margin-bottom:8px;cursor:pointer;'+(ativa?'background:#fef2f2;border-radius:8px;padding:4px 6px;margin:-4px -6px 4px':'')+'" onclick="window._custoFiltrarCat(\''+cat.replace(/'/g,"\\'")+'\')">'
           +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
-          +'<span style="font-size:12px;font-weight:600">'+cat+'</span>'
+          +'<span style="font-size:12px;font-weight:'+(ativa?'800':'600')+';color:'+(ativa?'#dc2626':'#1e293b')+'">'+(ativa?'▸ ':'')+cat+'</span>'
           +'<span style="font-size:12px;font-weight:700;color:#dc2626">'+fmtMoeda(val)+'</span>'
           +'</div>'
           +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
@@ -9924,9 +9928,14 @@ function renderFinCustos(){
         +'<span style="font-size:14px;font-weight:800;color:#dc2626">'+fmtMoeda(totalMes)+'</span>'
         +'</div></div>';
 
-      // Lançamentos do mês
-      html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos de '+mesNome+'</div>';
-      doMes.forEach((c,i)=>{
+      // Lançamentos do mês (filtrados por categoria se selecionado)
+      const lancamentos=filtroCat?doMes.filter(c=>c.categoria===filtroCat):doMes;
+      const tituloLanc=filtroCat?('Lançamentos de '+filtroCat+' — '+mesNome):('Lançamentos de '+mesNome);
+      html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569">'+tituloLanc+'</div>'
+        +(filtroCat?'<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="window._custoFiltrarCat(\'\')">✕ Limpar filtro</button>':'')
+        +'</div>';
+      lancamentos.forEach((c,i)=>{
         html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
           +'<div style="flex:1">'
           +'<div style="display:flex;align-items:center;gap:6px">'
@@ -9940,6 +9949,13 @@ function renderFinCustos(){
           +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._custoExcluir(\''+c.id+'\')">✕</button>'
           +'</div></div>';
       });
+      if(filtroCat){
+        const totalFiltro=lancamentos.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+        html+='<div style="border-top:2px solid #e2e8f0;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between">'
+          +'<span style="font-size:12px;font-weight:700">Total '+filtroCat+'</span>'
+          +'<span style="font-size:13px;font-weight:800;color:#dc2626">'+fmtMoeda(totalFiltro)+'</span>'
+          +'</div>';
+      }
       html+='</div>';
     }
   } else {
@@ -10004,7 +10020,12 @@ function renderFinCustos(){
   return html;
 }
 
-window._setCustoMes=function(mes){ window._custoMes=mes; reloadTab(); };
+window._custoFiltrarCat=function(cat){
+  window._custoFiltroCat=(window._custoFiltroCat===cat)?'':cat;
+  reloadTab();
+};
+
+window._setCustoMes=function(mes){ window._custoMes=mes; window._custoFiltroCat=''; reloadTab(); };
 window._setCustoView=function(view){ window._custoView=view; reloadTab(); };
 window._setCustoMesView=function(mes){ window._custoMes=mes; window._custoView='mensal'; reloadTab(); };
 
