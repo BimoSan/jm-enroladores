@@ -3391,8 +3391,37 @@ function calcGanhoSoldador(soldadorId, periodo){
               totalGanho+=exc*p.val;
             }
           });
+          return;
         }
-        // Se não liberado: não ganha nada
+
+        // ── Regra de equivalência: nenhuma bateu a meta, mas a produção
+        // de uma peça pode ser usada (em QUANTIDADE) para cobrir o déficit
+        // da outra peça e completar a meta dela, liberando o dia. ──
+        const deficit1=p1.meta-p1.qtd; // quanto falta no p1
+        const deficit2=p2.meta-p2.qtd; // quanto falta no p2
+
+        // Tenta: p2 cobre o déficit de p1 (usa peças de p2 para completar p1)
+        // Só funciona se p2 tiver produção suficiente para cobrir seu próprio
+        // déficit seria pago como excedente depois... mas aqui p2 não bateu meta,
+        // então usamos parte da produção de p2 para "virtualmente" completar p1.
+        let liberado=false, pagavelP1=0, pagavelP2=0;
+
+        if(deficit1>0&&p2.qtd>=deficit1){
+          // p2 cede `deficit1` peças para completar a meta de p1
+          // p1 agora "bate" a meta (excedente 0)
+          // p2 sobra: p2.qtd - deficit1, paga tudo (produção)
+          liberado=true;
+          pagavelP1=Math.max(0,p1.qtd-p1.meta); // excedente de p1 (0 nesse caso)
+          pagavelP2=(p2.qtd-deficit1)*p2.val;
+          totalGanho+=pagavelP1*p1.val+pagavelP2;
+        } else if(deficit2>0&&p1.qtd>=deficit2){
+          // p1 cede `deficit2` peças para completar a meta de p2
+          liberado=true;
+          pagavelP2=Math.max(0,p2.qtd-p2.meta);
+          pagavelP1=(p1.qtd-deficit2)*p1.val;
+          totalGanho+=pagavelP1+pagavelP2*p2.val;
+        }
+        // Se nenhuma combinação libera o dia: não ganha nada
         return;
       }
 
