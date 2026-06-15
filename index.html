@@ -3516,6 +3516,45 @@ function renderAlertaSemRetorno(enroladorId, compact=false){
 }
 
 // ── Painel metalúrgica ────────────────────────────────────────────
+// ── Troféus da quinzena recém-fechada (aparece por 2 dias) ─────────
+function renderEspMetalTrofeus(hoje_){
+  const dia=parseInt(hoje_.slice(8,10));
+  let quinzenaFechada=null;
+  if(dia===1||dia===2){
+    // Mostra resultado da Q2 do mês anterior
+    const d=new Date(hoje_+'T12:00:00');
+    d.setDate(0); // último dia do mês anterior
+    const anoMes=d.toISOString().slice(0,7);
+    quinzenaFechada=anoMes+'-Q2';
+  } else if(dia===16||dia===17){
+    // Mostra resultado da Q1 deste mês
+    quinzenaFechada=hoje_.slice(0,7)+'-Q1';
+  }
+  if(!quinzenaFechada) return '';
+
+  const pecasNormais=PECAS_METAL_FULL.filter(p=>!p.reforma);
+  const podios=pecasNormais.map(p=>{
+    const ranking=soldadores.map(s=>({
+      nome:s.nome,
+      qtd:totalPecaPeriodo(s.id,p.id,quinzenaFechada)
+    })).filter(r=>r.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+    return {peca:p,top:ranking[0]||null};
+  }).filter(x=>x.top);
+
+  if(!podios.length) return '';
+
+  return '<div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #fbbf24">'
+    +'<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:10px">🏆 Campeões da quinzena — '+quinzenaLabel(quinzenaFechada)+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">'
+    +podios.map(({peca,top})=>'<div style="background:#fff;border-radius:10px;padding:10px;text-align:center">'
+      +'<div style="font-size:10px;color:#92400e;font-weight:700;margin-bottom:4px">'+peca.label+'</div>'
+      +'<div style="font-size:22px;margin-bottom:2px">🏆</div>'
+      +'<div style="font-size:13px;font-weight:800;color:#1e293b">'+top.nome+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+top.qtd+' peças</div>'
+      +'</div>').join('')
+    +'</div></div>';
+}
+
 function renderPainelMetal(){
   const hoje_=today();
   const qAtual=getQuinzenaAtual();
@@ -3547,6 +3586,7 @@ function renderPainelMetal(){
       <div><div class="stat-label">A pagar quinzena</div><div class="stat-value" style="font-size:18px">${fmtR(totalPagarQ)}</div></div>
     </div>
   </div>
+  ${renderEspMetalTrofeus(hoje_)}
   <div class="section-label">produção de hoje — ${hoje_}</div>`;
 
   // Resumo por tipo de peça hoje + mês (todos os soldadores)
