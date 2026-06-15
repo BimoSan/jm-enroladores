@@ -3337,7 +3337,9 @@ function calcGanhoSoldador(soldadorId, periodo){
       }
 
       // ── Normal (1 peça) ou Conjunta ──────────────────────────────
-      const conjunta=modoCalculo==='conjunta';
+      // Conjunta = 2+ peças normais produzidas no mesmo dia, independente
+      // do modoCalculo salvo (que pode estar ausente em registros antigos).
+      const conjunta=modoCalculo==='conjunta'||pecasDia.length>=2;
       const comMeta=pecasDia.filter(p=>p.meta>0);
 
       if(!comMeta.length){
