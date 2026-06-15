@@ -2848,19 +2848,51 @@ window._confirmarFecharFicha=async()=>{
   window._pendingFichaId=null;
   showToast('Ficha fechada!');
 };
-window._confirmarPago=id=>{
-  const enr=getEnr(getFicha(id)?.enroladorId);
+window._confirmarPago=(id,setorKey)=>{
   window._pendingPagoId=id;
+  window._pendingPagoSetorKey=setorKey||'enrolamento_terc';
+  let nome='';
+  if(window._pendingPagoSetorKey==='enrolamento_terc'){
+    nome=getEnr(getFicha(id)?.enroladorId)?.nome||'';
+  } else if(window._pendingPagoSetorKey==='metalurgica'){
+    const f=fichasMetal.find(x=>x.id===id);
+    nome=soldadores.find(s=>s.id===f?.soldadorId)?.nome||'';
+  } else if(window._pendingPagoSetorKey==='grades'){
+    const f=fichasGrad.find(x=>x.id===id);
+    nome=gradistas?.find?.(g=>g.id===f?.gradId)?.nome||'';
+  } else if(window._pendingPagoSetorKey==='enrolamento_int'){
+    const f=fichasInt.find(x=>x.id===id);
+    nome=enroladoresInt.find(e=>e.id===f?.enroladorId)?.nome||'';
+  } else if(window._pendingPagoSetorKey==='espuma'){
+    const fObj=finPagamentosTodos().find(p=>p.id===id)?.fichaObj;
+    nome=espumaOperadores.find(o=>o.id===fObj?.opId)?.nome||'';
+  }
   showModal('Confirmar pagamento',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Confirma o pagamento da ficha de <strong>${enr?.nome}</strong>?</div>`,
+    `<div style="font-size:13px;color:#444;line-height:1.6">Confirma o pagamento da ficha de <strong>${nome}</strong>?</div>`,
     `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
      <button class="btn btn-sm btn-primary" onclick="window._confirmarPagoAction()">Confirmar</button>`);
 };
 window._confirmarPagoAction=async()=>{
   const id=window._pendingPagoId;if(!id)return;
+  const setorKey=window._pendingPagoSetorKey||'enrolamento_terc';
   closeModal();
-  await updateDoc(doc(db,'fichas',id),{pago:true});
+  if(setorKey==='enrolamento_terc'){
+    await updateDoc(doc(db,'fichas',id),{pago:true,dataPagamento:today()});
+  } else if(setorKey==='metalurgica'){
+    await updateDoc(doc(db,'fichas_metal',id),{pago:true,dataPagamento:today()});
+  } else if(setorKey==='grades'){
+    await updateDoc(doc(db,'fichas_grad',id),{pago:true,dataPagamento:today()});
+  } else if(setorKey==='enrolamento_int'){
+    await updateDoc(doc(db,'fichas_int',id),{pago:true,dataPagamento:today()});
+  } else if(setorKey==='espuma'){
+    const fObj=finPagamentosTodos().find(p=>p.id===id)?.fichaObj;
+    const ids=fObj?.ids||[];
+    for(const prodId of ids){
+      await updateDoc(doc(db,'esp_producao',prodId),{pago:true,dataPagamento:today()});
+    }
+  }
   window._pendingPagoId=null;
+  window._pendingPagoSetorKey=null;
   showToast('Pagamento registrado!');
 };
 
@@ -10550,7 +10582,7 @@ function renderFinPagamentos(){
         </button>
         ${podePagar?(p.tipo==='bonus'
           ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Marcar pago</button>'
-          :'<button class="btn btn-sm btn-primary" onclick="window._confirmarPago(\''+p.id+'\')">Marcar pago</button>')
+          :'<button class="btn btn-sm btn-primary" onclick="window._confirmarPago(\''+p.id+'\',\''+p.setorKey+'\')">Marcar pago</button>')
           :''}      </div>
     </div>`;
   };
