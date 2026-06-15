@@ -5907,12 +5907,26 @@ function renderEspRelatorio(){
   const maxProd=Math.max(...prodMes,1);
   const totalBlocos=prodMes.reduce((s,v)=>s+v,0);
 
-  const formulaAtiva=getFormulaAtiva();
-  const custoPorBloco=formulaAtiva?(formulaAtiva.ingredientes||[]).reduce((s,ing)=>{
-    const mp=getMpById(ing.mpId);
-    return s+(mp?.custoPorKg||0)*ing.kgBloco;
-  },0):0;
-  const custoTotalMps=totalBlocos*custoPorBloco;
+  // Custo por bloco para cada fórmula cadastrada
+  const custosPorFormula=formulas.map(f=>{
+    const custo=(f.ingredientes||[]).reduce((s,ing)=>{
+      const mp=getMpById(ing.mpId);
+      return s+(mp?.custoPorKg||0)*ing.kgBloco;
+    },0);
+    const margem=custo>0?(f.valorBloco||0)-custo:null;
+    return {formula:f,custo,margem};
+  });
+
+  // Custo total de MP usado no ano (soma de cada produção pela fórmula usada naquele dia)
+  const custoTotalMps=espumaProducao.filter(p=>(p.data||'').startsWith(ano)).reduce((s,p)=>{
+    const fId=p.formulaId||configEspuma.formulaAtiva;
+    const f=formulas.find(x=>x.id===fId);
+    const custoF=f?(f.ingredientes||[]).reduce((acc,ing)=>{
+      const mp=getMpById(ing.mpId);
+      return acc+(mp?.custoPorKg||0)*ing.kgBloco;
+    },0):0;
+    return s+(parseInt(p.blocos)||0)*custoF;
+  },0);
 
   const usoMpMes={};
   mps.forEach(mp=>{ usoMpMes[mp.id]=Array.from({length:12},()=>0); });
@@ -5920,7 +5934,7 @@ function renderEspRelatorio(){
     const m=parseInt((p.data||'').slice(5,7))-1;
     if(m<0||m>11) return;
     const fId=p.formulaId||configEspuma.formulaAtiva;
-    const f=formulas.find(x=>x.id===fId)||formulaAtiva;
+    const f=formulas.find(x=>x.id===fId)||getFormulaAtiva();
     (f?.ingredientes||[]).forEach(ing=>{
       if(usoMpMes[ing.mpId]) usoMpMes[ing.mpId][m]+=(parseInt(p.blocos)||0)*ing.kgBloco;
     });
@@ -5954,10 +5968,34 @@ function renderEspRelatorio(){
 
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos produzidos</div><div class="stat-value">'+totalBlocos+'</div><div style="font-size:10px;opacity:.8">em '+ano+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Custo/bloco (MP)</div><div class="stat-value" style="font-size:18px">'+(custoPorBloco>0?fmtMoeda(custoPorBloco):'—')+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Custo total MP</div><div class="stat-value" style="font-size:16px">'+(custoTotalMps>0?fmtMoeda(custoTotalMps):'—')+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">A pagar operadores</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalBlocos*getValorBloco())+'</div></div></div>'
     +'</div>';
+
+  // Custo por bloco — por tipo
+  if(custosPorFormula.length){
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⬜ Custo de matéria-prima por tipo de bloco</div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f8fafc">'
+      +'<th style="padding:6px 8px;text-align:left">Bloco</th>'
+      +'<th style="padding:6px 8px;text-align:right">Custo MP</th>'
+      +'<th style="padding:6px 8px;text-align:right">Valor venda</th>'
+      +'<th style="padding:6px 8px;text-align:right">Margem</th>'
+      +'</tr></thead><tbody>';
+    custosPorFormula.forEach(({formula,custo,margem},i)=>{
+      const isAtiva=formula.id===configEspuma.formulaAtiva;
+      html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+        +'<td style="padding:6px 8px;font-weight:700">'+formula.label+(isAtiva?' <span style="font-size:9px;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:99px;font-weight:700">ativa</span>':'')+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+(custo>0?'#92400e':'#94a3b8')+'">'+(custo>0?fmtMoeda(custo):'—')+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#1e293b">'+fmtMoeda(formula.valorBloco||0)+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:'+(margem===null?'#94a3b8':margem>=0?'#059669':'#dc2626')+'">'+(margem===null?'—':fmtMoeda(margem))+'</td>'
+        +'</tr>';
+    });
+    html+='</tbody></table>'
+      +(custosPorFormula.some(c=>c.custo===0)?'<div style="font-size:10px;color:#94a3b8;margin-top:6px">Cadastre o custo por kg das MPs nas configurações para calcular o custo de cada bloco.</div>':'')
+      +'</div>';
+  }
 
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">⬜ Produção de blocos por mês</div>'
