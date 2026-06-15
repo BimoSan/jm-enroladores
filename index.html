@@ -5913,8 +5913,7 @@ function renderEspRelatorio(){
       const mp=getMpById(ing.mpId);
       return s+(mp?.custoPorKg||0)*ing.kgBloco;
     },0);
-    const margem=custo>0?(f.valorBloco||0)-custo:null;
-    return {formula:f,custo,margem};
+    return {formula:f,custo};
   });
 
   // Custo total de MP usado no ano (soma de cada produção pela fórmula usada naquele dia)
@@ -5975,21 +5974,23 @@ function renderEspRelatorio(){
   // Custo por bloco — por tipo
   if(custosPorFormula.length){
     html+='<div class="card" style="margin-bottom:14px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⬜ Custo de matéria-prima por tipo de bloco</div>'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⬜ Custo por tipo de bloco</div>'
       +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f8fafc">'
       +'<th style="padding:6px 8px;text-align:left">Bloco</th>'
       +'<th style="padding:6px 8px;text-align:right">Custo MP</th>'
-      +'<th style="padding:6px 8px;text-align:right">Valor venda</th>'
-      +'<th style="padding:6px 8px;text-align:right">Margem</th>'
+      +'<th style="padding:6px 8px;text-align:right">Mão de obra</th>'
+      +'<th style="padding:6px 8px;text-align:right">Custo total</th>'
       +'</tr></thead><tbody>';
-    custosPorFormula.forEach(({formula,custo,margem},i)=>{
+    custosPorFormula.forEach(({formula,custo},i)=>{
       const isAtiva=formula.id===configEspuma.formulaAtiva;
+      const maoDeObra=formula.valorBloco||0;
+      const total=custo>0?custo+maoDeObra:null;
       html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
         +'<td style="padding:6px 8px;font-weight:700">'+formula.label+(isAtiva?' <span style="font-size:9px;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:99px;font-weight:700">ativa</span>':'')+'</td>'
         +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+(custo>0?'#92400e':'#94a3b8')+'">'+(custo>0?fmtMoeda(custo):'—')+'</td>'
-        +'<td style="padding:6px 8px;text-align:right;color:#1e293b">'+fmtMoeda(formula.valorBloco||0)+'</td>'
-        +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:'+(margem===null?'#94a3b8':margem>=0?'#059669':'#dc2626')+'">'+(margem===null?'—':fmtMoeda(margem))+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#1e293b">'+fmtMoeda(maoDeObra)+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:'+(total===null?'#94a3b8':'#1d4ed8')+'">'+(total===null?'—':fmtMoeda(total))+'</td>'
         +'</tr>';
     });
     html+='</tbody></table>'
