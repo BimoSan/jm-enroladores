@@ -1128,6 +1128,9 @@ function renderRelatorioBonusMensal(){
         const btnPagar=['admin','financeiro'].includes(currentUserData?.perfil)&&!pago&&!mesEmCurso
           ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(&quot;'+b.enroladorId+'&quot;,&quot;'+b.anoMes+'&quot;)">Marcar pago</button>'
           :'';
+        const btnDesmarcar=['admin','financeiro'].includes(currentUserData?.perfil)&&pago
+          ?'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPagoBonus(&quot;'+b.enroladorId+'&quot;,&quot;'+b.anoMes+'&quot;)">Desmarcar</button>'
+          :'';
         const badge=pago
           ?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>'
           :mesEmCurso
@@ -1136,7 +1139,7 @@ function renderRelatorioBonusMensal(){
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #fef9c3">'
           +'<div><div style="font-size:13px;font-weight:600">'+b.enrNome+'</div>'
           +'<div style="font-size:11px;color:#b45309">'+b.totalVSofia+' V.Sofia · bônus: '+fmtMoeda(b.totalBonus)+'</div></div>'
-          +'<div style="display:flex;align-items:center;gap:8px">'+badge+btnPagar+'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px">'+badge+btnPagar+btnDesmarcar+'</div>'
           +'</div>';
       }).join('')
       +'</div>';
@@ -2952,6 +2955,59 @@ window._confirmarPagoAction=async()=>{
   window._pendingPagoId=null;
   window._pendingPagoSetorKey=null;
   showToast('Pagamento registrado!');
+  reloadTab();
+};
+
+window._desmarcarPago=(id,setorKey)=>{
+  window._pendingDesmarcarId=id;
+  window._pendingDesmarcarSetorKey=setorKey||'enrolamento_terc';
+  showModal('Desmarcar pagamento',
+    '<div style="font-size:13px;color:#444;line-height:1.6">Tem certeza que deseja desmarcar este pagamento como pago? Ele voltará para a lista de pendentes.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._desmarcarPagoAction()">Desmarcar</button>');
+};
+window._desmarcarPagoAction=async()=>{
+  const id=window._pendingDesmarcarId;if(!id)return;
+  const setorKey=window._pendingDesmarcarSetorKey||'enrolamento_terc';
+  closeModal();
+  if(setorKey==='enrolamento_terc'){
+    await updateDoc(doc(db,'fichas',id),{pago:false,dataPagamento:null});
+  } else if(setorKey==='metalurgica'){
+    await updateDoc(doc(db,'fichas_metal',id),{pago:false,dataPagamento:null});
+  } else if(setorKey==='grades'){
+    await updateDoc(doc(db,'fichas_grad',id),{pago:false,dataPagamento:null});
+  } else if(setorKey==='enrolamento_int'){
+    await updateDoc(doc(db,'fichas_int',id),{pago:false,dataPagamento:null});
+  } else if(setorKey==='espuma'){
+    const fObj=finPagamentosTodos().find(p=>p.id===id)?.fichaObj;
+    const ids=fObj?.ids||[];
+    for(const prodId of ids){
+      await updateDoc(doc(db,'esp_producao',prodId),{pago:false,dataPagamento:null});
+    }
+  }
+  window._pendingDesmarcarId=null;
+  window._pendingDesmarcarSetorKey=null;
+  showToast('Pagamento desmarcado!');
+  reloadTab();
+};
+
+window._desmarcarPagoBonus=(enroladorId,anoMes)=>{
+  window._pendingDesmarcarBonusEnr=enroladorId;
+  window._pendingDesmarcarBonusMes=anoMes;
+  showModal('Desmarcar bônus pago',
+    '<div style="font-size:13px;color:#444;line-height:1.6">Tem certeza que deseja desmarcar este bônus como pago? Ele voltará para a lista de pendentes.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._desmarcarPagoBonusAction()">Desmarcar</button>');
+};
+window._desmarcarPagoBonusAction=async()=>{
+  const enroladorId=window._pendingDesmarcarBonusEnr, anoMes=window._pendingDesmarcarBonusMes;
+  if(!enroladorId||!anoMes) return;
+  closeModal();
+  const chave=enroladorId+'-'+anoMes;
+  await deleteDoc(doc(db,'bonus_pagos',chave));
+  window._pendingDesmarcarBonusEnr=null;
+  window._pendingDesmarcarBonusMes=null;
+  showToast('Bônus desmarcado!');
   reloadTab();
 };
 
@@ -11201,6 +11257,7 @@ function renderFinPagamentos(){
     const dataRef=p.dataRef?p.dataRef.split('-').reverse().join('/'):'—';
     const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'';
     const podePagar=can('marcarPago')&&!p.pago;
+    const podeDesmarcar=can('marcarPago')&&p.pago;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;${i>0&&border?'border-top:1px solid #f1f5f9':''}">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:8px;height:8px;border-radius:50%;background:${p.pago?'#10b981':'#f59e0b'};flex-shrink:0"></div>
@@ -11218,6 +11275,10 @@ function renderFinPagamentos(){
         ${podePagar?(p.tipo==='bonus'
           ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Marcar pago</button>'
           :'<button class="btn btn-sm btn-primary" onclick="window._confirmarPago(\''+p.id+'\',\''+p.setorKey+'\')">Marcar pago</button>')
+          :''}
+        ${podeDesmarcar?(p.tipo==='bonus'
+          ?'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPagoBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Desmarcar</button>'
+          :'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPago(\''+p.id+'\',\''+p.setorKey+'\')">Desmarcar</button>')
           :''}      </div>
     </div>`;
   };
