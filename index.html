@@ -353,6 +353,8 @@ let espumaEstoque=[];
 let espumaOperadores=[];
 // Custos Indiretos
 let custosIndiretos=[];
+// Engenharia
+let engProdutos=[];
 // Manutenção
 let manutMaquinas=[];
 let manutRegistros=[];
@@ -551,6 +553,8 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'man_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'man_maquinas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'man_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'eng_produtos':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+  'eng_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'esp_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'esp_apontar':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
@@ -597,6 +601,7 @@ const TAB_LABELS={
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
+  'eng_produtos':'Produtos','eng_relatorio':'Relatórios',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_relatorio':'Relatórios','esp_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
@@ -619,11 +624,13 @@ function renderSelecionarFabrica(){
     {id:'caminhoes',    nome:'Caminhões',              icon:'🚚', cor:'#1e3a5f', bg:'linear-gradient(135deg,#1e3a5f,#2563eb)', desc:'Frotas, rotas e manutenção'},
     {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
     {id:'manutencao',   nome:'Manutenção',             icon:'🔧', cor:'#374151', bg:'linear-gradient(135deg,#374151,#6b7280)', desc:'Máquinas, manutenções e status'},
+    {id:'engenharia',   nome:'Engenharia',             icon:'📐', cor:'#0e7490', bg:'linear-gradient(135deg,#0e7490,#22d3ee)', desc:'Produtos, fichas técnicas e custos'},
   ].filter(f=>{
     if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1','mecanico','administracao'].includes(currentUserData?.perfil);
     if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
     if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
     if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico','encarregado_cad','encarregado_est','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
+    if(f.id==='engenharia') return ['admin','proprietario','administracao'].includes(currentUserData?.perfil);
     return fabricasDisponiveis.includes(f.id);
   });
 
@@ -674,6 +681,10 @@ window._selecionarFabrica=id=>{
     currentSetor='manutencao';
     sessionStorage.setItem('jm_setor','manutencao');
     currentTab='man_painel';
+  } else if(id==='engenharia'){
+    currentSetor='engenharia';
+    sessionStorage.setItem('jm_setor','engenharia');
+    currentTab='eng_produtos';
   } else {
     currentSetor=null;
     sessionStorage.removeItem('jm_setor');
@@ -805,6 +816,9 @@ function renderApp(){
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
+  } else if(currentSetor==='engenharia'){
+    tabs.push('eng_produtos','eng_relatorio');
+    if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_produtos';
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
@@ -914,6 +928,7 @@ function renderApp(){
               currentSetor==='espuma'?'Blocos de Espuma':
               currentSetor==='financeiro_geral'?'Financeiro':
               currentSetor==='manutencao'?'Manutenção':
+              currentSetor==='engenharia'?'Engenharia':
               currentSetor==='almoxarifado'?'Almoxarifado':
               currentSetor==='caminhoes'?'Caminhões':
               (currentFabrica==='cadeiras'?'Fábrica de Cadeiras':
@@ -965,6 +980,7 @@ window._switchTab=tab=>{
 function renderTab(tab){
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
+  if(currentSetor==='engenharia') return renderTabEngenharia(tab);
   if(currentSetor==='espuma') return renderTabEspuma(tab);
   if(currentSetor==='grades') return renderTabGrades(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
@@ -9450,6 +9466,200 @@ function renderTabManutencao(tab){
   }
 }
 
+// ════════════════════════════════════════════════════════════════
+// ENGENHARIA — Produtos, fichas técnicas e custos
+// ════════════════════════════════════════════════════════════════
+function renderTabEngenharia(tab){
+  try{
+    if(tab==='eng_produtos')  return renderEngProdutos();
+    if(tab==='eng_relatorio') return renderEngRelatorio();
+    return renderEngProdutos();
+  }catch(e){
+    console.error('Erro renderTabEngenharia:',e);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
+  }
+}
+
+function custoTotalProduto(produto){
+  return (produto.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+}
+
+function renderEngProdutos(){
+  const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._engNovoProduto()">+ Novo produto</button>':'')
+    +'</div>';
+
+  if(!engProdutos.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum produto cadastrado ainda.</div>';
+    return html;
+  }
+
+  engProdutos.forEach(p=>{
+    const custo=custoTotalProduto(p);
+    const numComp=(p.componentes||[]).length;
+    html+='<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="window._engVerProduto(\''+p.id+'\')">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div>'
+      +'<div style="font-size:14px;font-weight:700">'+p.nome+'</div>'
+      +(p.categoria?'<div style="font-size:11px;color:#64748b">'+p.categoria+'</div>':'')
+      +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+numComp+' componente'+(numComp!==1?'s':'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-size:18px;font-weight:800;color:#0e7490">'+fmtMoeda(custo)+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">custo total</div>'
+      +'</div></div></div>';
+  });
+  return html;
+}
+
+window._engNovoProduto=function(produto={}){
+  window._engComponentesTemp=produto.componentes?JSON.parse(JSON.stringify(produto.componentes)):[];
+  const isEdit=!!produto.id;
+  showModal(isEdit?'Editar produto':'+ Novo produto',
+    '<div class="form-group"><label>Nome do produto</label>'
+    +'<input id="ep-nome" value="'+(produto.nome||'')+'" placeholder="Ex: Cadeira Modelo X" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Categoria (opcional)</label>'
+    +'<input id="ep-categoria" value="'+(produto.categoria||'')+'" placeholder="Ex: Cadeira fixa" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px;margin-top:6px">Componentes / ficha técnica</div>'
+    +'<div id="ep-componentes-list"></div>'
+    +'<button type="button" onclick="window._engAddComponente()" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1.5px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar componente</button>'
+    +'<div style="margin-top:10px;display:flex;justify-content:space-between;border-top:2px solid #e2e8f0;padding-top:8px">'
+    +'<span style="font-size:13px;font-weight:700">Custo total</span>'
+    +'<span id="ep-custo-total" style="font-size:15px;font-weight:800;color:#0e7490">R$ 0,00</span>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+produto.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-sm btn-primary" onclick="window._engSalvarProduto(\''+(produto.id||'')+'\')">Salvar</button>');
+  window._engRenderComponentes();
+};
+
+window._engAddComponente=function(){
+  window._engComponentesTemp.push({nome:'',qtd:1,custoUnit:0});
+  window._engRenderComponentes();
+};
+window._engRemoverComponente=function(idx){
+  window._engComponentesTemp.splice(idx,1);
+  window._engRenderComponentes();
+};
+window._engAtualizarComponente=function(idx,campo,valor){
+  if(!window._engComponentesTemp[idx]) return;
+  window._engComponentesTemp[idx][campo]=campo==='nome'?valor:parseFloat(valor)||0;
+  window._engRenderComponentes();
+};
+window._engRenderComponentes=function(){
+  const lista=document.getElementById('ep-componentes-list');
+  if(!lista) return;
+  const comps=window._engComponentesTemp||[];
+  lista.innerHTML=comps.map((c,i)=>{
+    const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+    return '<div style="display:grid;grid-template-columns:2fr 70px 90px 28px;gap:6px;margin-bottom:6px;align-items:center">'
+      +'<input value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Componente" oninput="window._engAtualizarComponente('+i+',\'nome\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 8px;width:100%">'
+      +'<input type="number" min="0" step="0.01" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engAtualizarComponente('+i+',\'qtd\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
+      +'<input type="number" min="0" step="0.01" value="'+(c.custoUnit||'')+'" placeholder="R$ unit" oninput="window._engAtualizarComponente('+i+',\'custoUnit\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
+      +'<button type="button" onclick="window._engRemoverComponente('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer">✕</button>'
+      +'</div>'
+      +(comps[i]?'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:-4px;margin-bottom:6px">subtotal: '+fmtMoeda(subtotal)+'</div>':'');
+  }).join('')||'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:10px">Nenhum componente ainda.</div>';
+
+  const total=comps.reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+  const totalEl=document.getElementById('ep-custo-total');
+  if(totalEl) totalEl.textContent=fmtMoeda(total);
+};
+
+window._engSalvarProduto=async function(id){
+  const nome=document.getElementById('ep-nome')?.value.trim();
+  const categoria=document.getElementById('ep-categoria')?.value.trim()||'';
+  if(!nome){showToast('Digite o nome do produto.');return;}
+  const componentes=(window._engComponentesTemp||[]).filter(c=>c.nome&&c.nome.trim());
+  closeModal();
+  if(id){
+    await updateDoc(doc(db,'eng_produtos',id),{nome,categoria,componentes});
+  } else {
+    await addDoc(collection(db,'eng_produtos'),{nome,categoria,componentes,criadoEm:new Date().toISOString()});
+  }
+  showToast('Produto salvo!');
+};
+
+window._engVerProduto=function(id){
+  const p=engProdutos.find(x=>x.id===id);
+  if(!p) return;
+  const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
+  if(podeEditar){ window._engNovoProduto(p); return; }
+  // Visualização somente leitura
+  const custo=custoTotalProduto(p);
+  const linhas=(p.componentes||[]).map(c=>{
+    const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid #f1f5f9">'
+      +'<span>'+c.nome+' <span style="color:#94a3b8">×'+c.qtd+'</span></span>'
+      +'<span style="font-weight:700">'+fmtMoeda(subtotal)+'</span>'
+      +'</div>';
+  }).join('');
+  showModal(p.nome,
+    (p.categoria?'<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+p.categoria+'</div>':'')
+    +linhas
+    +'<div style="display:flex;justify-content:space-between;border-top:2px solid #e2e8f0;padding-top:8px;margin-top:8px">'
+    +'<span style="font-size:13px;font-weight:700">Custo total</span>'
+    +'<span style="font-size:15px;font-weight:800;color:#0e7490">'+fmtMoeda(custo)+'</span>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+};
+
+window._engExcluirProduto=function(id){
+  window._pendingEngProduto=id;
+  closeModal();
+  showModal('Excluir produto','<div style="font-size:13px">Deseja excluir este produto e sua ficha técnica?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._engConfirmarExcluirProduto()">Excluir</button>');
+};
+window._engConfirmarExcluirProduto=async function(){
+  const id=window._pendingEngProduto; if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'eng_produtos',id));
+  showToast('Produto excluído!');
+};
+
+function renderEngRelatorio(){
+  if(!engProdutos.length){
+    return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre produtos para ver o relatório de custos.</div>';
+  }
+  const comCusto=engProdutos.map(p=>({p,custo:custoTotalProduto(p)})).sort((a,b)=>b.custo-a.custo);
+  const maxCusto=comCusto[0]?.custo||1;
+
+  let html='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📐 Custo de produção por produto</div>';
+  comCusto.forEach(({p,custo})=>{
+    const pct=maxCusto>0?Math.round(custo/maxCusto*100):0;
+    html+='<div style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+      +'<span style="font-size:12px;font-weight:600">'+p.nome+'</span>'
+      +'<span style="font-size:12px;font-weight:700;color:#0e7490">'+fmtMoeda(custo)+'</span>'
+      +'</div>'
+      +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
+      +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#0e7490,#22d3ee);border-radius:99px"></div>'
+      +'</div></div>';
+  });
+  html+='</div>';
+
+  // Tabela detalhada
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Detalhamento</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f8fafc">'
+    +'<th style="padding:6px 8px;text-align:left">Produto</th>'
+    +'<th style="padding:6px 8px;text-align:center">Componentes</th>'
+    +'<th style="padding:6px 8px;text-align:right">Custo total</th>'
+    +'</tr></thead><tbody>';
+  comCusto.forEach(({p,custo},i)=>{
+    html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+      +'<td style="padding:6px 8px;font-weight:600">'+p.nome+'</td>'
+      +'<td style="padding:6px 8px;text-align:center;color:#64748b">'+(p.componentes||[]).length+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#0e7490">'+fmtMoeda(custo)+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+
 // ── Painel ───────────────────────────────────────────────────────
 function renderManPainel(){
   // Helper: calcular status de prazo
@@ -12573,6 +12783,11 @@ function iniciarListeners(){
   onSnapshot(collection(db,'fin_custos'),snap=>{
     custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
     if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
+  });
+  // Engenharia
+  onSnapshot(collection(db,'eng_produtos'),snap=>{
+    engProdutos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    if(currentUserData&&currentSetor==='engenharia')reloadTab();
   });
   // Manutenção
   onSnapshot(collection(db,'manut_maquinas'),snap=>{
