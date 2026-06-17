@@ -1094,19 +1094,23 @@ function renderRelatorioBonusMensal(){
     const [ano,m]=mes.split('-');
     const mesNome=MESES[parseInt(m)-1]+' '+ano;
     const totalBonus=bonus.reduce((s,b)=>s+b.totalBonus,0);
+    const mesEmCurso=mes===today().slice(0,7);
     html+='<div class="card" style="margin-bottom:10px;border-left:4px solid #fde047">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-      +'<div style="font-size:13px;font-weight:700;color:#92400e">🌟 '+mesNome+'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#92400e">🌟 '+mesNome+(mesEmCurso?' <span style="font-size:10px;font-weight:600;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:99px">em andamento</span>':'')+'</div>'
       +'<div style="font-size:16px;font-weight:800;color:#92400e">'+fmtMoeda(totalBonus)+'</div>'
       +'</div>'
+      +(mesEmCurso?'<div style="font-size:11px;color:#92400e;background:#fef9c3;border-radius:8px;padding:8px 10px;margin-bottom:8px">⏳ Mês ainda em andamento — os valores podem aumentar até o fechamento. O pagamento só fica disponível após o mês terminar.</div>':'')
       +bonus.map(function(b){
         const pago=bonusPagos[b.enroladorId+'-'+b.anoMes];
-        const btnPagar=['admin','financeiro'].includes(currentUserData?.perfil)&&!pago
+        const btnPagar=['admin','financeiro'].includes(currentUserData?.perfil)&&!pago&&!mesEmCurso
           ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(&quot;'+b.enroladorId+'&quot;,&quot;'+b.anoMes+'&quot;)">Marcar pago</button>'
           :'';
         const badge=pago
           ?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>'
-          :'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:99px;font-weight:700">Pendente</span>';
+          :mesEmCurso
+            ?'<span style="font-size:10px;background:#e0e7ff;color:#4338ca;padding:3px 10px;border-radius:99px;font-weight:700">Em andamento</span>'
+            :'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:99px;font-weight:700">Pendente</span>';
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #fef9c3">'
           +'<div><div style="font-size:13px;font-weight:600">'+b.enrNome+'</div>'
           +'<div style="font-size:11px;color:#b45309">'+b.totalVSofia+' V.Sofia · bônus: '+fmtMoeda(b.totalBonus)+'</div></div>'
@@ -10490,6 +10494,7 @@ function finPagamentosTodos(){
     }),
   ])];
   mesesComBonus.forEach(anoMes=>{
+    if(anoMes===today().slice(0,7)) return; // mês em andamento — ainda não fecha bônus
     const bonusDoMes=getBonusDoMes(anoMes);
     bonusDoMes.forEach(b=>{
       const chave=b.enroladorId+'-'+anoMes;
