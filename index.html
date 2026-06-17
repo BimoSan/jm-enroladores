@@ -1229,6 +1229,35 @@ function renderPainelEnrolador(){
       :'<div style="font-size:20px;font-weight:700;opacity:.7">Sem ficha aberta</div>')
     +'</div>';
 
+  // Bônus por volume — visão do próprio enrolador
+  if(configBonus.ativo){
+    const mesAtual=today().slice(0,7);
+    const totalVSofiaMes=calcVSofiaNoMes(enr.id, mesAtual);
+    const meta=configBonus.meta;
+    const bateu=totalVSofiaMes>=meta;
+    const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const mesNomeBonus=MESES_PT[parseInt(mesAtual.slice(5,7))-1];
+    if(bateu){
+      const bonusEstimativa=parseFloat((totalVSofiaMes*configBonus.valorBonus).toFixed(2));
+      html+='<div style="background:linear-gradient(135deg,#f59e0b,#fbbf24);border-radius:16px;padding:16px;margin-bottom:16px;color:#fff;text-align:center">'
+        +'<div style="font-size:28px;margin-bottom:4px">🌟</div>'
+        +'<div style="font-size:14px;font-weight:800">Parabéns! Você bateu a meta de '+mesNomeBonus+'!</div>'
+        +'<div style="font-size:12px;opacity:.9;margin-top:2px">'+totalVSofiaMes+' Varanda Sofia produzidas (meta: '+meta+')</div>'
+        +'<div style="font-size:22px;font-weight:900;margin-top:8px">'+fmtMoeda(bonusEstimativa)+' de bônus</div>'
+        +'<div style="font-size:10px;opacity:.8;margin-top:6px">⏳ Valor pode aumentar até o fim do mês · pagamento liberado após o fechamento</div>'
+        +'</div>';
+    } else if(totalVSofiaMes>0){
+      const faltam=meta-totalVSofiaMes;
+      const pct=Math.min(100,Math.round(totalVSofiaMes/meta*100));
+      html+='<div class="card" style="margin-bottom:16px">'
+        +'<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:6px">🌟 Bônus por volume — '+mesNomeBonus+'</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-bottom:8px">'+totalVSofiaMes+' de '+meta+' Varanda Sofia · faltam <strong>'+faltam+'</strong> para o bônus</div>'
+        +'<div style="height:8px;background:#fef3c7;border-radius:99px">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:99px"></div>'
+        +'</div></div>';
+    }
+  }
+
   // Cards de resumo
   if(fichaAberta){
     // Bloco de sinalização ativa
