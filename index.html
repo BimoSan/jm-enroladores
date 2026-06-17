@@ -298,7 +298,6 @@ const PERFIS={
   // Globais
   admin:            {label:'Administrador',       color:'#3266ad',bg:'#e8f0fb', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null},
   proprietario:     {label:'Proprietário',         color:'#534AB7',bg:'#eeecfb', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null},
-  administracao:    {label:'Administração',        color:'#0e7490',bg:'#cffafe', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null},
   financeiro:       {label:'Financeiro',           color:'#D4537E',bg:'#fce8ef', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null},
   escritorio:       {label:'Escritório',           color:'#0891b2',bg:'#e0f7fa', fabricas:['cadeiras','estofados','metalurgica','almoxarifado','caminhoes'], setor:null},
   // Fábrica de Cadeiras — Geral
@@ -348,7 +347,6 @@ let pontoRegistros=[];    // registros de ponto
 let almItens=[];
 // Espuma
 let espumaProducao=[];
-let espumaSaidas=[];
 let espumaEstoque=[];
 let espumaOperadores=[];
 // Custos Indiretos
@@ -418,8 +416,8 @@ function can(p){
   if(!currentUserData)return false;
   const perfil=currentUserData.perfil;
   const rules={
-    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao'],
-    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','mecanico','administracao'],
+    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico'],
+    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','mecanico'],
     verFichasEntregador: ['entregador'],
     verFichasEnrolador:  ['enrolador'],
     registrar:       ['admin','apontador1','apontador2'],
@@ -427,11 +425,11 @@ function can(p){
     marcarPago:      ['admin','financeiro'],
     cadastrarEnrolador:  ['admin'],
     gerenciarUsuarios:   ['admin'],
-    verRelatorio:    ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','mecanico','administracao'],
-    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao'],
+    verRelatorio:    ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','mecanico'],
+    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico'],
     verValores:      ['admin','proprietario','financeiro'],
     editar:          ['admin'],
-    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral','mecanico','administracao'],
+    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral','mecanico'],
     sinalizarProntos:['enrolador'],
   };
   return(rules[p]||[]).includes(perfil);
@@ -620,10 +618,10 @@ function renderSelecionarFabrica(){
     {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
     {id:'manutencao',   nome:'Manutenção',             icon:'🔧', cor:'#374151', bg:'linear-gradient(135deg,#374151,#6b7280)', desc:'Máquinas, manutenções e status'},
   ].filter(f=>{
-    if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1','mecanico','administracao'].includes(currentUserData?.perfil);
-    if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
+    if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1','mecanico'].includes(currentUserData?.perfil);
+    if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio'].includes(currentUserData?.perfil);
     if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
-    if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico','encarregado_cad','encarregado_est','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
+    if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico','encarregado_cad','encarregado_est','financeiro','escritorio'].includes(currentUserData?.perfil);
     return fabricasDisponiveis.includes(f.id);
   });
 
@@ -812,7 +810,6 @@ function renderApp(){
     const pg=currentUserData?.perfil;
     if(['admin','proprietario','encarregado_est','encarregado_esp'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_relatorio','esp_config');
     else if(pg==='operador_esp') tabs.push('esp_painel','esp_fichas');
-    else if(pg==='administracao') tabs.push('esp_painel','esp_apontar');
     else tabs.push('esp_painel');
     if(!currentTab||!currentTab.startsWith('esp_')) currentTab='esp_painel';
   } else if(currentSetor==='grades'){
@@ -5654,15 +5651,6 @@ function blocosDisponiveisFormula(formulaId){
   }));
 }
 
-// Estoque de blocos PRONTOS (produzidos - saídas/coletas), por fórmula
-function blocosProntosEstoque(formulaId){
-  const produzidos=espumaProducao.filter(p=>(p.formulaId||configEspuma.formulaAtiva)===formulaId)
-    .reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
-  const saidas=espumaSaidas.filter(s=>(s.formulaId||configEspuma.formulaAtiva)===formulaId)
-    .reduce((s,sd)=>s+(parseInt(sd.blocos)||0),0);
-  return Math.max(0,produzidos-saidas);
-}
-
 function getQuinzenaEsp(data){
   const d=data||today();
   const dia=parseInt(d.slice(8,10));
@@ -5743,21 +5731,6 @@ function renderEspPainel(){
   }
   html+='</div>';
 
-  // ── Blocos prontos em estoque ────────────────────────────────────
-  if(formulas.length){
-    html+='<div style="background:linear-gradient(135deg,#6d28d9,#a78bfa);border-radius:16px;padding:16px;margin-bottom:14px;color:#fff">'
-      +'<div style="font-size:12px;font-weight:700;opacity:.85;margin-bottom:8px">⬜ Blocos prontos em estoque</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px">';
-    formulas.forEach(f=>{
-      const prontos=blocosProntosEstoque(f.id);
-      html+='<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center">'
-        +'<div style="font-size:28px;font-weight:900">'+prontos+'</div>'
-        +'<div style="font-size:10px;opacity:.85">'+f.label+'</div>'
-        +'</div>';
-    });
-    html+='</div></div>';
-  }
-
   // ── Alerta MPs críticas ────────────────────────────────────────
   const criticos=(configEspuma.materiasPrimas||[]).filter(mpConf=>{
     const est=estoqueAtualMp(mpConf.id);
@@ -5830,9 +5803,6 @@ function renderEspPainel(){
 function renderEspApontar(){
   const hoje=today();
   const formulas=configEspuma.formulas||[];
-  const perfil=currentUserData?.perfil;
-  const podeProduzir=perfil!=='administracao';
-  const podeRegistrarSaida=['admin','proprietario','encarregado_est','encarregado_esp','operador_esp','administracao'].includes(perfil);
 
   // Operador padrão: Diego ou primeiro ativo
   if(!window._espOpSel){
@@ -5848,117 +5818,43 @@ function renderEspApontar(){
     return html;
   }
 
-  html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">'+(podeProduzir?'Selecione o bloco:':'Estoque de blocos prontos:')+'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
+  html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Selecione o bloco:</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px">';
   formulas.forEach(f=>{
     const isAtiva=f.id===configEspuma.formulaAtiva;
     const poss=blocosDisponiveisFormula(f.id);
-    const prontos=blocosProntosEstoque(f.id);
-    html+='<div style="background:'+(isAtiva?'#1d4ed8':'#fff')+';border:2px solid '+(isAtiva?'#1d4ed8':'#e2e8f0')+';border-radius:14px;padding:16px;text-align:center;'+(podeProduzir?'cursor:pointer':'')+'"'+(podeProduzir?' onclick="window._espAbrirFormulaProd(\''+f.id+'\')"':'')+'>'
+    html+='<div onclick="window._espAbrirFormulaProd(\''+f.id+'\')" style="background:'+(isAtiva?'#1d4ed8':'#fff')+';border:2px solid '+(isAtiva?'#1d4ed8':'#e2e8f0')+';border-radius:14px;padding:16px;text-align:center;cursor:pointer">'
       +'<div style="font-size:28px;margin-bottom:6px">⬜</div>'
       +'<div style="font-size:14px;font-weight:800;color:'+(isAtiva?'#fff':'#1e293b')+'">'+f.label+'</div>'
       +(f.dims?'<div style="font-size:10px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">'+f.dims.l+'×'+f.dims.a+'×'+f.dims.c+'m</div>':'')
       +'<div style="font-size:12px;font-weight:700;color:'+(isAtiva?'rgba(255,255,255,.9)':'#059669')+';margin-top:4px">'+fmtMoeda(f.valorBloco||0)+'/bloco</div>'
       +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid '+(isAtiva?'rgba(255,255,255,.2)':'#f1f5f9')+'">'
-      +'<div style="display:flex;justify-content:center;gap:14px">'
-      +'<div><div style="font-size:20px;font-weight:900;color:'+(isAtiva?'#fff':(poss<5?'#dc2626':'#1e293b'))+'">'+poss+'</div>'
-      +'<div style="font-size:9px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">possíveis</div></div>'
-      +'<div><div style="font-size:20px;font-weight:900;color:'+(isAtiva?'#fff':'#7c3aed')+'">'+prontos+'</div>'
-      +'<div style="font-size:9px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">prontos</div></div>'
-      +'</div>'
-      +(podeRegistrarSaida?'<button onclick="event.stopPropagation();window._espAbrirSaida(\''+f.id+'\')" style="margin-top:8px;width:100%;padding:7px;border-radius:8px;border:none;background:'+(isAtiva?'rgba(255,255,255,.2)':'#fef2f2')+';color:'+(isAtiva?'#fff':'#dc2626')+';font-size:11px;font-weight:700;cursor:pointer">📤 Registrar saída</button>':'')
+      +'<div style="font-size:20px;font-weight:900;color:'+(isAtiva?'#fff':(poss<5?'#dc2626':'#1e293b'))+'">'+poss+'</div>'
+      +'<div style="font-size:9px;color:'+(isAtiva?'rgba(255,255,255,.7)':'#94a3b8')+'">possíveis agora</div>'
       +'</div>'
       +'</div>';
   });
   html+='</div>';
 
-  // Histórico do dia — produção
-  if(podeProduzir){
-    const prodHoje=espumaProducao.filter(p=>p.data===hoje);
-    if(prodHoje.length){
-      html+='<div class="card" style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📦 Produção de hoje</div>';
-      prodHoje.forEach((p,i)=>{
-        const op=espumaOperadores.find(o=>o.id===p.operadorId);
-        const f=formulas.find(x=>x.id===p.formulaId);
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-          +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+(f?.label||'Bloco')+' · '+p.blocos+'un</div>'
-          +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+'</div></div>'
-          +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(p.blocos*(p.valorBloco||f?.valorBloco||VALOR_BLOCO))+'</span>'
-          +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._espExcluirProd(\''+p.id+'\')">✕</button>'
-          +'</div></div>';
-      });
-      html+='</div>';
-    }
-  }
-
-  // Histórico do dia — saídas
-  const saidasHoje=espumaSaidas.filter(s=>s.data===hoje);
-  if(saidasHoje.length){
-    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📤 Saídas de hoje</div>';
-    saidasHoje.forEach((s,i)=>{
-      const f=formulas.find(x=>x.id===s.formulaId);
+  // Histórico do dia
+  const prodHoje=espumaProducao.filter(p=>p.data===hoje);
+  if(prodHoje.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Lançamentos de hoje</div>';
+    prodHoje.forEach((p,i)=>{
+      const op=espumaOperadores.find(o=>o.id===p.operadorId);
+      const f=formulas.find(x=>x.id===p.formulaId);
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-        +'<div><div style="font-size:12px;font-weight:600">'+(f?.label||'Bloco')+' · '+s.blocos+'un</div>'
-        +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(s.data)+(s.registradoPor?' · '+s.registradoPor:'')+'</div></div>'
-        +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._espExcluirSaida(\''+s.id+'\')">✕</button>'
-        +'</div>';
+        +'<div><div style="font-size:12px;font-weight:600">'+(op?.nome||'—')+' · '+(f?.label||'Bloco')+' · '+p.blocos+'un</div>'
+        +'<div style="font-size:10px;color:#94a3b8">'+fmtDate(p.data)+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(p.blocos*(p.valorBloco||f?.valorBloco||VALOR_BLOCO))+'</span>'
+        +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._espExcluirProd(\''+p.id+'\')">✕</button>'
+        +'</div></div>';
     });
     html+='</div>';
   }
   return html;
 }
-
-window._espAbrirSaida=function(formulaId){
-  const f=(configEspuma.formulas||[]).find(x=>x.id===formulaId);
-  if(!f) return;
-  const prontos=blocosProntosEstoque(formulaId);
-  showModal('📤 Saída — '+f.label,
-    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">Estoque pronto atual: <strong>'+prontos+' blocos</strong></div>'
-    +'<div class="form-group"><label>Quantidade de blocos</label>'
-    +'<div style="display:flex;align-items:center;gap:8px">'
-    +'<button onclick="window._espSaidaDec()" style="width:40px;height:40px;min-width:40px;border-radius:50%;background:#e2e8f0;border:none;font-size:20px;cursor:pointer">−</button>'
-    +'<input type="number" id="esp-saida-blocos" min="1" placeholder="0" onfocus="this.select()" style="flex:1;min-width:0;text-align:center;font-size:24px;font-weight:900;border:2px solid #e2e8f0;border-radius:10px;padding:8px 4px">'
-    +'<button onclick="window._espSaidaInc()" style="width:40px;height:40px;min-width:40px;border-radius:50%;background:#dc2626;border:none;font-size:20px;cursor:pointer;color:#fff">+</button>'
-    +'</div></div>'
-    +'<div class="form-group"><label>Data</label>'
-    +'<input type="date" id="esp-saida-data" value="'+today()+'" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
-    +'<button class="btn btn-sm btn-danger" onclick="window._espSalvarSaida(\''+formulaId+'\')">✓ Registrar saída</button>');
-};
-window._espSaidaInc=function(){
-  const el=document.getElementById('esp-saida-blocos');
-  if(el) el.value=Math.max(1,(parseInt(el.value)||0)+1);
-};
-window._espSaidaDec=function(){
-  const el=document.getElementById('esp-saida-blocos');
-  if(el) el.value=Math.max(1,(parseInt(el.value)||0)-1);
-};
-window._espSalvarSaida=async function(formulaId){
-  const blocos=parseInt(document.getElementById('esp-saida-blocos')?.value)||0;
-  const data=document.getElementById('esp-saida-data')?.value;
-  if(!blocos){showToast('Informe a quantidade de blocos.');return;}
-  const prontos=blocosProntosEstoque(formulaId);
-  if(blocos>prontos){
-    showToast('Estoque insuficiente! Disponível: '+prontos+' blocos prontos.');
-    return;
-  }
-  closeModal();
-  await addDoc(collection(db,'esp_saidas'),{formulaId,blocos,data,registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()});
-  showToast('Saída registrada!');
-};
-window._espExcluirSaida=function(id){
-  window._pendingEspSaida=id;
-  showModal('Excluir saída','<div style="font-size:13px">Deseja excluir este registro de saída?</div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
-    +'<button class="btn btn-sm btn-danger" onclick="window._espConfirmarExcluirSaida()">Excluir</button>');
-};
-window._espConfirmarExcluirSaida=async function(){
-  const id=window._pendingEspSaida; if(!id) return;
-  closeModal();
-  await deleteDoc(doc(db,'esp_saidas',id));
-  showToast('Saída excluída!');
-};
 
 window._espAbrirFormulaProd=function(formulaId){
   const f=(configEspuma.formulas||[]).find(x=>x.id===formulaId);
@@ -6044,15 +5940,13 @@ function renderEspFichas(){
   // Agrupar por operador e quinzena
   const grupos={};
   espumaProducao.filter(p=>{
-    if(filtro==='abertas') return p.status==='aberta';
+    if(filtro==='abertas') return p.status==='aberta'&&p.quinzena===q;
     return p.status==='fechada';
   }).forEach(p=>{
     const key=p.operadorId+'_'+p.quinzena;
     if(!grupos[key]) grupos[key]={opId:p.operadorId,quinzena:p.quinzena,blocos:0,ganho:0,prods:[]};
-    const fVal=(configEspuma.formulas||[]).find(x=>x.id===(p.formulaId||configEspuma.formulaAtiva))?.valorBloco;
-    const valorUnit=p.valorBloco||fVal||VALOR_BLOCO;
     grupos[key].blocos+=parseInt(p.blocos)||0;
-    grupos[key].ganho+=(parseInt(p.blocos)||0)*valorUnit;
+    grupos[key].ganho+=(parseInt(p.blocos)||0)*VALOR_BLOCO;
     grupos[key].prods.push(p);
   });
 
@@ -6075,14 +5969,10 @@ function renderEspFichas(){
       +(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._espFecharFicha(\''+g.opId+'\',\''+g.quinzena+'\')">Fechar</button>':'')
       +'</div></div>'
       +'<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">'
-      +g.prods.sort((a,b)=>b.data>a.data?1:-1).map(p=>{
-        const fVal=(configEspuma.formulas||[]).find(x=>x.id===(p.formulaId||configEspuma.formulaAtiva))?.valorBloco;
-        const valorUnit=p.valorBloco||fVal||VALOR_BLOCO;
-        return '<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
+      +g.prods.sort((a,b)=>b.data>a.data?1:-1).map(p=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
         +'<span>'+fmtDate(p.data)+' · '+p.blocos+' bloco'+(p.blocos>1?'s':'')+'</span>'
-        +'<span style="color:#059669;font-weight:700">'+fmtMoeda(p.blocos*valorUnit)+'</span>'
-        +'</div>';
-      }).join('')
+        +'<span style="color:#059669;font-weight:700">'+fmtMoeda(p.blocos*VALOR_BLOCO)+'</span>'
+        +'</div>').join('')
       +'</div></div>';
   });
 
@@ -12485,10 +12375,6 @@ function iniciarListeners(){
   // Espuma
   onSnapshot(collection(db,'esp_producao'),snap=>{
     espumaProducao=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
-    if(currentUserData&&currentSetor==='espuma')reloadTab();
-  });
-  onSnapshot(collection(db,'esp_saidas'),snap=>{
-    espumaSaidas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
     if(currentUserData&&currentSetor==='espuma')reloadTab();
   });
   onSnapshot(collection(db,'esp_estoque'),snap=>{
