@@ -9613,7 +9613,7 @@ function renderManMaquinas(){
         +'<div style="font-size:11px;color:#64748b">'+regs.length+' manut.</div>'
         +(podeEditar?'<button class="btn btn-sm btn-warn" style="font-size:11px" onclick="window._manEditarQuadro(\''+q.id+'\')">Editar</button>'
           +'<button class="btn btn-sm btn-danger" style="font-size:11px;margin-top:2px" onclick="window._manExcluirQuadro(\''+q.id+'\')">Excluir</button>':'')
-        +'<button class="btn btn-sm" style="font-size:11px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e" onclick="window._manRegistrarQuadro(\''+q.id+'\')">+ Manut.</button>'
+        +(podeEditar?'<button class="btn btn-sm" style="font-size:11px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e" onclick="window._manRegistrarQuadro(\''+q.id+'\')">+ Manut.</button>':'')
         +'</div></div></div>';
     });
   }
@@ -9900,6 +9900,23 @@ window._manConfirmarParada=async function(id){
 window._manAbrirMaquina=function(id){
   const m=manutMaquinas.find(x=>x.id===id);
   if(!m) return;
+  const podeEditar=['admin','proprietario','mecanico'].includes(currentUserData?.perfil);
+
+  if(!podeEditar){
+    // Somente visualização — mostra detalhes sem opções de ação
+    const desde=m.paradaDesde?new Date(m.paradaDesde):null;
+    const diff=desde?new Date()-desde:0;
+    const h=Math.floor(diff/3600000);
+    const d=Math.floor(h/24);
+    const tempo=d>0?d+'d '+(h%24)+'h':h+'h';
+    showModal((m.parada?'🔴 ':'✅ ')+m.nome,
+      '<div style="font-size:13px;color:#475569">'
+      +(m.parada?'<div style="color:#dc2626;font-weight:700;margin-bottom:6px">Parada'+(tempo?' há '+tempo:'')+'</div>'+(m.paradaMotivo?'<div style="color:#dc2626;margin-bottom:6px">Motivo: '+m.paradaMotivo+'</div>':''):'<div style="color:#059669;font-weight:700;margin-bottom:6px">Operando normalmente</div>')
+      +'<div style="font-size:11px;color:#94a3b8;margin-top:8px">Apenas administrador e mecânico podem registrar ações nesta máquina.</div>'
+      +'</div>',
+      '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+    return;
+  }
 
   if(m.parada){
     // Máquina parada — pergunta se fez corretiva
@@ -10021,6 +10038,7 @@ window._manSalvarQuadro=async function(id){
   showToast('Quadro salvo!');
 };
 window._manRegistrarQuadro=function(quadroId){
+  if(!['admin','proprietario','mecanico'].includes(currentUserData?.perfil)){showToast('Sem permissão.');return;}
   showModal('⚡ Manutenção do quadro',
     '<div class="form-group"><label>O que foi feito (opcional)</label>'
     +'<textarea id="mc-desc" rows="2" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;resize:none"></textarea></div>'
