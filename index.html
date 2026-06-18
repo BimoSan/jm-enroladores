@@ -199,6 +199,7 @@
 <div id="toast" class="toast"></div>
 <div id="root"></div>
 <div id="modal-root"></div>
+<div id="notif-root" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;width:min(480px,90vw);display:flex;flex-direction:column;gap:8px;pointer-events:none"></div>
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -356,6 +357,8 @@ let custosIndiretos=[];
 // Engenharia
 let engProdutos=[];
 let engMaterias=[];
+// Notificações de pagamento
+let notifPagamentos=[];
 let configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0};
 // Manutenção
 let manutMaquinas=[];
@@ -2933,29 +2936,87 @@ window._confirmarPago=(id,setorKey)=>{
     nome=espumaOperadores.find(o=>o.id===fObj?.opId)?.nome||'';
   }
   showModal('Confirmar pagamento',
-    `<div style="font-size:13px;color:#444;line-height:1.6">Confirma o pagamento da ficha de <strong>${nome}</strong>?</div>`,
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-primary" onclick="window._confirmarPagoAction()">Confirmar</button>`);
+    `<div style="font-size:13px;color:#444;line-height:1.6;margin-bottom:14px">Como o pagamento de <strong>${nome}</strong> foi realizado?</div>
+     <div style="display:flex;flex-direction:column;gap:10px">
+       <button onclick="window._confirmarPagoAction('pix')" style="padding:16px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;text-align:left">
+         📱 Pix
+       </button>
+       <button onclick="window._confirmarPagoAction('dinheiro')" style="padding:16px;border-radius:12px;background:#dcfce7;border:2px solid #86efac;font-size:15px;font-weight:700;color:#15803d;cursor:pointer;text-align:left">
+         💵 Dinheiro
+       </button>
+     </div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>`);
 };
-window._confirmarPagoAction=async()=>{
+window._confirmarPagoAction=async(formaPagamento)=>{
   const id=window._pendingPagoId;if(!id)return;
   const setorKey=window._pendingPagoSetorKey||'enrolamento_terc';
   closeModal();
+
+  // Dados do operador pra notificação
+  let operadorUid='', operadorNome='';
   if(setorKey==='enrolamento_terc'){
-    await updateDoc(doc(db,'fichas',id),{pago:true,dataPagamento:today()});
+    const enr=getEnr(getFicha(id)?.enroladorId);
+    operadorUid=enr?.usuarioUid||''; operadorNome=enr?.nome||'';
+    await updateDoc(doc(db,'fichas',id),{pago:true,dataPagamento:today(),formaPagamento});
   } else if(setorKey==='metalurgica'){
-    await updateDoc(doc(db,'fichas_metal',id),{pago:true,dataPagamento:today()});
+    const f=fichasMetal.find(x=>x.id===id);
+    const sol=soldadores.find(s=>s.id===f?.soldadorId);
+    operadorUid=sol?.usuarioUid||''; operadorNome=sol?.nome||'';
+    await updateDoc(doc(db,'fichas_metal',id),{pago:true,dataPagamento:today(),formaPagamento});
   } else if(setorKey==='grades'){
-    await updateDoc(doc(db,'fichas_grad',id),{pago:true,dataPagamento:today()});
+    const f=fichasGrad.find(x=>x.id===id);
+    const grad=gradistas?.find?.(g=>g.id===f?.gradId);
+    operadorUid=grad?.usuarioUid||''; operadorNome=grad?.nome||'';
+    await updateDoc(doc(db,'fichas_grad',id),{pago:true,dataPagamento:today(),formaPagamento});
   } else if(setorKey==='enrolamento_int'){
-    await updateDoc(doc(db,'fichas_int',id),{pago:true,dataPagamento:today()});
+    const f=fichasInt.find(x=>x.id===id);
+    const enr=enroladoresInt.find(e=>e.id===f?.enroladorId);
+    operadorUid=enr?.usuarioUid||''; operadorNome=enr?.nome||'';
+    await updateDoc(doc(db,'fichas_int',id),{pago:true,dataPagamento:today(),formaPagamento});
   } else if(setorKey==='espuma'){
     const fObj=finPagamentosTodos().find(p=>p.id===id)?.fichaObj;
+    const op=espumaOperadores.find(o=>o.id===fObj?.opId);
+    operadorUid=op?.usuarioUid||''; operadorNome=op?.nome||'';
     const ids=fObj?.ids||[];
     for(const prodId of ids){
-      await updateDoc(doc(db,'esp_producao',prodId),{pago:true,dataPagamento:today()});
+      await updateDoc(doc(db,'esp_producao',prodId),{pago:true,dataPagamento:today(),formaPagamento});
     }
   }
+
+  // Salva notificação para o operador (só se tiver uid vinculado)
+  if(operadorUid){
+    await addDoc(collection(db,'notif_pagamento'),{
+      uid:operadorUid,
+      nome:operadorNome,
+      formaPagamento,
+      dataRef:today(),
+      lida:false,
+      paraApontador:false,
+      criadoEm:new Date().toISOString(),
+    });
+  }
+
+  // Salva notificação para os apontadores do setor
+  const perfisApontador={
+    'enrolamento_terc': ['apontador1','apontador2'],
+    'metalurgica':      ['apontador_metal'],
+    'grades':           ['apontador_gra'],
+    'enrolamento_int':  ['apontador_int'],
+    'espuma':           ['encarregado_esp','apontador_esp'],
+  }[setorKey]||[];
+  const apontadoresSetor=usuarios.filter(u=>perfisApontador.includes(u.perfil)&&u.uid);
+  for(const apont of apontadoresSetor){
+    await addDoc(collection(db,'notif_pagamento'),{
+      uid:apont.uid,
+      nome:operadorNome,
+      formaPagamento,
+      dataRef:today(),
+      lida:false,
+      paraApontador:true,
+      criadoEm:new Date().toISOString(),
+    });
+  }
+
   window._pendingPagoId=null;
   window._pendingPagoSetorKey=null;
   showToast('Pagamento registrado!');
@@ -13319,6 +13380,50 @@ function pendentes_tipo(f,tipoId){
 }
 
 // ── Firebase listeners em tempo real ────────────────────────────
+// ── Notificações de pagamento ────────────────────────────────────
+function renderNotifPagamento(){
+  const root=document.getElementById('notif-root');
+  if(!root) return;
+  const uid=currentUser?.uid||'';
+  if(!uid){ root.innerHTML=''; return; }
+  const minhas=notifPagamentos.filter(n=>n.uid===uid&&!n.lida);
+  root.innerHTML=minhas.map(n=>{
+    const isPix=n.formaPagamento==='pix';
+    const bg=isPix?'#dbeafe':'#dcfce7';
+    const border=isPix?'#93c5fd':'#86efac';
+    const cor=isPix?'#1d4ed8':'#15803d';
+    const icon=isPix?'📱':'💵';
+
+    let titulo, subtitulo;
+    if(n.paraApontador){
+      titulo='Pagamento confirmado — '+n.nome;
+      subtitulo=isPix
+        ?'O pagamento foi realizado via Pix.'
+        :'O pagamento foi feito em dinheiro. <strong>Avise o operador para comparecer ao escritório.</strong>';
+    } else {
+      titulo=isPix?'Seu pagamento foi realizado via Pix!':'Seu pagamento foi realizado em dinheiro!';
+      subtitulo=isPix
+        ?'O valor já foi transferido para sua chave Pix.'
+        :'<strong>Compareça ao escritório para retirar o seu dinheiro.</strong>';
+    }
+
+    return `<div style="background:${bg};border:2px solid ${border};border-radius:14px;padding:14px 16px;pointer-events:all;box-shadow:0 4px 20px rgba(0,0,0,.12);position:relative">
+      <button onclick="window._dispensarNotif('${n.id}')" style="position:absolute;top:8px;right:10px;border:none;background:none;font-size:18px;color:${cor};cursor:pointer;line-height:1;opacity:.7">✕</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:28px">${icon}</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:${cor}">${titulo}</div>
+          <div style="font-size:12px;color:${cor};opacity:.85;margin-top:2px">${subtitulo}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window._dispensarNotif=async function(id){
+  await updateDoc(doc(db,'notif_pagamento',id),{lida:true});
+};
+
 function iniciarListeners(){
   if(unsubEnroladores)unsubEnroladores();
   if(unsubFichas)unsubFichas();
@@ -13449,6 +13554,11 @@ function iniciarListeners(){
     if(snap.exists()) configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0,...snap.data()};
     if(currentUserData&&currentSetor==='engenharia')reloadTab();
   });
+  // Notificações de pagamento
+  onSnapshot(collection(db,'notif_pagamento'),snap=>{
+    notifPagamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderNotifPagamento();
+  });
   // Manutenção
   onSnapshot(collection(db,'manut_maquinas'),snap=>{
     manutMaquinas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
@@ -13554,6 +13664,7 @@ onAuthStateChanged(auth,async user=>{
         const gradSemUid=gradistas.find(g=>!g.usuarioUid&&g.nome?.toLowerCase()===currentUserData.nome?.toLowerCase());
         if(gradSemUid) updateDoc(doc(db,'gradistas',gradSemUid.id),{usuarioUid:user.uid});
       }
+      renderNotifPagamento();
     }else{
       // Primeiro acesso do admin: cria registro automaticamente
       currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
