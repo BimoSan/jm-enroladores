@@ -571,6 +571,8 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   'grad_fichas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   'grad_ranking':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  'grad_minha_ficha':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  'grad_meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'grad_gradistas':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
@@ -608,6 +610,7 @@ const TAB_LABELS={
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
+  'grad_minha_ficha':'Minha Ficha','grad_meu_desempenho':'Meu Desempenho',
   'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_relatorio':'Relatórios','esp_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
@@ -840,7 +843,7 @@ function renderApp(){
     const pg=currentUserData?.perfil;
     if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking','grad_gradistas','grad_config');
     else if(pg==='apontador_gra') tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking');
-    else if(pg==='gradista') tabs.push('grad_painel','grad_ranking');
+    else if(pg==='gradista') tabs.push('grad_minha_ficha','grad_meu_desempenho','grad_ranking');
     else tabs.push('grad_painel','grad_ranking');
     if(!currentTab||!currentTab.startsWith('grad_')) currentTab='grad_painel';
   } else if(currentSetor==='enrolamento_int'){
@@ -6954,6 +6957,8 @@ function renderTabGrades(tab){
     if(tab==='grad_apontar')   return renderGradApontar();
     if(tab==='grad_fichas')    return renderGradFichas();
     if(tab==='grad_ranking')   return renderGradRanking();
+    if(tab==='grad_minha_ficha')    return renderGradMinhaFicha();
+    if(tab==='grad_meu_desempenho') return renderGradMeuDesempenho();
     if(tab==='grad_gradistas') return renderGradGradistas();
     if(tab==='grad_config')    return renderGradConfig();
     return renderGradPainel();
@@ -7282,6 +7287,184 @@ function renderGradFichas(){
   });
 
   if(!html.includes('card')) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma ficha encontrada.</div>';
+  return html;
+}
+
+// ── Telas pessoais do Gradista ───────────────────────────────────
+function getGradistaProprio(){
+  const uid=currentUser?.uid||'';
+  const nome=currentUserData?.nome||'';
+  return gradistas.find(g=>g.usuarioUid===uid) ||
+         gradistas.find(g=>g.nome?.toLowerCase()===nome.toLowerCase());
+}
+
+function renderGradMinhaFicha(){
+  const grad=getGradistaProprio();
+  if(!grad) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum gradista. Peça ao encarregado para verificar seu cadastro.</div></div>';
+
+  const c=avatarColor(gradistas.findIndex(g=>g.id===grad.id));
+  const q=getQuinzenaAtualGrad();
+  const ficha=fichasGrad.find(f=>f.gradId===grad.id&&f.quinzena===q);
+  const aponts=ficha?.apontamentos||[];
+  const ganhoQ=calcGanhoGrad(aponts);
+  const totalQ=totalPecasGrad(aponts);
+  const status=ficha?.status||'aberta';
+  const pago=ficha?.pago||false;
+
+  const badgeStatus=status==='fechada'
+    ?(pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>'
+        :'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:99px;font-weight:700">Aguardando pagamento</span>')
+    :'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700">Em aberto</span>';
+
+  let html='<div style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
+    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na quinzena atual</div>'
+    +'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtR(ganhoQ)+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+quinzenaLabelGrad(q)+(totalQ?' · '+totalQ+' peças produzidas':'')+'</div>'
+    +'<div style="margin-top:10px">'+badgeStatus+'</div>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-bottom:12px;border-left:4px solid '+c+'">'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+    +'<div style="width:48px;height:48px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+initials(grad.nome)+'</div>'
+    +'<div>'
+    +'<div style="font-size:16px;font-weight:800">'+grad.nome+'</div>'
+    +'<div style="font-size:12px;color:#64748b">Gradista · '+quinzenaLabelGrad(q)+'</div>'
+    +'</div></div>';
+
+  // Histórico por dia na quinzena
+  const diasMap={};
+  const [qAno,qMes]=q.split('-');
+  aponts.forEach(a=>{
+    if(!a.data||getQuinzenaGrad(a.data)!==q) return;
+    if(!diasMap[a.data]) diasMap[a.data]={};
+    getPecasGradAtivas().forEach(p=>{
+      const v=parseInt((a.pecas||{})[p.id])||0;
+      if(v>0) diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+v;
+    });
+  });
+  const dias=Object.keys(diasMap).sort();
+
+  if(dias.length){
+    const linhas=dias.map((dia,i)=>{
+      const tots=diasMap[dia];
+      const tDia=Object.values(tots).reduce((s,v)=>s+v,0);
+      const gDia=getPecasGradAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorGrad(p.id),0);
+      const [,, dd]=dia.split('-');
+      const detalhe=getPecasGradAtivas().filter(p=>(tots[p.id]||0)>0).map(p=>{
+        const sl=p.label.replace('Grade Cabeceira ','Cab. ').replace('Grade Sofá ','Sofá ').replace('Grade Cama ','Cama ').replace('Grade Poltrona ','Poltrona ').replace('Grade Puf','Puf').replace('Encosto ','Enc. ').replace('Grade ','').replace(' — Normal',' N.').replace(' — Reforma',' R.').replace(' — Pedaço',' P.');
+        return '<span style="font-size:10px;color:#64748b">'+sl+': <strong>'+tots[p.id]+'</strong></span>';
+      }).join(' · ');
+      return '<tr style="'+(i%2?'background:#f8fafc':'')+';border-bottom:1px solid #f1f5f9">'
+        +'<td style="padding:7px 10px;font-size:12px;font-weight:600;white-space:nowrap">'+dd+'/'+qMes+'/'+qAno+'</td>'
+        +'<td style="padding:7px 10px;font-size:13px;font-weight:800;color:#1d4ed8;text-align:center">'+tDia+'</td>'
+        +'<td style="padding:7px 10px;font-size:12px;font-weight:700;color:'+(gDia>0?'#059669':'#94a3b8')+';text-align:right">'+(gDia>0?fmtR(gDia):'—')+'</td>'
+        +'<td style="padding:7px 10px;font-size:11px;color:#64748b">'+detalhe+'</td>'
+        +'</tr>';
+    }).join('');
+    html+='<div style="border-top:1px solid #e2e8f0;padding-top:10px;margin-top:4px">'
+      +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Produção por dia — '+quinzenaLabelGrad(q)+'</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:#f1f5f9">'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Data</th>'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center">Peças</th>'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:right">Ganho</th>'
+      +'<th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Detalhes</th>'
+      +'</tr></thead><tbody>'+linhas+'</tbody>'
+      +'<tfoot><tr style="background:#dbeafe;font-weight:800">'
+      +'<td style="padding:8px 10px;font-size:12px;color:#1d4ed8">Total quinzena</td>'
+      +'<td style="padding:8px 10px;font-size:14px;color:#1d4ed8;text-align:center">'+totalQ+'</td>'
+      +'<td style="padding:8px 10px;font-size:14px;color:#059669;text-align:right">'+fmtR(ganhoQ)+'</td>'
+      +'<td></td></tr></tfoot>'
+      +'</table></div></div>';
+  } else {
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhum apontamento nesta quinzena ainda.</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function renderGradMeuDesempenho(){
+  const grad=getGradistaProprio();
+  if(!grad) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum gradista.</div></div>';
+
+  const c=avatarColor(gradistas.findIndex(g=>g.id===grad.id));
+
+  // Agrupa produção e ganho por quinzena
+  const porQ={};
+  fichasGrad.filter(f=>f.gradId===grad.id).forEach(f=>{
+    const key=f.quinzena;
+    if(!key) return;
+    if(!porQ[key]) porQ[key]={pecas:0,ganho:0,status:f.status,pago:f.pago};
+    porQ[key].pecas+=totalPecasGrad(f.apontamentos||[]);
+    porQ[key].ganho+=calcGanhoGrad(f.apontamentos||[]);
+    if(f.status==='fechada') porQ[key].status='fechada';
+    if(f.pago) porQ[key].pago=true;
+  });
+
+  const quinzenas=Object.keys(porQ).sort().reverse();
+
+  let html='<div class="card" style="margin-bottom:14px;border-left:4px solid '+c+'">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+    +'<div style="width:44px;height:44px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">'+initials(grad.nome)+'</div>'
+    +'<div><div style="font-size:15px;font-weight:800">'+grad.nome+'</div>'
+    +'<div style="font-size:11px;color:#64748b">Histórico de quinzenas</div></div>'
+    +'</div>';
+
+  if(!quinzenas.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhuma produção registrada ainda.</div>';
+  } else {
+    const melhor=quinzenas.reduce((best,q)=>porQ[q].ganho>porQ[best].ganho?q:best,quinzenas[0]);
+    quinzenas.forEach((q)=>{
+      const {pecas,ganho,status,pago}=porQ[q];
+      const isMelhor=q===melhor;
+      const badge=status==='fechada'
+        ?(pago?'<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:700">✓ Pago</span>'
+            :'<span style="font-size:9px;background:#ede9fe;color:#4c1d95;padding:2px 7px;border-radius:99px;font-weight:700">Fechada</span>')
+        :'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:99px;font-weight:700">Aberta</span>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9">'
+        +'<div>'
+        +'<div style="font-size:12px;font-weight:700;color:#1e293b">'+quinzenaLabelGrad(q)+(isMelhor?' 🏆':'')+'</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-top:1px">'+pecas+' peças</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +badge
+        +'<div style="font-size:16px;font-weight:800;color:'+(ganho>0?'#059669':'#94a3b8')+'">'+fmtR(ganho)+'</div>'
+        +'</div></div>';
+    });
+  }
+  html+='</div>';
+
+  // Peças mais produzidas (histórico geral)
+  const totaisPorPeca={};
+  fichasGrad.filter(f=>f.gradId===grad.id).forEach(f=>{
+    (f.apontamentos||[]).forEach(a=>{
+      getPecasGradAtivas().forEach(p=>{
+        const v=parseInt((a.pecas||{})[p.id])||0;
+        if(v>0) totaisPorPeca[p.id]=(totaisPorPeca[p.id]||0)+v;
+      });
+    });
+  });
+  const pecasComProd=getPecasGradAtivas().filter(p=>(totaisPorPeca[p.id]||0)>0)
+    .sort((a,b)=>(totaisPorPeca[b.id]||0)-(totaisPorPeca[a.id]||0));
+  const maxPeca=pecasComProd.length?(totaisPorPeca[pecasComProd[0].id]||0):1;
+
+  if(pecasComProd.length){
+    html+='<div class="card"><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:10px">Peças mais produzidas (histórico geral)</div>';
+    pecasComProd.forEach(p=>{
+      const qtd=totaisPorPeca[p.id]||0;
+      const pct=Math.round(qtd/maxPeca*100);
+      const sl=p.label.replace('Grade Cabeceira ','Cab. ').replace('Grade Sofá ','Sofá ').replace('Grade Cama ','Cama ').replace('Grade Poltrona ','Poltrona ').replace('Grade Puf','Puf').replace('Encosto ','Enc. ').replace('Grade ','').replace(' — Normal',' N.').replace(' — Reforma',' R.').replace(' — Pedaço',' P.');
+      html+='<div style="margin-bottom:8px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">'
+        +'<span style="font-weight:600">'+sl+'</span>'
+        +'<span style="font-weight:700;color:#1d4ed8">'+qtd+'</span>'
+        +'</div>'
+        +'<div style="height:5px;background:#f1f5f9;border-radius:99px">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  }
   return html;
 }
 
@@ -13366,6 +13549,11 @@ onAuthStateChanged(auth,async user=>{
     const uDoc=snap.docs.find(d=>d.data().uid===user.uid||d.data().email===user.email);
     if(uDoc){
       currentUserData={id:uDoc.id,...uDoc.data()};
+      // Vincula uid ao registro de gradista automaticamente (se ainda não estiver vinculado)
+      if(currentUserData.perfil==='gradista'){
+        const gradSemUid=gradistas.find(g=>!g.usuarioUid&&g.nome?.toLowerCase()===currentUserData.nome?.toLowerCase());
+        if(gradSemUid) updateDoc(doc(db,'gradistas',gradSemUid.id),{usuarioUid:user.uid});
+      }
     }else{
       // Primeiro acesso do admin: cria registro automaticamente
       currentUserData={id:'admin-temp',nome:user.email,perfil:'admin',email:user.email,uid:user.uid};
@@ -13374,6 +13562,8 @@ onAuthStateChanged(auth,async user=>{
     const perfInicial=currentUserData?.perfil;
     if(perfInicial==='financeiro'){
       currentTab='relatorio';
+    }else if(perfInicial==='gradista'){
+      currentTab='grad_minha_ficha';
     }else if(can('verPainel')){
       currentTab='painel';
     }else{
