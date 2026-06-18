@@ -9601,7 +9601,7 @@ function renderEngMp(){
       +'<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0e7490">'+fmtMoeda(parseFloat(m.custo)||0)+'</td>'
       +'<td style="padding:7px 8px;color:#94a3b8;font-size:11px">'+(m.observacao||'')+'</td>'
       +(podeEditar?'<td style="padding:7px 8px;text-align:right;white-space:nowrap">'
-        +'<button onclick="window._engNovaMp(engMaterias.find(x=>x.id===\''+m.id+'\'))" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer;margin-right:4px" title="Editar">✎</button>'
+        +'<button onclick="window._engEditarMp(\''+m.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer;margin-right:4px" title="Editar">✎</button>'
         +'<button onclick="window._engExcluirMp(\''+m.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer" title="Excluir">✕</button>'
         +'</td>':'')
       +'</tr>';
@@ -9609,6 +9609,12 @@ function renderEngMp(){
   html+='</tbody></table></div>';
   return html;
 }
+
+window._engEditarMp=function(id){
+  const mp=engMaterias.find(x=>x.id===id);
+  if(!mp) return;
+  window._engNovaMp(mp);
+};
 
 window._engNovaMp=function(mp={}){
   const isEdit=!!mp.id;
