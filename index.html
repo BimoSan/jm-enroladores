@@ -7376,8 +7376,56 @@ function renderGradConfig(){
     html+='</div>';
   }
 
+  // ── Usuários do setor ────────────────────────────────────────
+  const usuariosGrad=usuarios.filter(u=>u.perfil==='apontador_gra'||u.perfil==='gradista');
+
+  html+='<div class="card" style="margin-top:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:12px">👤 Usuários do setor</div>'
+    +'<div class="form-group"><label>Perfil</label>'
+    +'<select id="ngra-perfil" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +'<option value="apontador_gra">Apontador Grades</option>'
+    +'<option value="gradista">Gradista</option>'
+    +'</select></div>'
+    +'<div class="form-group"><label>Nome</label><input id="ngra-nome" placeholder="Nome completo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>E-mail (login)</label><input type="email" id="ngra-email" placeholder="email@empresa.com" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="ngra-senha" placeholder="mín. 6 caracteres" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._gradCadastrarUsuario()">Cadastrar</button>'
+    +'</div>'
+    +(usuariosGrad.length?'<div class="section-label" style="margin-top:14px">Usuários cadastrados</div>'
+      +usuariosGrad.map(u=>{
+        const p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
+        return '<div class="card" style="margin-bottom:8px">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between">'
+          +'<div style="display:flex;align-items:center;gap:10px">'
+          +'<div style="width:36px;height:36px;border-radius:50%;background:'+p.bg+';color:'+p.color+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(u.nome)+'</div>'
+          +'<div><div style="font-size:13px;font-weight:700">'+u.nome+'</div>'
+          +'<div style="font-size:11px;color:#64748b">'+u.email+'</div></div></div>'
+          +'<div style="display:flex;gap:6px;align-items:center">'
+          +'<span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+p.bg+';color:'+p.color+'">'+p.label+'</span>'
+          +(u.uid!==currentUser?.uid?'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirUsuario(&quot;'+u.id+'&quot;)">Excluir</button>':'')
+          +'</div></div></div>';
+      }).join(''):'');
+
   return html;
 }
+
+window._gradCadastrarUsuario=async function(){
+  const perfil=document.getElementById('ngra-perfil')?.value||'apontador_gra';
+  const nome=document.getElementById('ngra-nome')?.value.trim();
+  const email=document.getElementById('ngra-email')?.value.trim();
+  const senha=document.getElementById('ngra-senha')?.value.trim();
+  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
+  if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;}
+  try{
+    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
+    if(perfil==='gradista'){
+      // Cria também o registro de gradista para aparecer na lista de operadores do setor
+      await addDoc(collection(db,'gradistas'),{nome,ativo:true});
+    }
+    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    reloadTab();
+  }catch(e){showToast('Erro: '+e.message);}
+};
 
 // ── Handlers ─────────────────────────────────────────────────────
 window._gradSelGradista=function(v){ window._gradApontSel=v; reloadTab(); };
