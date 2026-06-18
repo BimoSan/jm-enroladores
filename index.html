@@ -5774,21 +5774,26 @@ function blocosProntosEstoque(formulaId){
   return Math.max(0,produzidos-saidas);
 }
 
-function getQuinzenaEsp(data){
+// Semana de segunda a domingo, identificada como 'YYYY-MM-DD' (data da segunda-feira daquela semana)
+function getSemanaEsp(data){
   const d=data||today();
-  const dia=parseInt(d.slice(8,10));
-  const anoMes=d.slice(0,7);
-  return dia<=15?anoMes+'-Q1':anoMes+'-Q2';
+  const dt=new Date(d+'T12:00:00');
+  const diaSemana=dt.getDay(); // 0=domingo, 1=segunda, ... 6=sábado
+  const offsetParaSegunda=diaSemana===0?-6:1-diaSemana;
+  dt.setDate(dt.getDate()+offsetParaSegunda);
+  return dt.toISOString().slice(0,10);
 }
-function quinzenaLabelEsp(q){
-  if(!q) return '';
-  const [ano,mes,parte]=q.split('-');
-  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  return (parte==='Q1'?'1–15 ':'16–fim ')+MESES[parseInt(mes)-1]+' '+ano;
+function semanaLabelEsp(segundaIso){
+  if(!segundaIso) return '';
+  const seg=new Date(segundaIso+'T12:00:00');
+  const dom=new Date(seg);
+  dom.setDate(seg.getDate()+6);
+  const fmt=dt=>String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
+  return fmt(seg)+' a '+fmt(dom);
 }
 function fichaEspAtiva(opId){
-  const q=getQuinzenaEsp();
-  return espumaProducao.filter(p=>p.operadorId===opId&&p.quinzena===q&&p.status==='aberta');
+  const sem=getSemanaEsp();
+  return espumaProducao.filter(p=>p.operadorId===opId&&p.semana===sem&&p.status==='aberta');
 }
 
 function renderTabEspuma(tab){
@@ -6160,20 +6165,20 @@ function renderEspEstoque(){
 function renderEspFichas(){
   if(!window._espFichaFiltro) window._espFichaFiltro='abertas';
   const filtro=window._espFichaFiltro;
-  const q=getQuinzenaEsp();
   const podeFechar=['admin','proprietario','encarregado_est','encarregado_esp'].includes(currentUserData?.perfil);
 
   const btnF=v=>'<button onclick="window._espSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#1d4ed8':'#e2e8f0')+';background:'+(filtro===v?'#1d4ed8':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
   let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
 
-  // Agrupar por operador e quinzena
+  // Agrupar por operador e semana
   const grupos={};
   espumaProducao.filter(p=>{
     if(filtro==='abertas') return p.status==='aberta';
     return p.status==='fechada';
   }).forEach(p=>{
-    const key=p.operadorId+'_'+p.quinzena;
-    if(!grupos[key]) grupos[key]={opId:p.operadorId,quinzena:p.quinzena,blocos:0,ganho:0,prods:[]};
+    const semana=p.semana||getSemanaEsp(p.data);
+    const key=p.operadorId+'_'+semana;
+    if(!grupos[key]) grupos[key]={opId:p.operadorId,semana,blocos:0,ganho:0,prods:[]};
     const fVal=(configEspuma.formulas||[]).find(x=>x.id===(p.formulaId||configEspuma.formulaAtiva))?.valorBloco;
     const valorUnit=p.valorBloco||fVal||VALOR_BLOCO;
     grupos[key].blocos+=parseInt(p.blocos)||0;
@@ -6181,7 +6186,7 @@ function renderEspFichas(){
     grupos[key].prods.push(p);
   });
 
-  Object.values(grupos).sort((a,b)=>b.quinzena>a.quinzena?1:-1).forEach(g=>{
+  Object.values(grupos).sort((a,b)=>b.semana>a.semana?1:-1).forEach(g=>{
     const op=espumaOperadores.find(o=>o.id===g.opId);
     const isAberta=filtro==='abertas';
     const pago=g.prods.every(p=>p.pago);
@@ -6190,14 +6195,14 @@ function renderEspFichas(){
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       +'<div>'
       +'<div style="font-size:14px;font-weight:700">'+(op?.nome||'—')+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelEsp(g.quinzena)+' · '+g.blocos+' bloco'+(g.blocos!==1?'s':'')+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+semanaLabelEsp(g.semana)+' · '+g.blocos+' bloco'+(g.blocos!==1?'s':'')+'</div>'
       +'</div>'
       +'<div style="text-align:right;display:flex;align-items:center;gap:8px">'
       +'<div>'
       +'<div style="font-size:18px;font-weight:800;color:'+(pago?'#059669':'#d97706')+'">'+fmtMoeda(g.ganho)+'</div>'
       +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(isAberta?'#dbeafe':pago?'#d1fae5':'#fef3c7')+';color:'+(isAberta?'#1d4ed8':pago?'#065f46':'#92400e')+'">'+( isAberta?'Aberta':pago?'✓ Pago':'Fechada')+'</span>'
       +'</div>'
-      +(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._espFecharFicha(\''+g.opId+'\',\''+g.quinzena+'\')">Fechar</button>':'')
+      +(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._espFecharFicha(\''+g.opId+'\',\''+g.semana+'\')">Fechar</button>':'')
       +'</div></div>'
       +'<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">'
       +g.prods.sort((a,b)=>b.data>a.data?1:-1).map(p=>{
@@ -6735,9 +6740,9 @@ window._espSalvarProd=async function(formulaId){
     return;
   }
   window._espOpSel=opId;
-  const q=getQuinzenaEsp(data);
+  const semana=getSemanaEsp(data);
   closeModal();
-  await addDoc(collection(db,'esp_producao'),{operadorId:opId,data,blocos,formulaId:fId,valorBloco:f?.valorBloco||VALOR_BLOCO,quinzena:q,status:'aberta',pago:false,criadoEm:new Date().toISOString()});
+  await addDoc(collection(db,'esp_producao'),{operadorId:opId,data,blocos,formulaId:fId,valorBloco:f?.valorBloco||VALOR_BLOCO,semana,status:'aberta',pago:false,criadoEm:new Date().toISOString()});
   showToast('Produção registrada!');
 };
 
@@ -6839,17 +6844,17 @@ window._espConfirmarExcluirEnt=async function(){
   showToast('Entrada excluída!');
 };
 window._espSetFiltro=v=>{ window._espFichaFiltro=v; reloadTab(); };
-window._espFecharFicha=async function(opId,quinzena){
-  window._pendingEspFechar={opId,quinzena};
+window._espFecharFicha=async function(opId,semana){
+  window._pendingEspFechar={opId,semana};
   showModal('Fechar ficha','<div style="font-size:13px">Confirma o fechamento desta ficha? Ela ficará disponível para pagamento no Financeiro.</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._espConfirmarFechar()">Fechar</button>');
 };
 window._espConfirmarFechar=async function(){
-  const {opId,quinzena}=window._pendingEspFechar||{};
+  const {opId,semana}=window._pendingEspFechar||{};
   if(!opId) return;
   closeModal();
-  const prods=espumaProducao.filter(p=>p.operadorId===opId&&p.quinzena===quinzena&&p.status==='aberta');
+  const prods=espumaProducao.filter(p=>p.operadorId===opId&&(p.semana||getSemanaEsp(p.data))===semana&&p.status==='aberta');
   for(const p of prods) await updateDoc(doc(db,'esp_producao',p.id),{status:'fechada',dataFechamento:today()});
   showToast('Ficha fechada!');
 };
@@ -11009,17 +11014,20 @@ function finPagamentosTodos(){
   // Espuma
   const espGrupos={};
   espumaProducao.filter(p=>p.status==='fechada').forEach(p=>{
-    const key=p.operadorId+'_'+p.quinzena;
-    if(!espGrupos[key]) espGrupos[key]={opId:p.operadorId,quinzena:p.quinzena,blocos:0,pago:p.pago,ids:[]};
-    espGrupos[key].blocos+=parseInt(p.blocos)||0;
+    const semana=p.semana||getSemanaEsp(p.data);
+    const key=p.operadorId+'_'+semana;
+    if(!espGrupos[key]) espGrupos[key]={opId:p.operadorId,semana,valor:0,pago:p.pago,ids:[]};
+    const fVal=(configEspuma.formulas||[]).find(x=>x.id===(p.formulaId||configEspuma.formulaAtiva))?.valorBloco;
+    const valorUnit=p.valorBloco||fVal||VALOR_BLOCO;
+    espGrupos[key].valor+=(parseInt(p.blocos)||0)*valorUnit;
+    espGrupos[key].pago=espGrupos[key].pago&&p.pago;
     espGrupos[key].ids.push(p.id);
   });
   Object.values(espGrupos).forEach(g=>{
     const op=espumaOperadores.find(o=>o.id===g.opId);
-    const valor=g.blocos*VALOR_BLOCO;
-    if(valor<=0) return;
-    lista.push({id:'esp_'+g.opId+'_'+g.quinzena,setor:'Espuma',pessoa:op?.nome||'—',valor,pago:!!g.pago,
-      dataPagamento:null,dataRef:g.quinzena,tipo:'quinzena',fichaObj:{...g,_espuma:true},setorKey:'espuma'});
+    if(g.valor<=0) return;
+    lista.push({id:'esp_'+g.opId+'_'+g.semana,setor:'Espuma',pessoa:op?.nome||'—',valor:g.valor,pago:!!g.pago,
+      dataPagamento:null,dataRef:semanaLabelEsp(g.semana),tipo:'quinzena',fichaObj:{...g,_espuma:true},setorKey:'espuma'});
   });
 
   // Bônus (Enrolamento Terc.)
