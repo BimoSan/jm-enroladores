@@ -7419,8 +7419,9 @@ window._gradCadastrarUsuario=async function(){
   try{
     await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
     if(perfil==='gradista'){
-      // Cria também o registro de gradista para aparecer na lista de operadores do setor
-      await addDoc(collection(db,'gradistas'),{nome,ativo:true});
+      // Só cria o registro de operador se ainda não existir um gradista com esse nome
+      const jaExiste=gradistas.some(g=>g.nome.trim().toLowerCase()===nome.toLowerCase());
+      if(!jaExiste) await addDoc(collection(db,'gradistas'),{nome,ativo:true});
     }
     showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
     reloadTab();
@@ -7563,7 +7564,21 @@ window._gradNovoGradista=function(g={}){
       </select>
      </div>`,
     `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     ${g.id?'<button class="btn btn-sm btn-danger" onclick="window._gradExcluirGradista(\''+g.id+'\')">Excluir</button>':''}
      <button class="btn btn-sm btn-primary" onclick="window._gradSalvarGradista('${g.id||''}')">Salvar</button>`);
+};
+window._gradExcluirGradista=function(id){
+  window._pendingExcluirGradista=id;
+  closeModal();
+  showModal('Excluir gradista','<div style="font-size:13px">Tem certeza que deseja excluir este gradista? Fichas e produções já registradas não serão afetadas.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._gradConfirmarExcluirGradista()">Excluir</button>');
+};
+window._gradConfirmarExcluirGradista=async function(){
+  const id=window._pendingExcluirGradista; if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'gradistas',id));
+  showToast('Gradista excluído!');
 };
 window._gradEditarGradista=function(id){
   const g=gradistas.find(x=>x.id===id);
