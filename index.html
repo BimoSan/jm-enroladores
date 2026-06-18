@@ -6968,33 +6968,9 @@ function renderGradPainel(){
   const q=getQuinzenaAtualGrad();
   const hoje=today();
 
-  // Totais gerais hoje e mês
-  let totalHoje=0, totalMes=0, ganhoMes=0;
-  const porGradHoje={};
-  fichasGrad.forEach(f=>{
-    (f.apontamentos||[]).forEach(a=>{
-      const t=getPecasGradAtivas().reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
-      if(a.data===hoje){ totalHoje+=t; porGradHoje[f.gradId]=(porGradHoje[f.gradId]||0)+t; }
-      if((a.data||'').startsWith(hoje.slice(0,7))){ totalMes+=t; ganhoMes+=calcGanhoGrad([a]); }
-    });
-  });
+  let html='';
 
-  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">
-    <div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div>
-      <div class="stat-label">Peças hoje</div>
-      <div class="stat-value">${totalHoje}</div>
-    </div></div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div>
-      <div class="stat-label">Peças no mês</div>
-      <div class="stat-value">${totalMes}</div>
-    </div></div>
-    <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div>
-      <div class="stat-label">A pagar no mês</div>
-      <div class="stat-value" style="font-size:18px">${fmtMoeda(ganhoMes)}</div>
-    </div></div>
-  </div>`;
-
-  // Cards de produção por tipo (todos os gradistas)
+  // Cards de produção por tipo (todos os gradistas) — sempre visíveis
   const mesAtualGrad=hoje.slice(0,7);
   const pecasTotaisGrad=getPecasGradAtivas().map(p=>{
     let phoje=0, pmes=0;
