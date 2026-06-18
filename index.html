@@ -570,6 +570,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_painel':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   'grad_fichas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  'grad_ranking':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'grad_gradistas':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
@@ -606,7 +607,7 @@ const TAB_LABELS={
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_relatorio':'Relatórios','eng_config':'Configurações',
-  'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_gradistas':'Gradistas','grad_config':'Configurações',
+  'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_relatorio':'Relatórios','esp_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
@@ -837,10 +838,10 @@ function renderApp(){
     if(!currentTab||!currentTab.startsWith('esp_')) currentTab='esp_painel';
   } else if(currentSetor==='grades'){
     const pg=currentUserData?.perfil;
-    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_gradistas','grad_config');
-    else if(pg==='apontador_gra') tabs.push('grad_painel','grad_apontar','grad_fichas');
-    else if(pg==='gradista') tabs.push('grad_painel');
-    else tabs.push('grad_painel');
+    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking','grad_gradistas','grad_config');
+    else if(pg==='apontador_gra') tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking');
+    else if(pg==='gradista') tabs.push('grad_painel','grad_ranking');
+    else tabs.push('grad_painel','grad_ranking');
     if(!currentTab||!currentTab.startsWith('grad_')) currentTab='grad_painel';
   } else if(currentSetor==='enrolamento_int'){
     const pInt=currentUserData?.perfil;
@@ -6952,6 +6953,7 @@ function renderTabGrades(tab){
     if(tab==='grad_painel')    return renderGradPainel();
     if(tab==='grad_apontar')   return renderGradApontar();
     if(tab==='grad_fichas')    return renderGradFichas();
+    if(tab==='grad_ranking')   return renderGradRanking();
     if(tab==='grad_gradistas') return renderGradGradistas();
     if(tab==='grad_config')    return renderGradConfig();
     return renderGradPainel();
@@ -7307,7 +7309,109 @@ function renderGradFichas(){
   return html;
 }
 
-// ── Gradistas ────────────────────────────────────────────────────
+// ── Ranking (por categoria, diferente da Metalúrgica que é por peça) ──
+const GRAD_CATEGORIAS_RANKING=[
+  {id:'camas',     label:'Camas',        icon:'🛏️', pecas:['cama_casal_pedaco','cama_casal_normal','cama_solt_pedaco','cama_solt_normal','cama_casal_ref','cama_solt_ref']},
+  {id:'sofas',     label:'Sofás',        icon:'🛋️', pecas:['sofa2_normal','sofa2_reforma','sofa3_normal','sofa3_reforma']},
+  {id:'encostos',  label:'Encostos',     icon:'🪑', pecas:['enc2_normal','enc2_reforma','enc3_normal','enc3_reforma']},
+  {id:'puf',       label:'Puf',          icon:'⬛', pecas:['puf']},
+  {id:'poltrona',  label:'Poltrona JM',  icon:'💺', pecas:['poltrona_jm']},
+  {id:'cabeceira', label:'Cabeceira',    icon:'🔼', pecas:['cab_casal','cab_solt']},
+];
+
+function totalCategoriaGradPeriodo(gradId, pecaIds, periodo){
+  // periodo: 'quinzena' (quinzena atual) ou 'mes' (mês atual), ou um anoMes-Q1/Q2 específico
+  const hoje_=today();
+  const qAtual=getQuinzenaAtualGrad();
+  const mesAtual=hoje_.slice(0,7);
+  let total=0;
+  fichasGrad.filter(f=>f.gradId===gradId).forEach(f=>{
+    (f.apontamentos||[]).forEach(a=>{
+      const data=a.data||'';
+      const match = periodo==='quinzena' ? getQuinzenaGrad(data)===qAtual
+                  : periodo==='mes'      ? data.slice(0,7)===mesAtual
+                  : getQuinzenaGrad(data)===periodo;
+      if(!match) return;
+      pecaIds.forEach(pid=>{ total+=parseInt((a.pecas||{})[pid])||0; });
+    });
+  });
+  return total;
+}
+
+function renderGradRanking(){
+  if(!window._rankGradPeriodo) window._rankGradPeriodo='quinzena';
+  const per=window._rankGradPeriodo;
+  const qAtual=getQuinzenaAtualGrad();
+  const hoje_=today();
+  const mesAtual=hoje_.slice(0,7);
+
+  function perLabel(){
+    if(per==='quinzena') return quinzenaLabelGrad(qAtual);
+    const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const m=parseInt(mesAtual.slice(5,7))-1;
+    return MESES[m]+' '+mesAtual.slice(0,4);
+  }
+
+  function btnPer(v,l){
+    const ativo=per===v;
+    return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
+      +' onclick="window._setRankGradPeriodo(&quot;'+v+'&quot;)">'+l+'</button>';
+  }
+  const filtroPerHtml='<div style="display:flex;gap:8px;margin-bottom:16px">'
+    +btnPer('quinzena','Quinzena')
+    +btnPer('mes','Mensal')
+    +'</div>';
+
+  // Só categorias com produção no período
+  const categoriasComProd=GRAD_CATEGORIAS_RANKING.filter(cat=>
+    gradistas.some(g=>totalCategoriaGradPeriodo(g.id,cat.pecas,per)>0)
+  );
+
+  if(!categoriasComProd.length){
+    return `<div style="background:#1d4ed8;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
+      <div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Grades</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${perLabel()}</div>
+    </div>`+filtroPerHtml+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada no período.</div></div>';
+  }
+
+  const cardsCategorias=categoriasComProd.map(cat=>{
+    const ranking=gradistas.map(g=>({g,qtd:totalCategoriaGradPeriodo(g.id,cat.pecas,per)}))
+      .filter(x=>x.qtd>0)
+      .sort((a,b)=>b.qtd-a.qtd);
+    if(!ranking.length) return '';
+    const maxQtd=ranking[0].qtd;
+    const medalhas=['🥇','🥈','🥉'];
+    const rows=ranking.map(({g,qtd},i)=>{
+      const ci=gradistas.findIndex(x=>x.id===g.id);
+      const cor=avatarColor(ci);
+      const pct=Math.round(qtd/maxQtd*100);
+      const barCor=i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#cd7f32':'#3b82f6';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+        +'<span style="font-size:16px;width:24px;text-align:center">'+(i<3?medalhas[i]:'<span style="font-size:12px;color:#64748b">'+(i+1)+'</span>')+'</span>'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:'+cor+'22;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+initials(g.nome)+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700">'+g.nome+'</div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px;margin-top:4px;overflow:hidden">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div>'
+        +'</div></div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+barCor+'">'+qtd+'</div>'
+        +'</div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="font-size:14px;font-weight:700;color:#1e293b">'+cat.icon+' '+cat.label+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+perLabel()+'</div>'
+      +'</div>'
+      +rows+'</div>';
+  }).join('');
+
+  return `<div style="background:#1d4ed8;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
+    <div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Grades</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${perLabel()}</div>
+  </div>`+filtroPerHtml+cardsCategorias;
+}
+window._setRankGradPeriodo=function(v){ window._rankGradPeriodo=v; reloadTab(); };
+
 function renderGradGradistas(){
   let html=`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
     <button class="btn btn-primary btn-sm" onclick="window._gradNovoGradista()">+ Gradista</button>
