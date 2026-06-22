@@ -11211,30 +11211,53 @@ function renderFinCustos(){
         +'<span style="font-size:14px;font-weight:800;color:#dc2626">'+fmtMoeda(totalMes)+'</span>'
         +'</div></div>';
 
-      // Lançamentos do mês (filtrados por categoria se selecionado)
+      // Lançamentos do mês agrupados por dia (mais recente primeiro)
       const lancamentos=filtroCat?doMes.filter(c=>c.categoria===filtroCat):doMes;
       const tituloLanc=filtroCat?('Lançamentos de '+filtroCat+' — '+mesNome):('Lançamentos de '+mesNome);
       html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
         +'<div style="font-size:12px;font-weight:700;color:#475569">'+tituloLanc+'</div>'
         +(filtroCat?'<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="window._custoFiltrarCat(\'\')">✕ Limpar filtro</button>':'')
         +'</div>';
-      lancamentos.forEach((c,i)=>{
-        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-          +'<div style="flex:1">'
-          +'<div style="display:flex;align-items:center;gap:6px">'
-          +'<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 7px;border-radius:99px;font-weight:700">'+c.categoria+'</span>'
-          +'<span style="font-size:11px;color:#64748b">'+fmtDate(c.data)+'</span>'
-          +'</div>'
-          +(c.descricao?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+c.descricao+'</div>':'')
-          +'</div>'
-          +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="font-size:13px;font-weight:700;color:#dc2626">'+fmtMoeda(parseFloat(c.valor))+'</span>'
-          +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._custoExcluir(\''+c.id+'\')">✕</button>'
-          +'</div></div>';
+
+      // Agrupa por dia
+      const porDia={};
+      lancamentos.forEach(c=>{
+        const dia=c.data||'';
+        if(!porDia[dia]) porDia[dia]=[];
+        porDia[dia].push(c);
       });
+      const dias=Object.keys(porDia).sort().reverse();
+
+      dias.forEach((dia,di)=>{
+        const itens=porDia[dia];
+        const totalDia=itens.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+        const [ano,mes_,dd]=dia.split('-');
+        const diaLabel=dd+'/'+mes_+'/'+ano;
+
+        html+='<div style="'+(di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':'')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+          +'<span style="font-size:11px;font-weight:800;color:#475569">'+diaLabel+'</span>'
+          +'<span style="font-size:12px;font-weight:800;color:#dc2626">'+fmtMoeda(totalDia)+'</span>'
+          +'</div>';
+        itens.forEach((c,i)=>{
+          html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+            +'<div style="flex:1">'
+            +'<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 7px;border-radius:99px;font-weight:700">'+c.categoria+'</span>'
+            +(c.descricao?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+c.descricao+'</div>':'')
+            +'</div>'
+            +'<div style="display:flex;align-items:center;gap:8px">'
+            +'<span style="font-size:13px;font-weight:700;color:#dc2626">'+fmtMoeda(parseFloat(c.valor))+'</span>'
+            +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._custoExcluir(\''+c.id+'\')">✕</button>'
+            +'</div></div>';
+        });
+        html+='</div>';
+      });
+
+      if(!dias.length) html+='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Nenhum lançamento.</div>';
+
       if(filtroCat){
         const totalFiltro=lancamentos.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-        html+='<div style="border-top:2px solid #e2e8f0;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between">'
+        html+='<div style="border-top:2px solid #e2e8f0;padding-top:8px;margin-top:12px;display:flex;justify-content:space-between">'
           +'<span style="font-size:12px;font-weight:700">Total '+filtroCat+'</span>'
           +'<span style="font-size:13px;font-weight:800;color:#dc2626">'+fmtMoeda(totalFiltro)+'</span>'
           +'</div>';
