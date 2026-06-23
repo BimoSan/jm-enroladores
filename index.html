@@ -7073,8 +7073,8 @@ function renderGradPainel(){
         const shortLabel=p.label.replace('Grade Cabeceira ','Cab. ').replace('Grade Poltrona ','Poltrona ').replace('Grade Sofá ','Sofá ').replace('Grade Cama ','Cama ').replace('Grade Puf','Puf').replace('Encosto ','Enc. ').replace('Grade ','').replace(' — Normal',' N.').replace(' — Reforma',' R.').replace(' — Pedaço',' P.');
         return '<div style="background:'+bg+';border-radius:12px;padding:12px 14px;color:#fff">'
           +'<div style="font-size:10px;font-weight:600;opacity:.8;margin-bottom:6px">'+shortLabel+(isReforma?' (ref.)':'')+'</div>'
-          +'<div style="font-size:28px;font-weight:900;line-height:1">'+mes+'</div>'
-          +'<div style="font-size:10px;opacity:.7;margin-top:4px">este mês</div>'
+          +'<div style="font-size:28px;font-weight:900;line-height:1">'+ph+'</div>'
+          +'<div style="font-size:10px;opacity:.7;margin-top:4px">hoje · mês: <strong style="opacity:1">'+mes+'</strong></div>'
           +'</div>';
       }).join('')
       +'</div></div>';
