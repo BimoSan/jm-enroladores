@@ -359,6 +359,9 @@ let engProdutos=[];
 let engMaterias=[];
 // Notificações de pagamento
 let notifPagamentos=[];
+// Tapeçamento
+let tapecadores=[], fichasTap=[], configTap={pecasExcluidas:[],pecasCustom:[],valores:{}};
+let tapecamentoProducao=[];
 let configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0};
 // Manutenção
 let manutMaquinas=[];
@@ -576,6 +579,14 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_ranking':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'grad_minha_ficha':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'grad_meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'tap_painel':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  'tap_apontar':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  'tap_fichas':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  'tap_ranking':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  'tap_tapecadores':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+  'tap_config':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+  'tap_minha_ficha':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  'tap_meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'grad_gradistas':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
@@ -614,6 +625,8 @@ const TAB_LABELS={
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'grad_minha_ficha':'Minha Ficha','grad_meu_desempenho':'Meu Desempenho',
+  'tap_painel':'Painel','tap_apontar':'Apontamento','tap_fichas':'Fichas','tap_ranking':'Ranking','tap_tapecadores':'Tapecadores','tap_config':'Configurações',
+  'tap_minha_ficha':'Minha Ficha','tap_meu_desempenho':'Meu Desempenho',
   'esp_painel':'Painel','esp_apontar':'Apontamento','esp_estoque':'Estoque','esp_fichas':'Fichas','esp_operadores':'Operadores','esp_relatorio':'Relatórios','esp_config':'Configurações',
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
@@ -849,6 +862,13 @@ function renderApp(){
     else if(pg==='gradista') tabs.push('grad_minha_ficha','grad_meu_desempenho','grad_ranking');
     else tabs.push('grad_painel','grad_ranking');
     if(!currentTab||!currentTab.startsWith('grad_')) currentTab='grad_painel';
+  } else if(currentSetor==='tapecamento'){
+    const pt=currentUserData?.perfil;
+    if(['admin','proprietario','encarregado_est'].includes(pt)) tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking','tap_tapecadores','tap_config');
+    else if(pt==='apontador_tap') tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking');
+    else if(pt==='tapecador') tabs.push('tap_minha_ficha','tap_meu_desempenho','tap_ranking');
+    else tabs.push('tap_painel','tap_ranking');
+    if(!currentTab||!currentTab.startsWith('tap_')) currentTab='tap_painel';
   } else if(currentSetor==='enrolamento_int'){
     const pInt=currentUserData?.perfil;
     if(['admin','encarregado_cad','apontador_int'].includes(pInt)){
@@ -938,6 +958,7 @@ function renderApp(){
               currentSetor==='enrolamento_int'?'Enrolamento Interno':
               currentSetor==='fitas'?'Fitas':
               currentSetor==='grades'?'Grades':
+              currentSetor==='tapecamento'?'Tapeçamento':
               currentSetor==='espuma'?'Blocos de Espuma':
               currentSetor==='financeiro_geral'?'Financeiro':
               currentSetor==='manutencao'?'Manutenção':
@@ -996,6 +1017,7 @@ function renderTab(tab){
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
   if(currentSetor==='espuma') return renderTabEspuma(tab);
   if(currentSetor==='grades') return renderTabGrades(tab);
+  if(currentSetor==='tapecamento') return renderTabTapecamento(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
   if(currentSetor==='fitas') return renderTabFitas(tab);
   if(currentSetor==='caminhoes') return renderTabCaminhoes(tab);
@@ -2928,6 +2950,9 @@ window._confirmarPago=(id,setorKey)=>{
   } else if(window._pendingPagoSetorKey==='grades'){
     const f=fichasGrad.find(x=>x.id===id);
     nome=gradistas?.find?.(g=>g.id===f?.gradId)?.nome||'';
+  } else if(window._pendingPagoSetorKey==='tapecamento'){
+    const f=fichasTap.find(x=>x.id===id);
+    nome=tapecadores.find(t=>t.id===f?.tapId)?.nome||'';
   } else if(window._pendingPagoSetorKey==='enrolamento_int'){
     const f=fichasInt.find(x=>x.id===id);
     nome=enroladoresInt.find(e=>e.id===f?.enroladorId)?.nome||'';
@@ -2968,6 +2993,11 @@ window._confirmarPagoAction=async(formaPagamento)=>{
     const grad=gradistas?.find?.(g=>g.id===f?.gradId);
     operadorUid=grad?.usuarioUid||''; operadorNome=grad?.nome||'';
     await updateDoc(doc(db,'fichas_grad',id),{pago:true,dataPagamento:today(),formaPagamento});
+  } else if(setorKey==='tapecamento'){
+    const f=fichasTap.find(x=>x.id===id);
+    const tap=tapecadores.find(t=>t.id===f?.tapId);
+    operadorUid=tap?.usuarioUid||''; operadorNome=tap?.nome||'';
+    await updateDoc(doc(db,'fichas_tap',id),{pago:true,dataPagamento:today(),formaPagamento});
   } else if(setorKey==='enrolamento_int'){
     const f=fichasInt.find(x=>x.id===id);
     const enr=enroladoresInt.find(e=>e.id===f?.enroladorId);
@@ -3003,6 +3033,7 @@ window._confirmarPagoAction=async(formaPagamento)=>{
     'grades':           ['apontador_gra'],
     'enrolamento_int':  ['apontador_int'],
     'espuma':           ['encarregado_esp','apontador_esp'],
+    'tapecamento':      ['apontador_tap'],
   }[setorKey]||[];
   const apontadoresSetor=usuarios.filter(u=>perfisApontador.includes(u.perfil)&&u.uid);
   for(const apont of apontadoresSetor){
@@ -3041,6 +3072,8 @@ window._desmarcarPagoAction=async()=>{
     await updateDoc(doc(db,'fichas_metal',id),{pago:false,dataPagamento:null});
   } else if(setorKey==='grades'){
     await updateDoc(doc(db,'fichas_grad',id),{pago:false,dataPagamento:null});
+  } else if(setorKey==='tapecamento'){
+    await updateDoc(doc(db,'fichas_tap',id),{pago:false,dataPagamento:null});
   } else if(setorKey==='enrolamento_int'){
     await updateDoc(doc(db,'fichas_int',id),{pago:false,dataPagamento:null});
   } else if(setorKey==='espuma'){
@@ -8560,6 +8593,369 @@ function renderMinhaProdInt(){
 // SETOR DE FITAS
 // ═══════════════════════════════════════════════════════════════
 
+
+// ════════════════════════════════════════════════════════════════
+// TAPEÇAMENTO — Modelo igual Grades (quinzenal, peças configuráveis)
+// ════════════════════════════════════════════════════════════════
+
+function renderTabTapecamento(tab){
+  try{
+    if(tab==='tap_painel')         return renderTapPainel();
+    if(tab==='tap_apontar')        return renderTapApontar();
+    if(tab==='tap_fichas')         return renderTapFichas();
+    if(tab==='tap_ranking')        return renderTapRanking();
+    if(tab==='tap_tapecadores')    return renderTapTapecadores();
+    if(tab==='tap_config')         return renderTapConfig();
+    if(tab==='tap_minha_ficha')    return renderTapMinhaFicha();
+    if(tab==='tap_meu_desempenho') return renderTapMeuDesempenho();
+    return renderTapPainel();
+  }catch(e){
+    console.error('Erro renderTabTapecamento:',e);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function getQuinzenaTap(dataStr){ const d=dataStr||today(); const dia=parseInt(d.slice(8,10)); const anoMes=d.slice(0,7); return dia<=15?anoMes+'-Q1':anoMes+'-Q2'; }
+function getQuinzenaAtualTap(){ return getQuinzenaTap(today()); }
+function quinzenaLabelTap(q){ if(!q)return''; const[ano,mes,parte]=q.split('-'); const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']; return parte==='Q1'?'1–15 '+MESES[parseInt(mes)-1]+' '+ano:'16–fim '+MESES[parseInt(mes)-1]+' '+ano; }
+function getPecasTapAtivas(){ const excluidas=configTap.pecasExcluidas||[]; const custom=configTap.pecasCustom||[]; return custom.filter(p=>!excluidas.includes(p.id)); }
+function getValorTap(pecaId){ return parseFloat((configTap.valores||{})[pecaId])||0; }
+function totalPecasTap(aponts){ return (aponts||[]).reduce((s,a)=>s+getPecasTapAtivas().reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0); }
+function calcGanhoTap(aponts){ return (aponts||[]).reduce((s,a)=>s+getPecasTapAtivas().reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0)*getValorTap(p.id),0),0); }
+function fichasTapAtiva(tapId,q){ return fichasTap.find(f=>f.tapId===tapId&&f.quinzena===q&&f.status==='aberta'); }
+function tapecadorProprio(){ const uid=currentUser?.uid||''; const nome=currentUserData?.nome||''; return tapecadores.find(t=>t.usuarioUid===uid)||tapecadores.find(t=>t.nome?.toLowerCase()===nome.toLowerCase()); }
+
+// ── Painel ───────────────────────────────────────────────────────
+function renderTapPainel(){
+  const q=getQuinzenaAtualTap();
+  const hoje=today();
+  const mesAtual=hoje.slice(0,7);
+
+  // Cards por tipo de peça (só as com produção no mês)
+  const pecasMes=getPecasTapAtivas().map(p=>{
+    let phoje=0,pmes=0;
+    fichasTap.forEach(f=>{(f.apontamentos||[]).forEach(a=>{const v=parseInt((a.pecas||{})[p.id])||0;if(v>0){if(a.data===hoje)phoje+=v;if((a.data||'').startsWith(mesAtual))pmes+=v;}});});
+    return {p,hoje:phoje,mes:pmes};
+  }).filter(x=>x.mes>0);
+
+  const gradients=['linear-gradient(135deg,#1e40af,#3b82f6)','linear-gradient(135deg,#065f46,#10b981)','linear-gradient(135deg,#92400e,#f59e0b)','linear-gradient(135deg,#4c1d95,#8b5cf6)','linear-gradient(135deg,#9d174d,#ec4899)','linear-gradient(135deg,#0e7490,#22d3ee)','linear-gradient(135deg,#1e3a5f,#2563eb)','linear-gradient(135deg,#14532d,#16a34a)','linear-gradient(135deg,#7c2d12,#ea580c)'];
+
+  let html='';
+  if(pecasMes.length){
+    html+='<div class="card" style="margin-bottom:16px">'
+      +'<div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Produção por tipo — mês</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">'
+      +pecasMes.map(({p,hoje:ph,mes},i)=>'<div style="background:'+gradients[i%gradients.length]+';border-radius:12px;padding:12px 14px;color:#fff">'
+        +'<div style="font-size:10px;font-weight:600;opacity:.8;margin-bottom:6px">'+p.label+'</div>'
+        +'<div style="font-size:28px;font-weight:900;line-height:1">'+ph+'</div>'
+        +'<div style="font-size:10px;opacity:.7;margin-top:4px">hoje · mês: <strong style="opacity:1">'+mes+'</strong></div>'
+        +'</div>').join('')
+      +'</div></div>';
+  }
+
+  html+='<div class="section-label" style="margin-bottom:10px">produção de hoje</div>';
+  if(!tapecadores.length){
+    html+='<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px;font-size:13px">Nenhum tapecador cadastrado.</div></div>';
+  } else {
+    tapecadores.filter(t=>t.ativo!==false).forEach(t=>{
+      const ci=tapecadores.filter(x=>x.ativo!==false).findIndex(x=>x.id===t.id);
+      const c=avatarColor(ci);
+      const fichaQ=fichasTapAtiva(t.id,q);
+      const apontsHoje=(fichaQ?.apontamentos||[]).filter(a=>a.data===hoje);
+      const apontsQ=fichaQ?.apontamentos||[];
+      const totalHoje=totalPecasTap(apontsHoje);
+      const totalQ=totalPecasTap(apontsQ);
+      const ganhoHoje=calcGanhoTap(apontsHoje);
+      html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+c+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(t.nome)+'</div>'
+        +'<div><div style="font-size:13px;font-weight:700">'+t.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+totalHoje+' peças hoje · '+totalQ+' na quinzena</div>'
+        +'</div></div>'
+        +'<div style="text-align:right"><div style="font-size:10px;color:#64748b">ganho hoje</div>'
+        +'<div style="font-size:16px;font-weight:800;color:#059669">'+fmtMoeda(ganhoHoje)+'</div></div>'
+        +'</div>';
+      if(apontsHoje.length){
+        getPecasTapAtivas().forEach(p=>{
+          const v=apontsHoje.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+          const vQ=apontsQ.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+          if(vQ===0) return;
+          html+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid #f1f5f9">'
+            +'<span style="color:#64748b">'+p.label+'</span>'
+            +'<span><span style="font-weight:700">'+v+'</span><span style="color:#94a3b8;font-size:10px"> hj  </span>'
+            +'<span style="font-weight:700;color:#3b82f6">'+vQ+'</span><span style="color:#94a3b8;font-size:10px"> q</span></span>'
+            +'</div>';
+        });
+      } else {
+        html+='<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px">Nenhum apontamento hoje</div>';
+      }
+      html+='</div>';
+    });
+  }
+  return html;
+}
+
+// ── Apontamento ──────────────────────────────────────────────────
+function renderTapApontar(){
+  const q=getQuinzenaAtualTap();
+  const pecas=getPecasTapAtivas();
+  if(!pecas.length) return '<div class="card"><div style="text-align:center;color:#94a3b8;padding:20px">Cadastre peças nas Configurações para começar a apontar.</div></div>';
+  let html='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Registrar produção do dia</div>';
+  tapecadores.filter(t=>t.ativo!==false).forEach((t,ti)=>{
+    const c=avatarColor(ti);
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+c+'">'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+initials(t.nome)+'</div>'
+      +t.nome+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px">';
+    pecas.forEach(p=>{
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f8fafc">'
+        +'<div><div style="font-size:12px;font-weight:600">'+p.label+'</div>'
+        +(getValorTap(p.id)?'<div style="font-size:10px;color:#94a3b8">'+fmtMoeda(getValorTap(p.id))+'/peça</div>':'')
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<button onclick="window._tapDecQtd(\''+t.id+'\',\''+p.id+'\')" style="width:28px;height:28px;border-radius:50%;border:none;background:#e2e8f0;font-size:16px;cursor:pointer;font-weight:700">−</button>'
+        +'<input type="number" id="tap-qtd-'+t.id+'-'+p.id+'" min="0" value="0" style="width:56px;text-align:center;font-size:14px;font-weight:700;border:1.5px solid #e2e8f0;border-radius:8px;padding:4px">'
+        +'<button onclick="window._tapIncQtd(\''+t.id+'\',\''+p.id+'\')" style="width:28px;height:28px;border-radius:50%;border:none;background:#1d4ed8;color:#fff;font-size:16px;cursor:pointer;font-weight:700">+</button>'
+        +'</div></div>';
+    });
+    html+='</div>'
+      +'<div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">'
+      +'<input type="date" id="tap-data-'+t.id+'" value="'+today()+'" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px">'
+      +'<button class="btn btn-primary btn-sm" onclick="window._tapRegistrar(\''+t.id+'\')">✓ Registrar</button>'
+      +'</div></div>';
+  });
+  return html;
+}
+window._tapIncQtd=function(tapId,pecaId){ const el=document.getElementById('tap-qtd-'+tapId+'-'+pecaId); if(el) el.value=Math.max(0,(parseInt(el.value)||0)+1); };
+window._tapDecQtd=function(tapId,pecaId){ const el=document.getElementById('tap-qtd-'+tapId+'-'+pecaId); if(el) el.value=Math.max(0,(parseInt(el.value)||0)-1); };
+window._tapRegistrar=async function(tapId){
+  const data=document.getElementById('tap-data-'+tapId)?.value||today();
+  const q=getQuinzenaTap(data);
+  const pecas={};
+  getPecasTapAtivas().forEach(p=>{ const v=parseInt(document.getElementById('tap-qtd-'+tapId+'-'+p.id)?.value)||0; if(v>0) pecas[p.id]=v; });
+  if(!Object.keys(pecas).length){showToast('Registre pelo menos uma peça.');return;}
+  let ficha=fichasTap.find(f=>f.tapId===tapId&&f.quinzena===q&&f.status==='aberta');
+  const apont={data,pecas,hora:new Date().toISOString()};
+  if(ficha){
+    await updateDoc(doc(db,'fichas_tap',ficha.id),{apontamentos:[...(ficha.apontamentos||[]),apont]});
+  } else {
+    await addDoc(collection(db,'fichas_tap'),{tapId,quinzena:q,status:'aberta',pago:false,apontamentos:[apont]});
+  }
+  showToast('Produção registrada!');
+  getPecasTapAtivas().forEach(p=>{ const el=document.getElementById('tap-qtd-'+tapId+'-'+p.id); if(el) el.value=0; });
+};
+
+// ── Fichas ───────────────────────────────────────────────────────
+function renderTapFichas(){
+  if(!window._tapFichaFiltro) window._tapFichaFiltro='abertas';
+  const filtro=window._tapFichaFiltro;
+  const podeFechar=['admin','proprietario','encarregado_est','apontador_tap'].includes(currentUserData?.perfil);
+  const btnF=v=>'<button onclick="window._tapSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#1d4ed8':'#e2e8f0')+';background:'+(filtro===v?'#1d4ed8':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
+  let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
+  const fichasFiltradas=fichasTap.filter(f=>filtro==='abertas'?f.status==='aberta':f.status==='fechada');
+  if(!fichasFiltradas.length){ html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma ficha.</div>'; return html; }
+  fichasFiltradas.sort((a,b)=>b.quinzena>a.quinzena?1:-1).forEach(f=>{
+    const t=tapecadores.find(x=>x.id===f.tapId);
+    const ganho=calcGanhoTap(f.apontamentos||[]);
+    const total=totalPecasTap(f.apontamentos||[]);
+    const isAberta=f.status==='aberta';
+    const pago=f.pago;
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+(isAberta?'#1d4ed8':'#10b981')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+      +'<div><div style="font-size:14px;font-weight:700">'+(t?.nome||'—')+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelTap(f.quinzena)+' · '+total+' peças</div></div>'
+      +'<div style="text-align:right;display:flex;align-items:center;gap:8px">'
+      +'<div><div style="font-size:18px;font-weight:800;color:'+(pago?'#059669':'#d97706')+'">'+fmtMoeda(ganho)+'</div>'
+      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(isAberta?'#dbeafe':pago?'#d1fae5':'#fef3c7')+';color:'+(isAberta?'#1d4ed8':pago?'#065f46':'#92400e')+'">'+( isAberta?'Aberta':pago?'✓ Pago':'Fechada')+'</span>'
+      +'</div>'+(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._tapFecharFicha(\''+f.id+'\')">Fechar</button>':'')
+      +'</div></div>'
+      +'<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">'
+      +(f.apontamentos||[]).sort((a,b)=>b.data>a.data?1:-1).map(a=>{
+        const tv=getPecasTapAtivas().reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
+        const gv=calcGanhoTap([a]);
+        return '<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
+          +'<span>'+fmtDate(a.data)+' · '+tv+' peças</span>'
+          +'<span style="color:#059669;font-weight:700">'+fmtMoeda(gv)+'</span></div>';
+      }).join('')
+      +'</div></div>';
+  });
+  return html;
+}
+window._tapSetFiltro=function(v){ window._tapFichaFiltro=v; reloadTab(); };
+window._tapFecharFicha=function(id){
+  window._pendingTapFecha=id;
+  showModal('Fechar ficha','<div style="font-size:13px">Confirma o fechamento desta ficha? Ela ficará disponível para pagamento no Financeiro.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._tapConfirmarFechar()">Fechar</button>');
+};
+window._tapConfirmarFechar=async function(){
+  const id=window._pendingTapFecha; if(!id) return;
+  closeModal();
+  await updateDoc(doc(db,'fichas_tap',id),{status:'fechada',dataFechamento:today()});
+  showToast('Ficha fechada!');
+};
+
+// ── Ranking ──────────────────────────────────────────────────────
+function renderTapRanking(){
+  if(!window._rankTapPeriodo) window._rankTapPeriodo='quinzena';
+  const per=window._rankTapPeriodo;
+  const qAtual=getQuinzenaAtualTap();
+  const hoje_=today();
+  const mesAtual=hoje_.slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  function perLabel(){ if(per==='quinzena') return quinzenaLabelTap(qAtual); const m=parseInt(mesAtual.slice(5,7))-1; return MESES[m]+' '+mesAtual.slice(0,4); }
+  function btnPer(v,l){ const ativo=per===v; return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'" onclick="window._setRankTapPeriodo(&quot;'+v+'&quot;)">'+l+'</button>'; }
+  const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:16px">'+btnPer('quinzena','Quinzena')+btnPer('mes','Mensal')+'</div>';
+  function totalTapPeriodo(tapId,pecaId){
+    return fichasTap.filter(f=>f.tapId===tapId).reduce((s,f)=>{
+      return s+(f.apontamentos||[]).reduce((ss,a)=>{
+        const data=a.data||'';
+        const match=per==='quinzena'?getQuinzenaTap(data)===qAtual:data.slice(0,7)===mesAtual;
+        return ss+(match?parseInt((a.pecas||{})[pecaId])||0:0);
+      },0);
+    },0);
+  }
+  const pecas=getPecasTapAtivas();
+  if(!pecas.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre peças nas Configurações para ver o ranking.</div>';
+  const header='<div style="background:#0e7490;border-radius:14px;padding:14px 18px;margin-bottom:14px"><div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Tapeçamento</div><div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">'+perLabel()+'</div></div>';
+  const cards=pecas.map(p=>{
+    const ranking=tapecadores.map(t=>({t,qtd:totalTapPeriodo(t.id,p.id)})).filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+    if(!ranking.length) return '';
+    const maxQ=ranking[0].qtd;
+    const medalhas=['🥇','🥈','🥉'];
+    const rows=ranking.map(({t,qtd},i)=>{
+      const c=avatarColor(tapecadores.findIndex(x=>x.id===t.id));
+      const pct=Math.round(qtd/maxQ*100);
+      const barCor=i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#cd7f32':'#3b82f6';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+        +'<span style="font-size:16px;width:24px;text-align:center">'+(i<3?medalhas[i]:'<span style="font-size:12px;color:#64748b">'+(i+1)+'</span>')+'</span>'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+initials(t.nome)+'</div>'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:700">'+t.nome+'</div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px;margin-top:4px">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div></div></div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+barCor+'">'+qtd+'</div></div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:14px"><div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:10px">'+p.label+'</div>'+rows+'</div>';
+  }).join('');
+  return header+filtroHtml+(cards||'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma produção no período.</div>');
+}
+window._setRankTapPeriodo=function(v){ window._rankTapPeriodo=v; reloadTab(); };
+
+// ── Tapecadores ──────────────────────────────────────────────────
+function renderTapTapecadores(){
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="window._tapNovoTapecador()">+ Tapecador</button></div>';
+  if(!tapecadores.length){ html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhum tapecador cadastrado.</div>'; return html; }
+  html+='<div class="card"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f8fafc"><th style="padding:7px 8px;text-align:left">Nome</th><th style="padding:7px 8px;text-align:center">Status</th><th style="padding:7px 8px"></th></tr></thead><tbody>';
+  tapecadores.forEach((t,i)=>{
+    html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+      +'<td style="padding:7px 8px;font-weight:600">'+t.nome+'</td>'
+      +'<td style="padding:7px 8px;text-align:center"><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+(t.ativo!==false?'#d1fae5':'#fee2e2')+';color:'+(t.ativo!==false?'#065f46':'#dc2626')+'">'+(t.ativo!==false?'Ativo':'Inativo')+'</span></td>'
+      +'<td style="padding:7px 8px;text-align:right"><button onclick="window._tapEditarTapecador(\''+t.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer">✎</button></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+window._tapNovoTapecador=function(t={}){
+  showModal(t.id?'Editar tapecador':'Novo tapecador',
+    '<div class="form-group"><label>Nome</label><input id="tt-nome" value="'+(t.nome||'').replace(/"/g,'&quot;')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Status</label><select id="tt-ativo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"><option value="true"'+(t.ativo!==false?' selected':'')+'>Ativo</option><option value="false"'+(t.ativo===false?' selected':'')+'>Inativo</option></select></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(t.id?'<button class="btn btn-sm btn-danger" onclick="window._tapExcluirTapecador(\''+t.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-sm btn-primary" onclick="window._tapSalvarTapecador(\''+(t.id||'')+'\')">Salvar</button>');
+};
+window._tapEditarTapecador=function(id){ const t=tapecadores.find(x=>x.id===id); if(t) window._tapNovoTapecador(t); };
+window._tapExcluirTapecador=function(id){ window._pendingTapTap=id; closeModal(); showModal('Excluir tapecador','<div style="font-size:13px">Deseja excluir este tapecador?</div>','<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button><button class="btn btn-sm btn-danger" onclick="window._tapConfirmarExcluirTap()">Excluir</button>'); };
+window._tapConfirmarExcluirTap=async function(){ const id=window._pendingTapTap; if(!id)return; closeModal(); await deleteDoc(doc(db,'tapecadores',id)); showToast('Tapecador excluído!'); };
+window._tapSalvarTapecador=async function(id){ const nome=document.getElementById('tt-nome')?.value.trim(); const ativo=document.getElementById('tt-ativo')?.value!=='false'; if(!nome){showToast('Digite o nome.');return;} closeModal(); if(id) await updateDoc(doc(db,'tapecadores',id),{nome,ativo}); else await addDoc(collection(db,'tapecadores'),{nome,ativo:true}); showToast('Tapecador salvo!'); };
+
+// ── Configurações ─────────────────────────────────────────────────
+function renderTapConfig(){
+  const pecasAtivas=getPecasTapAtivas();
+  let html='<div class="card" style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">💰 Valor por peça</div>';
+  if(!pecasAtivas.length){ html+='<div style="color:#94a3b8;font-size:12px;text-align:center;padding:10px">Nenhuma peça cadastrada ainda.</div>'; }
+  else {
+    pecasAtivas.forEach(p=>{
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+        +'<span style="font-size:13px;font-weight:600">'+p.label+'</span>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<input type="number" min="0" step="0.01" value="'+(getValorTap(p.id)||0)+'" id="tv-'+p.id+'" style="width:90px;font-size:13px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 8px;text-align:right">'
+        +'<button onclick="window._tapExcluirPeca(\''+p.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer">✕</button>'
+        +'</div></div>';
+    });
+    html+='<button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="window._tapSalvarValores()">Salvar valores</button>';
+  }
+  html+='</div>';
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">+ Nova peça</div>'
+    +'<div class="form-group"><label>Nome da peça</label><input id="tp-label" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%" placeholder="Ex: Poltrona JM"></div>'
+    +'<div class="form-group"><label>Valor (R$)</label><input id="tp-valor" type="number" step="0.01" min="0" value="0.00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._tapNovaPeca()">Adicionar peça</button></div>';
+
+  // Usuários do setor
+  const usuariosTap=usuarios.filter(u=>u.perfil==='apontador_tap'||u.perfil==='tapecador');
+  html+='<div class="card" style="margin-top:14px"><div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:12px">👤 Usuários do setor</div>'
+    +'<div class="form-group"><label>Perfil</label><select id="ntap-perfil" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"><option value="apontador_tap">Apontador Tapeçamento</option><option value="tapecador">Tapecador</option></select></div>'
+    +'<div class="form-group"><label>Nome</label><input id="ntap-nome" placeholder="Nome completo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>E-mail</label><input type="email" id="ntap-email" placeholder="email@empresa.com" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="ntap-senha" placeholder="mín. 6 caracteres" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._tapCadastrarUsuario()">Cadastrar</button></div>'
+    +(usuariosTap.length?'<div class="section-label" style="margin-top:14px">Usuários cadastrados</div>'
+      +usuariosTap.map(u=>{ const p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'}; return '<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:'+p.bg+';color:'+p.color+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(u.nome)+'</div><div><div style="font-size:13px;font-weight:700">'+u.nome+'</div><div style="font-size:11px;color:#64748b">'+u.email+'</div></div></div><div style="display:flex;gap:6px;align-items:center"><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+p.bg+';color:'+p.color+'">'+p.label+'</span>'+(u.uid!==currentUser?.uid?'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirUsuario(&quot;'+u.id+'&quot;)">Excluir</button>':'')+'</div></div></div>'; }).join(''):'');
+  return html;
+}
+window._tapNovaPeca=async function(){ const label=document.getElementById('tp-label')?.value.trim(); const valor=parseFloat(document.getElementById('tp-valor')?.value)||0; if(!label){showToast('Digite o nome da peça.');return;} const id='tp_'+Date.now(); const pecasCustom=[...(configTap.pecasCustom||[]),{id,label}]; const valores={...(configTap.valores||{}),[id]:valor}; await setDoc(doc(db,'config_tap','geral'),{...configTap,pecasCustom,valores}); showToast('Peça adicionada!'); };
+window._tapExcluirPeca=async function(id){ const pecasExcluidas=[...(configTap.pecasExcluidas||[]),id]; await setDoc(doc(db,'config_tap','geral'),{...configTap,pecasExcluidas}); showToast('Peça removida!'); };
+window._tapSalvarValores=async function(){ const valores={...(configTap.valores||{})}; getPecasTapAtivas().forEach(p=>{ const v=parseFloat(document.getElementById('tv-'+p.id)?.value)||0; valores[p.id]=v; }); await setDoc(doc(db,'config_tap','geral'),{...configTap,valores}); showToast('Valores salvos!'); };
+window._tapCadastrarUsuario=async function(){ const perfil=document.getElementById('ntap-perfil')?.value||'apontador_tap'; const nome=document.getElementById('ntap-nome')?.value.trim(); const email=document.getElementById('ntap-email')?.value.trim(); const senha=document.getElementById('ntap-senha')?.value.trim(); if(!nome||!email||!senha){showToast('Preencha todos os campos.');return;} if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;} await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''}); if(perfil==='tapecador'){ const jaExiste=tapecadores.some(t=>t.nome.trim().toLowerCase()===nome.toLowerCase()); if(!jaExiste) await addDoc(collection(db,'tapecadores'),{nome,ativo:true}); } showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.'); reloadTab(); };
+
+// ── Telas pessoais do Tapecador ────────────────────────────────────
+function renderTapMinhaFicha(){
+  const tap=tapecadorProprio();
+  if(!tap) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum tapecador. Peça ao apontador para verificar seu cadastro.</div></div>';
+  const c=avatarColor(tapecadores.findIndex(t=>t.id===tap.id));
+  const q=getQuinzenaAtualTap();
+  const ficha=fichasTap.find(f=>f.tapId===tap.id&&f.quinzena===q);
+  const aponts=ficha?.apontamentos||[];
+  const ganhoQ=calcGanhoTap(aponts); const totalQ=totalPecasTap(aponts);
+  const pago=ficha?.pago||false; const status=ficha?.status||'aberta';
+  const badge=status==='fechada'?(pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:99px;font-weight:700">Aguardando pagamento</span>'):'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700">Em aberto</span>';
+  let html='<div style="background:linear-gradient(135deg,#0e7490,#22d3ee);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
+    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na quinzena atual</div>'
+    +'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtR(ganhoQ)+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+quinzenaLabelTap(q)+(totalQ?' · '+totalQ+' peças':'')+'</div>'
+    +'<div style="margin-top:10px">'+badge+'</div></div>';
+  html+='<div class="card" style="border-left:4px solid '+c+'">';
+  const diasMap={};
+  const [qAno,qMes]=q.split('-');
+  aponts.forEach(a=>{ if(!a.data||getQuinzenaTap(a.data)!==q) return; if(!diasMap[a.data]) diasMap[a.data]={}; getPecasTapAtivas().forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v>0) diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+v; }); });
+  const dias=Object.keys(diasMap).sort();
+  if(dias.length){
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:#f1f5f9"><th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Data</th><th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center">Peças</th><th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:right">Ganho</th></tr></thead><tbody>';
+    dias.forEach((dia,i)=>{ const tots=diasMap[dia]; const tDia=Object.values(tots).reduce((s,v)=>s+v,0); const gDia=getPecasTapAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorTap(p.id),0); const[,, dd]=dia.split('-'); html+='<tr style="'+(i%2?'background:#f8fafc':'')+';border-bottom:1px solid #f1f5f9"><td style="padding:7px 10px;font-size:12px;font-weight:600">'+dd+'/'+qMes+'/'+qAno+'</td><td style="padding:7px 10px;font-size:13px;font-weight:800;color:#0e7490;text-align:center">'+tDia+'</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">'+fmtR(gDia)+'</td></tr>'; });
+    html+='<tfoot><tr style="background:#cffafe;font-weight:800"><td style="padding:8px 10px;font-size:12px;color:#0e7490">Total quinzena</td><td style="padding:8px 10px;font-size:14px;color:#0e7490;text-align:center">'+totalQ+'</td><td style="padding:8px 10px;font-size:14px;color:#059669;text-align:right">'+fmtR(ganhoQ)+'</td></tr></tfoot></table></div>';
+  } else { html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhum apontamento nesta quinzena ainda.</div>'; }
+  html+='</div>';
+  return html;
+}
+function renderTapMeuDesempenho(){
+  const tap=tapecadorProprio();
+  if(!tap) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum tapecador.</div></div>';
+  const c=avatarColor(tapecadores.findIndex(t=>t.id===tap.id));
+  const porQ={};
+  fichasTap.filter(f=>f.tapId===tap.id).forEach(f=>{ if(!f.quinzena) return; if(!porQ[f.quinzena]) porQ[f.quinzena]={pecas:0,ganho:0,status:f.status,pago:f.pago}; porQ[f.quinzena].pecas+=totalPecasTap(f.apontamentos||[]); porQ[f.quinzena].ganho+=calcGanhoTap(f.apontamentos||[]); if(f.status==='fechada') porQ[f.quinzena].status='fechada'; if(f.pago) porQ[f.quinzena].pago=true; });
+  const quinzenas=Object.keys(porQ).sort().reverse();
+  let html='<div class="card" style="margin-bottom:14px;border-left:4px solid '+c+'">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">'+initials(tap.nome)+'</div>'
+    +'<div><div style="font-size:15px;font-weight:800">'+tap.nome+'</div><div style="font-size:11px;color:#64748b">Histórico de quinzenas</div></div></div>';
+  if(!quinzenas.length){ html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhuma produção registrada ainda.</div>'; }
+  else { const melhor=quinzenas.reduce((b,q)=>porQ[q].ganho>porQ[b].ganho?q:b,quinzenas[0]); quinzenas.forEach(q=>{ const{pecas,ganho,status,pago}=porQ[q]; const badge=status==='fechada'?(pago?'<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:9px;background:#ede9fe;color:#4c1d95;padding:2px 7px;border-radius:99px;font-weight:700">Fechada</span>'):'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:99px;font-weight:700">Aberta</span>'; html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9"><div><div style="font-size:12px;font-weight:700">'+quinzenaLabelTap(q)+(q===melhor?' 🏆':'')+'</div><div style="font-size:11px;color:#64748b;margin-top:1px">'+pecas+' peças</div></div><div style="display:flex;align-items:center;gap:8px">'+badge+'<div style="font-size:16px;font-weight:800;color:'+(ganho>0?'#059669':'#94a3b8')+'">'+fmtR(ganho)+'</div></div></div>'; }); }
+  html+='</div>';
+  return html;
+}
+
 function renderTabFitas(tab){
   try{
     if(tab==='estoque_fitas')   return renderEstoqueFitas();
@@ -11430,6 +11826,15 @@ function finPagamentosTodos(){
       dataPagamento:f.dataPagamento||null,dataRef:f.dataFechamento||f.quinzena||'',tipo:'quinzena',fichaObj:f,setorKey:'grades'});
   });
 
+  // Tapeçamento
+  fichasTap.filter(f=>f.status==='fechada').forEach(f=>{
+    const tap=tapecadores.find(t=>t.id===f.tapId);
+    const valor=calcGanhoTap(f.apontamentos||[]);
+    if(valor<=0) return;
+    lista.push({id:f.id,setor:'Tapeçamento',pessoa:tap?.nome||'—',valor,pago:!!f.pago,
+      dataPagamento:f.dataPagamento||null,dataRef:f.dataFechamento||f.quinzena||'',tipo:'quinzena',fichaObj:f,setorKey:'tapecamento'});
+  });
+
   // Enrolamento interno
   fichasInt.filter(f=>f.status==='fechada').forEach(f=>{
     const enrI=enroladoresInt.find(e=>e.id===f.enroladorId);
@@ -13591,6 +13996,19 @@ function iniciarListeners(){
     notifPagamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderNotifPagamento();
   });
+  // Tapeçamento
+  onSnapshot(collection(db,'tapecadores'),snap=>{
+    tapecadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+    if(currentUserData&&currentSetor==='tapecamento')reloadTab();
+  });
+  onSnapshot(collection(db,'fichas_tap'),snap=>{
+    fichasTap=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='tapecamento')reloadTab();
+  });
+  onSnapshot(doc(db,'config_tap','geral'),snap=>{
+    if(snap.exists()) configTap={pecasExcluidas:[],pecasCustom:[],valores:{},...snap.data()};
+    if(currentUserData&&currentSetor==='tapecamento')reloadTab();
+  });
   // Manutenção
   onSnapshot(collection(db,'manut_maquinas'),snap=>{
     manutMaquinas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
@@ -13696,6 +14114,10 @@ onAuthStateChanged(auth,async user=>{
         const gradSemUid=gradistas.find(g=>!g.usuarioUid&&g.nome?.toLowerCase()===currentUserData.nome?.toLowerCase());
         if(gradSemUid) updateDoc(doc(db,'gradistas',gradSemUid.id),{usuarioUid:user.uid});
       }
+      if(currentUserData.perfil==='tapecador'){
+        const tapSemUid=tapecadores.find(t=>!t.usuarioUid&&t.nome?.toLowerCase()===currentUserData.nome?.toLowerCase());
+        if(tapSemUid) updateDoc(doc(db,'tapecadores',tapSemUid.id),{usuarioUid:user.uid});
+      }
       renderNotifPagamento();
     }else{
       // Primeiro acesso do admin: cria registro automaticamente
@@ -13707,6 +14129,8 @@ onAuthStateChanged(auth,async user=>{
       currentTab='relatorio';
     }else if(perfInicial==='gradista'){
       currentTab='grad_minha_ficha';
+    }else if(perfInicial==='tapecador'){
+      currentTab='tap_minha_ficha';
     }else if(can('verPainel')){
       currentTab='painel';
     }else{
