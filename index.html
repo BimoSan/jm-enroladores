@@ -8705,44 +8705,78 @@ function renderTapPainel(){
 
 // ── Apontamento ──────────────────────────────────────────────────
 function renderTapApontar(){
-  const q=getQuinzenaAtualTap();
   const pecas=getPecasTapAtivas();
-  if(!pecas.length) return '<div class="card"><div style="text-align:center;color:#94a3b8;padding:20px">Cadastre peças nas Configurações para começar a apontar.</div></div>';
-  let html='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">Registrar produção do dia</div>';
-  tapecadores.filter(t=>t.ativo!==false).forEach((t,ti)=>{
-    const c=avatarColor(ti);
-    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+c+'">'
-      +'<div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
-      +'<div style="width:30px;height:30px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+initials(t.nome)+'</div>'
-      +t.nome+'</div>'
-      +'<div style="display:flex;flex-direction:column;gap:6px">';
-    pecas.forEach(p=>{
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f8fafc">'
-        +'<div><div style="font-size:12px;font-weight:600">'+p.label+'</div>'
-        +(getValorTap(p.id)?'<div style="font-size:10px;color:#94a3b8">'+fmtMoeda(getValorTap(p.id))+'/peça</div>':'')
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:8px">'
-        +'<button onclick="window._tapDecQtd(\''+t.id+'\',\''+p.id+'\')" style="width:28px;height:28px;border-radius:50%;border:none;background:#e2e8f0;font-size:16px;cursor:pointer;font-weight:700">−</button>'
-        +'<input type="number" id="tap-qtd-'+t.id+'-'+p.id+'" min="0" value="0" style="width:56px;text-align:center;font-size:14px;font-weight:700;border:1.5px solid #e2e8f0;border-radius:8px;padding:4px">'
-        +'<button onclick="window._tapIncQtd(\''+t.id+'\',\''+p.id+'\')" style="width:28px;height:28px;border-radius:50%;border:none;background:#1d4ed8;color:#fff;font-size:16px;cursor:pointer;font-weight:700">+</button>'
-        +'</div></div>';
-    });
-    html+='</div>'
-      +'<div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">'
-      +'<input type="date" id="tap-data-'+t.id+'" value="'+today()+'" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px">'
-      +'<button class="btn btn-primary btn-sm" onclick="window._tapRegistrar(\''+t.id+'\')">✓ Registrar</button>'
-      +'</div></div>';
+  if(!pecas.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre peças nas Configurações para começar a apontar.</div>';
+  const ativos=tapecadores.filter(t=>t.ativo!==false);
+  if(!ativos.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum tapecador cadastrado.</div>';
+
+  let html='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">Selecione o tapeceiro:</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  ativos.forEach((t,i)=>{
+    const c=avatarColor(i);
+    const q=getQuinzenaAtualTap();
+    const ficha=fichasTapAtiva(t.id,q);
+    const hoje=today();
+    const apontsHoje=(ficha?.apontamentos||[]).filter(a=>a.data===hoje);
+    const totalHoje=totalPecasTap(apontsHoje);
+    html+='<div onclick="window._tapAbrirModalApontar(\''+t.id+'\')" style="background:#fff;border:2px solid '+c+'44;border-radius:16px;padding:20px;text-align:center;cursor:pointer;active:scale(.97)">'
+      +'<div style="width:52px;height:52px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin:0 auto 10px">'+initials(t.nome)+'</div>'
+      +'<div style="font-size:14px;font-weight:800;color:#1e293b">'+t.nome+'</div>'
+      +'<div style="font-size:11px;color:#94a3b8;margin-top:4px">'+(totalHoje>0?totalHoje+' peças hoje':'Nenhuma hoje')+'</div>'
+      +'</div>';
   });
+  html+='</div>';
   return html;
 }
-window._tapIncQtd=function(tapId,pecaId){ const el=document.getElementById('tap-qtd-'+tapId+'-'+pecaId); if(el) el.value=Math.max(0,(parseInt(el.value)||0)+1); };
-window._tapDecQtd=function(tapId,pecaId){ const el=document.getElementById('tap-qtd-'+tapId+'-'+pecaId); if(el) el.value=Math.max(0,(parseInt(el.value)||0)-1); };
-window._tapRegistrar=async function(tapId){
-  const data=document.getElementById('tap-data-'+tapId)?.value||today();
+
+window._tapAbrirModalApontar=function(tapId){
+  const t=tapecadores.find(x=>x.id===tapId); if(!t) return;
+  const pecas=getPecasTapAtivas();
+  const c=avatarColor(tapecadores.filter(x=>x.ativo!==false).findIndex(x=>x.id===tapId));
+
+  const linhasPecas=pecas.map(p=>
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9">'
+    +'<div>'
+    +'<div style="font-size:14px;font-weight:700">'+p.label+'</div>'
+    +(getValorTap(p.id)?'<div style="font-size:11px;color:#94a3b8">'+fmtMoeda(getValorTap(p.id))+'/peça</div>':'')
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<button onclick="window._tapDec(\''+p.id+'\')" style="width:36px;height:36px;border-radius:50%;border:none;background:#f1f5f9;font-size:20px;font-weight:700;cursor:pointer;color:#475569">−</button>'
+    +'<span id="tqtd-'+p.id+'" style="font-size:22px;font-weight:900;min-width:36px;text-align:center;color:#1e293b">0</span>'
+    +'<button onclick="window._tapInc(\''+p.id+'\')" style="width:36px;height:36px;border-radius:50%;border:none;background:#1d4ed8;font-size:20px;font-weight:700;cursor:pointer;color:#fff">+</button>'
+    +'</div></div>'
+  ).join('');
+
+  showModal(
+    '<div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(t.nome)+'</div>'+t.nome+'</div>',
+    '<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="tap-modal-data" value="'+today()+'" style="font-size:14px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +linhasPecas,
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._tapRegistrarModal(\''+tapId+'\')">✓ Registrar</button>'
+  );
+  window._tapApontTapId=tapId;
+};
+
+window._tapInc=function(pecaId){
+  const el=document.getElementById('tqtd-'+pecaId);
+  if(el) el.textContent=Math.max(0,(parseInt(el.textContent)||0)+1);
+};
+window._tapDec=function(pecaId){
+  const el=document.getElementById('tqtd-'+pecaId);
+  if(el) el.textContent=Math.max(0,(parseInt(el.textContent)||0)-1);
+};
+
+window._tapRegistrarModal=async function(tapId){
+  const data=document.getElementById('tap-modal-data')?.value||today();
   const q=getQuinzenaTap(data);
   const pecas={};
-  getPecasTapAtivas().forEach(p=>{ const v=parseInt(document.getElementById('tap-qtd-'+tapId+'-'+p.id)?.value)||0; if(v>0) pecas[p.id]=v; });
+  getPecasTapAtivas().forEach(p=>{
+    const v=parseInt(document.getElementById('tqtd-'+p.id)?.textContent)||0;
+    if(v>0) pecas[p.id]=v;
+  });
   if(!Object.keys(pecas).length){showToast('Registre pelo menos uma peça.');return;}
+  closeModal();
   let ficha=fichasTap.find(f=>f.tapId===tapId&&f.quinzena===q&&f.status==='aberta');
   const apont={data,pecas,hora:new Date().toISOString()};
   if(ficha){
@@ -8751,8 +8785,11 @@ window._tapRegistrar=async function(tapId){
     await addDoc(collection(db,'fichas_tap'),{tapId,quinzena:q,status:'aberta',pago:false,apontamentos:[apont]});
   }
   showToast('Produção registrada!');
-  getPecasTapAtivas().forEach(p=>{ const el=document.getElementById('tap-qtd-'+tapId+'-'+p.id); if(el) el.value=0; });
 };
+
+// Manter compatibilidade com inc/dec antigos caso existam referências
+window._tapIncQtd=function(tapId,pecaId){ const el=document.getElementById('tap-qtd-'+tapId+'-'+pecaId); if(el) el.value=Math.max(0,(parseInt(el.value)||0)+1); };
+window._tapDecQtd=function(tapId,pecaId){ const el=document.getElementById('tap-qtd-'+tapId+'-'+pecaId); if(el) el.value=Math.max(0,(parseInt(el.value)||0)-1); };
 
 // ── Fichas ───────────────────────────────────────────────────────
 function renderTapFichas(){
