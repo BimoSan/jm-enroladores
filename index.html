@@ -6011,9 +6011,15 @@ function renderEspPainel(){
       +'<div style="height:5px;background:#f1f5f9;border-radius:99px;margin-bottom:5px">'
       +'<div style="height:100%;width:'+pct+'%;background:'+cor+';border-radius:99px;transition:width .3s"></div>'
       +'</div>'
-      +'<div style="display:flex;gap:8px">'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +'<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-weight:700">'+unidIcon+' '+tambores.toFixed(1)+' '+unidLabel+'</span>'
-      +(mp.kgBloco>0?'<span style="font-size:11px;background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700">⬜ '+blocosPos+' blocos</span>':'')
+      +formulas.map(f=>{
+        const ing=(f.ingredientes||[]).find(x=>x.mpId===mpConf.id);
+        if(!ing||!ing.kgBloco) return '';
+        const blocosPossiveisNestaFormula=Math.floor(est/ing.kgBloco);
+        return '<span style="font-size:11px;background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700">⬜ '+blocosPossiveisNestaFormula+' '+f.label+'</span>';
+      }).join('')
+      +(formulas.length===0&&mp.kgBloco>0?'<span style="font-size:11px;background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:99px;font-weight:700">⬜ '+blocosPos+' blocos</span>':'')
       +'</div>'
       +'</div>';
   });
