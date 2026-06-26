@@ -8850,15 +8850,16 @@ function renderTapFichas(){
       +'</div>'+(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._tapFecharFicha(\''+f.id+'\')">Fechar</button>':'')
       +'</div></div>'
       +'<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">'
-      +(f.apontamentos||[]).sort((a,b)=>b.data>a.data?1:-1).map(a=>{
+      +(f.apontamentos||[]).sort((a,b)=>b.data>a.data?1:-1).map((a,ai)=>{
         const tv=getPecasTapAtivas().reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
         const gv=calcGanhoTap([a]);
+        const aId=a.id||('idx_'+ai);
         const [ano,mes,dd]=(a.data||'').split('-');
         return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#64748b;padding:4px 0;border-top:1px solid #f1f5f9">'
           +'<span>'+dd+'/'+mes+'/'+ano+' · '+tv+' peças</span>'
           +'<div style="display:flex;align-items:center;gap:8px">'
           +'<span style="color:#059669;font-weight:700">'+fmtMoeda(gv)+'</span>'
-          +(f.status==='aberta'&&(a.id)?'<button onclick="window._tapEditarApont(\''+f.id+'\',\''+a.id+'\')" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;color:#475569">Editar</button>':'')
+          +(f.status==='aberta'?'<button onclick="window._tapEditarApont(\''+f.id+'\',\''+aId+'\')" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;color:#475569">✎ Editar</button>':'')
           +'</div></div>';
       }).join('')
       +'</div></div>';
@@ -8881,7 +8882,16 @@ window._tapConfirmarFechar=async function(){
 
 window._tapEditarApont=function(fichaId,apontId){
   const ficha=fichasTap.find(f=>f.id===fichaId); if(!ficha) return;
-  const apont=ficha.apontamentos.find(a=>a.id===apontId); if(!apont) return;
+  let apont, apontIndex;
+  if(apontId.startsWith('idx_')){
+    apontIndex=parseInt(apontId.replace('idx_',''));
+    apont=(ficha.apontamentos||[])[apontIndex];
+  } else {
+    apontIndex=(ficha.apontamentos||[]).findIndex(a=>a.id===apontId);
+    apont=(ficha.apontamentos||[])[apontIndex];
+  }
+  if(!apont) return;
+  window._tapEditApontIndex=apontIndex;
   const tap=tapecadores.find(t=>t.id===ficha.tapId);
   const [ano,mes,dd]=(apont.data||'').split('-');
   const campos=getPecasTapAtivas().map(p=>{
@@ -8897,18 +8907,35 @@ window._tapEditarApont=function(fichaId,apontId){
   showModal('Editar — '+(tap?.nome||'')+' · '+dd+'/'+mes+'/'+ano,
     '<div style="max-height:65vh;overflow-y:auto">'+campos+'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
-    +'<button class="btn btn-sm btn-primary" onclick="window._tapSalvarEdicaoApont(\''+fichaId+'\',\''+apontId+'\')">Salvar</button>');
+    +'<button class="btn btn-sm btn-danger" onclick="window._tapExcluirApont(\''+fichaId+'\','+apontIndex+')">Excluir</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._tapSalvarEdicaoApont(\''+fichaId+'\','+apontIndex+')">Salvar</button>');
 };
 window._tapEditInc=function(pid){ const el=document.getElementById('tedit-'+pid); if(el) el.textContent=Math.max(0,(parseInt(el.textContent)||0)+1); };
 window._tapEditDec=function(pid){ const el=document.getElementById('tedit-'+pid); if(el) el.textContent=Math.max(0,(parseInt(el.textContent)||0)-1); };
-window._tapSalvarEdicaoApont=async function(fichaId,apontId){
+window._tapSalvarEdicaoApont=async function(fichaId,apontIndex){
   const ficha=fichasTap.find(f=>f.id===fichaId); if(!ficha) return;
   const pecas={};
   getPecasTapAtivas().forEach(p=>{ const v=parseInt(document.getElementById('tedit-'+p.id)?.textContent)||0; if(v>0) pecas[p.id]=v; });
-  const apontamentos=ficha.apontamentos.map(a=>a.id===apontId?{...a,pecas}:a);
+  const apontamentos=[...(ficha.apontamentos||[])];
+  apontamentos[apontIndex]={...apontamentos[apontIndex],pecas};
   closeModal();
   await updateDoc(doc(db,'fichas_tap',fichaId),{apontamentos});
   showToast('Lançamento atualizado!');
+};
+window._tapExcluirApont=function(fichaId,apontIndex){
+  window._pendingTapExcluirApont={fichaId,apontIndex};
+  closeModal();
+  showModal('Excluir lançamento','<div style="font-size:13px">Deseja excluir este lançamento?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._tapConfirmarExcluirApont()">Excluir</button>');
+};
+window._tapConfirmarExcluirApont=async function(){
+  const {fichaId,apontIndex}=window._pendingTapExcluirApont||{}; if(fichaId===undefined) return;
+  closeModal();
+  const ficha=fichasTap.find(f=>f.id===fichaId); if(!ficha) return;
+  const apontamentos=(ficha.apontamentos||[]).filter((_,i)=>i!==apontIndex);
+  await updateDoc(doc(db,'fichas_tap',fichaId),{apontamentos});
+  showToast('Lançamento excluído!');
 };
 
 // ── Ranking ──────────────────────────────────────────────────────
