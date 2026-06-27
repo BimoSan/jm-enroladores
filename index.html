@@ -32,9 +32,8 @@
   document.head.appendChild(link);
 })();
 if('serviceWorker' in navigator){
-  const sw='self.addEventListener("install",e=>{self.skipWaiting()});self.addEventListener("activate",e=>{clients.claim()});self.addEventListener("fetch",e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});';
-  const blob=new Blob([sw],{type:'application/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+  // Desregistra service workers antigos que possam estar causando problemas de cache
+  navigator.serviceWorker.getRegistrations().then(regs=>{ regs.forEach(r=>r.unregister()); });
 }
 </script>
 <meta name="mobile-web-app-capable" content="yes">
