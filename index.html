@@ -3747,17 +3747,19 @@ function calcGanhoSoldador(soldadorId, periodo){
       }
 
       // Menos de 2 atingiram meia meta → equivalência: usa produção de outras
-      // peças (com ou sem meta própria) para completar o déficit da principal
+      // peças COM META para completar o déficit da principal
       let principal=pecaBaseDefinida?comMeta.find(p=>p.id===pecaBaseDefinida):null;
       if(!principal){
         const ordenadas=[...comMeta].sort((a,b)=>((a.meta-a.qtd)/a.meta)-((b.meta-b.qtd)/b.meta));
         principal=ordenadas[0];
       }
       let deficitPrincipal=Math.max(0,principal.meta-principal.qtd);
-      const outras=pecasDia.filter(p=>p.id!==principal.id);
+      // Só peças COM META podem ceder produção para cobrir o déficit
+      const outras=pecasDia.filter(p=>p.id!==principal.id&&p.meta>0);
+      const semMeta=pecasDia.filter(p=>p.meta===0);
       const pagavel={};
-      pecasDia.forEach(p=>{ pagavel[p.id]=p.qtd; }); // por padrão, paga tudo (será ajustado)
-      pagavel[principal.id]=Math.max(0,principal.qtd-principal.meta); // excedente da principal (0 se não bateu)
+      pecasDia.forEach(p=>{ pagavel[p.id]=p.qtd; });
+      pagavel[principal.id]=Math.max(0,principal.qtd-principal.meta);
 
       for(const sec of outras){
         if(deficitPrincipal<=0) break;
@@ -3768,6 +3770,7 @@ function calcGanhoSoldador(soldadorId, periodo){
 
       if(deficitPrincipal<=0){
         // Déficit coberto → dia liberado, paga conforme calculado
+        // Peças sem meta: só pagam se o dia foi liberado pelas peças com meta
         pecasDia.forEach(p=>{ totalGanho+=(pagavel[p.id]||0)*p.val; });
       }
       // Se não cobriu: dia não liberado, não ganha nada
