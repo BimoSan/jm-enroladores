@@ -7483,7 +7483,7 @@ function renderGradMinhaFicha(){
   let html='<div style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
     +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na quinzena atual</div>'
     +'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtR(ganhoQ)+'</div>'
-    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+quinzenaLabelGrad(q)+(totalQ?' · '+totalQ+' peças produzidas':'')+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+(totalQ?totalQ+' peças produzidas':'')+'</div>'
     +'<div style="margin-top:10px">'+badgeStatus+'</div>'
     +'</div>';
 
@@ -9142,7 +9142,7 @@ function renderTapMinhaFicha(){
   let html='<div style="background:linear-gradient(135deg,#0e7490,#22d3ee);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
     +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na quinzena atual</div>'
     +'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtR(ganhoQ)+'</div>'
-    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+quinzenaLabelTap(q)+(totalQ?' · '+totalQ+' peças':'')+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+(totalQ?totalQ+' peças produzidas':'')+'</div>'
     +'<div style="margin-top:10px">'+badge+'</div></div>';
   html+='<div class="card" style="border-left:4px solid '+c+'">';
   const diasMap={};
