@@ -9016,8 +9016,11 @@ function renderTapRanking(){
   const pecas=getPecasTapAtivas();
   if(!pecas.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre peças nas Configurações para ver o ranking.</div>';
   const header='<div style="background:#0e7490;border-radius:14px;padding:14px 18px;margin-bottom:14px"><div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Tapeçamento</div><div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">'+perLabel()+'</div></div>';
-  const cards=pecas.map(p=>{
-    const ranking=tapecadores.map(t=>({t,qtd:totalTapPeriodo(t.id,p.id)})).filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+  const gruposCamas=configTap.grupoCamas||[];
+  const pecasCamas=pecas.filter(p=>gruposCamas.includes(p.id));
+  const pecasOutras=pecas.filter(p=>!gruposCamas.includes(p.id));
+  function renderCardRanking(titulo, pecasDoGrupo, ocultarQtd){
+    const ranking=tapecadores.map(t=>({t,qtd:pecasDoGrupo.reduce((s,p)=>s+totalTapPeriodo(t.id,p.id),0)})).filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd);
     if(!ranking.length) return '';
     const maxQ=ranking[0].qtd;
     const medalhas=['🥇','🥈','🥉'];
@@ -9031,13 +9034,18 @@ function renderTapRanking(){
         +'<div style="flex:1"><div style="font-size:13px;font-weight:700">'+t.nome+'</div>'
         +'<div style="height:6px;background:#f1f5f9;border-radius:99px;margin-top:4px">'
         +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div></div></div>'
-        +'<div style="font-size:20px;font-weight:800;color:'+barCor+'">'+qtd+'</div></div>';
+        +(ocultarQtd?'':'<div style="font-size:20px;font-weight:800;color:'+barCor+'">'+qtd+'</div>')
+        +'</div>';
     }).join('');
-    return '<div class="card" style="margin-bottom:14px"><div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:10px">'+p.label+'</div>'+rows+'</div>';
-  }).join('');
+    return '<div class="card" style="margin-bottom:14px"><div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:10px">'+titulo+'</div>'+rows+'</div>';
+  }
+  let cards='';
+  if(pecasCamas.length) cards+=renderCardRanking('🛏️ Camas',pecasCamas,true);
+  pecasOutras.forEach(p=>{ cards+=renderCardRanking(p.label,[p],false); });
   return header+filtroHtml+(cards||'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma produção no período.</div>');
 }
 window._setRankTapPeriodo=function(v){ window._rankTapPeriodo=v; reloadTab(); };
+
 
 // ── Tapecadores ──────────────────────────────────────────────────
 function renderTapTapecadores(){
@@ -9069,6 +9077,8 @@ window._tapSalvarTapecador=async function(id){ const nome=document.getElementByI
 // ── Configurações ─────────────────────────────────────────────────
 function renderTapConfig(){
   const pecasAtivas=getPecasTapAtivas();
+  const gruposCamas=configTap.grupoCamas||[];
+
   let html='<div class="card" style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">💰 Valor por peça</div>';
   if(!pecasAtivas.length){ html+='<div style="color:#94a3b8;font-size:12px;text-align:center;padding:10px">Nenhuma peça cadastrada ainda.</div>'; }
   else {
@@ -9083,6 +9093,18 @@ function renderTapConfig(){
     html+='<button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="window._tapSalvarValores()">Salvar valores</button>';
   }
   html+='</div>';
+
+  // Grupo Camas no Ranking
+  if(pecasAtivas.length){
+    html+='<div class="card" style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">🛏️ Grupo "Camas" no Ranking</div>'
+      +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Peças marcadas serão somadas em um único card "Camas" no ranking, sem mostrar a quantidade.</div>'
+      +pecasAtivas.map(p=>'<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;cursor:pointer">'
+        +'<input type="checkbox" id="tg-'+p.id+'" '+(gruposCamas.includes(p.id)?'checked':'')+' style="width:16px;height:16px">'
+        +p.label+'</label>').join('')
+      +'<button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="window._tapSalvarGrupoCamas()">Salvar grupo</button>'
+      +'</div>';
+  }
+
   html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">+ Nova peça</div>'
     +'<div class="form-group"><label>Nome da peça</label><input id="tp-label" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%" placeholder="Ex: Poltrona JM"></div>'
     +'<div class="form-group"><label>Valor (R$)</label><input id="tp-valor" type="number" step="0.01" min="0" value="0.00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
@@ -9103,6 +9125,7 @@ function renderTapConfig(){
 window._tapNovaPeca=async function(){ const label=document.getElementById('tp-label')?.value.trim(); const valor=parseFloat(document.getElementById('tp-valor')?.value)||0; if(!label){showToast('Digite o nome da peça.');return;} const id='tp_'+Date.now(); const pecasCustom=[...(configTap.pecasCustom||[]),{id,label}]; const valores={...(configTap.valores||{}),[id]:valor}; await setDoc(doc(db,'config_tap','geral'),{...configTap,pecasCustom,valores}); showToast('Peça adicionada!'); };
 window._tapExcluirPeca=async function(id){ const pecasExcluidas=[...(configTap.pecasExcluidas||[]),id]; await setDoc(doc(db,'config_tap','geral'),{...configTap,pecasExcluidas}); showToast('Peça removida!'); };
 window._tapSalvarValores=async function(){ const valores={...(configTap.valores||{})}; getPecasTapAtivas().forEach(p=>{ const v=parseFloat(document.getElementById('tv-'+p.id)?.value)||0; valores[p.id]=v; }); await setDoc(doc(db,'config_tap','geral'),{...configTap,valores}); showToast('Valores salvos!'); };
+window._tapSalvarGrupoCamas=async function(){ const grupoCamas=getPecasTapAtivas().filter(p=>document.getElementById('tg-'+p.id)?.checked).map(p=>p.id); await setDoc(doc(db,'config_tap','geral'),{...configTap,grupoCamas}); showToast('Grupo salvo!'); };
 window._tapCadastrarUsuario=async function(){ const perfil=document.getElementById('ntap-perfil')?.value||'apontador_tap'; const nome=document.getElementById('ntap-nome')?.value.trim(); const email=document.getElementById('ntap-email')?.value.trim(); const senha=document.getElementById('ntap-senha')?.value.trim(); if(!nome||!email||!senha){showToast('Preencha todos os campos.');return;} if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;} await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''}); if(perfil==='tapecador'){ const jaExiste=tapecadores.some(t=>t.nome.trim().toLowerCase()===nome.toLowerCase()); if(!jaExiste) await addDoc(collection(db,'tapecadores'),{nome,ativo:true}); } showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.'); reloadTab(); };
 
 // ── Telas pessoais do Tapecador ────────────────────────────────────
