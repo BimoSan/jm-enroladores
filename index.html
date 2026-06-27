@@ -713,6 +713,15 @@ function renderSelecionarFabrica(){
       <div class="fab-desc">${f.desc}</div>
     </div>`).join('');
 
+  const podeVisaoGeral=['admin','proprietario'].includes(currentUserData?.perfil);
+  const btnVisaoGeral=podeVisaoGeral?`
+    <div style="margin-top:16px">
+      <button onclick="window._abrirVisaoGeral()" style="width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Visão Geral da Fábrica
+      </button>
+    </div>`:'';
+
   const podeGerenciarUsuarios=currentUserData?.perfil==='admin';
   const btnUsuarios=podeGerenciarUsuarios?`
     <div style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:16px">
@@ -728,11 +737,217 @@ function renderSelecionarFabrica(){
       <button class="btn btn-ghost btn-sm" onclick="window._doLogout()">Sair</button>
     </div>
     <div class="sel-sub">Olá, <strong>${currentUserData.nome}</strong>! Selecione a fábrica para continuar.</div>
+    ${btnVisaoGeral}
     <div class="fab-grid">${cards}</div>
     ${btnUsuarios}
   </div></div>`;
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// VISÃO GERAL DA FÁBRICA — swipe horizontal para proprietário/admin
+// ════════════════════════════════════════════════════════════════
+window._abrirVisaoGeral=function(){
+  document.getElementById('root').innerHTML=renderVisaoGeral();
+  // Inicializa swipe após render
+  setTimeout(()=>{
+    const track=document.getElementById('vg-track');
+    const dots=document.querySelectorAll('.vg-dot');
+    if(!track) return;
+    let idx=0;
+    const total=track.children.length;
+    function goTo(i){
+      idx=Math.max(0,Math.min(total-1,i));
+      track.style.transform=`translateX(-${idx*100}%)`;
+      dots.forEach((d,di)=>{ d.style.background=di===idx?'#fff':'rgba(255,255,255,.4)'; });
+    }
+    // Touch swipe
+    let startX=0;
+    track.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;},{passive:true});
+    track.addEventListener('touchend',e=>{
+      const dx=e.changedTouches[0].clientX-startX;
+      if(Math.abs(dx)>50) goTo(idx+(dx<0?1:-1));
+    },{passive:true});
+    // Dots click
+    dots.forEach((d,di)=>d.addEventListener('click',()=>goTo(di)));
+    goTo(0);
+  },100);
+};
+
+function renderVisaoGeral(){
+  const hoje=today();
+  const mesAtual=hoje.slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1];
+
+  // ── Dados por setor ───────────────────────────────────────────
+  // Enrolamento Terceirizado
+  const fichasTerc=fichas;
+  const enrHoje=fichasTerc.reduce((s,f)=>{
+    return s+(f.recolhimentos||[]).filter(r=>r.data===hoje).reduce((ss,r)=>ss+Object.values(r.tipos||{}).reduce((sss,v)=>sss+(parseInt(v)||0),0),0);
+  },0);
+  const enrMes=fichasTerc.reduce((s,f)=>{
+    return s+(f.recolhimentos||[]).filter(r=>(r.data||'').startsWith(mesAtual)).reduce((ss,r)=>ss+Object.values(r.tipos||{}).reduce((sss,v)=>sss+(parseInt(v)||0),0),0);
+  },0);
+  const enrPendentes=fichasTerc.filter(f=>f.status==='fechada'&&!f.pago).length;
+
+  // Metalúrgica
+  const metHoje=PECAS_METAL.reduce((s,p)=>s+apontamentosMetal.filter(a=>a.data===hoje).reduce((ss,a)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+  const metMes=PECAS_METAL.reduce((s,p)=>s+totalPecaPeriodo(null,p.id,'mes'),0);
+  // total todos soldadores
+  const metHojeTot=soldadores.reduce((s,sol)=>s+PECAS_METAL.reduce((ss,p)=>ss+totalPecaPeriodo(sol.id,p.id,'hoje'),0),0);
+  const metMesTot=soldadores.reduce((s,sol)=>s+PECAS_METAL.reduce((ss,p)=>ss+totalPecaPeriodo(sol.id,p.id,'mes'),0),0);
+
+  // Grades
+  const gradHoje=fichasGrad.reduce((s,f)=>{
+    return s+(f.apontamentos||[]).filter(a=>a.data===hoje).reduce((ss,a)=>ss+getPecasGradAtivas().reduce((sss,p)=>sss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+  },0);
+  const gradMes=fichasGrad.reduce((s,f)=>{
+    return s+(f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).reduce((ss,a)=>ss+getPecasGradAtivas().reduce((sss,p)=>sss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+  },0);
+
+  // Tapeçamento
+  const tapHoje=fichasTap.reduce((s,f)=>{
+    return s+(f.apontamentos||[]).filter(a=>a.data===hoje).reduce((ss,a)=>ss+getPecasTapAtivas().reduce((sss,p)=>sss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+  },0);
+  const tapMes=fichasTap.reduce((s,f)=>{
+    return s+(f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).reduce((ss,a)=>ss+getPecasTapAtivas().reduce((sss,p)=>sss+(parseInt((a.pecas||{})[p.id])||0),0),0);
+  },0);
+
+  // Espuma
+  const espHoje=espumaProducao.filter(p=>p.data===hoje).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+  const espMes=espumaProducao.filter(p=>(p.data||'').startsWith(mesAtual)).reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+
+  // Manutenção
+  const maqParadas=manutMaquinas.filter(m=>m.parada).length;
+  const maqTotal=manutMaquinas.length;
+
+  // Financeiro
+  const pagamentos=finPagamentosTodos();
+  const pendentesTotal=pagamentos.filter(p=>!p.pago).length;
+  const valorPendente=pagamentos.filter(p=>!p.pago).reduce((s,p)=>s+p.valor,0);
+  const custosDoMesVal=custosIndiretos.filter(c=>(c.data||'').startsWith(mesAtual)).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+
+  // ── Páginas ───────────────────────────────────────────────────
+  function stat(label, val, sub, cor='#fff'){
+    return `<div style="text-align:center;padding:8px 0">
+      <div style="font-size:11px;font-weight:600;opacity:.7;margin-bottom:4px">${label}</div>
+      <div style="font-size:36px;font-weight:900;color:${cor};line-height:1">${val}</div>
+      ${sub?`<div style="font-size:11px;opacity:.6;margin-top:4px">${sub}</div>`:''}
+    </div>`;
+  }
+
+  function page(icon, nome, cor1, cor2, statsHtml, extra=''){
+    return `<div style="min-width:100%;height:100%;background:linear-gradient(160deg,${cor1},${cor2});display:flex;flex-direction:column;justify-content:center;padding:28px 24px;box-sizing:border-box">
+      <div style="font-size:36px;margin-bottom:6px;text-align:center">${icon}</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;text-align:center;margin-bottom:24px">${nome}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${statsHtml}
+      </div>
+      ${extra}
+    </div>`;
+  }
+
+  function card(label, val, sub=''){
+    return `<div style="background:rgba(255,255,255,.15);border-radius:16px;padding:16px 12px;text-align:center;backdrop-filter:blur(4px)">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${label}</div>
+      <div style="font-size:32px;font-weight:900;color:#fff;line-height:1">${val}</div>
+      ${sub?`<div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:4px">${sub}</div>`:''}
+    </div>`;
+  }
+
+  const paginas=[
+    // 1. Resumo geral
+    `<div style="min-width:100%;height:100%;background:linear-gradient(160deg,#0f172a,#1e3a5f);display:flex;flex-direction:column;justify-content:center;padding:28px 24px;box-sizing:border-box">
+      <div style="font-size:28px;font-weight:900;color:#fff;margin-bottom:4px">📊 Visão Geral</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px">${hoje.split('-').reverse().join('/')} · ${mesNome}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${card('Peças hoje (Metal)',''+metHojeTot,'Metalúrgica')}
+        ${card('Peças hoje (Grades)',''+gradHoje,'Grades')}
+        ${card('Peças hoje (Tap.)',''+tapHoje,'Tapeçamento')}
+        ${card('Blocos hoje (Esp.)',''+espHoje,'Espuma')}
+        ${card('A pagar',''+pendentesTotal,fmtMoeda(valorPendente))}
+        ${card('Máquinas paradas',''+maqParadas,maqTotal+' no total')}
+      </div>
+    </div>`,
+
+    // 2. Enrolamento Terceirizado
+    page('🧵','Enrolamento Terc.','#0f766e','#0d9488',
+      card('Cadeiras hoje',''+enrHoje,'')+
+      card('Cadeiras no mês',''+enrMes,mesNome)+
+      card('Fichas pendentes',''+enrPendentes,'a pagar')+
+      card('Enroladores ativos',''+enroladores.filter(e=>e.ativo!==false).length,'')
+    ),
+
+    // 3. Metalúrgica
+    page('⚙️','Metalúrgica','#374151','#4b5563',
+      card('Peças hoje',''+metHojeTot,'')+
+      card('Peças no mês',''+metMesTot,mesNome)+
+      card('Soldadores ativos',''+soldadores.filter(s=>s.ativo!==false).length,'')+
+      card('Fichas abertas',''+fichasMetal.filter(f=>f.status==='aberta').length,'')
+    ),
+
+    // 4. Grades
+    page('🪑','Grades','#1e40af','#2563eb',
+      card('Peças hoje',''+gradHoje,'')+
+      card('Peças no mês',''+gradMes,mesNome)+
+      card('Gradistas ativos',''+gradistas.filter(g=>g.ativo!==false).length,'')+
+      card('Fichas abertas',''+fichasGrad.filter(f=>f.status==='aberta').length,'')
+    ),
+
+    // 5. Tapeçamento
+    page('🪑','Tapeçamento','#0e7490','#0891b2',
+      card('Peças hoje',''+tapHoje,'')+
+      card('Peças no mês',''+tapMes,mesNome)+
+      card('Tapeceiros ativos',''+tapecadores.filter(t=>t.ativo!==false).length,'')+
+      card('Fichas abertas',''+fichasTap.filter(f=>f.status==='aberta').length,'')
+    ),
+
+    // 6. Espuma
+    page('⬜','Blocos de Espuma','#4c1d95','#6d28d9',
+      card('Blocos hoje',''+espHoje,'')+
+      card('Blocos no mês',''+espMes,mesNome)+
+      card('Operadores ativos',''+espumaOperadores.filter(o=>o.ativo!==false).length,'')+
+      card('Prontos em estoque',''+[...new Set((configEspuma.formulas||[]).map(f=>f.id))].reduce((s,fid)=>s+blocosProntosEstoque(fid),0),'blocos')
+    ),
+
+    // 7. Manutenção
+    page('🔧','Manutenção','#374151','#1f2937',
+      card('Máquinas OK',''+manutMaquinas.filter(m=>!m.parada).length,'')+
+      card('Máquinas paradas',''+maqParadas,maqParadas>0?'⚠️ atenção':'')+
+      card('Total de máquinas',''+maqTotal,'')+
+      card('Corretivas abertas',''+manutMaquinas.filter(m=>m.parada).length,'')
+    ),
+
+    // 8. Financeiro
+    page('💰','Financeiro','#065f46','#059669',
+      card('Pendentes de pagar',''+pendentesTotal,'')+
+      card('Valor pendente',fmtMoeda(valorPendente),'')+
+      card('Indiretos '+mesNome,fmtMoeda(custosDoMesVal),'')+
+      card('Pagos no mês',''+pagamentos.filter(p=>p.pago&&(p.dataPagamento||'').startsWith(mesAtual)).length,'')
+    ),
+  ];
+
+  const dots=paginas.map((_,i)=>`<div class="vg-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;transition:background .2s"></div>`).join('');
+
+  return `<div style="position:fixed;inset:0;background:#0f172a;overflow:hidden;display:flex;flex-direction:column">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0;z-index:10">
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.7)">JM — Visão Geral</div>
+      <button onclick="document.getElementById('root').innerHTML=renderSelecionarFabrica()" style="border:none;background:rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer">← Voltar</button>
+    </div>
+    <!-- Track -->
+    <div style="flex:1;overflow:hidden;position:relative">
+      <div id="vg-track" style="display:flex;height:100%;transition:transform .35s cubic-bezier(.4,0,.2,1);will-change:transform">
+        ${paginas.join('')}
+      </div>
+    </div>
+    <!-- Dots -->
+    <div style="display:flex;justify-content:center;gap:8px;padding:16px;flex-shrink:0">
+      ${dots}
+    </div>
+  </div>`;
+}
 
 window._selecionarFabrica=id=>{
   currentFabrica=id;
