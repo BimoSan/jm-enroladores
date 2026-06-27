@@ -12114,21 +12114,23 @@ function finComprasTodos(){
 
 // ── Dashboard ───────────────────────────────────────────────────
 function renderFinDashboard(){
-  const pagamentos=finPagamentosTodos();
-  const pendentes=pagamentos.filter(p=>!p.pago);
-  const pagas=pagamentos.filter(p=>p.pago);
-  const totalPendente=pendentes.reduce((s,p)=>s+p.valor,0);
-  const totalPago=pagas.reduce((s,p)=>s+p.valor,0);
-
-  const compras=finComprasTodos();
-  const totalCompras=compras.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
-
-  // Custos indiretos do mês atual
   const mesAtualFin=today().slice(0,7);
-  const custosDoMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mesAtualFin));
-  const totalCustosDoMes=custosDoMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
   const MESES_FIN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesNomeFin=MESES_FIN[parseInt(mesAtualFin.slice(5,7))-1];
+
+  const pagamentos=finPagamentosTodos();
+  const pendentes=pagamentos.filter(p=>!p.pago);
+  const totalPendente=pendentes.reduce((s,p)=>s+p.valor,0);
+
+  // Apenas mês atual
+  const pagasDoMes=pagamentos.filter(p=>p.pago&&(p.dataPagamento||p.dataRef||'').startsWith(mesAtualFin));
+  const totalPagoMes=pagasDoMes.reduce((s,p)=>s+p.valor,0);
+
+  const comprasDoMes=finComprasTodos().filter(c=>(c.data||'').startsWith(mesAtualFin));
+  const totalComprasMes=comprasDoMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+
+  const custosDoMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mesAtualFin));
+  const totalCustosDoMes=custosDoMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
 
   // Por setor (pendente)
   const porSetor={};
@@ -12138,13 +12140,25 @@ function renderFinDashboard(){
     porSetor[p.setor].qtd++;
   });
 
-  // Meses com gastos (pagamentos pagos)
+  // Meses com gastos (pagamentos pagos + compras + indiretos)
   const porMes={};
-  pagas.forEach(p=>{
+  pagamentos.filter(p=>p.pago).forEach(p=>{
     const m=(p.dataPagamento||p.dataRef||'').slice(0,7);
     if(!m) return;
     if(!porMes[m]) porMes[m]=0;
     porMes[m]+=p.valor;
+  });
+  finComprasTodos().forEach(c=>{
+    const m=(c.data||'').slice(0,7);
+    if(!m) return;
+    if(!porMes[m]) porMes[m]=0;
+    porMes[m]+=parseFloat(c.custoTotal)||0;
+  });
+  custosIndiretos.forEach(c=>{
+    const m=(c.data||'').slice(0,7);
+    if(!m) return;
+    if(!porMes[m]) porMes[m]=0;
+    porMes[m]+=parseFloat(c.valor)||0;
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
@@ -12155,34 +12169,35 @@ function renderFinDashboard(){
 
   let html='';
 
-  // Cards de resumo
-  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+  // Cards de resumo — todos filtrados pelo mês atual
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px">
     <div class="card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;text-align:center;padding:18px">
       <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">A PAGAR</div>
       <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPendente)}</div>
       <div style="font-size:11px;opacity:.7;margin-top:4px">${pendentes.length} pendência${pendentes.length!==1?'s':''}</div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;text-align:center;padding:18px">
-      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">TOTAL PAGO</div>
-      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPago)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">${pagas.length} pagamento${pagas.length!==1?'s':''}</div>
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">PAGO — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPagoMes)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${pagasDoMes.length} pagamento${pagasDoMes.length!==1?'s':''}</div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;text-align:center;padding:18px">
-      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">COMPRAS DE MATERIAL</div>
-      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalCompras)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">${compras.length} entradas</div>
-    </div>
-    <div class="card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;text-align:center;padding:18px">
-      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">GASTO TOTAL GERAL</div>
-      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPago+totalCompras+totalCustosDoMes)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">mão de obra + materiais + indiretos</div>
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">COMPRAS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalComprasMes)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${comprasDoMes.length} entradas</div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;text-align:center;padding:18px">
       <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">CUSTOS INDIRETOS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:28px;font-weight:900">${fmtMoeda(totalCustosDoMes)}</div>
       <div style="font-size:11px;opacity:.7;margin-top:4px">${custosDoMes.length} lançamento${custosDoMes.length!==1?'s':''}</div>
     </div>
-  </div>`;
+    <div class="card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">GASTO TOTAL — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPagoMes+totalComprasMes+totalCustosDoMes)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">mão de obra + materiais + indiretos</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
 
   // Pendências por setor
   if(Object.keys(porSetor).length){
@@ -12421,14 +12436,31 @@ function renderFinRelPagamentos(){
   const pagamentos=finPagamentosTodos().filter(p=>p.pago);
   const MESES_NOME=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  // Agrupar por mês
+  // Agrupar por mês: pagamentos + compras + indiretos
   const porMes={};
   pagamentos.forEach(p=>{
     const m=(p.dataPagamento||p.dataRef||'').slice(0,7);
     if(!m) return;
-    if(!porMes[m]) porMes[m]={mes:m,total:0,itens:[]};
+    if(!porMes[m]) porMes[m]={mes:m,total:0,totalMaoObra:0,totalCompras:0,totalIndiretos:0,itens:[]};
     porMes[m].total+=p.valor;
+    porMes[m].totalMaoObra+=p.valor;
     porMes[m].itens.push(p);
+  });
+  // Compras do mês
+  finComprasTodos().forEach(c=>{
+    const m=(c.data||'').slice(0,7);
+    if(!m) return;
+    if(!porMes[m]) porMes[m]={mes:m,total:0,totalMaoObra:0,totalCompras:0,totalIndiretos:0,itens:[]};
+    porMes[m].total+=parseFloat(c.custoTotal)||0;
+    porMes[m].totalCompras+=parseFloat(c.custoTotal)||0;
+  });
+  // Custos indiretos do mês
+  custosIndiretos.forEach(c=>{
+    const m=(c.data||'').slice(0,7);
+    if(!m) return;
+    if(!porMes[m]) porMes[m]={mes:m,total:0,totalMaoObra:0,totalCompras:0,totalIndiretos:0,itens:[]};
+    porMes[m].total+=parseFloat(c.valor)||0;
+    porMes[m].totalIndiretos+=parseFloat(c.valor)||0;
   });
   const mesesOrdenados=Object.values(porMes).sort((a,b)=>b.mes>a.mes?1:-1);
 
@@ -12454,7 +12486,7 @@ function renderFinRelPagamentos(){
   </div>`;
 
   // Lista de meses (accordion-style: clica no mês para ver detalhes)
-  mesesOrdenados.forEach(({mes,total,itens})=>{
+  mesesOrdenados.forEach(({mes,total,totalMaoObra,totalCompras,totalIndiretos,itens})=>{
     const [ano,mo]=mes.split('-');
     const label=MESES_NOME[parseInt(mo)-1]+' '+ano;
     const aberto=window._finRelPagMes===mes;
@@ -12482,9 +12514,12 @@ function renderFinRelPagamentos(){
       </div>
       ${aberto?`
       <div style="padding:12px 16px;border-top:1px solid #e2e8f0">
-        <!-- Resumo por setor -->
+        <!-- Resumo por setor + indiretos -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
           ${Object.values(porSetor).map(s=>'<div style="background:#f1f5f9;border-radius:10px;padding:6px 12px;text-align:center"><div style="font-size:10px;color:#64748b;font-weight:600">'+s.nome+'</div><div style="font-size:14px;font-weight:800;color:#1e40af">'+fmtMoeda(s.valor)+'</div></div>').join('')}
+          ${totalCompras>0?`<div style="background:#fef3c7;border-radius:10px;padding:6px 12px;text-align:center"><div style="font-size:10px;color:#92400e;font-weight:600">Compras</div><div style="font-size:14px;font-weight:800;color:#b45309">${fmtMoeda(totalCompras)}</div></div>`:''}
+          ${totalIndiretos>0?`<div style="background:#ede9fe;border-radius:10px;padding:6px 12px;text-align:center"><div style="font-size:10px;color:#4c1d95;font-weight:600">Indiretos</div><div style="font-size:14px;font-weight:800;color:#7c3aed">${fmtMoeda(totalIndiretos)}</div></div>`:''}
+          <div style="background:#d1fae5;border-radius:10px;padding:6px 12px;text-align:center"><div style="font-size:10px;color:#065f46;font-weight:600">Total geral</div><div style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(total)}</div></div>
         </div>
         <!-- Lista de pagamentos do mês -->
         <table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -12516,9 +12551,12 @@ function renderFinRelPagamentos(){
             }).join('')}
             <tr style="background:#d1fae5;font-weight:800">
               <td colspan="3" style="padding:7px 10px">Total ${label}</td>
-              <td style="padding:7px 10px;text-align:right;color:#059669">${fmtMoeda(total)}</td>
+              <td style="padding:7px 10px;text-align:right;color:#059669">${fmtMoeda(totalMaoObra)}</td>
               <td colspan="2"></td>
             </tr>
+            ${totalCompras>0?`<tr style="background:#fef3c7;font-weight:700"><td colspan="3" style="padding:5px 10px;font-size:11px">Compras de material</td><td style="padding:5px 10px;text-align:right;color:#b45309;font-size:11px">${fmtMoeda(totalCompras)}</td><td colspan="2"></td></tr>`:''}
+            ${totalIndiretos>0?`<tr style="background:#ede9fe;font-weight:700"><td colspan="3" style="padding:5px 10px;font-size:11px">Custos indiretos</td><td style="padding:5px 10px;text-align:right;color:#7c3aed;font-size:11px">${fmtMoeda(totalIndiretos)}</td><td colspan="2"></td></tr>`:''}
+            <tr style="background:#1e40af;font-weight:900"><td colspan="3" style="padding:7px 10px;color:#fff">Gasto total ${label}</td><td style="padding:7px 10px;text-align:right;color:#fff">${fmtMoeda(total)}</td><td colspan="2"></td></tr>
           </tbody>
         </table>
       </div>`:''}
