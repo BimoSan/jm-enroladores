@@ -2,8 +2,57 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JM — Controle Terceirizado</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JM — Gestão Fabril</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JM Fábrica">
+<meta name="theme-color" content="#1d4ed8">
+<script>
+// Injeta manifest PWA dinamicamente para permitir "Adicionar à tela inicial"
+(function(){
+  const manifest={
+    name:'JM — Gestão Fabril',
+    short_name:'JM Fábrica',
+    start_url:location.href,
+    display:'standalone',
+    background_color:'#1d4ed8',
+    theme_color:'#1d4ed8',
+    icons:[{
+      src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="%231d4ed8"/><text x="50%" y="125" text-anchor="middle" font-size="90" font-weight="900" fill="white" font-family="sans-serif">JM</text></svg>',
+      sizes:'192x192',
+      type:'image/svg+xml'
+    }]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('link');
+  link.rel='manifest'; link.href=url;
+  document.head.appendChild(link);
+})();
+if('serviceWorker' in navigator){
+  const sw='self.addEventListener("install",e=>{self.skipWaiting()});self.addEventListener("activate",e=>{clients.claim()});self.addEventListener("fetch",e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))});';
+  const blob=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JM Sistema">
+<meta name="application-name" content="JM Sistema">
+<meta name="theme-color" content="#1e40af">
+<script>
+(function(){
+  const manifest={name:'JM — Gestão Fabril',short_name:'JM Sistema',start_url:location.href,display:'standalone',background_color:'#1e40af',theme_color:'#1e40af',icons:[{src:'https://placehold.co/192x192/1e40af/ffffff?text=JM',sizes:'192x192',type:'image/png'},{src:'https://placehold.co/512x512/1e40af/ffffff?text=JM',sizes:'512x512',type:'image/png'}]};
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('link');
+  link.rel='manifest'; link.href=url;
+  document.head.appendChild(link);
+})();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
