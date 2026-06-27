@@ -12670,15 +12670,18 @@ function renderFinRelatorio(){
     const mes=ano+'-'+String(i+1).padStart(2,'0');
     const pagsMes=pagamentos.filter(p=>!!(p.dataPagamento||p.dataRef||'').startsWith(mes)&&p.pago);
     const comprasMes=compras.filter(c=>(c.data||'').startsWith(mes));
+    const indiretMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
     const pagVal=pagsMes.reduce((s,p)=>s+p.valor,0);
     const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
-    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,total:pagVal+compVal};
+    const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,total:pagVal+compVal+indVal};
   });
 
   const maxVal=Math.max(...mesesData.map(m=>m.total),1);
   const totalAnoPag=mesesData.reduce((s,m)=>s+m.pagVal,0);
   const totalAnoComp=mesesData.reduce((s,m)=>s+m.compVal,0);
-  const totalAno=totalAnoPag+totalAnoComp;
+  const totalAnoInd=mesesData.reduce((s,m)=>s+m.indVal,0);
+  const totalAno=totalAnoPag+totalAnoComp+totalAnoInd;
 
   let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
     ${anoSelect}
@@ -12691,34 +12694,37 @@ function renderFinRelatorio(){
   html+=mesesData.map(m=>{
     const hP=Math.round((m.pagVal/maxVal)*100);
     const hC=Math.round((m.compVal/maxVal)*100);
-    const hT=hP+hC;
+    const hI=Math.round((m.indVal/maxVal)*100);
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
       ${m.total>0?`<div style="font-size:8px;color:#475569;font-weight:700">${(m.total/1000).toFixed(1)}k</div>`:'<div style="font-size:8px;color:#e2e8f0">—</div>'}
       <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:110px;gap:1px">
-        ${m.compVal>0?`<div style="width:100%;background:#f59e0b;border-radius:${m.pagVal>0?'0':'4px 4px'} 0 0;height:${hC}%;min-height:${m.compVal>0?'3px':'0'}"></div>`:''}
-        ${m.pagVal>0?`<div style="width:100%;background:#3b82f6;border-radius:4px 4px 0 0;height:${hP}%;min-height:${m.pagVal>0?'3px':'0'}"></div>`:''}
+        ${m.indVal>0?`<div style="width:100%;background:#7c3aed;border-radius:${m.compVal===0&&m.pagVal===0?'4px 4px':'0'} 0 0;height:${hI}%;min-height:3px"></div>`:''}
+        ${m.compVal>0?`<div style="width:100%;background:#f59e0b;border-radius:${m.pagVal===0?'4px 4px':'0'} 0 0;height:${hC}%;min-height:3px"></div>`:''}
+        ${m.pagVal>0?`<div style="width:100%;background:#3b82f6;border-radius:4px 4px 0 0;height:${hP}%;min-height:3px"></div>`:''}
       </div>
       <div style="font-size:8px;color:#94a3b8">${m.label}</div>
     </div>`;
   }).join('');
   html+='</div>';
-  html+=`<div style="display:flex;gap:16px;margin-top:10px">
+  html+=`<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#3b82f6;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Mão de obra ${fmtMoeda(totalAnoPag)}</span></div>
     <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#f59e0b;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Materiais ${fmtMoeda(totalAnoComp)}</span></div>
+    <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#7c3aed;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Custos Indiretos ${fmtMoeda(totalAnoInd)}</span></div>
   </div>`;
   html+='</div>';
 
   // Tabela mensal detalhada
   html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Detalhamento mensal</div>';
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right">Mão de obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right;font-weight:800">Total</th></tr></thead><tbody>';
+  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right">Mão de obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;font-weight:800">Total</th></tr></thead><tbody>';
   html+=mesesData.filter(m=>m.total>0).map((m,i)=>`<tr style="${i%2?'background:#f8fafc':''}">
     <td style="padding:8px 10px;font-weight:600">${MESES_N3[parseInt(m.mes.slice(5))-1]}</td>
     <td style="padding:8px 10px;text-align:right;color:#3b82f6">${m.pagVal>0?fmtMoeda(m.pagVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#f59e0b">${m.compVal>0?fmtMoeda(m.compVal):'—'}</td>
+    <td style="padding:8px 10px;text-align:right;color:#7c3aed">${m.indVal>0?fmtMoeda(m.indVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1e40af">${fmtMoeda(m.total)}</td>
   </tr>`).join('');
-  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td></tr>`;
+  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td></tr>`;
   html+='</tbody></table></div></div>';
 
   // Ranking de gastos por pessoa (mão de obra)
