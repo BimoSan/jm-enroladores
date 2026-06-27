@@ -3690,34 +3690,37 @@ function calcGanhoSoldador(soldadorId, periodo){
           return;
         }
 
-        // ── Regra de equivalência: nenhuma bateu a meta, mas a produção
-        // de uma peça pode ser usada (em QUANTIDADE) para cobrir o déficit
-        // da outra peça e completar a meta dela, liberando o dia. ──
-        const deficit1=p1.meta-p1.qtd; // quanto falta no p1
-        const deficit2=p2.meta-p2.qtd; // quanto falta no p2
-
-        // Tenta: p2 cobre o déficit de p1 (usa peças de p2 para completar p1)
-        // Só funciona se p2 tiver produção suficiente para cobrir seu próprio
-        // déficit seria pago como excedente depois... mas aqui p2 não bateu meta,
-        // então usamos parte da produção de p2 para "virtualmente" completar p1.
-        let liberado=false, pagavelP1=0, pagavelP2=0;
-
-        if(deficit1>0&&p2.qtd>=deficit1){
-          // p2 cede `deficit1` peças para completar a meta de p1
-          // p1 agora "bate" a meta (excedente 0)
-          // p2 sobra: p2.qtd - deficit1, paga tudo (produção)
-          liberado=true;
-          pagavelP1=Math.max(0,p1.qtd-p1.meta); // excedente de p1 (0 nesse caso)
-          pagavelP2=(p2.qtd-deficit1)*p2.val;
-          totalGanho+=pagavelP1*p1.val+pagavelP2;
-        } else if(deficit2>0&&p1.qtd>=deficit2){
-          // p1 cede `deficit2` peças para completar a meta de p2
-          liberado=true;
-          pagavelP2=Math.max(0,p2.qtd-p2.meta);
-          pagavelP1=(p1.qtd-deficit2)*p1.val;
-          totalGanho+=pagavelP1+pagavelP2*p2.val;
+        // ── Regra de equivalência: nenhuma bateu a meta.
+        // A peça principal (pecaBase, ou a de maior déficit em R$) precisa
+        // ser coberta pelo VALOR produzido pela peça secundária.
+        // Equivalência é em R$, não em quantidade. ──
+        let principal2, secundaria2;
+        if(pecaBaseDefinida){
+          principal2=comMeta.find(p=>p.id===pecaBaseDefinida)||p1;
+          secundaria2=comMeta.find(p=>p.id!==principal2.id);
+        } else {
+          // Sem pecaBase: principal é a que tem maior déficit em R$
+          const defR1=(p1.meta-p1.qtd)*p1.val;
+          const defR2=(p2.meta-p2.qtd)*p2.val;
+          principal2=defR1>=defR2?p1:p2;
+          secundaria2=principal2===p1?p2:p1;
         }
-        // Se nenhuma combinação libera o dia: não ganha nada
+        if(!secundaria2){return;}
+
+        const deficitPrincipalR=(principal2.meta-principal2.qtd)*principal2.val;
+        const valorSecundaria=secundaria2.qtd*secundaria2.val;
+
+        if(deficitPrincipalR>0&&valorSecundaria>=deficitPrincipalR){
+          // Secundária cobre em R$ o déficit da principal → dia liberado
+          // Principal: excedente (0 se não bateu)
+          const excPrincipal=Math.max(0,principal2.qtd-principal2.meta)*principal2.val;
+          // Secundária: valor total menos o que foi "usado" para cobrir o déficit
+          const excSecundaria=Math.max(0,valorSecundaria-deficitPrincipalR);
+          totalGanho+=excPrincipal+excSecundaria;
+          // Peças sem meta no dia também são pagas
+          pecasDia.filter(p=>p.meta===0).forEach(p=>{totalGanho+=p.qtd*p.val;});
+        }
+        // Se não cobre: não ganha nada
         return;
       }
 
