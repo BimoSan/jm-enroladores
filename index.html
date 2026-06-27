@@ -9039,8 +9039,9 @@ function renderTapRanking(){
     }).join('');
     return '<div class="card" style="margin-bottom:14px"><div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:10px">'+titulo+'</div>'+rows+'</div>';
   }
+  const podeVerQtd=['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
   let cards='';
-  if(pecasCamas.length) cards+=renderCardRanking('🛏️ Camas',pecasCamas,true);
+  if(pecasCamas.length) cards+=renderCardRanking('🛏️ Camas',pecasCamas,!podeVerQtd);
   pecasOutras.forEach(p=>{ cards+=renderCardRanking(p.label,[p],false); });
   return header+filtroHtml+(cards||'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma produção no período.</div>');
 }
