@@ -12231,9 +12231,11 @@ function renderFinDashboard(){
   }
 
   // Últimas transações (mistura pagamentos + compras recentes)
+  const todasPagas=pagamentos.filter(p=>p.pago);
+  const todasCompras=finComprasTodos();
   const ultimas=[
-    ...pagas.slice(0,5).map(p=>({data:p.dataPagamento||p.dataRef,desc:p.pessoa+' — '+p.setor,valor:p.valor,tipo:'pagamento'})),
-    ...compras.slice(0,5).map(c=>({data:c.data,desc:c.itemDesc,valor:parseFloat(c.custoTotal)||0,tipo:'compra'})),
+    ...todasPagas.slice(0,5).map(p=>({data:p.dataPagamento||p.dataRef,desc:p.pessoa+' — '+p.setor,valor:p.valor,tipo:'pagamento'})),
+    ...todasCompras.slice(0,5).map(c=>({data:c.data,desc:c.itemDesc,valor:parseFloat(c.custoTotal)||0,tipo:'compra'})),
   ].sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).slice(0,8);
 
   if(ultimas.length){
