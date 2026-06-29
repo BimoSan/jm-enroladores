@@ -865,28 +865,29 @@ function renderVisaoGeral(){
     (()=>{
       const anoMes=hoje.slice(0,7);
       function calcEnr(tipoId, aptFiltro){
-        let hoje_=0, mes_=0;
+        let emCasa=0;
         fichas.forEach(f=>{
           const enr=getEnr(f.enroladorId);
           if(!enr||enr.apontadorPerfil!==aptFiltro) return;
+          (f.entregas||[]).forEach(e=>{
+            emCasa+=parseInt((e.tipos||{})[tipoId])||0;
+          });
           (f.recolhimentos||[]).forEach(r=>{
             if(r.administrativo) return;
-            const v=parseInt((r.tipos||{})[tipoId])||0;
-            if(r.data===hoje) hoje_+=v;
-            if((r.data||'').slice(0,7)===anoMes) mes_+=v;
+            emCasa-=parseInt((r.tipos||{})[tipoId])||0;
           });
         });
-        return {hoje:hoje_,mes:mes_};
+        return Math.max(0,emCasa);
       }
       const tiposInacio =[{id:'varanda_sofia',label:'Varanda Sofia'},{id:'centro_luxo',label:'Centro Luxo'},{id:'varanda_nova',label:'Varanda Nova'},{id:'centro_novo',label:'Centro Novo'}];
       const tiposMiranda=[{id:'varanda_sofia',label:'Varanda Sofia'},{id:'centro_luxo',label:'Centro Luxo'},{id:'banqueta',label:'Banqueta'}];
 
-      function bloco(label, tipoId, apt, cor){
-        const d=calcEnr(tipoId,apt);
+      function bloco(label, tipoId, apt){
+        const total=calcEnr(tipoId,apt);
         return `<div style="background:rgba(255,255,255,.15);border-radius:14px;padding:12px;backdrop-filter:blur(4px)">
           <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:6px">${label}</div>
-          <div style="font-size:30px;font-weight:900;color:#fff;line-height:1">${d.hoje}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:3px">mês: ${d.mes}</div>
+          <div style="font-size:34px;font-weight:900;color:#fff;line-height:1">${total}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:3px">em casa</div>
         </div>`;
       }
 
@@ -896,12 +897,12 @@ function renderVisaoGeral(){
 
         <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🏠 Inácio</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-          ${tiposInacio.map(t=>bloco(t.label,t.id,'apontador1','#0f766e')).join('')}
+          ${tiposInacio.map(t=>bloco(t.label,t.id,'apontador1')).join('')}
         </div>
 
         <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🏠 Mirandinha</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${tiposMiranda.map(t=>bloco(t.label,t.id,'apontador2','#b45309')).join('')}
+          ${tiposMiranda.map(t=>bloco(t.label,t.id,'apontador2')).join('')}
         </div>
       </div>`;
     })(),
