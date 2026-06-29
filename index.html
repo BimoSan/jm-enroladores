@@ -12087,11 +12087,11 @@ window._exportarCustosPDF=function(mes, mesNome){
   <!-- Pizza por categoria -->
   <div class="card">
     <h3>Por categoria</h3>
-    <div style="display:flex;align-items:center;gap:16px">
-      <svg width="100" height="100" viewBox="0 0 100 100">${pizzaSlices}</svg>
-      <div class="legenda" style="flex-direction:column">
-        ${cats.map(([cat,val],i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PALETA[i%PALETA.length]}"></div><span>${cat}: <strong>R$ ${val.toFixed(2).replace('.',',')}</strong></span></div>`).join('')}
-      </div>
+    <div style="display:flex;justify-content:center;margin-bottom:12px">
+      <svg width="160" height="160" viewBox="0 0 100 100">${pizzaSlices}</svg>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px">
+      ${cats.map(([cat,val],i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PALETA[i%PALETA.length]}"></div><span style="font-size:9px"><strong>${cat}</strong><br>R$ ${val.toFixed(2).replace('.',',')}</span></div>`).join('')}
     </div>
   </div>
 </div>
