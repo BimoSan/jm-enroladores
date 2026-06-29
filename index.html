@@ -12076,12 +12076,18 @@ window._exportarCustosPDF=function(mes, mesNome){
   <!-- Gráfico de barras por dia -->
   <div class="card">
     <h3>Gastos por dia</h3>
-    <div style="overflow-x:auto">
-      <svg width="${Math.max(svgW,300)}" height="150" viewBox="0 0 ${Math.max(svgW,300)} 150">
-        <line x1="0" y1="120" x2="${Math.max(svgW,300)}" y2="120" stroke="#e2e8f0" stroke-width="1"/>
-        ${barSvg}
-      </svg>
-    </div>
+    <svg width="100%" height="${Math.max(dias.length*28+20,200)}" viewBox="0 0 300 ${Math.max(dias.length*28+20,200)}">
+      ${dias.map((d,i)=>{
+        const [ano,m,dd]=d.split('-');
+        const w=Math.round((porDia[d]/maxDia)*220);
+        const y=i*28+10;
+        return `<g transform="translate(0,${y})">
+          <text x="28" y="14" text-anchor="end" font-size="9" fill="#64748b">${dd}/${m}</text>
+          <rect x="32" y="4" width="${w}" height="14" rx="3" fill="#7c3aed"/>
+          <text x="${32+w+4}" y="14" font-size="9" fill="#4c1d95" font-weight="700">R$ ${porDia[d].toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</text>
+        </g>`;
+      }).join('')}
+    </svg>
   </div>
 
   <!-- Pizza por categoria -->
