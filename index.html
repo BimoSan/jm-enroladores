@@ -11798,6 +11798,7 @@ function renderFinCustos(){
       <button onclick="window._setCustoView('mensal')" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid ${window._custoView==='mensal'?'#1d4ed8':'#e2e8f0'};background:${window._custoView==='mensal'?'#1d4ed8':'#fff'};color:${window._custoView==='mensal'?'#fff':'#64748b'};cursor:pointer;font-weight:600">Mensal</button>
       <button onclick="window._setCustoView('historico')" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid ${window._custoView==='historico'?'#1d4ed8':'#e2e8f0'};background:${window._custoView==='historico'?'#1d4ed8':'#fff'};color:${window._custoView==='historico'?'#fff':'#64748b'};cursor:pointer;font-weight:600">Histórico</button>
       <button class="btn btn-primary btn-sm" onclick="window._custoNovo()">+ Lançamento</button>
+      <button class="btn btn-ghost btn-sm" onclick="window._exportarCustosPDF('${mes}','${mesNome}')" style="border:1.5px solid #7c3aed;color:#7c3aed">📄 PDF</button>
     </div>
   </div>`;
 
@@ -11955,6 +11956,179 @@ window._custoFiltrarCat=function(cat){
 };
 
 window._setCustoMes=function(mes){ window._custoMes=mes; window._custoFiltroCat=''; reloadTab(); };
+
+window._exportarCustosPDF=function(mes, mesNome){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const doMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
+  const totalMes=doMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+
+  // Por categoria
+  const porCat={};
+  doMes.forEach(c=>{ if(!porCat[c.categoria]) porCat[c.categoria]=0; porCat[c.categoria]+=parseFloat(c.valor)||0; });
+  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const maxCat=cats[0]?.[1]||1;
+
+  // Por dia agrupado
+  const porDia={};
+  doMes.forEach(c=>{ const d=c.data||''; if(!porDia[d]) porDia[d]=0; porDia[d]+=parseFloat(c.valor)||0; });
+  const dias=Object.keys(porDia).sort();
+
+  // Cores por categoria (consistente)
+  const PALETA=['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899','#14b8a6','#6366f1'];
+  const corCat={};
+  cats.forEach(([cat],i)=>{ corCat[cat]=PALETA[i%PALETA.length]; });
+
+  // Barras por dia (SVG)
+  const maxDia=Math.max(...dias.map(d=>porDia[d]),1);
+  const barW=Math.max(18, Math.min(40, Math.floor(520/Math.max(dias.length,1))-4));
+  const barSvg=dias.map((d,i)=>{
+    const h=Math.round((porDia[d]/maxDia)*120);
+    const dd=d.slice(8);
+    return `<g transform="translate(${i*(barW+4)},0)">
+      <rect x="0" y="${120-h}" width="${barW}" height="${h}" rx="3" fill="#7c3aed"/>
+      <text x="${barW/2}" y="136" text-anchor="middle" font-size="8" fill="#64748b">${dd}</text>
+      ${porDia[d]>0?`<text x="${barW/2}" y="${115-h}" text-anchor="middle" font-size="7" fill="#4c1d95">${(porDia[d]/1000).toFixed(1)}k</text>`:''}
+    </g>`;
+  }).join('');
+  const svgW=dias.length*(barW+4);
+
+  // Pizza por categoria (SVG)
+  let pizzaSlices='';
+  let ang=0;
+  cats.forEach(([cat,val],i)=>{
+    const pct=val/totalMes;
+    const a=pct*2*Math.PI;
+    const x1=50+45*Math.sin(ang), y1=50-45*Math.cos(ang);
+    const x2=50+45*Math.sin(ang+a), y2=50-45*Math.cos(ang+a);
+    const large=a>Math.PI?1:0;
+    pizzaSlices+=`<path d="M50,50 L${x1.toFixed(1)},${y1.toFixed(1)} A45,45 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${PALETA[i%PALETA.length]}" stroke="#fff" stroke-width="1.5"/>`;
+    ang+=a;
+  });
+
+  // Lançamentos agrupados por dia
+  const diasMap={};
+  doMes.forEach(c=>{ const d=c.data||''; if(!diasMap[d]) diasMap[d]=[]; diasMap[d].push(c); });
+  const lancRows=Object.keys(diasMap).sort().reverse().map(d=>{
+    const [ano,m,dd]=d.split('-');
+    const tDia=diasMap[d].reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    const itens=diasMap[d].map(c=>`
+      <tr>
+        <td style="padding:5px 10px;color:#64748b;font-size:12px">${c.categoria}</td>
+        <td style="padding:5px 10px;color:#64748b;font-size:12px">${c.descricao||'—'}</td>
+        <td style="padding:5px 10px;text-align:right;color:#dc2626;font-size:12px">R$ ${parseFloat(c.valor).toFixed(2).replace('.',',')}</td>
+      </tr>`).join('');
+    return `<tr style="background:#faf5ff">
+        <td colspan="2" style="padding:6px 10px;font-weight:700;font-size:12px;color:#7c3aed">${dd}/${m}/${ano}</td>
+        <td style="padding:6px 10px;text-align:right;font-weight:700;font-size:12px;color:#7c3aed">R$ ${tDia.toFixed(2).replace('.',',')}</td>
+      </tr>${itens}`;
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Custos Indiretos — ${mesNome}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, #4c1d95, #7c3aed); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .card { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; }
+  .card h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .cat-bar { margin-bottom: 8px; }
+  .cat-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .cat-label span:first-child { font-weight: 600; }
+  .bar-bg { background: #e2e8f0; border-radius: 99px; height: 8px; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .leg-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #475569; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #7c3aed; color: #fff; }
+  thead th { padding: 8px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+  tfoot tr { background: #ede9fe; }
+  tfoot td { padding: 8px 10px; font-weight: 800; color: #4c1d95; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril</div>
+    <h1>Custos Indiretos</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">${mesNome}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">TOTAL DO MÊS</div>
+    <div class="total-val">R$ ${totalMes.toFixed(2).replace('.',',')}</div>
+    <div class="total-label">${doMes.length} lançamentos</div>
+  </div>
+</div>
+
+<div class="grid2">
+  <!-- Gráfico de barras por dia -->
+  <div class="card">
+    <h3>Gastos por dia</h3>
+    <div style="overflow-x:auto">
+      <svg width="${Math.max(svgW,300)}" height="150" viewBox="0 0 ${Math.max(svgW,300)} 150">
+        <line x1="0" y1="120" x2="${Math.max(svgW,300)}" y2="120" stroke="#e2e8f0" stroke-width="1"/>
+        ${barSvg}
+      </svg>
+    </div>
+  </div>
+
+  <!-- Pizza por categoria -->
+  <div class="card">
+    <h3>Por categoria</h3>
+    <div style="display:flex;align-items:center;gap:16px">
+      <svg width="100" height="100" viewBox="0 0 100 100">${pizzaSlices}</svg>
+      <div class="legenda" style="flex-direction:column">
+        ${cats.map(([cat,val],i)=>`<div class="leg-item"><div class="leg-dot" style="background:${PALETA[i%PALETA.length]}"></div><span>${cat}: <strong>R$ ${val.toFixed(2).replace('.',',')}</strong></span></div>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Barras horizontais por categoria -->
+<div class="card" style="margin-bottom:20px">
+  <h3>Detalhamento por categoria</h3>
+  ${cats.map(([cat,val],i)=>`<div class="cat-bar">
+    <div class="cat-label"><span>${cat}</span><span style="color:${PALETA[i%PALETA.length]};font-weight:700">R$ ${val.toFixed(2).replace('.',',')}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(val/maxCat*100)}%;background:${PALETA[i%PALETA.length]}"></div></div>
+  </div>`).join('')}
+</div>
+
+<!-- Tabela de lançamentos -->
+<table>
+  <thead><tr>
+    <th>Categoria</th>
+    <th>Descrição</th>
+    <th style="text-align:right">Valor</th>
+  </tr></thead>
+  <tbody>${lancRows}</tbody>
+  <tfoot><tr>
+    <td colspan="2">Total — ${mesNome}</td>
+    <td style="text-align:right">R$ ${totalMes.toFixed(2).replace('.',',')}</td>
+  </tr></tfoot>
+</table>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
 window._setCustoView=function(view){ window._custoView=view; reloadTab(); };
 window._setCustoMesView=function(mes){ window._custoMes=mes; window._custoView='mensal'; reloadTab(); };
 
