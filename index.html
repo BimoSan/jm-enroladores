@@ -715,8 +715,8 @@ function renderSelecionarFabrica(){
 
   const podeVisaoGeral=['admin','proprietario'].includes(currentUserData?.perfil);
   const btnVisaoGeral=podeVisaoGeral?`
-    <div style="margin-top:16px">
-      <button onclick="window._abrirVisaoGeral()" style="width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+    <div style="margin-bottom:16px">
+      <button onclick="window._abrirVisaoGeral()" style="width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         Visão Geral da Fábrica
       </button>
@@ -747,6 +747,10 @@ function renderSelecionarFabrica(){
 // ════════════════════════════════════════════════════════════════
 // VISÃO GERAL DA FÁBRICA — swipe horizontal para proprietário/admin
 // ════════════════════════════════════════════════════════════════
+window._voltarParaFabricas=function(){
+  document.getElementById('root').innerHTML=renderSelecionarFabrica();
+};
+
 window._abrirVisaoGeral=function(){
   document.getElementById('root').innerHTML=renderVisaoGeral();
   // Inicializa swipe após render
@@ -934,7 +938,7 @@ function renderVisaoGeral(){
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0;z-index:10">
       <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.7)">JM — Visão Geral</div>
-      <button onclick="document.getElementById('root').innerHTML=renderSelecionarFabrica()" style="border:none;background:rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer">← Voltar</button>
+      <button onclick="window._voltarParaFabricas()" style="border:none;background:rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer">← Voltar</button>
     </div>
     <!-- Track -->
     <div style="flex:1;overflow:hidden;position:relative">
