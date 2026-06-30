@@ -10631,16 +10631,6 @@ function renderEngMp(){
     return html;
   }
 
-  html+='<div class="card"><table style="width:100%;border-collapse:collapse;font-size:12px">'
-    +'<thead><tr style="background:#f8fafc">'
-    +'<th style="padding:7px 8px;text-align:left">Nome</th>'
-    +'<th style="padding:7px 8px;text-align:center">Unid. uso</th>'
-    +'<th style="padding:7px 8px;text-align:center">Embalagem</th>'
-    +'<th style="padding:7px 8px;text-align:center">Desperdício</th>'
-    +'<th style="padding:7px 8px;text-align:right">Custo/unid.</th>'
-    +'<th style="padding:7px 8px;text-align:left">Obs.</th>'
-    +(podeEditar?'<th style="padding:7px 8px"></th>':'')
-    +'</tr></thead><tbody>';
   engMaterias.forEach((m,i)=>{
     // Custo por unidade: se tem embalagem, calcula; senão usa custo direto
     const custoBase=m.qtdEmbalagem&&m.precoEmbalagem
@@ -10650,21 +10640,30 @@ function renderEngMp(){
     const custoUnit=custoBase*(1+perdaPerc/100);
     const embalagemInfo=m.qtdEmbalagem&&m.unidadeEmbalagem
       ?m.qtdEmbalagem+' '+m.unidadeEmbalagem+(m.precoEmbalagem?' · '+fmtMoeda(m.precoEmbalagem):'')
-      :'—';
-    html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
-      +'<td style="padding:7px 8px;font-weight:600">'+m.nome+'</td>'
-      +'<td style="padding:7px 8px;text-align:center;color:#64748b">'+(m.unidade||'—')+'</td>'
-      +'<td style="padding:7px 8px;text-align:center;color:#64748b;font-size:11px">'+embalagemInfo+'</td>'
-      +'<td style="padding:7px 8px;text-align:center">'+(perdaPerc>0?'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:99px;font-weight:700">'+perdaPerc+'%</span>':'<span style="color:#cbd5e1;font-size:11px">—</span>')+'</td>'
-      +'<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0e7490">'+fmtMoeda(custoUnit)+' <span style="font-size:10px;color:#94a3b8">/'+( m.unidade||'un')+'</span></td>'
-      +'<td style="padding:7px 8px;color:#94a3b8;font-size:11px">'+(m.observacao||'')+'</td>'
-      +(podeEditar?'<td style="padding:7px 8px;text-align:right;white-space:nowrap">'
-        +'<button onclick="window._engEditarMp(\''+m.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer;margin-right:4px" title="Editar">✎</button>'
-        +'<button onclick="window._engExcluirMp(\''+m.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer" title="Excluir">✕</button>'
-        +'</td>':'')
-      +'</tr>';
+      :null;
+
+    html+='<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+m.nome+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:2px">Unidade de uso: <strong>'+(m.unidade||'—')+'</strong></div>'
+      +'</div>'
+      +(podeEditar?'<div style="display:flex;gap:4px;flex-shrink:0">'
+        +'<button onclick="window._engEditarMp(\''+m.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer" title="Editar">✎</button>'
+        +'<button onclick="window._engExcluirMp(\''+m.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer" title="Excluir">✕</button>'
+        +'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">'
+      +(embalagemInfo?'<span style="font-size:10px;background:#f0fdf4;color:#065f46;padding:3px 9px;border-radius:99px;font-weight:600">📦 '+embalagemInfo+'</span>':'')
+      +(perdaPerc>0?'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:3px 9px;border-radius:99px;font-weight:700">♻️ '+perdaPerc+'% desperdício</span>':'')
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9">'
+      +'<span style="font-size:11px;color:#94a3b8">Custo por '+(m.unidade||'unidade')+'</span>'
+      +'<span style="font-size:17px;font-weight:800;color:#0e7490">'+fmtMoeda(custoUnit)+'</span>'
+      +'</div>'
+      +(m.observacao?'<div style="font-size:11px;color:#94a3b8;margin-top:6px;font-style:italic">"'+m.observacao+'"</div>':'')
+      +'</div>';
   });
-  html+='</tbody></table></div>';
   return html;
 }
 
