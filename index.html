@@ -756,7 +756,7 @@ window._selecionarFabrica=id=>{
   } else if(id==='engenharia'){
     currentSetor='engenharia';
     sessionStorage.setItem('jm_setor','engenharia');
-    currentTab='eng_mp';
+    currentTab='eng_produtos';
   } else {
     currentSetor=null;
     sessionStorage.removeItem('jm_setor');
@@ -889,10 +889,10 @@ function renderApp(){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
   } else if(currentSetor==='engenharia'){
-    tabs.push('eng_mp','eng_produtos','eng_relatorio');
+    tabs.push('eng_produtos','eng_mp','eng_relatorio');
     const pgEng=currentUserData?.perfil;
     if(['admin','proprietario'].includes(pgEng)) tabs.push('eng_config');
-    if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_mp';
+    if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_produtos';
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
