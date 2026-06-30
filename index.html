@@ -10795,10 +10795,10 @@ function renderEngProdutos(){
       +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+numComp+' componente'+(numComp!==1?'s':'')+(p.componentesReforma&&p.componentesReforma.length?' · tem reforma':'')+'</div>'
       +'</div>'
       +'<div style="text-align:right">'
-      +'<div style="font-size:18px;font-weight:800;color:#0e7490">'+fmtMoeda(c.total)+'</div>'
-      +'<div style="font-size:10px;color:#94a3b8">custo total</div>'
-      +'<div style="font-size:12px;font-weight:700;color:#059669;margin-top:2px">'+fmtMoeda(c.venda)+'</div>'
-      +'<div style="font-size:9px;color:#94a3b8">venda</div>'
+      +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span></div>'
+      +'<div style="font-size:18px;font-weight:800;color:#dc2626">'+fmtMoeda(c.total)+'</div>'
+      +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span></div>'
+      +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(c.venda)+'</div>'
       +'</div></div></div>';
   });
   return html;
@@ -11033,12 +11033,12 @@ window._engVerProduto=function(id){
   showModal(p.nome,
     '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+'</div>'
     +linhas
-    +'<div style="margin-top:10px;background:#f0fdfa;border-radius:10px;padding:10px">'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>Custo indireto</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>Mão de obra</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;border-top:1px solid #99f6e4;padding-top:6px;margin-top:4px"><span>Custo total</span><span style="color:#0e7490">'+fmtMoeda(c.total)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800"><span>Venda</span><span style="color:#059669">'+fmtMoeda(c.venda)+'</span></div>'
+    +'<div style="margin-top:10px;background:#f8fafc;border-radius:10px;padding:10px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo indireto</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Mão de obra</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span>Custo total</span><span style="color:#dc2626;font-size:15px">'+fmtMoeda(c.total)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span>Preço de venda</span><span style="color:#059669;font-size:15px">'+fmtMoeda(c.venda)+'</span></div>'
     +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
 };
@@ -11109,10 +11109,10 @@ function renderEngRelatorio(){
     html+='<div style="margin-bottom:10px">'
       +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
       +'<span style="font-size:12px;font-weight:600">'+p.nome+'</span>'
-      +'<span style="font-size:12px;font-weight:700;color:#0e7490">'+fmtMoeda(c.total)+'</span>'
+      +'<span style="font-size:12px;font-weight:700;color:#dc2626">'+fmtMoeda(c.total)+'</span>'
       +'</div>'
       +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
-      +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#0e7490,#22d3ee);border-radius:99px"></div>'
+      +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#dc2626,#f87171);border-radius:99px"></div>'
       +'</div></div>';
   });
   html+='</div>';
@@ -11125,8 +11125,8 @@ function renderEngRelatorio(){
     +'<th style="padding:6px 8px;text-align:right">Diretos</th>'
     +'<th style="padding:6px 8px;text-align:right">Indiretos</th>'
     +'<th style="padding:6px 8px;text-align:right">Mão de obra</th>'
-    +'<th style="padding:6px 8px;text-align:right">Total</th>'
-    +'<th style="padding:6px 8px;text-align:right">Venda</th>'
+    +'<th style="padding:6px 8px;text-align:right;color:#dc2626">Custo Total</th>'
+    +'<th style="padding:6px 8px;text-align:right;color:#059669">Venda</th>'
     +'</tr></thead><tbody>';
   comCusto.forEach(({p,c},i)=>{
     html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
@@ -11134,7 +11134,7 @@ function renderEngRelatorio(){
       +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(c.direto)+'</td>'
       +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(c.indireto)+'</td>'
       +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(c.maoObra)+'</td>'
-      +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#0e7490">'+fmtMoeda(c.total)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#dc2626">'+fmtMoeda(c.total)+'</td>'
       +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#059669">'+fmtMoeda(c.venda)+'</td>'
       +'</tr>';
   });
@@ -11150,8 +11150,8 @@ function renderEngRelatorio(){
       +'<th style="padding:6px 8px;text-align:right">Diretos</th>'
       +'<th style="padding:6px 8px;text-align:right">Indiretos</th>'
       +'<th style="padding:6px 8px;text-align:right">Mão de obra</th>'
-      +'<th style="padding:6px 8px;text-align:right">Total</th>'
-      +'<th style="padding:6px 8px;text-align:right">Venda</th>'
+      +'<th style="padding:6px 8px;text-align:right;color:#dc2626">Custo Total</th>'
+      +'<th style="padding:6px 8px;text-align:right;color:#059669">Venda</th>'
       +'</tr></thead><tbody>';
     comReforma.forEach((p,i)=>{
       const c=calcCustoProduto(p,'reforma');
@@ -11160,7 +11160,7 @@ function renderEngRelatorio(){
         +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(c.direto)+'</td>'
         +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(c.indireto)+'</td>'
         +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(c.maoObra)+'</td>'
-        +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#0e7490">'+fmtMoeda(c.total)+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#dc2626">'+fmtMoeda(c.total)+'</td>'
         +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#059669">'+fmtMoeda(c.venda)+'</td>'
         +'</tr>';
     });
