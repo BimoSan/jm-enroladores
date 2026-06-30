@@ -10601,15 +10601,18 @@ function renderEngMp(){
     +'<th style="padding:7px 8px;text-align:left">Nome</th>'
     +'<th style="padding:7px 8px;text-align:center">Unid. uso</th>'
     +'<th style="padding:7px 8px;text-align:center">Embalagem</th>'
+    +'<th style="padding:7px 8px;text-align:center">Desperdício</th>'
     +'<th style="padding:7px 8px;text-align:right">Custo/unid.</th>'
     +'<th style="padding:7px 8px;text-align:left">Obs.</th>'
     +(podeEditar?'<th style="padding:7px 8px"></th>':'')
     +'</tr></thead><tbody>';
   engMaterias.forEach((m,i)=>{
     // Custo por unidade: se tem embalagem, calcula; senão usa custo direto
-    const custoUnit=m.qtdEmbalagem&&m.precoEmbalagem
+    const custoBase=m.qtdEmbalagem&&m.precoEmbalagem
       ?(parseFloat(m.precoEmbalagem)/parseFloat(m.qtdEmbalagem))
       :(parseFloat(m.custo)||0);
+    const perdaPerc=parseFloat(m.desperdicio)||0;
+    const custoUnit=custoBase*(1+perdaPerc/100);
     const embalagemInfo=m.qtdEmbalagem&&m.unidadeEmbalagem
       ?m.qtdEmbalagem+' '+m.unidadeEmbalagem+(m.precoEmbalagem?' · '+fmtMoeda(m.precoEmbalagem):'')
       :'—';
@@ -10617,6 +10620,7 @@ function renderEngMp(){
       +'<td style="padding:7px 8px;font-weight:600">'+m.nome+'</td>'
       +'<td style="padding:7px 8px;text-align:center;color:#64748b">'+(m.unidade||'—')+'</td>'
       +'<td style="padding:7px 8px;text-align:center;color:#64748b;font-size:11px">'+embalagemInfo+'</td>'
+      +'<td style="padding:7px 8px;text-align:center">'+(perdaPerc>0?'<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:99px;font-weight:700">'+perdaPerc+'%</span>':'<span style="color:#cbd5e1;font-size:11px">—</span>')+'</td>'
       +'<td style="padding:7px 8px;text-align:right;font-weight:700;color:#0e7490">'+fmtMoeda(custoUnit)+' <span style="font-size:10px;color:#94a3b8">/'+( m.unidade||'un')+'</span></td>'
       +'<td style="padding:7px 8px;color:#94a3b8;font-size:11px">'+(m.observacao||'')+'</td>'
       +(podeEditar?'<td style="padding:7px 8px;text-align:right;white-space:nowrap">'
@@ -10639,9 +10643,11 @@ window._engNovaMp=function(mp={}){
   const isEdit=!!mp.id;
   const unidOpts=ENG_UNIDADES.map(u=>'<option value="'+u+'"'+(mp.unidade===u?' selected':'')+'>'+u+'</option>').join('');
   // Custo por unidade calculado (para exibir no preview)
-  const custoUnit=mp.qtdEmbalagem&&mp.precoEmbalagem
+  const custoBase=mp.qtdEmbalagem&&mp.precoEmbalagem
     ?(parseFloat(mp.precoEmbalagem)/parseFloat(mp.qtdEmbalagem))
     :(parseFloat(mp.custo)||0);
+  const perdaInicial=parseFloat(mp.desperdicio)||0;
+  const custoUnit=custoBase*(1+perdaInicial/100);
 
   showModal(isEdit?'Editar matéria-prima':'+ Nova matéria-prima',
     '<div class="form-group"><label>Nome</label>'
@@ -10657,12 +10663,18 @@ window._engNovaMp=function(mp={}){
     +'<input type="number" id="emp2-preco-emb" min="0" step="0.01" value="'+(mp.precoEmbalagem||'')+'" oninput="window._engAtualizarCustoUnit()" placeholder="Ex: 45,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
     +'<div class="form-group" style="margin:0"><label style="font-size:11px">Qtd. de unidades na embalagem</label>'
     +'<input type="number" id="emp2-qtd-emb" min="0" step="1" value="'+(mp.qtdEmbalagem||'')+'" oninput="window._engAtualizarCustoUnit()" placeholder="Ex: 1000" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
-    +'<div style="display:flex;flex-direction:column;justify-content:flex-end">'
-    +'<div style="font-size:10px;color:#065f46;margin-bottom:4px">Custo por unidade calculado:</div>'
-    +'<div id="emp2-custo-unit" style="font-size:16px;font-weight:800;color:#059669">'+fmtMoeda(custoUnit)+'</div>'
-    +'</div></div></div>'
+    +'</div></div>'
     +'<div class="form-group"><label>Custo direto por unidade (R$) — use se não tiver embalagem</label>'
-    +'<input type="number" id="emp2-custo" min="0" step="0.0001" value="'+(mp.custo||'')+'" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<input type="number" id="emp2-custo" min="0" step="0.0001" value="'+(mp.custo||'')+'" oninput="window._engAtualizarCustoUnit()" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px">♻️ Desperdício / perda no uso</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">% de desperdício desta MP</label>'
+    +'<input type="number" id="emp2-desperdicio" min="0" step="0.1" value="'+(mp.desperdicio||'')+'" oninput="window._engAtualizarCustoUnit()" placeholder="Ex: 5" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+    +'<div style="display:flex;flex-direction:column">'
+    +'<div style="font-size:10px;color:#92400e;margin-bottom:4px">Custo final por unidade (já com desperdício):</div>'
+    +'<div id="emp2-custo-unit" style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(custoUnit)+'</div>'
+    +'</div></div></div>'
     +'<div class="form-group"><label>Observação (opcional)</label>'
     +'<input id="emp2-obs" value="'+(mp.observacao||'').replace(/"/g,'&quot;')+'" placeholder="Ex: comprado em caixa de 1000 un." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
@@ -10673,8 +10685,11 @@ window._engNovaMp=function(mp={}){
 window._engAtualizarCustoUnit=function(){
   const preco=parseFloat(document.getElementById('emp2-preco-emb')?.value)||0;
   const qtd=parseFloat(document.getElementById('emp2-qtd-emb')?.value)||0;
+  const custoDireto=parseFloat(document.getElementById('emp2-custo')?.value)||0;
+  const perda=parseFloat(document.getElementById('emp2-desperdicio')?.value)||0;
+  const custoBase=preco&&qtd?(preco/qtd):custoDireto;
   const el=document.getElementById('emp2-custo-unit');
-  if(el) el.textContent=preco&&qtd?fmtMoeda(preco/qtd):'R$ 0,00';
+  if(el) el.textContent=fmtMoeda(custoBase*(1+perda/100));
 };
 
 window._engSalvarMp=async function(id){
@@ -10683,13 +10698,14 @@ window._engSalvarMp=async function(id){
   const unidadeEmbalagem=document.getElementById('emp2-unid-emb')?.value.trim()||'';
   const precoEmbalagem=parseFloat(document.getElementById('emp2-preco-emb')?.value)||0;
   const qtdEmbalagem=parseFloat(document.getElementById('emp2-qtd-emb')?.value)||0;
-  // Custo por unidade: prioriza cálculo pela embalagem, senão usa direto
+  const desperdicio=parseFloat(document.getElementById('emp2-desperdicio')?.value)||0;
+  // Custo por unidade: prioriza cálculo pela embalagem, senão usa direto (sem desperdício embutido — calculado na hora de usar)
   const custoDireto=parseFloat(document.getElementById('emp2-custo')?.value)||0;
   const custo=precoEmbalagem&&qtdEmbalagem?(precoEmbalagem/qtdEmbalagem):custoDireto;
   const observacao=document.getElementById('emp2-obs')?.value.trim()||'';
   if(!nome){showToast('Digite o nome.');return;}
   closeModal();
-  const dados={nome,unidade,custo,observacao,
+  const dados={nome,unidade,custo,observacao,desperdicio,
     ...(unidadeEmbalagem?{unidadeEmbalagem}:{}),
     ...(precoEmbalagem?{precoEmbalagem}:{}),
     ...(qtdEmbalagem?{qtdEmbalagem}:{})};
@@ -10802,7 +10818,7 @@ window._engSetAba=function(aba){
 
 window._engAddComponente=function(){
   const lista=window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp;
-  lista.push({nome:'',qtd:1,custoUnit:0});
+  lista.push({mpId:'',nome:'',qtd:1,custoUnit:0});
   window._engRenderComponentes();
 };
 window._engRemoverComponente=function(idx){
@@ -10813,22 +10829,53 @@ window._engRemoverComponente=function(idx){
 window._engAtualizarComponente=function(idx,campo,valor){
   const lista=window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp;
   if(!lista[idx]) return;
-  lista[idx][campo]=campo==='nome'?valor:parseFloat(valor)||0;
+  lista[idx][campo]=campo==='nome'||campo==='mpId'?valor:parseFloat(valor)||0;
+  window._engRenderComponentes();
+};
+window._engSelecionarMpComponente=function(idx,mpId){
+  const lista=window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp;
+  if(!lista[idx]) return;
+  if(!mpId){
+    // "Manual" selecionado: mantém nome/custo editáveis, limpa vínculo
+    lista[idx].mpId='';
+    window._engRenderComponentes();
+    return;
+  }
+  const mp=engMaterias.find(m=>m.id===mpId);
+  if(!mp) return;
+  const custoBase=mp.qtdEmbalagem&&mp.precoEmbalagem
+    ?(parseFloat(mp.precoEmbalagem)/parseFloat(mp.qtdEmbalagem))
+    :(parseFloat(mp.custo)||0);
+  const perda=parseFloat(mp.desperdicio)||0;
+  const custoComPerda=custoBase*(1+perda/100);
+  lista[idx]={...lista[idx],mpId,nome:mp.nome+(mp.unidade?' ('+mp.unidade+')':''),custoUnit:custoComPerda};
   window._engRenderComponentes();
 };
 window._engRenderComponentes=function(){
   const lista_=document.getElementById('ep-componentes-list');
   if(!lista_) return;
   const comps=(window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp)||[];
+  const mpOpts=engMaterias.map(m=>'<option value="'+m.id+'">'+m.nome+'</option>').join('');
   lista_.innerHTML=comps.map((c,i)=>{
     const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
-    return '<div style="display:grid;grid-template-columns:2fr 70px 90px 28px;gap:6px;margin-bottom:6px;align-items:center">'
-      +'<input value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Componente" oninput="window._engAtualizarComponente('+i+',\'nome\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 8px;width:100%">'
-      +'<input type="number" min="0" step="0.01" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engAtualizarComponente('+i+',\'qtd\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
-      +'<input type="number" min="0" step="0.01" value="'+(c.custoUnit||'')+'" placeholder="R$ unit" oninput="window._engAtualizarComponente('+i+',\'custoUnit\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
+    const vinculado=!!c.mpId;
+    const mpAtual=vinculado?engMaterias.find(m=>m.id===c.mpId):null;
+    const perdaInfo=mpAtual&&parseFloat(mpAtual.desperdicio)>0?' <span style="color:#92400e">(+'+mpAtual.desperdicio+'% desperdício)</span>':'';
+    return '<div style="background:#f8fafc;border-radius:8px;padding:8px;margin-bottom:6px">'
+      +'<div style="display:grid;grid-template-columns:1fr 28px;gap:6px;margin-bottom:6px">'
+      +'<select onchange="window._engSelecionarMpComponente('+i+',this.value)" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 6px;width:100%;color:'+(vinculado?'#0e7490':'#94a3b8')+'">'
+      +'<option value=""'+(vinculado?'':' selected')+'>✎ Digitar manualmente...</option>'
+      +'<optgroup label="Matérias-primas cadastradas">'+mpOpts.replace('value="'+c.mpId+'"','value="'+c.mpId+'" selected')+'</optgroup>'
+      +'</select>'
       +'<button type="button" onclick="window._engRemoverComponente('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer">✕</button>'
       +'</div>'
-      +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:-4px;margin-bottom:6px">subtotal: '+fmtMoeda(subtotal)+'</div>';
+      +'<div style="display:grid;grid-template-columns:2fr 70px 90px;gap:6px;align-items:center">'
+      +'<input value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Nome do componente" '+(vinculado?'disabled':'')+' oninput="window._engAtualizarComponente('+i+',\'nome\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 8px;width:100%;'+(vinculado?'background:#f1f5f9;color:#64748b':'')+'">'
+      +'<input type="number" min="0" step="0.01" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engAtualizarComponente('+i+',\'qtd\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
+      +'<input type="number" min="0" step="0.01" value="'+(c.custoUnit||'')+'" placeholder="R$ unit" '+(vinculado?'disabled':'')+' oninput="window._engAtualizarComponente('+i+',\'custoUnit\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center;'+(vinculado?'background:#f1f5f9;color:#64748b':'')+'">'
+      +'</div>'
+      +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:4px">subtotal: '+fmtMoeda(subtotal)+perdaInfo+'</div>'
+      +'</div>';
   }).join('')||'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:10px">Nenhum componente ainda.</div>';
 
   // Atualiza campo de mão de obra visível conforme aba
