@@ -10608,10 +10608,35 @@ function custoComponentes(lista){
 
 // Retorna {direto, indireto, maoObra, total, venda} para a versão 'normal' ou 'reforma'
 function calcCustoProduto(produto, versao){
+  if(produto.tipo==='jogo'){
+    return calcCustoJogo(produto, versao);
+  }
   const comps=versao==='reforma'?(produto.componentesReforma||[]):(produto.componentes||[]);
   const direto=custoComponentes(comps);
   const indireto=getEngIndireto(produto.categoria);
   const maoObra=parseFloat(versao==='reforma'?(produto.maoObraReforma||0):(produto.maoObra||0))||0;
+  const total=direto+indireto+maoObra;
+  const margem=parseFloat(produto.margem)||parseFloat(configEng.margemPadrao)||0;
+  const venda=total*(1+margem/100);
+  return {direto,indireto,maoObra,total,venda};
+}
+
+// Produto tipo "Jogo": soma direto+maoObra de cada item referenciado (×qtd),
+// mas usa SOMENTE UM custo indireto (o do próprio jogo), evitando duplicar o
+// indireto de cada peça individual que compõe o conjunto.
+function calcCustoJogo(produto, versao){
+  const itens=produto.itensJogo||[];
+  let direto=0, maoObra=0;
+  itens.forEach(it=>{
+    const p=engProdutos.find(x=>x.id===it.produtoId);
+    if(!p) return;
+    const qtd=parseFloat(it.qtd)||1;
+    const cItem=calcCustoProduto(p,'normal'); // itens do jogo sempre na versão normal
+    direto+=(cItem.direto)*qtd;
+    maoObra+=(cItem.maoObra)*qtd;
+    // NOTA: cItem.indireto é ignorado de propósito — não soma o indireto de cada peça
+  });
+  const indireto=getEngIndireto(produto.categoria); // indireto único do jogo
   const total=direto+indireto+maoObra;
   const margem=parseFloat(produto.margem)||parseFloat(configEng.margemPadrao)||0;
   const venda=total*(1+margem/100);
@@ -10773,7 +10798,8 @@ const ENG_CATEGORIAS=[
 
 function renderEngProdutos(){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
-  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
+  let html='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px">'
+    +(podeEditar?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #7c3aed;color:#7c3aed" onclick="window._engNovoJogo()">+ Novo Jogo</button>':'')
     +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._engNovoProduto()">+ Novo produto</button>':'')
     +'</div>';
 
@@ -10784,14 +10810,16 @@ function renderEngProdutos(){
 
   engProdutos.forEach(p=>{
     const c=calcCustoProduto(p,'normal');
-    const numComp=(p.componentes||[]).length;
+    const isJogo=p.tipo==='jogo';
+    const numComp=isJogo?(p.itensJogo||[]).length:(p.componentes||[]).length;
     const catLabel=ENG_CATEGORIAS.find(x=>x.id===p.categoria)?.label||'—';
-    html+='<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="window._engVerProduto(\''+p.id+'\')">'
+    const onclick=isJogo?'window._engVerJogo(\''+p.id+'\')':'window._engVerProduto(\''+p.id+'\')';
+    html+='<div class="card" style="margin-bottom:10px;cursor:pointer;'+(isJogo?'border-left:4px solid #7c3aed':'')+'" onclick="'+onclick+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<div>'
-      +'<div style="font-size:14px;font-weight:700">'+p.nome+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+catLabel+'</div>'
-      +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+numComp+' componente'+(numComp!==1?'s':'')+(p.componentesReforma&&p.componentesReforma.length?' · tem reforma':'')+'</div>'
+      +'<div style="font-size:14px;font-weight:700">'+(isJogo?'🛋️ ':'')+p.nome+'</div>'
+      +'<div style="font-size:11px;color:#64748b">'+catLabel+(isJogo?' · Jogo':'')+'</div>'
+      +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+numComp+' '+(isJogo?'item'+(numComp!==1?'s':''):'componente'+(numComp!==1?'s':''))+(p.componentesReforma&&p.componentesReforma.length?' · tem reforma':'')+'</div>'
       +'</div>'
       +'<div style="text-align:right">'
       +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span></div>'
@@ -10835,6 +10863,162 @@ window._engNovoProduto=function(produto={}){
     +'<button class="btn btn-sm btn-primary" onclick="window._engSalvarProduto(\''+(produto.id||'')+'\')">Salvar</button>');
   window._engRenderComponentes();
   window._engRenderMaoObra();
+};
+
+// ── Produto tipo Jogo (kit que referencia outros produtos) ──────────
+window._engNovoJogo=function(produto={}){
+  window._engItensJogoTemp=produto.itensJogo?JSON.parse(JSON.stringify(produto.itensJogo)):[];
+  const isEdit=!!produto.id;
+  const catOpts=ENG_CATEGORIAS.map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
+
+  showModal(isEdit?'Editar jogo':'🛋️ + Novo Jogo',
+    '<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px;margin-bottom:14px;font-size:11px;color:#5b21b6">'
+    +'Um <strong>Jogo</strong> agrupa produtos já cadastrados (ex: Sofá Pequeno + Sofá Grande) para venda em conjunto. O custo indireto é cobrado <strong>uma única vez</strong> sobre o jogo — não é somado o indireto de cada peça individual, evitando duplicação.'
+    +'</div>'
+    +'<div class="form-group"><label>Nome do jogo</label>'
+    +'<input id="ej-nome" value="'+(produto.nome||'')+'" placeholder="Ex: Jogo de Sofá" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Categoria (define o custo indireto do jogo)</label>'
+    +'<select id="ej-categoria" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+catOpts+'</select></div>'
+    +'<div class="form-group"><label>Margem de venda (%) — opcional, vazio usa a padrão</label>'
+    +'<input type="number" id="ej-margem" min="0" step="0.1" value="'+(produto.margem||'')+'" placeholder="Ex: 30" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px;margin-top:12px">Itens do jogo</div>'
+    +'<div id="ej-itens-list"></div>'
+    +'<button type="button" onclick="window._engAddItemJogo()" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1.5px dashed #c4b5fd;background:#f5f3ff;color:#7c3aed;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar produto ao jogo</button>'
+    +'<div style="margin-top:12px;background:#f5f3ff;border-radius:10px;padding:10px" id="ej-resumo-custo"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+produto.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-sm btn-primary" onclick="window._engSalvarJogo(\''+(produto.id||'')+'\')">Salvar</button>');
+  window._engRenderItensJogo();
+};
+
+window._engAddItemJogo=function(){
+  window._engItensJogoTemp.push({produtoId:'',qtd:1});
+  window._engRenderItensJogo();
+};
+window._engRemoverItemJogo=function(idx){
+  window._engItensJogoTemp.splice(idx,1);
+  window._engRenderItensJogo();
+};
+window._engAtualizarItemJogo=function(idx,campo,valor){
+  const lista=window._engItensJogoTemp;
+  if(!lista[idx]) return;
+  lista[idx][campo]=campo==='produtoId'?valor:(parseFloat(valor)||0);
+  if(campo==='qtd'){
+    const subEl=document.getElementById('ej-item-subtotal-'+idx);
+    const p=engProdutos.find(x=>x.id===lista[idx].produtoId);
+    if(subEl&&p){
+      const c=calcCustoProduto(p,'normal');
+      subEl.textContent=fmtMoeda((c.direto+c.maoObra)*(parseFloat(lista[idx].qtd)||0));
+    }
+    window._engAtualizarResumoJogo();
+  } else {
+    window._engRenderItensJogo();
+  }
+};
+window._engRenderItensJogo=function(){
+  const lista_=document.getElementById('ej-itens-list');
+  if(!lista_) return;
+  const itens=window._engItensJogoTemp||[];
+  // Produtos disponíveis para o jogo: exclui outros jogos (evita aninhamento) e o próprio produto sendo editado
+  const prodOpts=engProdutos.filter(p=>p.tipo!=='jogo').map(p=>'<option value="'+p.id+'">'+p.nome+'</option>').join('');
+  lista_.innerHTML=itens.map((it,i)=>{
+    const p=engProdutos.find(x=>x.id===it.produtoId);
+    const cItem=p?calcCustoProduto(p,'normal'):null;
+    const subtotal=cItem?(cItem.direto+cItem.maoObra)*(parseFloat(it.qtd)||0):0;
+    return '<div style="background:#faf5ff;border-radius:8px;padding:8px;margin-bottom:6px">'
+      +'<div style="display:grid;grid-template-columns:1fr 70px 28px;gap:6px;align-items:center">'
+      +'<select onchange="window._engAtualizarItemJogo('+i+',\'produtoId\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 8px;width:100%">'
+      +'<option value="">Selecione...</option>'
+      +prodOpts.replace('value="'+it.produtoId+'"','value="'+it.produtoId+'" selected')
+      +'</select>'
+      +'<input type="number" min="1" step="1" value="'+(it.qtd||1)+'" placeholder="Qtd" oninput="window._engAtualizarItemJogo('+i+',\'qtd\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
+      +'<button type="button" onclick="window._engRemoverItemJogo('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer">✕</button>'
+      +'</div>'
+      +(p?'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:4px">custo (direto+m.obra): <span id="ej-item-subtotal-'+i+'">'+fmtMoeda(subtotal)+'</span></div>':'')
+      +'</div>';
+  }).join('')||'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:8px">Nenhum item ainda.</div>';
+  window._engAtualizarResumoJogo();
+};
+window._engAtualizarResumoJogo=function(){
+  const itens=window._engItensJogoTemp||[];
+  const direto=itens.reduce((s,it)=>{
+    const p=engProdutos.find(x=>x.id===it.produtoId);
+    if(!p) return s;
+    const c=calcCustoProduto(p,'normal');
+    return s+c.direto*(parseFloat(it.qtd)||0);
+  },0);
+  const maoObra=itens.reduce((s,it)=>{
+    const p=engProdutos.find(x=>x.id===it.produtoId);
+    if(!p) return s;
+    const c=calcCustoProduto(p,'normal');
+    return s+c.maoObra*(parseFloat(it.qtd)||0);
+  },0);
+  const categoria=document.getElementById('ej-categoria')?.value;
+  const indireto=getEngIndireto(categoria);
+  const total=direto+indireto+maoObra;
+  const margemInput=parseFloat(document.getElementById('ej-margem')?.value);
+  const margem=isNaN(margemInput)?(parseFloat(configEng.margemPadrao)||0):margemInput;
+  const venda=total*(1+margem/100);
+
+  const resumo=document.getElementById('ej-resumo-custo');
+  if(resumo){
+    resumo.innerHTML='<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>Custo direto (peças)</span><span style="font-weight:700">'+fmtMoeda(direto)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>Mão de obra (peças)</span><span style="font-weight:700">'+fmtMoeda(maoObra)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>Custo indireto <strong>(único, do jogo)</strong></span><span style="font-weight:700">'+fmtMoeda(indireto)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-top:1px solid #ddd6fe;margin-top:4px"><span style="font-weight:700">Custo total</span><span style="font-weight:800;color:#dc2626">'+fmtMoeda(total)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span style="font-weight:700">Venda ('+margem+'%)</span><span style="font-weight:800;color:#059669">'+fmtMoeda(venda)+'</span></div>';
+  }
+};
+
+window._engSalvarJogo=async function(id){
+  const nome=document.getElementById('ej-nome')?.value.trim();
+  const categoria=document.getElementById('ej-categoria')?.value;
+  const margemVal=document.getElementById('ej-margem')?.value;
+  const margem=margemVal?parseFloat(margemVal):null;
+  if(!nome){showToast('Digite o nome do jogo.');return;}
+  const itensJogo=(window._engItensJogoTemp||[]).filter(it=>it.produtoId);
+  if(!itensJogo.length){showToast('Adicione pelo menos um produto ao jogo.');return;}
+  closeModal();
+  const dados={nome,categoria,margem,tipo:'jogo',itensJogo};
+  if(id){
+    await updateDoc(doc(db,'eng_produtos',id),dados);
+  } else {
+    await addDoc(collection(db,'eng_produtos'),{...dados,criadoEm:new Date().toISOString()});
+  }
+  showToast('Jogo salvo!');
+};
+
+window._engVerJogo=function(id){
+  const p=engProdutos.find(x=>x.id===id);
+  if(!p) return;
+  const c=calcCustoProduto(p,'normal');
+  const catLabel=ENG_CATEGORIAS.find(x=>x.id===p.categoria)?.label||'—';
+  const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
+
+  const itensHtml=(p.itensJogo||[]).map(it=>{
+    const prod=engProdutos.find(x=>x.id===it.produtoId);
+    if(!prod) return '';
+    const cItem=calcCustoProduto(prod,'normal');
+    const subtotal=(cItem.direto+cItem.maoObra)*(parseFloat(it.qtd)||1);
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+      +'<div><span style="font-size:12px;font-weight:600">'+prod.nome+'</span> <span style="font-size:11px;color:#94a3b8">×'+it.qtd+'</span></div>'
+      +'<span style="font-size:12px;font-weight:700;color:#7c3aed">'+fmtMoeda(subtotal)+'</span>'
+      +'</div>';
+  }).join('');
+
+  showModal('🛋️ '+p.nome,
+    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+' · Jogo com '+(p.itensJogo||[]).length+' item'+((p.itensJogo||[]).length!==1?'s':'')+'</div>'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Itens do jogo</div>'
+    +itensHtml
+    +'<div style="margin-top:12px;background:#faf5ff;border-radius:10px;padding:10px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo direto (peças)</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Mão de obra (peças)</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo indireto (único, do jogo)</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span>Custo total</span><span style="color:#dc2626;font-size:15px">'+fmtMoeda(c.total)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span>Preço de venda</span><span style="color:#059669;font-size:15px">'+fmtMoeda(c.venda)+'</span></div>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
+    +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._closeModal();window._engNovoJogo(engProdutos.find(x=>x.id===\''+id+'\'))">Editar</button>':''));
 };
 
 window._engSetAba=function(aba){
