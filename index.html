@@ -5972,7 +5972,7 @@ function semanaLabelEsp(segundaIso){
 }
 function fichaEspAtiva(opId){
   const sem=getSemanaEsp();
-  return espumaProducao.filter(p=>p.operadorId===opId&&p.semana===sem&&p.status==='aberta');
+  return espumaProducao.filter(p=>p.operadorId===opId&&getSemanaEsp(p.data)===sem&&p.status==='aberta');
 }
 
 function renderTabEspuma(tab){
@@ -6355,13 +6355,15 @@ function renderEspFichas(){
   const btnF=v=>'<button onclick="window._espSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#1d4ed8':'#e2e8f0')+';background:'+(filtro===v?'#1d4ed8':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
   let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
 
-  // Agrupar por operador e semana
+  // Agrupar por operador e semana (sempre recalcula a partir da data, ignorando
+  // o campo 'semana' salvo, para evitar fichas duplicadas quando o valor salvo
+  // ficou inconsistente por causa de fuso horário ou registros antigos)
   const grupos={};
   espumaProducao.filter(p=>{
     if(filtro==='abertas') return p.status==='aberta';
     return p.status==='fechada';
   }).forEach(p=>{
-    const semana=p.semana||getSemanaEsp(p.data);
+    const semana=getSemanaEsp(p.data);
     const key=p.operadorId+'_'+semana;
     if(!grupos[key]) grupos[key]={opId:p.operadorId,semana,blocos:0,ganho:0,prods:[]};
     const fVal=(configEspuma.formulas||[]).find(x=>x.id===(p.formulaId||configEspuma.formulaAtiva))?.valorBloco;
@@ -7039,7 +7041,7 @@ window._espConfirmarFechar=async function(){
   const {opId,semana}=window._pendingEspFechar||{};
   if(!opId) return;
   closeModal();
-  const prods=espumaProducao.filter(p=>p.operadorId===opId&&(p.semana||getSemanaEsp(p.data))===semana&&p.status==='aberta');
+  const prods=espumaProducao.filter(p=>p.operadorId===opId&&getSemanaEsp(p.data)===semana&&p.status==='aberta');
   for(const p of prods) await updateDoc(doc(db,'esp_producao',p.id),{status:'fechada',dataFechamento:today()});
   showToast('Ficha fechada!');
 };
@@ -12419,7 +12421,7 @@ function finPagamentosTodos(){
   // Espuma
   const espGrupos={};
   espumaProducao.filter(p=>p.status==='fechada').forEach(p=>{
-    const semana=p.semana||getSemanaEsp(p.data);
+    const semana=getSemanaEsp(p.data);
     const key=p.operadorId+'_'+semana;
     if(!espGrupos[key]) espGrupos[key]={opId:p.operadorId,semana,valor:0,pago:p.pago,ids:[]};
     const fVal=(configEspuma.formulas||[]).find(x=>x.id===(p.formulaId||configEspuma.formulaAtiva))?.valorBloco;
