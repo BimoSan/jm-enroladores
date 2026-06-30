@@ -10862,7 +10862,15 @@ window._engAtualizarMaoObra=function(idx,campo,valor){
   const lista=window._engAba==='reforma'?window._engMaoObraReformaTemp:window._engMaoObraTemp;
   if(!lista[idx]) return;
   lista[idx][campo]=campo==='nome'?valor:(parseFloat(valor)||0);
-  window._engAtualizarResumoCusto();
+  if(campo==='valor'){
+    const etapas=lista;
+    const total=etapas.reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
+    const totEl=document.getElementById('ep-mo-total');
+    if(totEl) totEl.textContent='Total mão de obra: '+fmtMoeda(total);
+    window._engAtualizarResumoCusto();
+  } else {
+    window._engRenderMaoObra();
+  }
 };
 window._engRenderMaoObra=function(){
   const lista_=document.getElementById('ep-mao-obra-list');
@@ -10877,7 +10885,7 @@ window._engRenderMaoObra=function(){
     +'</div>'
   ).join('')||'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:8px">Nenhuma etapa ainda.</div>';
   if(etapas.length){
-    lista_.innerHTML+='<div style="text-align:right;font-size:11px;font-weight:700;color:#1d4ed8;margin-top:2px">Total mão de obra: '+fmtMoeda(total)+'</div>';
+    lista_.innerHTML+='<div id="ep-mo-total" style="text-align:right;font-size:11px;font-weight:700;color:#1d4ed8;margin-top:2px">Total mão de obra: '+fmtMoeda(total)+'</div>';
   }
   window._engAtualizarResumoCusto();
 };
@@ -10918,7 +10926,16 @@ window._engAtualizarComponente=function(idx,campo,valor){
   const lista=window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp;
   if(!lista[idx]) return;
   lista[idx][campo]=campo==='nome'||campo==='mpId'?valor:parseFloat(valor)||0;
-  window._engRenderComponentes();
+  if(campo==='qtd'||campo==='custoUnit'){
+    // Atualiza só o subtotal exibido, sem recriar os inputs (evita perda de foco/cursor)
+    const c=lista[idx];
+    const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+    const subEl=document.getElementById('ep-comp-subtotal-'+idx);
+    if(subEl) subEl.textContent=fmtMoeda(subtotal);
+    window._engAtualizarResumoCusto();
+  } else {
+    window._engRenderComponentes();
+  }
 };
 window._engSelecionarMpComponente=function(idx,mpId){
   const lista=window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp;
@@ -10962,7 +10979,7 @@ window._engRenderComponentes=function(){
       +'<input type="number" min="0" step="0.01" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engAtualizarComponente('+i+',\'qtd\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
       +'<input type="number" min="0" step="0.01" value="'+(c.custoUnit||'')+'" placeholder="R$ unit" '+(vinculado?'disabled':'')+' oninput="window._engAtualizarComponente('+i+',\'custoUnit\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center;'+(vinculado?'background:#f1f5f9;color:#64748b':'')+'">'
       +'</div>'
-      +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:4px">subtotal: '+fmtMoeda(subtotal)+perdaInfo+'</div>'
+      +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:4px">subtotal: <span id="ep-comp-subtotal-'+i+'">'+fmtMoeda(subtotal)+'</span>'+perdaInfo+'</div>'
       +'</div>';
   }).join('')||'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:10px">Nenhum componente ainda.</div>';
 
