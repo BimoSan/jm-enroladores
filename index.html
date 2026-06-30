@@ -2672,6 +2672,7 @@ window._atualizarSelectRecolhimento=()=>{
 window._atualizarFichasEntrega=()=>{
   const enrId=document.getElementById('e-enr').value;
   const div=document.getElementById('e-ficha-opcao');
+  window._eFichaDestSelecionada='nova';
   if(!enrId){div.style.display='none';div.innerHTML='';return;}
   const meusEnrIds=enroladores.filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2')return e.apontadorPerfil===p;return true;}).map(e=>e.id);
   if(!meusEnrIds.includes(enrId)){div.style.display='none';div.innerHTML='';return;}
@@ -2679,17 +2680,43 @@ window._atualizarFichasEntrega=()=>{
   if(abertas.length===0){
     div.style.display='none';
     div.innerHTML='';
+    window._eFichaDestSelecionada='nova';
   }else{
     div.style.display='block';
-    const opts=abertas.map(f=>`<option value="${f.id}">Ficha aberta desde ${fmtDate(f.dataAbertura)} (${totalEnv(f)} peças enviadas)</option>`).join('');
-    div.innerHTML=`<div class="form-group"><label>Destino da entrega</label>
-      <select id="e-ficha-dest" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:7px 10px;background:#fff;color:#1d1d1f;width:100%">
-        <option value="nova">➕ Criar nova ficha</option>
-        ${opts}
-      </select>
-    </div>
-    <div class="info-box" style="margin-top:-4px">Se escolher uma ficha existente, a entrega será adicionada a ela. Caso contrário, uma nova ficha será criada.</div>`;
+    if(!window._eFichaDestSelecionada) window._eFichaDestSelecionada='nova';
+    div.innerHTML=`<div class="form-group"><label>Destino da entrega</label></div>`+window._renderCardsDestino(abertas);
   }
+};
+
+window._renderCardsDestino=(abertas)=>{
+  const sel=window._eFichaDestSelecionada||'nova';
+  function cardNova(){
+    const ativo=sel==='nova';
+    return `<div onclick="window._selecionarDestinoEntrega('nova')" style="border:2px solid ${ativo?'#1d4ed8':'#e2e8f0'};background:${ativo?'#eff6ff':'#fff'};border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:32px;height:32px;border-radius:50%;background:${ativo?'#1d4ed8':'#f1f5f9'};color:${ativo?'#fff':'#94a3b8'};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">+</div>
+      <div><div style="font-size:13px;font-weight:700;color:${ativo?'#1d4ed8':'#1e293b'}">Criar nova ficha</div>
+      <div style="font-size:11px;color:#94a3b8">Inicia uma ficha em branco</div></div>
+    </div>`;
+  }
+  function cardFicha(f){
+    const ativo=sel===f.id;
+    return `<div onclick="window._selecionarDestinoEntrega('${f.id}')" style="border:2px solid ${ativo?'#1d4ed8':'#e2e8f0'};background:${ativo?'#eff6ff':'#fff'};border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:32px;height:32px;border-radius:50%;background:${ativo?'#1d4ed8':'#f1f5f9'};color:${ativo?'#fff':'#94a3b8'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📋</div>
+      <div><div style="font-size:13px;font-weight:700;color:${ativo?'#1d4ed8':'#1e293b'}">Ficha aberta desde ${fmtDate(f.dataAbertura)}</div>
+      <div style="font-size:11px;color:#94a3b8">${totalEnv(f)} peças enviadas até agora</div></div>
+    </div>`;
+  }
+  return cardNova()+abertas.map(cardFicha).join('')
+    +`<input type="hidden" id="e-ficha-dest" value="${sel}">
+     <div class="info-box" style="margin-top:4px">Se escolher uma ficha existente, a entrega será adicionada a ela. Caso contrário, uma nova ficha será criada.</div>`;
+};
+
+window._selecionarDestinoEntrega=(valor)=>{
+  window._eFichaDestSelecionada=valor;
+  const enrId=document.getElementById('e-enr').value;
+  const abertas=fichas.filter(f=>f.enroladorId===enrId&&f.status==='aberta');
+  const div=document.getElementById('e-ficha-opcao');
+  if(div) div.innerHTML=`<div class="form-group"><label>Destino da entrega</label></div>`+window._renderCardsDestino(abertas);
 };
 
 function renderRecolhimento(){
