@@ -612,6 +612,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'eng_produtos':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
   'eng_mp':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
   'eng_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'eng_espuma':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
   'eng_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'esp_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
@@ -670,7 +671,7 @@ const TAB_LABELS={
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
-  'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_relatorio':'Relatórios','eng_config':'Configurações',
+  'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'grad_minha_ficha':'Minha Ficha','grad_meu_desempenho':'Meu Desempenho',
   'tap_painel':'Painel','tap_apontar':'Apontamento','tap_fichas':'Fichas','tap_ranking':'Ranking','tap_tapecadores':'Tapecadores','tap_config':'Configurações',
@@ -889,7 +890,7 @@ function renderApp(){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
   } else if(currentSetor==='engenharia'){
-    tabs.push('eng_produtos','eng_mp','eng_relatorio');
+    tabs.push('eng_produtos','eng_mp','eng_espuma','eng_relatorio');
     const pgEng=currentUserData?.perfil;
     if(['admin','proprietario'].includes(pgEng)) tabs.push('eng_config');
     if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_produtos';
@@ -10700,9 +10701,10 @@ function renderTabEngenharia(tab){
   try{
     if(tab==='eng_mp')        return renderEngMp();
     if(tab==='eng_produtos')  return renderEngProdutos();
+    if(tab==='eng_espuma')    return renderEngEspuma();
     if(tab==='eng_relatorio') return renderEngRelatorio();
     if(tab==='eng_config')    return renderEngConfig();
-    return renderEngMp();
+    return renderEngProdutos();
   }catch(e){
     console.error('Erro renderTabEngenharia:',e);
     return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
@@ -11366,6 +11368,76 @@ window._engConfirmarExcluirProduto=async function(){
 };
 
 // ── Configurações: valores de rateio + margem padrão ───────────────
+function renderEngEspuma(){
+  const MARGEM_VENDA=30;
+  const IMPOSTO=0.12;
+  const mpsEspuma=engMaterias.filter(m=>m.unidade==='m³');
+  const mpOpts=mpsEspuma.map(m=>'<option value="'+m.id+'">'+m.nome+' — '+fmtMoeda(parseFloat(m.custo)||0)+'/m³</option>').join('');
+  return `
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:4px">🧮 Calculadora de custo de espuma</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Informe as dimensões do pedaço para calcular o custo e preço de venda.</div>
+      ${mpsEspuma.length?`<div class="form-group"><label>Tipo de espuma</label>
+        <select id="calc-mp" onchange="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">
+          <option value="">Selecione...</option>${mpOpts}
+        </select></div>`
+      :'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Nenhuma matéria-prima com unidade <strong>m³</strong> cadastrada. Vá em <strong>Matérias-primas</strong> e cadastre a espuma com unidade m³.</div>'}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="form-group" style="margin:0"><label>Largura (m)</label>
+          <input type="number" id="calc-l" min="0" step="0.001" placeholder="Ex: 1.40" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Altura (m)</label>
+          <input type="number" id="calc-a" min="0" step="0.001" placeholder="Ex: 0.12" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Comprimento (m)</label>
+          <input type="number" id="calc-e" min="0" step="0.001" placeholder="Ex: 1.90" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+      </div>
+      <div id="calc-resultado" style="display:none"></div>
+    </div>
+    ${mpsEspuma.length?`<div class="card">
+      <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📋 Espumas cadastradas (referência por m³)</div>
+      ${mpsEspuma.map(m=>{
+        const custo=parseFloat(m.custo)||0;
+        const venda=custo*(1+MARGEM_VENDA/100);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+          +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
+          +(m.observacao?'<div style="font-size:11px;color:#94a3b8">'+m.observacao+'</div>':'')
+          +'</div>'
+          +'<div style="text-align:right">'
+          +'<div style="font-size:12px;color:#dc2626;font-weight:700">'+fmtMoeda(custo)+'/m³</div>'
+          +'<div style="font-size:14px;font-weight:800;color:#059669">venda: '+fmtMoeda(venda)+'/m³</div>'
+          +'</div></div>';
+      }).join('')}
+      <div style="font-size:10px;color:#94a3b8;margin-top:6px">* Venda = custo + ${MARGEM_VENDA}% margem</div>
+    </div>`:''}
+  `;
+}
+
+window._engCalcEspuma=function(){
+  const mpId=document.getElementById('calc-mp')?.value;
+  const l=parseFloat(document.getElementById('calc-l')?.value)||0;
+  const a=parseFloat(document.getElementById('calc-a')?.value)||0;
+  const e=parseFloat(document.getElementById('calc-e')?.value)||0;
+  const res=document.getElementById('calc-resultado');
+  if(!res) return;
+  const MARGEM_VENDA=30;
+  const IMPOSTO=0.12;
+  const mp=engMaterias.find(m=>m.id===mpId);
+  if(!mpId||!mp||!l||!a||!e){ res.style.display='none'; return; }
+  const vol=l*a*e;
+  const custoM3=parseFloat(mp.custo)||0;
+  const custoTotal=custoM3*vol;
+  const venda=custoTotal*(1+MARGEM_VENDA/100);
+  res.style.display='block';
+  res.innerHTML='<div style="background:linear-gradient(135deg,#4c1d95,#7c3aed);border-radius:14px;padding:18px;color:#fff">'
+    +'<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px">'+mp.nome+' · '+l+'×'+a+'×'+e+' m = <strong>'+vol.toFixed(4)+' m³</strong></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
+    +'<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px"><div style="font-size:10px;opacity:.75">Custo total</div><div style="font-size:22px;font-weight:900">'+fmtMoeda(custoTotal)+'</div></div>'
+    +'<div style="background:rgba(255,255,255,.95);border-radius:10px;padding:10px"><div style="font-size:10px;color:#4c1d95;font-weight:700">Venda (+'+MARGEM_VENDA+'%)</div><div style="font-size:22px;font-weight:900;color:#059669">'+fmtMoeda(venda)+'</div></div>'
+    +'</div>'
+    +'<div style="font-size:10px;opacity:.65">Referência: '+fmtMoeda(custoM3)+'/m³ · volume: '+vol.toFixed(4)+' m³</div>'
+    +'</div>';
+};
+
+
 function renderEngConfig(){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
   const ind=configEng.indiretos||{};
