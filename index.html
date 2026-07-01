@@ -8931,37 +8931,71 @@ function renderTapFichas(){
   if(!window._tapFichaFiltro) window._tapFichaFiltro='abertas';
   const filtro=window._tapFichaFiltro;
   const podeFechar=['admin','proprietario','encarregado_est','apontador_tap'].includes(currentUserData?.perfil);
-  const btnF=v=>'<button onclick="window._tapSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#1d4ed8':'#e2e8f0')+';background:'+(filtro===v?'#1d4ed8':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
+  const btnF=v=>'<button onclick="window._tapSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#0e7490':'#e2e8f0')+';background:'+(filtro===v?'#0e7490':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
   let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
   const fichasFiltradas=fichasTap.filter(f=>filtro==='abertas'?f.status==='aberta':f.status==='fechada');
   if(!fichasFiltradas.length){ html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma ficha.</div>'; return html; }
-  fichasFiltradas.sort((a,b)=>b.quinzena>a.quinzena?1:-1).forEach(f=>{
+
+  fichasFiltradas.sort((a,b)=>{
+    const da=Math.max(...(a.apontamentos||[]).map(x=>x.data||''));
+    const db=Math.max(...(b.apontamentos||[]).map(x=>x.data||''));
+    return db>da?1:-1;
+  }).forEach(f=>{
     const t=tapecadores.find(x=>x.id===f.tapId);
     const ganho=calcGanhoTap(f.apontamentos||[]);
     const total=totalPecasTap(f.apontamentos||[]);
     const isAberta=f.status==='aberta';
     const pago=f.pago;
-    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+(isAberta?'#1d4ed8':'#10b981')+'">'
+
+    // Agrupar por dia
+    const diasMap={};
+    (f.apontamentos||[]).forEach(a=>{
+      if(!a.data) return;
+      if(!diasMap[a.data]) diasMap[a.data]={};
+      getPecasTapAtivas().forEach(p=>{ diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+(parseInt((a.pecas||{})[p.id])||0); });
+    });
+    const dias=Object.keys(diasMap).sort().reverse();
+
+    const datas=Object.keys(diasMap).sort();
+    const periodoLabel=datas.length
+      ?(datas[0]===datas[datas.length-1]?fmtDate(datas[0]):fmtDate(datas[0])+' a '+fmtDate(datas[datas.length-1]))
+      :(f.quinzena?quinzenaLabelTap(f.quinzena):'');
+
+    html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+(isAberta?'#0e7490':'#10b981')+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       +'<div><div style="font-size:14px;font-weight:700">'+(t?.nome||'—')+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelTap(f.quinzena)+' · '+total+' peças</div></div>'
+      +'<div style="font-size:11px;color:#64748b">'+periodoLabel+' · '+total+' peças</div></div>'
       +'<div style="text-align:right;display:flex;align-items:center;gap:8px">'
       +'<div><div style="font-size:18px;font-weight:800;color:'+(pago?'#059669':'#d97706')+'">'+fmtMoeda(ganho)+'</div>'
-      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(isAberta?'#dbeafe':pago?'#d1fae5':'#fef3c7')+';color:'+(isAberta?'#1d4ed8':pago?'#065f46':'#92400e')+'">'+( isAberta?'Aberta':pago?'✓ Pago':'Fechada')+'</span>'
+      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+(isAberta?'#cffafe':pago?'#d1fae5':'#fef3c7')+';color:'+(isAberta?'#0e7490':pago?'#065f46':'#92400e')+'">'+( isAberta?'Aberta':pago?'✓ Pago':'Fechada')+'</span>'
       +'</div>'+(podeFechar&&isAberta?'<button class="btn btn-sm btn-warn" onclick="window._tapFecharFicha(\''+f.id+'\')">Fechar</button>':'')
       +'</div></div>'
+      // Lançamentos por dia com detalhe de peças
       +'<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">'
-      +(f.apontamentos||[]).sort((a,b)=>b.data>a.data?1:-1).map((a,ai)=>{
-        const tv=getPecasTapAtivas().reduce((s,p)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
-        const gv=calcGanhoTap([a]);
-        const aId=a.id||('idx_'+ai);
-        const [ano,mes,dd]=(a.data||'').split('-');
-        return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#64748b;padding:4px 0;border-top:1px solid #f1f5f9">'
-          +'<span>'+dd+'/'+mes+'/'+ano+' · '+tv+' peças</span>'
-          +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="color:#059669;font-weight:700">'+fmtMoeda(gv)+'</span>'
-          +(f.status==='aberta'?'<button onclick="window._tapEditarApont(\''+f.id+'\',\''+aId+'\')" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;color:#475569">✎ Editar</button>':'')
-          +'</div></div>';
+      +(dias.length?'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px">Lançamentos por dia</div>':'')
+      +dias.map((dia,i)=>{
+        const tots=diasMap[dia];
+        const tDia=Object.values(tots).reduce((s,v)=>s+v,0);
+        const gDia=getPecasTapAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorTap(p.id),0);
+        const [y,m,d]=dia.split('-');
+        const apontsDia=(f.apontamentos||[]).filter(a=>a.data===dia);
+        const det=getPecasTapAtivas().filter(p=>tots[p.id]>0).map(p=>'<span style="font-size:10px;background:#f0fdfa;color:#0e7490;padding:1px 6px;border-radius:99px">'+p.label+': '+tots[p.id]+'</span>').join(' ');
+        return '<div style="padding:8px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+          +'<div>'
+          +'<span style="font-size:12px;font-weight:700">'+d+'/'+m+'/'+y+'</span>'
+          +'<span style="font-size:11px;color:#0e7490;font-weight:800;margin-left:8px">'+tDia+' peças</span>'
+          +'<span style="font-size:11px;color:#059669;font-weight:700;margin-left:6px">'+fmtMoeda(gDia)+'</span>'
+          +'</div>'
+          +(isAberta?'<div style="display:flex;gap:4px">'
+            +apontsDia.map((a,ai)=>{
+              const aId=a.id||('idx_'+ai);
+              return '<button onclick="window._tapEditarApont(\''+f.id+'\',\''+aId+'\')" style="font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;color:#475569">✎</button>';
+            }).join('')
+            +'</div>':'')
+          +'</div>'
+          +(det?'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">'+det+'</div>':'')
+          +'</div>';
       }).join('')
       +'</div></div>';
   });
