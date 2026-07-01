@@ -9033,8 +9033,8 @@ window._tapConfirmarExcluirApont=async function(){
 
 // ── Ranking ──────────────────────────────────────────────────────
 function renderTapRanking(){
-  if(!window._rankTapPeriodo||window._rankTapPeriodo==='quinzena') window._rankTapPeriodo=hoje_.slice(0,7);
   const hoje_=today();
+  if(!window._rankTapPeriodo||window._rankTapPeriodo==='quinzena') window._rankTapPeriodo=hoje_.slice(0,7);
   const per=window._rankTapPeriodo;
   const qAtual=getQuinzenaAtualTap();
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
