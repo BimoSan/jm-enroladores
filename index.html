@@ -4469,9 +4469,9 @@ function renderPontoMetal(){
   // Header
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn btn-ghost btn-sm" onclick="window._pontoMes='${mesAnterior}';reloadTab()">←</button>
+      <button class="btn btn-ghost btn-sm" onclick="window._setPontoMes('${mesAnterior}')">←</button>
       <div style="font-size:16px;font-weight:700">${mesNome}</div>
-      <button class="btn btn-ghost btn-sm" onclick="window._pontoMes='${mesSeguinte}';reloadTab()">→</button>
+      <button class="btn btn-ghost btn-sm" onclick="window._setPontoMes('${mesSeguinte}')">→</button>
     </div>
     <div style="display:flex;gap:8px">
       ${podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._abrirNovoPontoFunc()">+ Funcionário</button>':''}
@@ -10408,7 +10408,7 @@ function renderFichasMetal(){
   const quinzenas=mostrarHistorico?todasQuinzenas:todasQuinzenas.slice(0,2);
 
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
-    +'<button onclick="window._metalFichasHistorico='+(!mostrarHistorico)+';reloadTab()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">'
+    +'<button onclick="window._metalToggleHistorico()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">'
     +(mostrarHistorico
       ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Ocultar histórico'
       :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ver histórico completo')
@@ -10526,6 +10526,8 @@ function renderFichasMetal(){
   return html||'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha ainda.</div></div>';
 }
 
+window._metalToggleHistorico=function(){ window._metalFichasHistorico=!window._metalFichasHistorico; reloadTab(); };
+window._setPontoMes=function(mes){ window._pontoMes=mes; reloadTab(); };
 window._fecharFichaMetal=async(soldadorId,quinzena)=>{
   const sol=soldadores.find(s=>s.id===soldadorId);
   showModal('Fechar ficha — '+sol?.nome,
