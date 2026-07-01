@@ -7132,7 +7132,10 @@ function quinzenaLabelGrad(q){
   return parte==='Q1'?`1–15 ${mNome} ${ano}`:`16–fim ${mNome} ${ano}`;
 }
 function fichaGradAtiva(gradId,q){
-  return fichasGrad.find(f=>f.gradId===gradId&&f.quinzena===q&&f.status==='aberta');
+  // Primeiro tenta a quinzena atual; se não tiver, pega qualquer aberta
+  // (evita criar ficha nova quando já existe uma aberta de quinzena anterior)
+  return fichasGrad.find(f=>f.gradId===gradId&&f.quinzena===q&&f.status==='aberta')
+      || fichasGrad.find(f=>f.gradId===gradId&&f.status==='aberta');
 }
 function getPecasGradAtivas(){
   const excluidas=configGrad.pecasExcluidas||[];
@@ -7939,7 +7942,7 @@ window._gradSalvarApontamento=async function(){
   const apontId='a'+Date.now();
   const apont={id:apontId,data:today(),pecas};
 
-  let ficha=fichasGrad.find(f=>f.gradId===gradId&&f.quinzena===q&&f.status==='aberta');
+  let ficha=fichasGrad.find(f=>f.gradId===gradId&&f.status==='aberta');
   if(!ficha){
     const ref=await addDoc(collection(db,'fichas_grad'),{gradId,quinzena:q,status:'aberta',pago:false,apontamentos:[apont]});
     fichasGrad.push({id:ref.id,gradId,quinzena:q,status:'aberta',pago:false,apontamentos:[apont]});
@@ -8740,7 +8743,10 @@ function getPecasTapAtivas(){ const excluidas=configTap.pecasExcluidas||[]; cons
 function getValorTap(pecaId){ return parseFloat((configTap.valores||{})[pecaId])||0; }
 function totalPecasTap(aponts){ return (aponts||[]).reduce((s,a)=>s+getPecasTapAtivas().reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0); }
 function calcGanhoTap(aponts){ return (aponts||[]).reduce((s,a)=>s+getPecasTapAtivas().reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0)*getValorTap(p.id),0),0); }
-function fichasTapAtiva(tapId,q){ return fichasTap.find(f=>f.tapId===tapId&&f.quinzena===q&&f.status==='aberta'); }
+function fichasTapAtiva(tapId,q){
+  return fichasTap.find(f=>f.tapId===tapId&&f.quinzena===q&&f.status==='aberta')
+      || fichasTap.find(f=>f.tapId===tapId&&f.status==='aberta');
+}
 function tapecadorProprio(){ const uid=currentUser?.uid||''; const nome=currentUserData?.nome||''; return tapecadores.find(t=>t.usuarioUid===uid)||tapecadores.find(t=>t.nome?.toLowerCase()===nome.toLowerCase()); }
 
 // ── Painel ───────────────────────────────────────────────────────
@@ -8922,7 +8928,7 @@ window._tapRegistrarModal=async function(tapId){
   });
   if(!Object.keys(pecas).length){showToast('Registre pelo menos uma peça.');return;}
   closeModal();
-  let ficha=fichasTap.find(f=>f.tapId===tapId&&f.quinzena===q&&f.status==='aberta');
+  let ficha=fichasTap.find(f=>f.tapId===tapId&&f.status==='aberta');
   const apont={id:'a'+Date.now(),data,pecas,hora:new Date().toISOString()};
   if(ficha){
     await updateDoc(doc(db,'fichas_tap',ficha.id),{apontamentos:[...(ficha.apontamentos||[]),apont]});
