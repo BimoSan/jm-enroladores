@@ -10390,9 +10390,18 @@ function renderFichasMetal(){
   const qAtual=getQuinzenaAtual();
   const isAdmin=['admin','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
 
-  // Agrupar fichas por quinzena
+  // Agrupar fichas por quinzena — inclui sempre a quinzena anterior à atual,
+  // pois soldadores "Fichado" não geram documentos no Firebase e a quinzena
+  // sumia quando virava o mês sem nenhuma ficha registrada nela.
+  const qAnterior=(()=>{
+    const [ano,mes,parte]=qAtual.split('-');
+    if(parte==='Q2') return ano+'-'+mes+'-Q1';
+    const dt=new Date(parseInt(ano),parseInt(mes)-2,1);
+    return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-Q2';
+  })();
   const quinzenas=[...new Set([
     qAtual,
+    qAnterior,
     ...[...fichasMetal].map(f=>f.quinzena)
   ])].sort((a,b)=>b>a?1:-1);
 
