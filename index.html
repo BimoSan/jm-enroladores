@@ -7230,9 +7230,10 @@ function renderGradPainel(){
       const c=avatarColor(ci);
       const mesAtualGrad=hoje.slice(0,7);
 
-      // Apontamentos de hoje e da quinzena
+      // Apontamentos de hoje e da quinzena — busca qualquer ficha aberta
       const totHoje={}, totQ={};
-      const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q);
+      const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q)
+               ||fichasGrad.find(f=>f.gradId===g.id&&f.status==='aberta');
       (ficha?.apontamentos||[]).forEach(a=>{
         getPecasGradAtivas().forEach(p=>{
           const v=parseInt((a.pecas||{})[p.id])||0;
@@ -7311,7 +7312,8 @@ function renderGradApontar(){
   if(!grad) return html;
 
   const hoje=today();
-  const ficha=fichasGrad.find(f=>f.gradId===grad.id&&f.quinzena===q);
+  const ficha=fichasGrad.find(f=>f.gradId===grad.id&&f.status==='aberta'&&f.quinzena===q)
+           ||fichasGrad.find(f=>f.gradId===grad.id&&f.status==='aberta');
   const apontHoje=(ficha?.apontamentos||[]).filter(a=>a.data===hoje);
   const totalHoje=totalPecasGrad(apontHoje);
   const ganhoHoje=calcGanhoGrad(apontHoje);
@@ -7538,7 +7540,8 @@ function renderGradMinhaFicha(){
 
   const c=avatarColor(gradistas.findIndex(g=>g.id===grad.id));
   const q=getQuinzenaAtualGrad();
-  const ficha=fichasGrad.find(f=>f.gradId===grad.id&&f.quinzena===q);
+  const ficha=fichasGrad.find(f=>f.gradId===grad.id&&f.status==='aberta'&&f.quinzena===q)
+           ||fichasGrad.find(f=>f.gradId===grad.id&&f.status==='aberta');
   const aponts=ficha?.apontamentos||[];
   const ganhoQ=calcGanhoGrad(aponts);
   const totalQ=totalPecasGrad(aponts);
@@ -9332,7 +9335,8 @@ function renderTapMinhaFicha(){
   if(!tap) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum tapecador. Peça ao apontador para verificar seu cadastro.</div></div>';
   const c=avatarColor(tapecadores.findIndex(t=>t.id===tap.id));
   const q=getQuinzenaAtualTap();
-  const ficha=fichasTap.find(f=>f.tapId===tap.id&&f.quinzena===q);
+  const ficha=fichasTap.find(f=>f.tapId===tap.id&&f.status==='aberta'&&f.quinzena===q)
+           ||fichasTap.find(f=>f.tapId===tap.id&&f.status==='aberta');
   const aponts=ficha?.apontamentos||[];
   const ganhoQ=calcGanhoTap(aponts); const totalQ=totalPecasTap(aponts);
   const pago=ficha?.pago||false; const status=ficha?.status||'aberta';
