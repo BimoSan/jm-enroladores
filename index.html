@@ -7391,7 +7391,22 @@ function renderGradFichas(){
   const podeFechar=['admin','proprietario','encarregado_est','apontador_gra'].includes(currentUserData?.perfil);
 
   const btnF=v=>`<button onclick="window._gradSetFichaFiltro('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${filtro===v?'#1d4ed8':'#e2e8f0'};background:${filtro===v?'#1d4ed8':'#fff'};color:${filtro===v?'#fff':'#64748b'};cursor:pointer">${v==='abertas'?'Abertas':'Fechadas'}</button>`;
-  let html=`<div style="display:flex;gap:8px;margin-bottom:14px">${btnF('abertas')}${btnF('fechadas')}</div>`;
+
+  // Detecta gradistas com fichas abertas duplicadas
+  const dupGrad=gradistas.filter(g=>{
+    const abertas=fichasGrad.filter(f=>f.gradId===g.id&&f.status==='aberta');
+    return abertas.length>1;
+  });
+
+  let html=`<div style="display:flex;gap:8px;margin-bottom:${dupGrad.length?'8':'14'}px">${btnF('abertas')}${btnF('fechadas')}</div>`;
+
+  if(dupGrad.length){
+    html+='<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:13px;font-weight:700;color:#92400e">⚠️ Fichas duplicadas detectadas</div>'
+      +'<div style="font-size:11px;color:#b45309;margin-top:2px">'+dupGrad.map(g=>g.nome).join(', ')+'</div></div>'
+      +'<button onclick="window._gradMesclarFichas()" class="btn btn-sm" style="background:#f59e0b;color:#fff;border:none;white-space:nowrap">Mesclar fichas</button>'
+      +'</div>';
+  }
 
   // Quinzenas disponíveis — inclui sempre a anterior para não sumir ao virar quinzena
   const qAnteriorGrad=(()=>{
@@ -7917,6 +7932,28 @@ window._gradCadastrarUsuario=async function(){
 // ── Handlers ─────────────────────────────────────────────────────
 window._gradSelGradista=function(v){ window._gradApontSel=v; reloadTab(); };
 window._gradSetFichaFiltro=function(v){ window._gradFichaFiltro=v; reloadTab(); };
+
+window._gradMesclarFichas=async function(){
+  let mescladas=0;
+  for(const g of gradistas){
+    const abertas=fichasGrad.filter(f=>f.gradId===g.id&&f.status==='aberta');
+    if(abertas.length<=1) continue;
+    // Ordena: a mais antiga primeiro (menor quinzena = ficha principal)
+    abertas.sort((a,b)=>a.quinzena>b.quinzena?1:-1);
+    const principal=abertas[0];
+    const extras=abertas.slice(1);
+    // Junta todos os apontamentos das extras na principal
+    let todosAponts=[...(principal.apontamentos||[])];
+    for(const extra of extras){
+      todosAponts=[...todosAponts,...(extra.apontamentos||[])];
+      await deleteDoc(doc(db,'fichas_grad',extra.id));
+    }
+    await updateDoc(doc(db,'fichas_grad',principal.id),{apontamentos:todosAponts});
+    mescladas++;
+  }
+  showToast(mescladas>0?`${mescladas} ficha(s) mesclada(s) com sucesso!`:'Nenhuma duplicata encontrada.');
+  reloadTab();
+};
 
 window._gradIncPeca=function(id){
   const el=document.getElementById('grad-peca-'+id);
@@ -8948,7 +8985,21 @@ function renderTapFichas(){
   const filtro=window._tapFichaFiltro;
   const podeFechar=['admin','proprietario','encarregado_est','apontador_tap'].includes(currentUserData?.perfil);
   const btnF=v=>'<button onclick="window._tapSetFiltro(\''+v+'\')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid '+(filtro===v?'#0e7490':'#e2e8f0')+';background:'+(filtro===v?'#0e7490':'#fff')+';color:'+(filtro===v?'#fff':'#64748b')+';cursor:pointer">'+(v==='abertas'?'Abertas':'Fechadas')+'</button>';
-  let html='<div style="display:flex;gap:8px;margin-bottom:14px">'+btnF('abertas')+btnF('fechadas')+'</div>';
+
+  const dupTap=tapecadores.filter(t=>{
+    const abertas=fichasTap.filter(f=>f.tapId===t.id&&f.status==='aberta');
+    return abertas.length>1;
+  });
+
+  let html='<div style="display:flex;gap:8px;margin-bottom:'+(dupTap.length?'8':'14')+'px">'+btnF('abertas')+btnF('fechadas')+'</div>';
+
+  if(dupTap.length){
+    html+='<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:13px;font-weight:700;color:#92400e">⚠️ Fichas duplicadas detectadas</div>'
+      +'<div style="font-size:11px;color:#b45309;margin-top:2px">'+dupTap.map(t=>t.nome).join(', ')+'</div></div>'
+      +'<button onclick="window._tapMesclarFichas()" class="btn btn-sm" style="background:#f59e0b;color:#fff;border:none;white-space:nowrap">Mesclar fichas</button>'
+      +'</div>';
+  }
   const fichasFiltradas=fichasTap.filter(f=>filtro==='abertas'?f.status==='aberta':f.status==='fechada');
   if(!fichasFiltradas.length){ html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma ficha.</div>'; return html; }
 
@@ -9018,6 +9069,26 @@ function renderTapFichas(){
   return html;
 }
 window._tapSetFiltro=function(v){ window._tapFichaFiltro=v; reloadTab(); };
+
+window._tapMesclarFichas=async function(){
+  let mescladas=0;
+  for(const t of tapecadores){
+    const abertas=fichasTap.filter(f=>f.tapId===t.id&&f.status==='aberta');
+    if(abertas.length<=1) continue;
+    abertas.sort((a,b)=>a.quinzena>b.quinzena?1:-1);
+    const principal=abertas[0];
+    const extras=abertas.slice(1);
+    let todosAponts=[...(principal.apontamentos||[])];
+    for(const extra of extras){
+      todosAponts=[...todosAponts,...(extra.apontamentos||[])];
+      await deleteDoc(doc(db,'fichas_tap',extra.id));
+    }
+    await updateDoc(doc(db,'fichas_tap',principal.id),{apontamentos:todosAponts});
+    mescladas++;
+  }
+  showToast(mescladas>0?`${mescladas} ficha(s) mesclada(s) com sucesso!`:'Nenhuma duplicata encontrada.');
+  reloadTab();
+};
 window._tapFecharFicha=function(id){
   window._pendingTapFecha=id;
   showModal('Fechar ficha','<div style="font-size:13px">Confirma o fechamento desta ficha? Ela ficará disponível para pagamento no Financeiro.</div>',
