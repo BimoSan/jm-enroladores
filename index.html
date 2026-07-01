@@ -7380,8 +7380,16 @@ function renderGradFichas(){
   const btnF=v=>`<button onclick="window._gradSetFichaFiltro('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${filtro===v?'#1d4ed8':'#e2e8f0'};background:${filtro===v?'#1d4ed8':'#fff'};color:${filtro===v?'#fff':'#64748b'};cursor:pointer">${v==='abertas'?'Abertas':'Fechadas'}</button>`;
   let html=`<div style="display:flex;gap:8px;margin-bottom:14px">${btnF('abertas')}${btnF('fechadas')}</div>`;
 
-  // Quinzenas disponíveis
-  const quinzenas=filtro==='abertas'?[q]:[...new Set(fichasGrad.filter(f=>f.status==='fechada').map(f=>f.quinzena))].sort().reverse();
+  // Quinzenas disponíveis — inclui sempre a anterior para não sumir ao virar quinzena
+  const qAnteriorGrad=(()=>{
+    const [ano,mes,parte]=q.split('-');
+    if(parte==='Q2') return ano+'-'+mes+'-Q1';
+    const dt=new Date(parseInt(ano),parseInt(mes)-2,1);
+    return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-Q2';
+  })();
+  const quinzenas=filtro==='abertas'
+    ?[...new Set([q,qAnteriorGrad,...fichasGrad.filter(f=>f.status==='aberta').map(f=>f.quinzena)])].sort().reverse()
+    :[...new Set(fichasGrad.filter(f=>f.status==='fechada').map(f=>f.quinzena))].sort().reverse();
 
   quinzenas.forEach(qk=>{
     const fichasQ=fichasGrad.filter(f=>f.quinzena===qk&&(filtro==='abertas'?f.status==='aberta':f.status==='fechada'));
