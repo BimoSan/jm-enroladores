@@ -10389,23 +10389,30 @@ function renderFichasMetal(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const qAtual=getQuinzenaAtual();
   const isAdmin=['admin','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
+  const mostrarHistorico=window._metalFichasHistorico||false;
 
-  // Agrupar fichas por quinzena — inclui sempre a quinzena anterior à atual,
-  // pois soldadores "Fichado" não geram documentos no Firebase e a quinzena
-  // sumia quando virava o mês sem nenhuma ficha registrada nela.
   const qAnterior=(()=>{
     const [ano,mes,parte]=qAtual.split('-');
     if(parte==='Q2') return ano+'-'+mes+'-Q1';
     const dt=new Date(parseInt(ano),parseInt(mes)-2,1);
     return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-Q2';
   })();
-  const quinzenas=[...new Set([
+
+  const todasQuinzenas=[...new Set([
     qAtual,
     qAnterior,
     ...[...fichasMetal].map(f=>f.quinzena)
   ])].sort((a,b)=>b>a?1:-1);
 
-  let html='';
+  // Por padrão mostra só atual + anterior; histórico mostra todas
+  const quinzenas=mostrarHistorico?todasQuinzenas:todasQuinzenas.slice(0,2);
+
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+    +'<button onclick="window._metalFichasHistorico=!'+(mostrarHistorico)+'&&!0;reloadTab()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">'
+    +(mostrarHistorico
+      ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Ocultar histórico'
+      :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ver histórico completo')
+    +'</button></div>';
 
   quinzenas.forEach(q=>{
     const label=quinzenaLabel(q);
