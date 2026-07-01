@@ -7677,16 +7677,16 @@ const GRAD_CATEGORIAS_RANKING=[
 ];
 
 function totalCategoriaGradPeriodo(gradId, pecaIds, periodo){
-  // periodo: 'quinzena' (quinzena atual) ou 'mes' (mês atual), ou um anoMes-Q1/Q2 específico
   const hoje_=today();
   const qAtual=getQuinzenaAtualGrad();
-  const mesAtual=hoje_.slice(0,7);
+  const mesAtualLocal=hoje_.slice(0,7);
   let total=0;
   fichasGrad.filter(f=>f.gradId===gradId).forEach(f=>{
     (f.apontamentos||[]).forEach(a=>{
       const data=a.data||'';
       const match = periodo==='quinzena' ? getQuinzenaGrad(data)===qAtual
-                  : periodo==='mes'      ? data.slice(0,7)===mesAtual
+                  : periodo==='mes'      ? data.slice(0,7)===mesAtualLocal
+                  : /^\d{4}-\d{2}$/.test(periodo) ? data.slice(0,7)===periodo
                   : getQuinzenaGrad(data)===periodo;
       if(!match) return;
       pecaIds.forEach(pid=>{ total+=parseInt((a.pecas||{})[pid])||0; });
@@ -7696,45 +7696,44 @@ function totalCategoriaGradPeriodo(gradId, pecaIds, periodo){
 }
 
 function renderGradRanking(){
-  if(!window._rankGradPeriodo) window._rankGradPeriodo='quinzena';
-  const per=window._rankGradPeriodo;
-  const qAtual=getQuinzenaAtualGrad();
   const hoje_=today();
-  const mesAtual=hoje_.slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._rankGradPeriodo||window._rankGradPeriodo==='quinzena'||window._rankGradPeriodo==='mes') window._rankGradPeriodo=hoje_.slice(0,7);
+  const per=window._rankGradPeriodo;
+  const mesAtual=per.length===7?per:hoje_.slice(0,7);
+  function perLabel(){ const[y,mo]=mesAtual.split('-'); return MESES[parseInt(mo)-1]+' '+y; }
 
-  function perLabel(){
-    if(per==='quinzena') return quinzenaLabelGrad(qAtual);
-    const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const m=parseInt(mesAtual.slice(5,7))-1;
-    return MESES[m]+' '+mesAtual.slice(0,4);
-  }
+  // Meses com produção
+  const mesesComProd=[...new Set(
+    fichasGrad.flatMap(f=>(f.apontamentos||[]).map(a=>(a.data||'').slice(0,7))).filter(Boolean)
+  )].sort().reverse();
+  if(!mesesComProd.includes(hoje_.slice(0,7))) mesesComProd.unshift(hoje_.slice(0,7));
 
-  function btnPer(v,l){
-    const ativo=per===v;
-    return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
-      +' onclick="window._setRankGradPeriodo(&quot;'+v+'&quot;)">'+l+'</button>';
-  }
-  const filtroPerHtml='<div style="display:flex;gap:8px;margin-bottom:16px">'
-    +btnPer('quinzena','Quinzena')
-    +btnPer('mes','Mensal')
-    +'</div>';
+  let filtroPerHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
+  mesesComProd.slice(0,8).forEach(m=>{
+    const ativo=per===m;
+    filtroPerHtml+='<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'" onclick="window._setRankGradPeriodo(&quot;'+m+'&quot;)">'
+      +MESES[parseInt(m.slice(5,7))-1].slice(0,3)+' '+m.slice(0,4)+'</button>';
+  });
+  filtroPerHtml+='</div>';
 
   // Só categorias com produção no período
   const categoriasComProd=GRAD_CATEGORIAS_RANKING.filter(cat=>
-    gradistas.some(g=>totalCategoriaGradPeriodo(g.id,cat.pecas,per)>0)
+    gradistas.some(g=>totalCategoriaGradPeriodo(g.id,cat.pecas,mesAtual)>0)
   );
 
+  const header=`<div style="background:#1d4ed8;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
+    <div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Grades</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${perLabel()}</div>
+  </div>`;
+
   if(!categoriasComProd.length){
-    return `<div style="background:#1d4ed8;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
-      <div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Grades</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${perLabel()}</div>
-    </div>`+filtroPerHtml+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada no período.</div></div>';
+    return header+filtroPerHtml+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma produção registrada no período.</div></div>';
   }
 
   const cardsCategorias=categoriasComProd.map(cat=>{
-    const ranking=gradistas.map(g=>({g,qtd:totalCategoriaGradPeriodo(g.id,cat.pecas,per)}))
-      .filter(x=>x.qtd>0)
-      .sort((a,b)=>b.qtd-a.qtd);
+    const ranking=gradistas.map(g=>({g,qtd:totalCategoriaGradPeriodo(g.id,cat.pecas,mesAtual)}))
+      .filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd);
     if(!ranking.length) return '';
     const maxQtd=ranking[0].qtd;
     const medalhas=['🥇','🥈','🥉'];
@@ -7746,8 +7745,7 @@ function renderGradRanking(){
       return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
         +'<span style="font-size:16px;width:24px;text-align:center">'+(i<3?medalhas[i]:'<span style="font-size:12px;color:#64748b">'+(i+1)+'</span>')+'</span>'
         +'<div style="width:36px;height:36px;border-radius:50%;background:'+cor+'22;color:'+cor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+initials(g.nome)+'</div>'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:13px;font-weight:700">'+g.nome+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+g.nome+'</div>'
         +'<div style="height:6px;background:#f1f5f9;border-radius:99px;margin-top:4px;overflow:hidden">'
         +'<div style="height:100%;width:'+pct+'%;background:'+barCor+';border-radius:99px"></div>'
         +'</div></div>'
@@ -7755,17 +7753,23 @@ function renderGradRanking(){
         +'</div>';
     }).join('');
     return '<div class="card" style="margin-bottom:14px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-      +'<div style="font-size:14px;font-weight:700;color:#1e293b">'+cat.icon+' '+cat.label+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+perLabel()+'</div>'
-      +'</div>'
+      +'<div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:10px">'+cat.icon+' '+cat.label+'</div>'
       +rows+'</div>';
   }).join('');
 
-  return `<div style="background:#1d4ed8;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
-    <div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking Grades</div>
-    <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${perLabel()}</div>
-  </div>`+filtroPerHtml+cardsCategorias;
+  // Banner destaque por categoria
+  const destaqueBanner='<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff">'
+    +'<div style="font-size:13px;font-weight:800;margin-bottom:10px">🏆 Destaques — '+perLabel()+'</div>'
+    +categoriasComProd.map(cat=>{
+      const top=gradistas.map(g=>({g,qtd:totalCategoriaGradPeriodo(g.id,cat.pecas,mesAtual)})).filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd)[0];
+      return top?'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.2)">'
+        +'<div style="font-size:12px;font-weight:600">'+cat.icon+' '+cat.label+'</div>'
+        +'<div style="font-size:12px;font-weight:800">'+top.g.nome+' · '+top.qtd+'</div>'
+        +'</div>':'';
+    }).join('')
+    +'</div>';
+
+  return header+filtroPerHtml+destaqueBanner+cardsCategorias;
 }
 window._setRankGradPeriodo=function(v){ window._rankGradPeriodo=v; reloadTab(); };
 
@@ -9029,21 +9033,33 @@ window._tapConfirmarExcluirApont=async function(){
 
 // ── Ranking ──────────────────────────────────────────────────────
 function renderTapRanking(){
-  if(!window._rankTapPeriodo) window._rankTapPeriodo='quinzena';
+  if(!window._rankTapPeriodo||window._rankTapPeriodo==='quinzena') window._rankTapPeriodo=hoje_.slice(0,7);
+  const hoje_=today();
   const per=window._rankTapPeriodo;
   const qAtual=getQuinzenaAtualTap();
-  const hoje_=today();
-  const mesAtual=hoje_.slice(0,7);
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  function perLabel(){ if(per==='quinzena') return quinzenaLabelTap(qAtual); const m=parseInt(mesAtual.slice(5,7))-1; return MESES[m]+' '+mesAtual.slice(0,4); }
-  function btnPer(v,l){ const ativo=per===v; return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'" onclick="window._setRankTapPeriodo(&quot;'+v+'&quot;)">'+l+'</button>'; }
-  const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:16px">'+btnPer('quinzena','Quinzena')+btnPer('mes','Mensal')+'</div>';
+  const mesAtual=per.length===7?per:hoje_.slice(0,7);
+  const mesLabel=m=>{ const[y,mo]=m.split('-'); return MESES[parseInt(mo)-1]+' '+y; };
+  function perLabel(){ return mesLabel(mesAtual); }
+
+  // Meses com produção
+  const mesesComProd=[...new Set(
+    fichasTap.flatMap(f=>(f.apontamentos||[]).map(a=>(a.data||'').slice(0,7))).filter(Boolean)
+  )].sort().reverse();
+  if(!mesesComProd.includes(hoje_.slice(0,7))) mesesComProd.unshift(hoje_.slice(0,7));
+
+  let filtroHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
+  mesesComProd.slice(0,8).forEach(m=>{
+    const ativo=per===m;
+    filtroHtml+='<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'" onclick="window._setRankTapPeriodo(&quot;'+m+'&quot;)">'
+      +MESES[parseInt(m.slice(5,7))-1].slice(0,3)+' '+m.slice(0,4)+'</button>';
+  });
+  filtroHtml+='</div>';
+
   function totalTapPeriodo(tapId,pecaId){
     return fichasTap.filter(f=>f.tapId===tapId).reduce((s,f)=>{
       return s+(f.apontamentos||[]).reduce((ss,a)=>{
-        const data=a.data||'';
-        const match=per==='quinzena'?getQuinzenaTap(data)===qAtual:data.slice(0,7)===mesAtual;
-        return ss+(match?parseInt((a.pecas||{})[pecaId])||0:0);
+        return ss+((a.data||'').slice(0,7)===mesAtual?parseInt((a.pecas||{})[pecaId])||0:0);
       },0);
     },0);
   }
@@ -9077,7 +9093,25 @@ function renderTapRanking(){
   let cards='';
   if(pecasCamas.length) cards+=renderCardRanking('🛏️ Camas',pecasCamas,!podeVerQtd);
   pecasOutras.forEach(p=>{ cards+=renderCardRanking(p.label,[p],false); });
-  return header+filtroHtml+(cards||'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma produção no período.</div>');
+
+  // Banner destaque: quem mais produziu no mês (por peça)
+  let destaqueBanner='';
+  const pecas_=getPecasTapAtivas();
+  const destaques=pecas_.map(p=>{
+    const top=tapecadores.map(t=>({t,qtd:totalTapPeriodo(t.id,p.id)})).filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd)[0];
+    return top?{peca:p,tapecador:top.t,qtd:top.qtd}:null;
+  }).filter(Boolean);
+  if(destaques.length){
+    destaqueBanner='<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#0e7490,#22d3ee);color:#fff">'
+      +'<div style="font-size:13px;font-weight:800;margin-bottom:10px">🏆 Destaques — '+perLabel()+'</div>'
+      +destaques.map(d=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.2)">'
+        +'<div style="font-size:12px;font-weight:600">'+d.peca.label+'</div>'
+        +'<div style="font-size:12px;font-weight:800">'+d.tapecador.nome+' · '+d.qtd+' peças</div>'
+        +'</div>').join('')
+      +'</div>';
+  }
+
+  return header+filtroHtml+destaqueBanner+(cards||'<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma produção no período.</div>');
 }
 window._setRankTapPeriodo=function(v){ window._rankTapPeriodo=v; reloadTab(); };
 
@@ -10378,10 +10412,22 @@ function renderRankingMetal(){
       +rows+'</div>';
   }).join('');
 
+  // Banner destaque por peça
+  const destaqueBannerMetal='<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#1e293b,#374151);color:#fff">'
+    +'<div style="font-size:13px;font-weight:800;margin-bottom:10px">🏆 Destaques — '+perLabel()+'</div>'
+    +pecasComProd.map(p=>{
+      const top=soldadores.map(s=>({s,qtd:qtdSoldador(s.id,p.id)})).filter(x=>x.qtd>0).sort((a,b)=>b.qtd-a.qtd)[0];
+      return top?'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.2)">'
+        +'<div style="font-size:12px;font-weight:600">'+p.label+'</div>'
+        +'<div style="font-size:12px;font-weight:800">'+top.s.nome+' · '+top.qtd+'</div>'
+        +'</div>':'';
+    }).join('')
+    +'</div>';
+
   return `<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">
     <div style="font-size:16px;font-weight:800;color:#fff">⚙️ Ranking Metalúrgica</div>
     <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">${perLabel()}</div>
-  </div>`+filtroPerHtml+cardsPecas;
+  </div>`+filtroPerHtml+destaqueBannerMetal+cardsPecas;
 }
 
 
