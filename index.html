@@ -4515,7 +4515,7 @@ function renderPontoMetal(){
         const reg=getRegistro(func.id,dt);
         let status=reg?.status||(isDom?'FO':'');
         const hExtra=reg?.horasExtra||0;
-        if(status==='F'||status==='FJ'||status==='M') totalFaltas+=(status==='M'?0.5:1);
+        if(status==='F'||status==='M') totalFaltas+=(status==='M'?0.5:1); // FJ não conta como falta
         totalHExtra+=hExtra;
         // Verificar se é domingo perdido
         let domPerdido=false;
@@ -4584,7 +4584,7 @@ function renderPontoMetal(){
         if(dow===0||dow===6) continue;
         const reg=getRegistro(func.id,dt);
         const s=reg?.status;
-        if(s==='F'||s==='FJ') faltas++;
+        if(s==='F') faltas++; // FJ não conta como falta
         else if(s==='M') faltas+=0.5;
         else if(s==='P') presencas++;
         hExtra+=reg?.horasExtra||0;
