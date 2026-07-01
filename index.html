@@ -10408,7 +10408,7 @@ function renderFichasMetal(){
   const quinzenas=mostrarHistorico?todasQuinzenas:todasQuinzenas.slice(0,2);
 
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
-    +'<button onclick="window._metalFichasHistorico=!'+(mostrarHistorico)+'&&!0;reloadTab()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">'
+    +'<button onclick="window._metalFichasHistorico='+(!mostrarHistorico)+';reloadTab()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">'
     +(mostrarHistorico
       ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Ocultar histórico'
       :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg> Ver histórico completo')
