@@ -5125,11 +5125,11 @@ function renderCamRotas(){
   const totalKm=rotasMes.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
   const totalGasto=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
 
-  function rotaTotalCombustivel(r){
-    const rotaAbs=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
-    const inicialAbs=parseFloat(r.absInicial?.totalPago)||0;
-    return rotaAbs+inicialAbs;
-  }
+function rotaTotalCombustivel(r){
+  const rotaAbs=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+  const inicialAbs=parseFloat(r.absInicial?.totalPago)||0;
+  return rotaAbs+inicialAbs;
+}
 
   // Navegação de mês
   const mesAnt=new Date(parseInt(ano),parseInt(m)-2,1);
