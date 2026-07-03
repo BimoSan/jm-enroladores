@@ -402,6 +402,8 @@ let espumaEstoque=[];
 let espumaOperadores=[];
 // Custos Indiretos
 let custosIndiretos=[];
+let matDiretos=[];
+let matDiretosConfig={categorias:['Tecido','Espuma','Madeira','Metal','Embalagem','Cola/Químicos','Fios/Elétrico','EPI','Outros']};
 // Engenharia
 let engProdutos=[];
 let engMaterias=[];
@@ -640,6 +642,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
   'fin_compras':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
+  'fin_matdiretos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
   'fin_custos':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
   'fin_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'alm_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>',
@@ -669,7 +672,7 @@ const TAB_LABELS={
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
-  'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
+  'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_matdiretos':'Materiais Diretos','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
@@ -884,7 +887,7 @@ function renderApp(){
     }
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   } else if(currentSetor==='financeiro_geral'){
-    tabs.push('fin_dashboard','fin_pagamentos','fin_compras','fin_custos','fin_relatorio');
+    tabs.push('fin_dashboard','fin_pagamentos','fin_compras','fin_matdiretos','fin_custos','fin_relatorio');
     if(!currentTab||!currentTab.startsWith('fin_')) currentTab='fin_dashboard';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
@@ -12857,6 +12860,7 @@ function renderTabFinanceiro(tab){
     if(tab==='fin_dashboard') return renderFinDashboard();
     if(tab==='fin_pagamentos') return renderFinPagamentos();
     if(tab==='fin_compras') return renderFinCompras();
+    if(tab==='fin_matdiretos') return renderFinMatDiretos();
     if(tab==='fin_custos') return renderFinCustos();
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
@@ -13449,6 +13453,156 @@ function renderFinRelPagamentos(){
 }
 
 // ── Compras ─────────────────────────────────────────────────────
+function renderFinMatDiretos(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._matDiretosMes) window._matDiretosMes=today().slice(0,7);
+  const mes=window._matDiretosMes;
+  const mesLabel=m=>{ if(!m)return''; const[y,mo]=m.split('-'); return MESES[parseInt(mo)-1]+' '+y; };
+
+  const mesesDisp=[...new Set([today().slice(0,7),...matDiretos.map(m=>(m.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  const doMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
+  const totalMes=doMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+
+  // Agrupa por categoria
+  const porCat={};
+  doMes.forEach(m=>{ if(!porCat[m.categoria||'Outros']) porCat[m.categoria||'Outros']=0; porCat[m.categoria||'Outros']+=parseFloat(m.valor)||0; });
+
+  const mesSelect='<select onchange="window._matDiretosSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +mesesDisp.map(m=>'<option value="'+m+'"'+(m===mes?' selected':'')+'>'+mesLabel(m)+'</option>').join('')+'</select>';
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    ${mesSelect}
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
+      <div style="font-size:22px;font-weight:900;color:#1d4ed8">${fmtMoeda(totalMes)}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" style="border:1.5px solid #64748b;color:#64748b" onclick="window._matDiretosGerirCats()">⚙️ Categorias</button>
+      <button class="btn btn-primary btn-sm" onclick="window._matDiretosNovo()">+ Lançamento</button>
+    </div>
+  </div>`;
+
+  // Resumo por categoria
+  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  if(cats.length){
+    const maxCat=cats[0][1];
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📦 Por categoria</div>';
+    html+=cats.map(([cat,val])=>`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+        <span style="font-weight:600">${cat}</span>
+        <span style="font-weight:700;color:#1d4ed8">${fmtMoeda(val)}</span>
+      </div>
+      <div style="height:6px;background:#f1f5f9;border-radius:99px">
+        <div style="height:100%;width:${Math.round(val/maxCat*100)}%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:99px"></div>
+      </div></div>`).join('');
+    html+='</div>';
+  }
+
+  // Lançamentos agrupados por dia
+  const porDia={};
+  doMes.forEach(m=>{ const d=m.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(m); });
+  const dias=Object.keys(porDia).sort().reverse();
+
+  html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569">Lançamentos — '+mesLabel(mes)+'</div></div>';
+
+  if(!dias.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhum lançamento neste mês.</div>';
+  } else {
+    dias.forEach((dia,di)=>{
+      const itens=porDia[dia];
+      const totalDia=itens.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+      const [ano,m_,dd]=dia.split('-');
+      html+='<div style="'+(di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<span style="font-size:11px;font-weight:800;color:#475569">'+dd+'/'+m_+'/'+ano+'</span>'
+        +'<span style="font-size:12px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalDia)+'</span>'
+        +'</div>';
+      itens.forEach((it,i)=>{
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="flex:1">'
+          +'<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:99px;font-weight:700">'+(it.categoria||'Outros')+'</span>'
+          +(it.descricao?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.descricao+'</div>':'')
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:13px;font-weight:700;color:#1d4ed8">'+fmtMoeda(parseFloat(it.valor))+'</span>'
+          +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._matDiretosExcluir(\''+it.id+'\')">✕</button>'
+          +'</div></div>';
+      });
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+window._matDiretosSetMes=function(m){ window._matDiretosMes=m; reloadTab(); };
+
+window._matDiretosNovo=function(){
+  const cats=matDiretosConfig.categorias||['Outros'];
+  showModal('+ Material Direto',
+    '<div class="form-group"><label>Categoria</label>'
+    +'<select id="md-cat" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +cats.map(c=>'<option>'+c+'</option>').join('')
+    +'</select></div>'
+    +'<div class="form-group"><label>Descrição</label>'
+    +'<input id="md-desc" placeholder="Ex: Tecido jacquard azul" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<input type="number" id="md-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="md-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._matDiretosSalvar()">Salvar</button>');
+};
+
+window._matDiretosGerirCats=function(){
+  const cats=matDiretosConfig.categorias||[];
+  const lista=cats.map((c,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+    +'<span style="font-size:13px">'+c+'</span>'
+    +'<button onclick="window._matDiretosExcluirCat('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
+    +'</div>').join('');
+  showModal('⚙️ Categorias de Materiais Diretos',
+    (lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria cadastrada.</div>')
+    +'<div style="display:flex;gap:8px;margin-top:14px">'
+    +'<input id="md-nova-cat" placeholder="Nome da nova categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._matDiretosAddCat()">+ Adicionar</button>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+};
+
+window._matDiretosAddCat=async function(){
+  const nome=document.getElementById('md-nova-cat')?.value.trim();
+  if(!nome){showToast('Digite o nome da categoria.');return;}
+  const cats=[...(matDiretosConfig.categorias||[])];
+  if(cats.includes(nome)){showToast('Categoria já existe.');return;}
+  cats.push(nome);
+  await setDoc(doc(db,'config_mat_diretos','geral'),{...matDiretosConfig,categorias:cats});
+  closeModal();
+  showToast('Categoria adicionada!');
+};
+
+window._matDiretosExcluirCat=async function(idx){
+  const cats=[...(matDiretosConfig.categorias||[])];
+  cats.splice(idx,1);
+  await setDoc(doc(db,'config_mat_diretos','geral'),{...matDiretosConfig,categorias:cats});
+  closeModal();
+  showToast('Categoria removida!');
+};
+window._matDiretosSalvar=async function(){
+  const categoria=document.getElementById('md-cat')?.value;
+  const descricao=document.getElementById('md-desc')?.value.trim();
+  const valor=parseFloat(document.getElementById('md-valor')?.value)||0;
+  const data=document.getElementById('md-data')?.value||today();
+  if(!valor){showToast('Informe o valor.');return;}
+  closeModal();
+  await addDoc(collection(db,'mat_diretos'),{categoria,descricao,valor,data,criadoEm:new Date().toISOString()});
+  showToast('Lançamento salvo!');
+};
+window._matDiretosExcluir=async function(id){
+  await deleteDoc(doc(db,'mat_diretos',id));
+  showToast('Lançamento excluído!');
+};
+
 function renderFinCompras(){
   if(!window._finComprasMes) window._finComprasMes='';
 
@@ -15123,6 +15277,15 @@ function iniciarListeners(){
   onSnapshot(doc(db,'config_eng','geral'),snap=>{
     if(snap.exists()) configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0,...snap.data()};
     if(currentUserData&&currentSetor==='engenharia')reloadTab();
+  });
+  // Materiais Diretos
+  onSnapshot(collection(db,'mat_diretos'),snap=>{
+    matDiretos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
+  });
+  onSnapshot(doc(db,'config_mat_diretos','geral'),snap=>{
+    if(snap.exists()) matDiretosConfig={categorias:['Outros'],...snap.data()};
+    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
   });
   // Notificações de pagamento
   onSnapshot(collection(db,'notif_pagamento'),snap=>{
