@@ -13576,17 +13576,19 @@ window._matDiretosAddCat=async function(){
   const cats=[...(matDiretosConfig.categorias||[])];
   if(cats.includes(nome)){showToast('Categoria já existe.');return;}
   cats.push(nome);
-  await setDoc(doc(db,'config_mat_diretos','geral'),{...matDiretosConfig,categorias:cats});
-  closeModal();
+  matDiretosConfig={...matDiretosConfig,categorias:cats};
+  await setDoc(doc(db,'config_mat_diretos','geral'),matDiretosConfig);
   showToast('Categoria adicionada!');
+  window._matDiretosGerirCats();
 };
 
 window._matDiretosExcluirCat=async function(idx){
   const cats=[...(matDiretosConfig.categorias||[])];
   cats.splice(idx,1);
-  await setDoc(doc(db,'config_mat_diretos','geral'),{...matDiretosConfig,categorias:cats});
-  closeModal();
+  matDiretosConfig={...matDiretosConfig,categorias:cats};
+  await setDoc(doc(db,'config_mat_diretos','geral'),matDiretosConfig);
   showToast('Categoria removida!');
+  window._matDiretosGerirCats();
 };
 window._matDiretosSalvar=async function(){
   const categoria=document.getElementById('md-cat')?.value;
@@ -15285,7 +15287,7 @@ function iniciarListeners(){
   });
   onSnapshot(doc(db,'config_mat_diretos','geral'),snap=>{
     if(snap.exists()) matDiretosConfig={categorias:['Outros'],...snap.data()};
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
+    // Não recarrega a aba pois as categorias são usadas só dentro do modal
   });
   // Notificações de pagamento
   onSnapshot(collection(db,'notif_pagamento'),snap=>{
