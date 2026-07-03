@@ -13561,12 +13561,15 @@ window._matDiretosGerirCats=function(){
     +'<span style="font-size:13px">'+c+'</span>'
     +'<button onclick="window._matDiretosExcluirCat('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
     +'</div>').join('');
-  showModal('⚙️ Categorias de Materiais Diretos',
-    (lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria cadastrada.</div>')
+  const corpo='<div id="md-cats-lista">'+(lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria cadastrada.</div>')+'</div>'
     +'<div style="display:flex;gap:8px;margin-top:14px">'
     +'<input id="md-nova-cat" placeholder="Nome da nova categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
     +'<button class="btn btn-primary btn-sm" onclick="window._matDiretosAddCat()">+ Adicionar</button>'
-    +'</div>',
+    +'</div>';
+  // Se modal já está aberto, atualiza só o conteúdo sem fechar/reabrir
+  const modalBody=document.getElementById('modal-body');
+  if(modalBody){ modalBody.innerHTML=corpo; return; }
+  showModal('⚙️ Categorias de Materiais Diretos', corpo,
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
 };
 
