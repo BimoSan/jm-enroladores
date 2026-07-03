@@ -5243,6 +5243,9 @@ window._abrirNovaRota=function(rota){
 
   window._absCount=abs.length;
 
+  const postosPad=camPostos.length?camPostos:[{id:'_p1',nome:'Posto Jati Rede Mais'},{id:'_p2',nome:'Auto Posto Nordeste'},{id:'_p3',nome:'Araújo Petróleo'}];
+  const optsPI=postosPad.map(p=>'<option value="'+p.nome+'"'+((r.absInicial?.posto===p.nome)?' selected':'')+'>'+p.nome+'</option>').join('');
+
   const body='<div class="form-row">'
     +'<div class="form-group"><label>Data</label><input id="rota-data" type="date" value="'+(r.data||today())+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Veículo</label><select id="rota-veiculo" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"><option value="">— Veículo —</option>'+optsV+'</select></div>'
@@ -5257,7 +5260,20 @@ window._abrirNovaRota=function(rota){
     +'<div class="form-group"><label>Km Final</label><input id="rota-kmfin" type="number" value="'+(r.kmFinal||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Observação</label><input id="rota-obs" value="'+(r.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
-    +'<div style="font-size:12px;font-weight:700;color:#1e3a5f;margin:10px 0 6px">⛽ Abastecimentos</div>'
+    // Abastecimento inicial — não entra na média
+    +'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:10px">'
+    +'<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">⛽ Abastecimento inicial <span style="font-weight:400;font-size:11px">(não entra na média de consumo)</span></div>'
+    +'<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px">'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">Posto</label>'
+    +'<select id="absinicial-posto" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:5px;width:100%"><option value="">— Posto —</option>'+optsPI+'</select></div>'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">Litros</label>'
+    +'<input type="number" id="absinicial-litros" step="0.01" placeholder="0.00" value="'+(r.absInicial?.litros||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:5px;width:100%"></div>'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">R$/L</label>'
+    +'<input type="number" id="absinicial-valunit" step="0.01" placeholder="0.00" value="'+(r.absInicial?.valUnit||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:5px;width:100%"></div>'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">Total R$</label>'
+    +'<input type="number" id="absinicial-total" step="0.01" placeholder="0.00" value="'+(r.absInicial?.totalPago||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:5px;width:100%"></div>'
+    +'</div></div>'
+    +'<div style="font-size:12px;font-weight:700;color:#1e3a5f;margin:10px 0 6px">⛽ Abastecimentos durante a rota</div>'
     +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
     +'<thead><tr style="background:#f1f5f9">'
     +'<th style="padding:6px 8px;text-align:left">Posto</th>'
@@ -5332,7 +5348,17 @@ window._salvarRota=async function(rotaId){
     if(posto||litros||totalPago) abastecimentos.push({posto,combustivel,valUnit,litros,totalPago,gastoMot});
   }
 
+  // Abastecimento inicial (não entra na média)
+  const absInicialPosto=document.getElementById('absinicial-posto')?.value||'';
+  const absInicialLitros=parseFloat(document.getElementById('absinicial-litros')?.value)||0;
+  const absInicialValUnit=parseFloat(document.getElementById('absinicial-valunit')?.value)||0;
+  const absInicialTotal=parseFloat(document.getElementById('absinicial-total')?.value)||0;
+  const absInicial=(absInicialLitros||absInicialTotal)?{
+    posto:absInicialPosto,litros:absInicialLitros,valUnit:absInicialValUnit,totalPago:absInicialTotal
+  }:null;
+
   const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,obs,abastecimentos,
+    ...(absInicial?{absInicial}:{}),
     registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
 
   try{
