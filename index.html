@@ -5126,7 +5126,9 @@ function renderCamRotas(){
   const totalGasto=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
 
   function rotaTotalCombustivel(r){
-    return (r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+    const rotaAbs=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+    const inicialAbs=parseFloat(r.absInicial?.totalPago)||0;
+    return rotaAbs+inicialAbs;
   }
 
   // Navegação de mês
@@ -5754,7 +5756,7 @@ function renderCamRelatorio(){
     const mesStr=ano+'-'+String(mi+1).padStart(2,'0');
     const rotas=camRotas.filter(r=>(r.data||'').slice(0,7)===mesStr);
     const kmTotal=rotas.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
-    const combTotal=rotas.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
+    const combTotal=rotas.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
     const manTotal=camManutencoes.filter(m=>(m.data||'').slice(0,7)===mesStr).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const motTotal=rotas.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
     return {mes:MESES[mi],kmTotal,combTotal,manTotal,motTotal,viagens:rotas.length};
@@ -5766,7 +5768,7 @@ function renderCamRelatorio(){
   const porVeiculo=camVeiculos.map(v=>{
     const rotasV=camRotas.filter(r=>r.veiculoId===v.id&&(r.data||'').slice(0,4)===ano);
     const km=rotasV.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
-    const comb=rotasV.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
+    const comb=rotasV.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
     const man=camManutencoes.filter(m=>m.veiculoId===v.id&&(m.data||'').slice(0,4)===ano).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     return {v,km,comb,man,viagens:rotasV.length,total:comb+man};
   }).filter(x=>x.viagens>0||x.man>0).sort((a,b)=>b.total-a.total);
@@ -5848,7 +5850,7 @@ function renderCamRelatorio(){
   const porMotorista=camMotoristas.map(m=>{
     const rotasM=camRotas.filter(r=>r.motoristId===m.id&&(r.data||'').slice(0,4)===ano);
     const km=rotasM.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
-    const comb=rotasM.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.totalPago)||0),0),0);
+    const comb=rotasM.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
     const gMot=rotasM.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
     return {m,km,comb,gMot,viagens:rotasM.length,total:comb+gMot};
   }).filter(x=>x.viagens>0).sort((a,b)=>b.viagens-a.viagens);
