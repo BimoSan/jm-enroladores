@@ -13149,10 +13149,10 @@ function renderFinMatQuimicos(){
 
   // Entradas de MPs químicas (espumaEstoque com kg > 0, ou seja, não saídas)
   const entradas=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0);
-  const mesesDisp=[...new Set(entradas.map(e=>(e.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
-  if(!window._finQuimicosMes&&mesesDisp.length) window._finQuimicosMes=mesesDisp[0];
+  const mesesDisp=[...new Set([today().slice(0,7),...entradas.map(e=>(e.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  if(!window._finQuimicosMes) window._finQuimicosMes=today().slice(0,7);
 
-  const filtradas=window._finQuimicosMes?entradas.filter(e=>(e.data||'').startsWith(window._finQuimicosMes)):entradas;
+  const filtradas=entradas.filter(e=>(e.data||'').startsWith(window._finQuimicosMes));
 
   // Valor total: custoPorKg × kg, se disponível; senão custo salvo
   const getMpLabel=mpId=>getMpById(mpId)?.label||mpId;
@@ -13176,8 +13176,7 @@ function renderFinMatQuimicos(){
   });
 
   const mesSelect=`<select onchange="window._finSetQuimicosMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">
-    <option value="">Todos os meses</option>
-    ${mesesDisp.map(m=>'<option value="'+m+'"'+(m===window._finQuimicosMes?' selected':'')+'>'+(mesLabelQ(m))+'</option>').join('')}
+    ${mesesDisp.map(m=>'<option value="'+m+'"'+(m===window._finQuimicosMes?' selected':'')+'>'+mesLabelQ(m)+'</option>').join('')}
   </select>`;
 
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
