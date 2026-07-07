@@ -13143,148 +13143,92 @@ window._vendasExcluir=async function(id){
 
 // ── MATERIAIS QUÍMICOS ───────────────────────────────────────────
 function renderFinMatQuimicos(){
-  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  if(!window._matQuimicosMes) window._matQuimicosMes=today().slice(0,7);
-  const mesesDisp=[...new Set([today().slice(0,7),...matQuimicos.map(m=>(m.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
-  const mes=mesesDisp.includes(window._matQuimicosMes)?window._matQuimicosMes:mesesDisp[0]||today().slice(0,7);
-  const doMes=matQuimicos.filter(m=>(m.data||'').startsWith(mes));
-  const totalMes=doMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
-  const mesSelect='<select onchange="window._matQuimicosSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
-    +mesesDisp.map(m=>`<option value="${m}"${m===mes?' selected':''}>${mesLabel(m)}</option>`).join('')+'</select>';
+  if(!window._finQuimicosMes) window._finQuimicosMes='';
+  const MESES_Q=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabelQ=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES_Q[parseInt(mo)-1]+' '+y;};
 
-  // Resumo por categoria
-  const porCat={};
-  doMes.forEach(m=>{ if(!porCat[m.categoria||'Outros']) porCat[m.categoria||'Outros']=0; porCat[m.categoria||'Outros']+=parseFloat(m.valor)||0; });
-  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
-  const maxCat=cats[0]?.[1]||1;
+  // Entradas de MPs químicas (espumaEstoque com kg > 0, ou seja, não saídas)
+  const entradas=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0);
+  const mesesDisp=[...new Set(entradas.map(e=>(e.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  if(!window._finQuimicosMes&&mesesDisp.length) window._finQuimicosMes=mesesDisp[0];
+
+  const filtradas=window._finQuimicosMes?entradas.filter(e=>(e.data||'').startsWith(window._finQuimicosMes)):entradas;
+
+  // Valor total: custoPorKg × kg, se disponível; senão custo salvo
+  const getMpLabel=mpId=>getMpById(mpId)?.label||mpId;
+  const getMpCusto=mpId=>parseFloat(getMpById(mpId)?.custoPorKg)||0;
+  const calcValor=e=>{
+    const custoPorKg=getMpCusto(e.mpId);
+    const kg=parseFloat(e.kg)||0;
+    return custoPorKg>0?(custoPorKg*kg):(parseFloat(e.custo)||0);
+  };
+
+  const totalMes=filtradas.reduce((s,e)=>s+calcValor(e),0);
+
+  // Resumo por MP
+  const porMp={};
+  filtradas.forEach(e=>{
+    const label=getMpLabel(e.mpId);
+    if(!porMp[label]) porMp[label]={kg:0,valor:0,movs:0};
+    porMp[label].kg+=parseFloat(e.kg)||0;
+    porMp[label].valor+=calcValor(e);
+    porMp[label].movs++;
+  });
+
+  const mesSelect=`<select onchange="window._finSetQuimicosMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">
+    <option value="">Todos os meses</option>
+    ${mesesDisp.map(m=>'<option value="'+m+'"'+(m===window._finQuimicosMes?' selected':'')+'>'+(mesLabelQ(m))+'</option>').join('')}
+  </select>`;
 
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     ${mesSelect}
-    <div style="text-align:right"><div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
-    <div style="font-size:22px;font-weight:900;color:#0d9488">${fmtMoeda(totalMes)}</div></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost btn-sm" style="border:1.5px solid #64748b;color:#64748b" onclick="window._matQuimicosGerirCats()">⚙️ Categorias</button>
-      <button class="btn btn-primary btn-sm" onclick="window._matQuimicosNovo()">+ Lançamento</button>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#64748b">${window._finQuimicosMes?mesLabelQ(window._finQuimicosMes):'Total geral'}</div>
+      <div style="font-size:22px;font-weight:900;color:#0e7490">${fmtMoeda(totalMes)}</div>
     </div>
   </div>`;
 
-  if(cats.length){
-    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Por categoria</div>';
-    html+=cats.map(([cat,val])=>`<div style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span style="font-weight:600">${cat}</span><span style="font-weight:700;color:#0d9488">${fmtMoeda(val)}</span></div>
-      <div style="height:6px;background:#f1f5f9;border-radius:99px"><div style="height:100%;width:${Math.round(val/maxCat*100)}%;background:linear-gradient(90deg,#0d9488,#14b8a6);border-radius:99px"></div></div>
-    </div>`).join('');
-    html+='</div>';
+  // Resumo por MP
+  const mpsOrdenadas=Object.entries(porMp).sort((a,b)=>b[1].valor-a[1].valor);
+  if(mpsOrdenadas.length){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Resumo por matéria-prima</div>';
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="background:#ccfbf1"><th style="padding:7px 10px;text-align:left">MP</th><th style="padding:7px 10px;text-align:center">Kg entrada</th><th style="padding:7px 10px;text-align:center">Entradas</th><th style="padding:7px 10px;text-align:right">Total</th></tr></thead><tbody>';
+    html+=mpsOrdenadas.map(([label,v],i)=>`<tr style="${i%2?'background:#f0fdfa':''}">
+      <td style="padding:7px 10px;font-weight:600">${label}</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.kg.toFixed(1)} kg</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.movs}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#0e7490">${v.valor>0?fmtMoeda(v.valor):'—'}</td>
+    </tr>`).join('');
+    html+=`<tr style="background:#ccfbf1;font-weight:800"><td style="padding:7px 10px">Total</td><td colspan="2"></td><td style="padding:7px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalMes)}</td></tr>`;
+    html+='</tbody></table></div></div>';
   }
 
-  const porDia={};
-  doMes.forEach(m=>{ const d=m.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(m); });
-  const dias=Object.keys(porDia).sort().reverse();
-  html+='<div class="card">';
-  if(!dias.length){ html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhum lançamento neste mês.</div>'; }
-  else dias.forEach((dia,di)=>{
-    const itens=porDia[dia];
-    const totalDia=itens.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    const[ano,m_,dd]=dia.split('-');
-    html+=`<div style="${di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':''}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;font-weight:800;color:#475569">${dd}/${m_}/${ano}</span>
-        <span style="font-size:12px;font-weight:800;color:#0d9488">${fmtMoeda(totalDia)}</span>
-      </div>`;
-    itens.forEach((it,i)=>{
-      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
-        <div><span style="font-size:10px;background:#ccfbf1;color:#0d9488;padding:1px 7px;border-radius:99px;font-weight:700">${it.categoria||'Outros'}</span>
-        ${it.qtd?`<div style="font-size:11px;color:#64748b;margin-top:2px">${it.qtd} ${it.unidade||'un'}</div>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;font-weight:700;color:#0d9488">${fmtMoeda(parseFloat(it.valor))}</span>
-          <button onclick="window._matQuimicosExcluir('${it.id}')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
-        </div>
-      </div>`;
-    });
-    html+='</div>';
-  });
+  // Transações individuais
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧾 Transações</div>';
+  if(!filtradas.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma entrada encontrada.</div>';
+  } else {
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Data</th><th style="padding:7px 10px;text-align:left">MP</th><th style="padding:7px 10px;text-align:center">Kg</th><th style="padding:7px 10px;text-align:center">Tambores</th><th style="padding:7px 10px;text-align:right">Total</th><th style="padding:7px 10px;text-align:left">Obs.</th></tr></thead><tbody>';
+    html+=filtradas.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map((e,i)=>{
+      const d=(e.data||'').split('-').reverse().join('/');
+      const val=calcValor(e);
+      return `<tr style="${i%2?'background:#f8fafc':''}">
+        <td style="padding:7px 10px;white-space:nowrap">${d}</td>
+        <td style="padding:7px 10px;font-weight:600">${getMpLabel(e.mpId)}</td>
+        <td style="padding:7px 10px;text-align:center">${parseFloat(e.kg).toFixed(1)} kg</td>
+        <td style="padding:7px 10px;text-align:center;color:#64748b">${e.tambores||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:#0e7490">${val>0?fmtMoeda(val):'—'}</td>
+        <td style="padding:7px 10px;color:#64748b;font-size:11px">${e.obs||'—'}</td>
+      </tr>`;
+    }).join('');
+    html+='</tbody></table></div>';
+  }
   html+='</div>';
   return html;
 }
-window._matQuimicosSetMes=function(m){ window._matQuimicosMes=m; reloadTab(); };
-window._matQuimicosNovo=function(){
-  const cats=matQuimicosConfig.categorias||[];
-  const catOpts=cats.map((c,i)=>`<option value="${i}">${typeof c==='object'?c.nome:c}</option>`).join('');
-  showModal('+ Material Químico',
-    (cats.length?'<div class="form-group"><label>Categoria</label><select id="mq-cat" onchange="window._matQuimicosAtualizarUnid()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+catOpts+'</select></div>':'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Cadastre categorias antes de lançar.</div>')
-    +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px"><div class="form-group"><label>Quantidade</label><input type="number" id="mq-qtd" min="0" step="0.01" placeholder="0" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Unidade</label><input id="mq-unid" readonly style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;background:#f8fafc;color:#64748b"></div></div>'
-    +'<div class="form-group"><label>Valor total (R$)</label><input type="number" id="mq-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Data</label><input type="date" id="mq-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
-    +'<button class="btn btn-sm btn-primary" onclick="window._matQuimicosSalvar()">Salvar</button>');
-  setTimeout(window._matQuimicosAtualizarUnid,50);
-};
-window._matQuimicosAtualizarUnid=function(){
-  const idx=parseInt(document.getElementById('mq-cat')?.value)||0;
-  const cat=( matQuimicosConfig.categorias||[])[idx];
-  const el=document.getElementById('mq-unid');
-  if(el) el.value=typeof cat==='object'?cat.unidade:'un';
-};
-window._matQuimicosSalvar=async function(){
-  const idx=parseInt(document.getElementById('mq-cat')?.value)||0;
-  const cats=matQuimicosConfig.categorias||[];
-  const cat=cats[idx];
-  const categoria=typeof cat==='object'?cat.nome:(cat||'Outros');
-  const unidade=typeof cat==='object'?cat.unidade:'un';
-  const qtd=parseFloat(document.getElementById('mq-qtd')?.value)||0;
-  const valor=parseFloat(document.getElementById('mq-valor')?.value)||0;
-  const data=document.getElementById('mq-data')?.value||today();
-  if(!valor){showToast('Informe o valor.');return;}
-  closeModal();
-  await addDoc(collection(db,'mat_quimicos'),{categoria,unidade,qtd,valor,data,criadoEm:new Date().toISOString()});
-  showToast('Lançamento salvo!');
-};
-window._matQuimicosExcluir=async function(id){
-  await deleteDoc(doc(db,'mat_quimicos',id));
-  showToast('Lançamento excluído!');
-};
-window._matQuimicosGerirCats=function(){
-  const cats=matQuimicosConfig.categorias||[];
-  const lista=cats.map((c,i)=>{
-    const nome=typeof c==='object'?c.nome:c;
-    const unidade=typeof c==='object'?c.unidade:'un';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">
-      <div><span style="font-size:13px;font-weight:600">${nome}</span> <span style="font-size:11px;color:#94a3b8">(${unidade})</span></div>
-      <button onclick="window._matQuimicosExcluirCat(${i})" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>
-    </div>`;
-  }).join('');
-  const corpo='<div id="mq-cats-lista">'+(lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria.</div>')+'</div>'
-    +'<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-top:14px;align-items:end">'
-    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Nome</label><input id="mq-nova-cat" placeholder="Ex: Poliol" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
-    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Unidade</label><input id="mq-nova-unid" placeholder="L, kg, un" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
-    +'<button class="btn btn-primary btn-sm" onclick="window._matQuimicosAddCat()" style="height:36px">+ Add</button></div>';
-  const modalBody=document.getElementById('modal-body');
-  if(modalBody){ modalBody.innerHTML=corpo; return; }
-  showModal('⚙️ Categorias de Materiais Químicos',corpo,'<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
-};
-window._matQuimicosAddCat=async function(){
-  const nome=document.getElementById('mq-nova-cat')?.value.trim();
-  const unidade=document.getElementById('mq-nova-unid')?.value.trim()||'un';
-  if(!nome){showToast('Digite o nome.');return;}
-  const cats=[...(matQuimicosConfig.categorias||[])];
-  if(cats.some(c=>(typeof c==='object'?c.nome:c)===nome)){showToast('Já existe.');return;}
-  cats.push({nome,unidade});
-  matQuimicosConfig={...matQuimicosConfig,categorias:cats};
-  await setDoc(doc(db,'config_mat_quimicos','geral'),matQuimicosConfig);
-  showToast('Categoria adicionada!');
-  window._matQuimicosGerirCats();
-};
-window._matQuimicosExcluirCat=async function(idx){
-  const cats=[...(matQuimicosConfig.categorias||[])];
-  cats.splice(idx,1);
-  matQuimicosConfig={...matQuimicosConfig,categorias:cats};
-  await setDoc(doc(db,'config_mat_quimicos','geral'),matQuimicosConfig);
-  showToast('Categoria removida!');
-  window._matQuimicosGerirCats();
-};
+window._finSetQuimicosMes=function(m){ window._finQuimicosMes=m; reloadTab(); };
 
 function renderFinDashboard(){
   const mesAtualFin=today().slice(0,7);
@@ -13308,8 +13252,11 @@ function renderFinDashboard(){
   const matDiretosDoMes=matDiretos.filter(m=>(m.data||'').startsWith(mesAtualFin));
   const totalMatDiretosMes=matDiretosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
 
-  const matQuimicosDoMes=matQuimicos.filter(m=>(m.data||'').startsWith(mesAtualFin));
-  const totalMatQuimicosMes=matQuimicosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const matQuimicosDoMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mesAtualFin));
+  const totalMatQuimicosMes=matQuimicosDoMes.reduce((s,e)=>{
+    const custoPorKg=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
+    return s+(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
+  },0);
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const totalVendasMes=vendasDoMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
@@ -13348,11 +13295,12 @@ function renderFinDashboard(){
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(m.valor)||0;
   });
-  matQuimicos.forEach(m=>{
-    const mes_=(m.data||'').slice(0,7);
+  (espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0).forEach(e=>{
+    const mes_=(e.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    porMes[mes_]+=parseFloat(m.valor)||0;
+    const custoPorKg=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
+    porMes[mes_]+=(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
