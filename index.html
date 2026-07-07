@@ -14555,7 +14555,8 @@ window._salvarMovAlm=async function(id_or_btn,tipo_or_undef){
     obs:document.getElementById('em-obs')?.value||''};
   if(tipo==='entrada'){
     const custo=parseFloat(document.getElementById('em-custo')?.value)||0;
-    if(custo>0){dados.custoUnitario=custo;dados.custoTotal=parseFloat((custo*quantidade).toFixed(2));}
+    dados.custoUnitario=custo;
+    dados.custoTotal=parseFloat((custo*quantidade).toFixed(2));
   } else {
     dados.pessoa=document.getElementById('em-pessoa')?.value||'';
     dados.setor=document.getElementById('em-setor')?.value||'';
