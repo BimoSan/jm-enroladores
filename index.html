@@ -407,6 +407,7 @@ let matDiretosConfig={categorias:['Tecido','Espuma','Madeira','Metal','Embalagem
 let matQuimicos=[];
 let matQuimicosConfig={categorias:[]};
 let vendas=[];
+let clientes=[];
 let pagManuais=[];
 // Engenharia
 let engProdutos=[];
@@ -5108,10 +5109,8 @@ window._finPagManualNovo=function(){
     +'<datalist id="pm-setor-list">'+SETORES.map(s=>`<option value="${s}">`).join('')+'</datalist></div>'
     +'<div class="form-group"><label>Valor total (R$)</label>'
     +'<input type="number" id="pm-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Data de referência</label>'
-    +'<input type="date" id="pm-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:4px">'
-    +'<input type="checkbox" id="pm-pago" style="width:16px;height:16px"> Já foi pago</label>',
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="pm-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._finPagManualSalvar()">Salvar</button>');
 };
@@ -5119,11 +5118,10 @@ window._finPagManualSalvar=async function(){
   const nome=document.getElementById('pm-nome')?.value.trim();
   const valor=parseFloat(document.getElementById('pm-valor')?.value)||0;
   const data=document.getElementById('pm-data')?.value||today();
-  const pago=document.getElementById('pm-pago')?.checked||false;
   if(!nome){showToast('Informe a descrição.');return;}
   if(!valor){showToast('Informe o valor.');return;}
   closeModal();
-  await addDoc(collection(db,'pag_manuais'),{nome,setor:'Folha',valor,data,pago,dataPagamento:pago?today():null,criadoEm:new Date().toISOString()});
+  await addDoc(collection(db,'pag_manuais'),{nome,setor:'Folha',valor,data,pago:true,dataPagamento:data,criadoEm:new Date().toISOString()});
   showToast('Pagamento registrado!');
 };
 window._finPagarManual=async function(id){
@@ -13135,7 +13133,40 @@ function renderFinVendas(){
   doMes.forEach(v=>{ const d=v.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(v); });
   const dias=Object.keys(porDia).sort().reverse();
 
-  html+='<div class="card">';
+  // Ranking de clientes do mês
+  const porCliente={};
+  doMes.forEach(v=>{
+    const k=v.clienteId||v.cliente||'—';
+    const nome=v.cliente||k;
+    if(!porCliente[k]) porCliente[k]={nome,total:0,qtdVendas:0};
+    porCliente[k].total+=parseFloat(v.valor)||0;
+    porCliente[k].qtdVendas++;
+  });
+  const ranking=Object.values(porCliente).sort((a,b)=>b.total-a.total);
+  if(ranking.length>0){
+    const maxT=ranking[0].total;
+    const medalhas=['🥇','🥈','🥉'];
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🏆 Melhores clientes — '+mesLabel(mes)+'</div>';
+    html+=ranking.map((c,i)=>{
+      const pct=Math.round(c.total/maxT*100);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9">
+        <span style="font-size:16px;width:24px;text-align:center">${i<3?medalhas[i]:'<span style="font-size:12px;color:#64748b">'+(i+1)+'</span>'}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${c.nome}</div>
+          <div style="height:5px;background:#f1f5f9;border-radius:99px;margin-top:4px">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#059669,#10b981);border-radius:99px"></div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(c.total)}</div>
+          <div style="font-size:10px;color:#94a3b8">${c.qtdVendas} venda${c.qtdVendas!==1?'s':''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    html+='</div>';
+  }
+
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos — '+mesLabel(mes)+'</div>';
   if(!dias.length){
     html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda neste mês.</div>';
   } else {
@@ -13168,8 +13199,15 @@ function renderFinVendas(){
 }
 window._vendasSetMes=function(m){ window._vendasMes=m; reloadTab(); };
 window._vendasNovo=function(){
+  const clienteOpts=clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
   showModal('+ Nova Venda',
-    '<div class="form-group"><label>Cliente</label><input id="vd-cliente" placeholder="Nome do cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    '<div class="form-group"><label>Cliente</label>'
+    +'<div style="display:flex;gap:8px">'
+    +'<select id="vd-cliente" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<option value="">— Selecione ou cadastre —</option>'+clienteOpts
+    +'</select>'
+    +'<button type="button" onclick="window._vendasNovoCliente()" style="border:none;background:#1d4ed8;color:#fff;border-radius:9px;width:38px;font-size:18px;cursor:pointer;flex-shrink:0">+</button>'
+    +'</div></div>'
     +'<div class="form-group"><label>Produto / Descrição</label><input id="vd-produto" placeholder="Ex: Jogo de Sofá, Cama Casal" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     +'<div class="form-group"><label>Quantidade</label><input type="number" id="vd-qtd" min="1" step="1" placeholder="1" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
@@ -13179,16 +13217,37 @@ window._vendasNovo=function(){
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._vendasSalvar()">Salvar</button>');
 };
+
+window._vendasNovoCliente=function(){
+  showModal('+ Novo Cliente',
+    '<div class="form-group"><label>Nome</label><input id="nc-nome" placeholder="Nome do cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Telefone (opcional)</label><input id="nc-tel" placeholder="(88) 99999-9999" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Cidade (opcional)</label><input id="nc-cidade" placeholder="Ex: Juazeiro do Norte" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._vendasNovo()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._vendasSalvarCliente()">Salvar</button>');
+};
+
+window._vendasSalvarCliente=async function(){
+  const nome=document.getElementById('nc-nome')?.value.trim();
+  const telefone=document.getElementById('nc-tel')?.value.trim();
+  const cidade=document.getElementById('nc-cidade')?.value.trim();
+  if(!nome){showToast('Informe o nome.');return;}
+  await addDoc(collection(db,'fin_clientes'),{nome,telefone,cidade,criadoEm:new Date().toISOString()});
+  showToast('Cliente cadastrado!');
+  window._vendasNovo();
+};
 window._vendasSalvar=async function(){
-  const cliente=document.getElementById('vd-cliente')?.value.trim();
+  const clienteId=document.getElementById('vd-cliente')?.value;
+  const clienteObj=clientes.find(c=>c.id===clienteId);
+  const cliente=clienteObj?.nome||clienteId||'—';
   const produto=document.getElementById('vd-produto')?.value.trim();
   const qtd=parseFloat(document.getElementById('vd-qtd')?.value)||null;
   const valor=parseFloat(document.getElementById('vd-valor')?.value)||0;
   const data=document.getElementById('vd-data')?.value||today();
+  if(!clienteId){showToast('Selecione um cliente.');return;}
   if(!valor){showToast('Informe o valor.');return;}
-  if(!cliente){showToast('Informe o cliente.');return;}
   closeModal();
-  await addDoc(collection(db,'fin_vendas'),{cliente,produto,qtd,valor,data,criadoEm:new Date().toISOString()});
+  await addDoc(collection(db,'fin_vendas'),{clienteId,cliente,produto,qtd,valor,data,criadoEm:new Date().toISOString()});
   showToast('Venda registrada!');
 };
 window._vendasExcluir=async function(id){
@@ -15789,6 +15848,10 @@ function iniciarListeners(){
   });
   onSnapshot(collection(db,'fin_vendas'),snap=>{
     vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
+  });
+  onSnapshot(collection(db,'fin_clientes'),snap=>{
+    clientes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
     if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
   });
   onSnapshot(collection(db,'pag_manuais'),snap=>{
