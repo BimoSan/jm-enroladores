@@ -4633,16 +4633,14 @@ function renderPontoMetal(){
     for(let d=1;d<=diasNoMes;d++){
       const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
       if(new Date(dt+'T12:00:00').getDay()!==0) continue;
-      // Verificar seg-sab da semana (os 6 dias anteriores)
+      // Verifica seg-sab da semana desse domingo (6 dias anteriores, incluindo mês anterior)
       let temFalta=false;
       for(let i=1;i<=6;i++){
         const prev=new Date(dt+'T12:00:00');
         prev.setDate(prev.getDate()-i);
         const prevDt=prev.toISOString().slice(0,10);
-        // só conta dias do mesmo mês
-        if(prevDt.slice(0,7)!==mes) continue;
         const reg=getRegistro(funcId,prevDt);
-        if(reg?.status==='F'){temFalta=true;break;} // FJ não perde o domingo
+        if(reg?.status==='F'){temFalta=true;break;}
       }
       if(temFalta) domingos.push(dt);
     }
@@ -4657,7 +4655,7 @@ function renderPontoMetal(){
       for(let d=1;d<=diasNoMes;d++){
         const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
         const dow=new Date(dt+'T12:00:00').getDay();
-        if(dow===0||dow===6) continue;
+        if(dow===0) continue; // pula domingo (não é dia de trabalho)
         const reg=getRegistro(func.id,dt);
         const s=reg?.status;
         if(s==='F') faltas++; // FJ não conta como falta
@@ -4666,7 +4664,7 @@ function renderPontoMetal(){
         hExtra+=reg?.horasExtra||0;
       }
       const domPerds=domingosPerdidos(func.id);
-      const totalComDomingos=faltas+domPerds.length;
+      const totalComDomingos=Math.ceil(faltas)+domPerds.length;
       return '<div class="card" style="padding:12px">'
         +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">'+func.nome+'</div>'
         +(func.cargo?'<div style="font-size:10px;color:#64748b;margin-bottom:8px">'+func.cargo+'</div>':'')
