@@ -13513,22 +13513,6 @@ function renderFinDashboard(){
     html+='</div>';
   }
 
-  // Gráfico de barras de pagamentos por mês
-  if(mesesOrdenados.length){
-    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:16px">📊 Pagamentos de mão de obra por mês</div>';
-    html+='<div style="display:flex;align-items:flex-end;gap:10px;height:120px">';
-    html+=mesesOrdenados.map(m=>{
-      const val=porMes[m];
-      const h=Math.round((val/maxBarVal)*100);
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <div style="font-size:9px;color:#64748b;font-weight:700">${fmtMoeda(val).replace('R$','').trim()}</div>
-        <div style="width:100%;background:linear-gradient(180deg,#3b82f6,#1e40af);border-radius:6px 6px 0 0;height:${h}%;min-height:4px"></div>
-        <div style="font-size:9px;color:#94a3b8">${mesLabel(m)}</div>
-      </div>`;
-    }).join('');
-    html+='</div></div>';
-  }
-
   // Últimas transações (mistura pagamentos + compras recentes)
   const todasPagas=pagamentos.filter(p=>p.pago);
   const todasCompras=finComprasTodos();
