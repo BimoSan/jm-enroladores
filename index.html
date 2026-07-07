@@ -644,7 +644,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_gradistas':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-  'fin_vendas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+  'fin_viagens':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
   'fin_compras':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
   'fin_matquimicos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v11l3.5 6.5A1 1 0 0117.6 22H6.4a1 1 0 01-.9-1.5L9 14V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg>',
   'fin_matdiretos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
@@ -677,7 +677,7 @@ const TAB_LABELS={
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
-  'fin_dashboard':'Dashboard','fin_vendas':'Vendas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
+  'fin_dashboard':'Dashboard','fin_vendas':'Vendas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
@@ -892,7 +892,7 @@ function renderApp(){
     }
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   } else if(currentSetor==='financeiro_geral'){
-    tabs.push('fin_dashboard','fin_vendas','fin_pagamentos','fin_compras','fin_matdiretos','fin_matquimicos','fin_custos','fin_relatorio');
+    tabs.push('fin_dashboard','fin_vendas','fin_pagamentos','fin_compras','fin_matdiretos','fin_matquimicos','fin_custos','fin_viagens','fin_relatorio');
     if(!currentTab||!currentTab.startsWith('fin_')) currentTab='fin_dashboard';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
@@ -12918,6 +12918,7 @@ function renderTabFinanceiro(tab){
     if(tab==='fin_matdiretos') return renderFinMatDiretos();
     if(tab==='fin_matquimicos') return renderFinMatQuimicos();
     if(tab==='fin_custos') return renderFinCustos();
+    if(tab==='fin_viagens') return renderFinViagens();
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
   }catch(e){
@@ -13257,6 +13258,12 @@ function renderFinDashboard(){
     return s+(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   },0);
 
+  // Viagens do mês: combustível + gastos com motoristas
+  const rotasDoMes=camRotas.filter(r=>(r.data||'').startsWith(mesAtualFin));
+  const totalCombMes=rotasDoMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
+  const totalGastoMotMes=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMotorista)||0),0),0);
+  const totalViagensMes=totalCombMes+totalGastoMotMes;
+
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const totalVendasMes=vendasDoMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
 
@@ -13301,6 +13308,13 @@ function renderFinDashboard(){
     const custoPorKg=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
     porMes[mes_]+=(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   });
+  camRotas.forEach(r=>{
+    const mes_=(r.data||'').slice(0,7);
+    if(!mes_) return;
+    if(!porMes[mes_]) porMes[mes_]=0;
+    porMes[mes_]+=rotaTotalCombustivel(r);
+    porMes[mes_]+=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMotorista)||0),0);
+  });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
   const MESES_N=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -13310,7 +13324,7 @@ function renderFinDashboard(){
 
   let html='';
 
-  const totalSaidas=totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes+totalMatQuimicosMes;
+  const totalSaidas=totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes+totalMatQuimicosMes+totalViagensMes;
   const resultado=totalVendasMes-totalSaidas;
 
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
@@ -13369,10 +13383,10 @@ function renderFinDashboard(){
       <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatQuimicosMes)}</div>
       <div style="font-size:10px;opacity:.7;margin-top:4px">${matQuimicosDoMes.length} entrada${matQuimicosDoMes.length!==1?"s":""}</div>
     </div>
-    <div class="card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">SAÍDAS TOTAL — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes+totalMatQuimicosMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">mão de obra + materiais</div>
+    <div class="card" style="background:linear-gradient(135deg,#374151,#4b5563);color:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
+      <div style="font-size:10px;opacity:.7;margin-top:4px">combustível + motoristas</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
@@ -14013,6 +14027,72 @@ function renderFinCompras(){
 }
 
 // ── Relatório ───────────────────────────────────────────────────
+function renderFinViagens(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._finViagensMes) window._finViagensMes=today().slice(0,7);
+  const mesesDisp=[...new Set([today().slice(0,7),...camRotas.map(r=>(r.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  const mes=mesesDisp.includes(window._finViagensMes)?window._finViagensMes:mesesDisp[0]||today().slice(0,7);
+  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+
+  const rotasDoMes=camRotas.filter(r=>(r.data||'').startsWith(mes));
+  const totalComb=rotasDoMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
+  const totalGastMot=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMotorista)||0),0),0);
+  const totalGeral=totalComb+totalGastMot;
+
+  const mesSelect='<select onchange="window._finViagensSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +mesesDisp.map(m=>`<option value="${m}"${m===mes?' selected':''}>${mesLabel(m)}</option>`).join('')+'</select>';
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    ${mesSelect}
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
+      <div style="font-size:22px;font-weight:900;color:#374151">${fmtMoeda(totalGeral)}</div>
+    </div>
+  </div>`;
+
+  // Resumo
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="card" style="text-align:center;background:#f8fafc">
+      <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">COMBUSTÍVEL</div>
+      <div style="font-size:22px;font-weight:800;color:#d97706">${fmtMoeda(totalComb)}</div>
+    </div>
+    <div class="card" style="text-align:center;background:#f8fafc">
+      <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">GASTOS MOTORISTAS</div>
+      <div style="font-size:22px;font-weight:800;color:#3b82f6">${fmtMoeda(totalGastMot)}</div>
+    </div>
+  </div>`;
+
+  // Por rota
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🚛 Rotas — '+mesLabel(mes)+'</div>';
+  if(!rotasDoMes.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma rota neste mês.</div>';
+  } else {
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 8px;text-align:left">Data</th><th style="padding:7px 8px;text-align:left">Veículo</th><th style="padding:7px 8px;text-align:left">Motorista</th><th style="padding:7px 8px;text-align:left">Rota</th><th style="padding:7px 8px;text-align:right;color:#d97706">Combustível</th><th style="padding:7px 8px;text-align:right;color:#3b82f6">Motorista</th><th style="padding:7px 8px;text-align:right;font-weight:700">Total</th></tr></thead><tbody>';
+    html+=rotasDoMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map((r,i)=>{
+      const v=camVeiculos.find(x=>x.id===r.veiculoId);
+      const m=camMotoristas.find(x=>x.id===r.motoristId);
+      const comb=rotaTotalCombustivel(r);
+      const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMotorista)||0),0);
+      const total=comb+mot;
+      return `<tr style="${i%2?'background:#f8fafc':''}">
+        <td style="padding:7px 8px;white-space:nowrap">${fmtDate(r.data)}</td>
+        <td style="padding:7px 8px;font-weight:600">${v?v.modelo+' '+v.placa:'—'}</td>
+        <td style="padding:7px 8px">${m?m.nome:'—'}</td>
+        <td style="padding:7px 8px;color:#64748b">${r.origem||''} → ${r.destino||''}</td>
+        <td style="padding:7px 8px;text-align:right;color:#d97706">${comb>0?fmtMoeda(comb):'—'}</td>
+        <td style="padding:7px 8px;text-align:right;color:#3b82f6">${mot>0?fmtMoeda(mot):'—'}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700">${fmtMoeda(total)}</td>
+      </tr>`;
+    }).join('');
+    html+=`<tr style="background:#f1f5f9;font-weight:800"><td colspan="4" style="padding:7px 8px">Total ${mesLabel(mes)}</td><td style="padding:7px 8px;text-align:right;color:#d97706">${fmtMoeda(totalComb)}</td><td style="padding:7px 8px;text-align:right;color:#3b82f6">${fmtMoeda(totalGastMot)}</td><td style="padding:7px 8px;text-align:right">${fmtMoeda(totalGeral)}</td></tr>`;
+    html+='</tbody></table></div>';
+  }
+  html+='</div>';
+  return html;
+}
+window._finViagensSetMes=function(m){ window._finViagensMes=m; reloadTab(); };
+
 function renderFinRelatorio(){
   if(!window._finRelAno) window._finRelAno=today().slice(0,4);
 
