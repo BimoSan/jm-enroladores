@@ -2294,7 +2294,7 @@ function renderRelatorio(){
 function calcularPagamento(f){
   const vals=getValoresPorFicha(f);
   return TIPOS.reduce((total,t)=>{
-    const qtd=somaRecol(f,t.id);
+    const qtd=somaRecolPago(f,t.id); // exclui recolhimentos administrativos (cancelamentos/retiradas)
     const valor=parseFloat(vals[t.id])||0;
     return total+(qtd*valor);
   },0);
