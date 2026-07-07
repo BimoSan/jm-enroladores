@@ -680,7 +680,7 @@ const TAB_LABELS={
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
-  'fin_dashboard':'Dashboard','fin_vendas':'Vendas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_relatorio':'Relatórios',
+  'fin_dashboard':'Dashboard','fin_vendas':'Entradas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
@@ -13141,7 +13141,7 @@ function renderFinVendas(){
       <div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
       <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalMes)}</div>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="window._vendasNovo()">+ Venda</button>
+    <button class="btn btn-primary btn-sm" onclick="window._vendasNovo()">+ Entrada</button>
   </div>`;
 
   // Agrupado por dia
@@ -13149,37 +13149,17 @@ function renderFinVendas(){
   doMes.forEach(v=>{ const d=v.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(v); });
   const dias=Object.keys(porDia).sort().reverse();
 
-  // Ranking de clientes do mês
-  const porCliente={};
-  doMes.forEach(v=>{
-    const k=v.clienteId||v.cliente||'—';
-    const nome=v.cliente||k;
-    if(!porCliente[k]) porCliente[k]={nome,total:0,qtdVendas:0};
-    porCliente[k].total+=parseFloat(v.valor)||0;
-    porCliente[k].qtdVendas++;
-  });
-  const ranking=Object.values(porCliente).sort((a,b)=>b.total-a.total);
-  if(ranking.length>0){
-    const maxT=ranking[0].total;
-    const medalhas=['🥇','🥈','🥉'];
-    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🏆 Melhores clientes — '+mesLabel(mes)+'</div>';
-    html+=ranking.map((c,i)=>{
-      const pct=Math.round(c.total/maxT*100);
-      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9">
-        <span style="font-size:16px;width:24px;text-align:center">${i<3?medalhas[i]:'<span style="font-size:12px;color:#64748b">'+(i+1)+'</span>'}</span>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700">${c.nome}</div>
-          <div style="height:5px;background:#f1f5f9;border-radius:99px;margin-top:4px">
-            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#059669,#10b981);border-radius:99px"></div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(c.total)}</div>
-          <div style="font-size:10px;color:#94a3b8">${c.qtdVendas} venda${c.qtdVendas!==1?'s':''}</div>
-        </div>
-      </div>`;
-    }).join('');
-    html+='</div>';
+  // Resumo por forma de pagamento
+  const porForma={pix:0,dinheiro:0,cheque:0};
+  doMes.forEach(v=>{ const f=v.forma||'outros'; if(porForma[f]!==undefined) porForma[f]+=parseFloat(v.valor)||0; });
+  if(totalMes>0){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💳 Por forma de recebimento</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+      +[{k:'pix',l:'📱 Pix'},{k:'dinheiro',l:'💵 Dinheiro'},{k:'cheque',l:'📝 Cheque'}].map(({k,l})=>`<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">
+        <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">${l}</div>
+        <div style="font-size:18px;font-weight:800;color:#059669">${fmtMoeda(porForma[k])}</div>
+      </div>`).join('')
+      +'</div></div>';
   }
 
   html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos — '+mesLabel(mes)+'</div>';
@@ -13198,8 +13178,7 @@ function renderFinVendas(){
       itens.forEach((v,i)=>{
         html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
           <div>
-            <div style="font-size:13px;font-weight:600">${v.cliente||'—'}</div>
-            ${v.produto?`<div style="font-size:11px;color:#64748b">${v.produto}${v.qtd?' · '+v.qtd+' un':''}</div>`:''}
+            <span style="font-size:13px;font-weight:700">${v.forma==='pix'?'📱 Pix':v.forma==='dinheiro'?'💵 Dinheiro':v.forma==='cheque'?'📝 Cheque':v.forma||'—'}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(parseFloat(v.valor))}</span>
@@ -13215,23 +13194,32 @@ function renderFinVendas(){
 }
 window._vendasSetMes=function(m){ window._vendasMes=m; reloadTab(); };
 window._vendasNovo=function(){
-  const clienteOpts=clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  showModal('+ Nova Venda',
-    '<div class="form-group"><label>Cliente</label>'
-    +'<div style="display:flex;gap:8px">'
-    +'<select id="vd-cliente" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
-    +'<option value="">— Selecione ou cadastre —</option>'+clienteOpts
-    +'</select>'
-    +'<button type="button" onclick="window._vendasNovoCliente()" style="border:none;background:#1d4ed8;color:#fff;border-radius:9px;width:38px;font-size:18px;cursor:pointer;flex-shrink:0">+</button>'
-    +'</div></div>'
-    +'<div class="form-group"><label>Produto / Descrição</label><input id="vd-produto" placeholder="Ex: Jogo de Sofá, Cama Casal" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +'<div class="form-group"><label>Quantidade</label><input type="number" id="vd-qtd" min="1" step="1" placeholder="1" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Valor total (R$)</label><input type="number" id="vd-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'</div>'
-    +'<div class="form-group"><label>Data</label><input type="date" id="vd-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+  showModal('+ Nova Entrada',
+    '<div class="form-group"><label>Forma de recebimento</label>'
+    +'<div style="display:flex;gap:8px;margin-top:4px">'
+    +'<button type="button" id="vd-forma-pix" onclick="window._vendasSetForma(\'pix\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #e2e8f0;background:#fff;font-size:13px;font-weight:700;cursor:pointer">📱 Pix</button>'
+    +'<button type="button" id="vd-forma-dinheiro" onclick="window._vendasSetForma(\'dinheiro\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #e2e8f0;background:#fff;font-size:13px;font-weight:700;cursor:pointer">💵 Dinheiro</button>'
+    +'<button type="button" id="vd-forma-cheque" onclick="window._vendasSetForma(\'cheque\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #e2e8f0;background:#fff;font-size:13px;font-weight:700;cursor:pointer">📝 Cheque</button>'
+    +'</div><input type="hidden" id="vd-forma" value=""></div>'
+    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<input type="number" id="vd-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="vd-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._vendasSalvar()">Salvar</button>');
+};
+
+window._vendasSetForma=function(forma){
+  ['pix','dinheiro','cheque'].forEach(f=>{
+    const btn=document.getElementById('vd-forma-'+f);
+    if(btn){
+      btn.style.background=f===forma?'#1d4ed8':'#fff';
+      btn.style.color=f===forma?'#fff':'#1e293b';
+      btn.style.borderColor=f===forma?'#1d4ed8':'#e2e8f0';
+    }
+  });
+  const input=document.getElementById('vd-forma');
+  if(input) input.value=forma;
 };
 
 window._vendasNovoCliente=function(){
@@ -13253,18 +13241,14 @@ window._vendasSalvarCliente=async function(){
   window._vendasNovo();
 };
 window._vendasSalvar=async function(){
-  const clienteId=document.getElementById('vd-cliente')?.value;
-  const clienteObj=clientes.find(c=>c.id===clienteId);
-  const cliente=clienteObj?.nome||clienteId||'—';
-  const produto=document.getElementById('vd-produto')?.value.trim();
-  const qtd=parseFloat(document.getElementById('vd-qtd')?.value)||null;
+  const forma=document.getElementById('vd-forma')?.value;
   const valor=parseFloat(document.getElementById('vd-valor')?.value)||0;
   const data=document.getElementById('vd-data')?.value||today();
-  if(!clienteId){showToast('Selecione um cliente.');return;}
+  if(!forma){showToast('Selecione a forma de recebimento.');return;}
   if(!valor){showToast('Informe o valor.');return;}
   closeModal();
-  await addDoc(collection(db,'fin_vendas'),{clienteId,cliente,produto,qtd,valor,data,criadoEm:new Date().toISOString()});
-  showToast('Venda registrada!');
+  await addDoc(collection(db,'fin_vendas'),{forma,valor,data,criadoEm:new Date().toISOString()});
+  showToast('Entrada registrada!');
 };
 window._vendasExcluir=async function(id){
   await deleteDoc(doc(db,'fin_vendas',id));
@@ -13474,11 +13458,6 @@ function renderFinDashboard(){
     </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:8px">
-    <div class="card" style="border-left:4px solid #059669;background:#f0fdf4;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;color:#059669;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VENDAS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;color:#059669;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalVendasMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">${vendasDoMes.length} venda${vendasDoMes.length!==1?"s":""}</div>
-    </div>
     <div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A PAGAR</div>
       <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalPendente)}</div>
