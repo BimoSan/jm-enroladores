@@ -404,6 +404,9 @@ let espumaOperadores=[];
 let custosIndiretos=[];
 let matDiretos=[];
 let matDiretosConfig={categorias:['Tecido','Espuma','Madeira','Metal','Embalagem','Cola/Químicos','Fios/Elétrico','EPI','Outros']};
+let matQuimicos=[];
+let matQuimicosConfig={categorias:[]};
+let vendas=[];
 // Engenharia
 let engProdutos=[];
 let engMaterias=[];
@@ -641,7 +644,8 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_gradistas':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
-  'fin_compras':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
+  'fin_vendas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+  'fin_matquimicos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v11l3.5 6.5A1 1 0 0117.6 22H6.4a1 1 0 01-.9-1.5L9 14V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg>',
   'fin_matdiretos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
   'fin_custos':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
   'fin_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
@@ -672,7 +676,7 @@ const TAB_LABELS={
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
-  'fin_dashboard':'Dashboard','fin_pagamentos':'Pagamentos','fin_compras':'Compras','fin_matdiretos':'Materiais Diretos','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
+  'fin_dashboard':'Dashboard','fin_vendas':'Vendas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
@@ -887,7 +891,7 @@ function renderApp(){
     }
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   } else if(currentSetor==='financeiro_geral'){
-    tabs.push('fin_dashboard','fin_pagamentos','fin_compras','fin_matdiretos','fin_custos','fin_relatorio');
+    tabs.push('fin_dashboard','fin_vendas','fin_pagamentos','fin_compras','fin_matdiretos','fin_matquimicos','fin_custos','fin_relatorio');
     if(!currentTab||!currentTab.startsWith('fin_')) currentTab='fin_dashboard';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
@@ -12907,9 +12911,11 @@ window._custoConfirmarExcluir=async function(){
 function renderTabFinanceiro(tab){
   try{
     if(tab==='fin_dashboard') return renderFinDashboard();
+    if(tab==='fin_vendas')    return renderFinVendas();
     if(tab==='fin_pagamentos') return renderFinPagamentos();
     if(tab==='fin_compras') return renderFinCompras();
     if(tab==='fin_matdiretos') return renderFinMatDiretos();
+    if(tab==='fin_matquimicos') return renderFinMatQuimicos();
     if(tab==='fin_custos') return renderFinCustos();
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
@@ -13046,6 +13052,239 @@ function finComprasTodos(){
 }
 
 // ── Dashboard ───────────────────────────────────────────────────
+// ── VENDAS ───────────────────────────────────────────────────────
+function renderFinVendas(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._vendasMes) window._vendasMes=today().slice(0,7);
+  const mesesDisp=[...new Set([today().slice(0,7),...vendas.map(v=>(v.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  const mes=mesesDisp.includes(window._vendasMes)?window._vendasMes:mesesDisp[0]||today().slice(0,7);
+  const doMes=vendas.filter(v=>(v.data||'').startsWith(mes));
+  const totalMes=doMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+
+  const mesSelect='<select onchange="window._vendasSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +mesesDisp.map(m=>`<option value="${m}"${m===mes?' selected':''}>${mesLabel(m)}</option>`).join('')+'</select>';
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    ${mesSelect}
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
+      <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalMes)}</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="window._vendasNovo()">+ Venda</button>
+  </div>`;
+
+  // Agrupado por dia
+  const porDia={};
+  doMes.forEach(v=>{ const d=v.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(v); });
+  const dias=Object.keys(porDia).sort().reverse();
+
+  html+='<div class="card">';
+  if(!dias.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda neste mês.</div>';
+  } else {
+    dias.forEach((dia,di)=>{
+      const itens=porDia[dia];
+      const totalDia=itens.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+      const[ano,m_,dd]=dia.split('-');
+      html+=`<div style="${di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:800;color:#475569">${dd}/${m_}/${ano}</span>
+          <span style="font-size:12px;font-weight:800;color:#059669">${fmtMoeda(totalDia)}</span>
+        </div>`;
+      itens.forEach((v,i)=>{
+        html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
+          <div>
+            <div style="font-size:13px;font-weight:600">${v.cliente||'—'}</div>
+            ${v.produto?`<div style="font-size:11px;color:#64748b">${v.produto}${v.qtd?' · '+v.qtd+' un':''}</div>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(parseFloat(v.valor))}</span>
+            <button onclick="window._vendasExcluir('${v.id}')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
+          </div>
+        </div>`;
+      });
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+window._vendasSetMes=function(m){ window._vendasMes=m; reloadTab(); };
+window._vendasNovo=function(){
+  showModal('+ Nova Venda',
+    '<div class="form-group"><label>Cliente</label><input id="vd-cliente" placeholder="Nome do cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Produto / Descrição</label><input id="vd-produto" placeholder="Ex: Jogo de Sofá, Cama Casal" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div class="form-group"><label>Quantidade</label><input type="number" id="vd-qtd" min="1" step="1" placeholder="1" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Valor total (R$)</label><input type="number" id="vd-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Data</label><input type="date" id="vd-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._vendasSalvar()">Salvar</button>');
+};
+window._vendasSalvar=async function(){
+  const cliente=document.getElementById('vd-cliente')?.value.trim();
+  const produto=document.getElementById('vd-produto')?.value.trim();
+  const qtd=parseFloat(document.getElementById('vd-qtd')?.value)||null;
+  const valor=parseFloat(document.getElementById('vd-valor')?.value)||0;
+  const data=document.getElementById('vd-data')?.value||today();
+  if(!valor){showToast('Informe o valor.');return;}
+  if(!cliente){showToast('Informe o cliente.');return;}
+  closeModal();
+  await addDoc(collection(db,'fin_vendas'),{cliente,produto,qtd,valor,data,criadoEm:new Date().toISOString()});
+  showToast('Venda registrada!');
+};
+window._vendasExcluir=async function(id){
+  await deleteDoc(doc(db,'fin_vendas',id));
+  showToast('Venda excluída!');
+};
+
+// ── MATERIAIS QUÍMICOS ───────────────────────────────────────────
+function renderFinMatQuimicos(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(!window._matQuimicosMes) window._matQuimicosMes=today().slice(0,7);
+  const mesesDisp=[...new Set([today().slice(0,7),...matQuimicos.map(m=>(m.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  const mes=mesesDisp.includes(window._matQuimicosMes)?window._matQuimicosMes:mesesDisp[0]||today().slice(0,7);
+  const doMes=matQuimicos.filter(m=>(m.data||'').startsWith(mes));
+  const totalMes=doMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+  const mesSelect='<select onchange="window._matQuimicosSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +mesesDisp.map(m=>`<option value="${m}"${m===mes?' selected':''}>${mesLabel(m)}</option>`).join('')+'</select>';
+
+  // Resumo por categoria
+  const porCat={};
+  doMes.forEach(m=>{ if(!porCat[m.categoria||'Outros']) porCat[m.categoria||'Outros']=0; porCat[m.categoria||'Outros']+=parseFloat(m.valor)||0; });
+  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const maxCat=cats[0]?.[1]||1;
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    ${mesSelect}
+    <div style="text-align:right"><div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
+    <div style="font-size:22px;font-weight:900;color:#0d9488">${fmtMoeda(totalMes)}</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" style="border:1.5px solid #64748b;color:#64748b" onclick="window._matQuimicosGerirCats()">⚙️ Categorias</button>
+      <button class="btn btn-primary btn-sm" onclick="window._matQuimicosNovo()">+ Lançamento</button>
+    </div>
+  </div>`;
+
+  if(cats.length){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧪 Por categoria</div>';
+    html+=cats.map(([cat,val])=>`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span style="font-weight:600">${cat}</span><span style="font-weight:700;color:#0d9488">${fmtMoeda(val)}</span></div>
+      <div style="height:6px;background:#f1f5f9;border-radius:99px"><div style="height:100%;width:${Math.round(val/maxCat*100)}%;background:linear-gradient(90deg,#0d9488,#14b8a6);border-radius:99px"></div></div>
+    </div>`).join('');
+    html+='</div>';
+  }
+
+  const porDia={};
+  doMes.forEach(m=>{ const d=m.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(m); });
+  const dias=Object.keys(porDia).sort().reverse();
+  html+='<div class="card">';
+  if(!dias.length){ html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhum lançamento neste mês.</div>'; }
+  else dias.forEach((dia,di)=>{
+    const itens=porDia[dia];
+    const totalDia=itens.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+    const[ano,m_,dd]=dia.split('-');
+    html+=`<div style="${di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:800;color:#475569">${dd}/${m_}/${ano}</span>
+        <span style="font-size:12px;font-weight:800;color:#0d9488">${fmtMoeda(totalDia)}</span>
+      </div>`;
+    itens.forEach((it,i)=>{
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
+        <div><span style="font-size:10px;background:#ccfbf1;color:#0d9488;padding:1px 7px;border-radius:99px;font-weight:700">${it.categoria||'Outros'}</span>
+        ${it.qtd?`<div style="font-size:11px;color:#64748b;margin-top:2px">${it.qtd} ${it.unidade||'un'}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:700;color:#0d9488">${fmtMoeda(parseFloat(it.valor))}</span>
+          <button onclick="window._matQuimicosExcluir('${it.id}')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+window._matQuimicosSetMes=function(m){ window._matQuimicosMes=m; reloadTab(); };
+window._matQuimicosNovo=function(){
+  const cats=matQuimicosConfig.categorias||[];
+  const catOpts=cats.map((c,i)=>`<option value="${i}">${typeof c==='object'?c.nome:c}</option>`).join('');
+  showModal('+ Material Químico',
+    (cats.length?'<div class="form-group"><label>Categoria</label><select id="mq-cat" onchange="window._matQuimicosAtualizarUnid()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+catOpts+'</select></div>':'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Cadastre categorias antes de lançar.</div>')
+    +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px"><div class="form-group"><label>Quantidade</label><input type="number" id="mq-qtd" min="0" step="0.01" placeholder="0" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Unidade</label><input id="mq-unid" readonly style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;background:#f8fafc;color:#64748b"></div></div>'
+    +'<div class="form-group"><label>Valor total (R$)</label><input type="number" id="mq-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label><input type="date" id="mq-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._matQuimicosSalvar()">Salvar</button>');
+  setTimeout(window._matQuimicosAtualizarUnid,50);
+};
+window._matQuimicosAtualizarUnid=function(){
+  const idx=parseInt(document.getElementById('mq-cat')?.value)||0;
+  const cat=( matQuimicosConfig.categorias||[])[idx];
+  const el=document.getElementById('mq-unid');
+  if(el) el.value=typeof cat==='object'?cat.unidade:'un';
+};
+window._matQuimicosSalvar=async function(){
+  const idx=parseInt(document.getElementById('mq-cat')?.value)||0;
+  const cats=matQuimicosConfig.categorias||[];
+  const cat=cats[idx];
+  const categoria=typeof cat==='object'?cat.nome:(cat||'Outros');
+  const unidade=typeof cat==='object'?cat.unidade:'un';
+  const qtd=parseFloat(document.getElementById('mq-qtd')?.value)||0;
+  const valor=parseFloat(document.getElementById('mq-valor')?.value)||0;
+  const data=document.getElementById('mq-data')?.value||today();
+  if(!valor){showToast('Informe o valor.');return;}
+  closeModal();
+  await addDoc(collection(db,'mat_quimicos'),{categoria,unidade,qtd,valor,data,criadoEm:new Date().toISOString()});
+  showToast('Lançamento salvo!');
+};
+window._matQuimicosExcluir=async function(id){
+  await deleteDoc(doc(db,'mat_quimicos',id));
+  showToast('Lançamento excluído!');
+};
+window._matQuimicosGerirCats=function(){
+  const cats=matQuimicosConfig.categorias||[];
+  const lista=cats.map((c,i)=>{
+    const nome=typeof c==='object'?c.nome:c;
+    const unidade=typeof c==='object'?c.unidade:'un';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">
+      <div><span style="font-size:13px;font-weight:600">${nome}</span> <span style="font-size:11px;color:#94a3b8">(${unidade})</span></div>
+      <button onclick="window._matQuimicosExcluirCat(${i})" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>
+    </div>`;
+  }).join('');
+  const corpo='<div id="mq-cats-lista">'+(lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria.</div>')+'</div>'
+    +'<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-top:14px;align-items:end">'
+    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Nome</label><input id="mq-nova-cat" placeholder="Ex: Poliol" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
+    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Unidade</label><input id="mq-nova-unid" placeholder="L, kg, un" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._matQuimicosAddCat()" style="height:36px">+ Add</button></div>';
+  const modalBody=document.getElementById('modal-body');
+  if(modalBody){ modalBody.innerHTML=corpo; return; }
+  showModal('⚙️ Categorias de Materiais Químicos',corpo,'<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+};
+window._matQuimicosAddCat=async function(){
+  const nome=document.getElementById('mq-nova-cat')?.value.trim();
+  const unidade=document.getElementById('mq-nova-unid')?.value.trim()||'un';
+  if(!nome){showToast('Digite o nome.');return;}
+  const cats=[...(matQuimicosConfig.categorias||[])];
+  if(cats.some(c=>(typeof c==='object'?c.nome:c)===nome)){showToast('Já existe.');return;}
+  cats.push({nome,unidade});
+  matQuimicosConfig={...matQuimicosConfig,categorias:cats};
+  await setDoc(doc(db,'config_mat_quimicos','geral'),matQuimicosConfig);
+  showToast('Categoria adicionada!');
+  window._matQuimicosGerirCats();
+};
+window._matQuimicosExcluirCat=async function(idx){
+  const cats=[...(matQuimicosConfig.categorias||[])];
+  cats.splice(idx,1);
+  matQuimicosConfig={...matQuimicosConfig,categorias:cats};
+  await setDoc(doc(db,'config_mat_quimicos','geral'),matQuimicosConfig);
+  showToast('Categoria removida!');
+  window._matQuimicosGerirCats();
+};
+
 function renderFinDashboard(){
   const mesAtualFin=today().slice(0,7);
   const MESES_FIN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -13067,6 +13306,12 @@ function renderFinDashboard(){
 
   const matDiretosDoMes=matDiretos.filter(m=>(m.data||'').startsWith(mesAtualFin));
   const totalMatDiretosMes=matDiretosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+
+  const matQuimicosDoMes=matQuimicos.filter(m=>(m.data||'').startsWith(mesAtualFin));
+  const totalMatQuimicosMes=matQuimicosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+
+  const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
+  const totalVendasMes=vendasDoMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
 
   // Por setor (pendente)
   const porSetor={};
@@ -13102,6 +13347,12 @@ function renderFinDashboard(){
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(m.valor)||0;
   });
+  matQuimicos.forEach(m=>{
+    const mes_=(m.data||'').slice(0,7);
+    if(!mes_) return;
+    if(!porMes[mes_]) porMes[mes_]=0;
+    porMes[mes_]+=parseFloat(m.valor)||0;
+  });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
   const MESES_N=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -13113,6 +13364,11 @@ function renderFinDashboard(){
 
   // Cards de resumo — todos filtrados pelo mês atual
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px">
+    <div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">VENDAS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalVendasMes)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${vendasDoMes.length} venda${vendasDoMes.length!==1?'s':''}</div>
+    </div>
     <div class="card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;text-align:center;padding:18px">
       <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">A PAGAR</div>
       <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPendente)}</div>
@@ -13138,10 +13394,15 @@ function renderFinDashboard(){
       <div style="font-size:28px;font-weight:900">${fmtMoeda(totalMatDiretosMes)}</div>
       <div style="font-size:11px;opacity:.7;margin-top:4px">${matDiretosDoMes.length} lançamento${matDiretosDoMes.length!==1?'s':''}</div>
     </div>
+    <div class="card" style="background:linear-gradient(135deg,#0e7490,#06b6d4);color:#fff;text-align:center;padding:18px">
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">MAT. QUÍMICOS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalMatQuimicosMes)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">${matQuimicosDoMes.length} lançamento${matQuimicosDoMes.length!==1?'s':''}</div>
+    </div>
     <div class="card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;text-align:center;padding:18px">
-      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">GASTO TOTAL — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">mão de obra + materiais + indiretos + mat. diretos</div>
+      <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px">SAÍDAS TOTAL — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes+totalMatQuimicosMes)}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px">mão de obra + materiais + indiretos</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
@@ -15392,7 +15653,17 @@ function iniciarListeners(){
   });
   onSnapshot(doc(db,'config_mat_diretos','geral'),snap=>{
     if(snap.exists()) matDiretosConfig={categorias:['Outros'],...snap.data()};
-    // Não recarrega a aba pois as categorias são usadas só dentro do modal
+  });
+  onSnapshot(collection(db,'mat_quimicos'),snap=>{
+    matQuimicos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
+  });
+  onSnapshot(doc(db,'config_mat_quimicos','geral'),snap=>{
+    if(snap.exists()) matQuimicosConfig={categorias:[],...snap.data()};
+  });
+  onSnapshot(collection(db,'fin_vendas'),snap=>{
+    vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
   });
   // Notificações de pagamento
   onSnapshot(collection(db,'notif_pagamento'),snap=>{
