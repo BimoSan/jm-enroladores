@@ -4676,8 +4676,6 @@ function renderPontoMetal(){
         +'<span style="color:#64748b">Faltas</span><span style="font-weight:700;color:'+(faltas>0?'#dc2626':'#94a3b8')+'">'+faltas+'</span></div>'
         +(domPerds.length?'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
         +'<span style="color:#64748b">Dom. perdidos</span><span style="font-weight:700;color:#dc2626">'+domPerds.length+'</span></div>':'')
-        +(totalComDomingos>0?'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;border-top:1px solid #f1f5f9;padding-top:4px;margin-top:2px">'
-        +'<span style="font-weight:700;color:#64748b">Total descontos</span><span style="font-weight:800;color:#dc2626">'+totalComDomingos+'</span></div>':'')
         +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
         +'<span style="color:#64748b">Horas extra</span><span style="font-weight:700;color:'+(hExtra>0?'#3b82f6':'#94a3b8')+'">'+hExtra+'h</span></div>'
         +(domPerds.length?'<div style="margin-top:8px;background:#fef2f2;border-radius:8px;padding:8px">'
@@ -4687,6 +4685,8 @@ function renderPontoMetal(){
             return '<div style="font-size:11px;color:#dc2626">'+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0')+'</div>';
           }).join('')
           +'</div>':'')
+        +(totalComDomingos>0?'<div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px solid #f1f5f9;padding-top:6px;margin-top:8px">'
+        +'<span style="font-weight:700;color:#64748b">Total descontos</span><span style="font-weight:800;color:#dc2626">'+totalComDomingos+'</span></div>':'')
         +'</div>';
     }).join('')
     +'</div>';
