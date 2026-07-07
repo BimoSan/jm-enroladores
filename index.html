@@ -2198,6 +2198,54 @@ function renderRelatorio(){
     </div>`;
   }
 
+  // ── Resumo mensal: entregues e recolhidas por casa ──
+  const TIPOS_PRINCIPAIS=TIPOS.filter(t=>t.principal||['varanda_nova','centro_novo','varanda_luxo','banqueta','mesa_bistro','cadeira_mesa','namoradeira','centro_sofia'].includes(t.id));
+  const CASAS=[{ap:'apontador1',label:'🏠 Inácio'},{ap:'apontador2',label:'🏠 Mirandinha'}];
+  const mesesComMov=[...new Set([
+    ...fichas.flatMap(f=>[...(f.entregas||[]).map(e=>e.data||''),...(f.recolhimentos||[]).map(r=>r.data||'')].filter(Boolean).map(d=>d.slice(0,7)))
+  ])].sort().reverse();
+
+  if(mesesComMov.length){
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:14px">📦 Entregues e Recolhidas por mês</div>';
+
+    // Seletor de mês
+    if(!window._relMesMov) window._relMesMov=mesesComMov[0];
+    const mesMov=mesesComMov.includes(window._relMesMov)?window._relMesMov:mesesComMov[0];
+    const mesOpts=mesesComMov.map(m=>`<option value="${m}"${m===mesMov?' selected':''}>${MESES[parseInt(m.slice(5,7))-1]+' '+m.slice(0,4)}</option>`).join('');
+    html+=`<div style="margin-bottom:14px"><select onchange="window._relSetMesMov(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">${mesOpts}</select></div>`;
+
+    CASAS.forEach(({ap,label})=>{
+      // Só considera fichas desta casa
+      const fichasCasa=fichas.filter(f=>{ const enr=getEnr(f.enroladorId); return enr?.apontadorPerfil===ap; });
+
+      let totalEntMes=0, totalRecMes=0;
+      // Por tipo
+      const rows=TIPOS_PRINCIPAIS.map(t=>{
+        const ent=fichasCasa.reduce((s,f)=>(f.entregas||[]).filter(e=>(e.data||'').startsWith(mesMov)).reduce((ss,e)=>ss+(parseInt((e.tipos||{})[t.id])||0),s),0);
+        const rec=fichasCasa.reduce((s,f)=>(f.recolhimentos||[]).filter(r=>!r.administrativo&&(r.data||'').startsWith(mesMov)).reduce((ss,r)=>ss+(parseInt((r.tipos||{})[t.id])||0),s),0);
+        totalEntMes+=ent; totalRecMes+=rec;
+        if(!ent&&!rec) return null;
+        return {tipo:t.label,ent,rec};
+      }).filter(Boolean);
+
+      if(!rows.length&&!totalEntMes&&!totalRecMes) return;
+
+      html+=`<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:8px">${label}</div>`;
+      html+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+      html+='<thead><tr style="background:#f8fafc"><th style="padding:6px 8px;text-align:left">Tipo</th><th style="padding:6px 8px;text-align:right;color:#1d4ed8">Entregues</th><th style="padding:6px 8px;text-align:right;color:#059669">Recolhidas</th><th style="padding:6px 8px;text-align:right;color:#64748b">Saldo</th></tr></thead><tbody>';
+      html+=rows.map((r,i)=>`<tr style="${i%2?'background:#f8fafc':''}">
+        <td style="padding:6px 8px">${r.tipo}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;color:#1d4ed8">${r.ent||'—'}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;color:#059669">${r.rec||'—'}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;color:${r.ent-r.rec>0?'#d97706':r.ent-r.rec<0?'#dc2626':'#94a3b8'}">${r.ent-r.rec}</td>
+      </tr>`).join('');
+      html+=`<tr style="background:#f0f9ff;font-weight:800"><td style="padding:6px 8px">Total</td><td style="padding:6px 8px;text-align:right;color:#1d4ed8">${totalEntMes}</td><td style="padding:6px 8px;text-align:right;color:#059669">${totalRecMes}</td><td style="padding:6px 8px;text-align:right;color:${totalEntMes-totalRecMes>0?'#d97706':'#94a3b8'}">${totalEntMes-totalRecMes}</td></tr>`;
+      html+='</tbody></table></div>';
+    });
+
+    html+='</div>';
+  }
+
   // ── Lista de fichas ──
   // Bônus por volume
   html+=renderRelatorioBonusMensal();
@@ -4824,6 +4872,7 @@ window._salvarPontoLote=async()=>{
 // SISTEMA DE CAMINHÕES / FROTAS
 // ═══════════════════════════════════════════════════════════════
 
+window._relSetMesMov=function(m){ window._relMesMov=m; reloadTab(); };
 window._setRelAp=function(v){
   window._relAp=v;
   reloadTab();
