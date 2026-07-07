@@ -13441,65 +13441,64 @@ function renderFinDashboard(){
   const resultado=totalVendasMes-totalSaidas;
 
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
-    <div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:20px;text-align:center">
-      <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">ENTRADAS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalVendasMes)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">${vendasDoMes.length} venda${vendasDoMes.length!==1?'s':''}</div>
+    <div class="card" style="border-left:4px solid #059669;background:#fff;padding:20px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:6px">ENTRADAS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900;color:#059669">${fmtMoeda(totalVendasMes)}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">${vendasDoMes.length} venda${vendasDoMes.length!==1?'s':''}</div>
     </div>
-    <div class="card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;padding:20px;text-align:center">
-      <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">SAÍDAS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:28px;font-weight:900">${fmtMoeda(totalSaidas)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">mão de obra + materiais</div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:20px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px">SAÍDAS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900;color:#dc2626">${fmtMoeda(totalSaidas)}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">mão de obra + materiais</div>
     </div>
-    <div class="card" style="background:linear-gradient(135deg,${resultado>=0?'#1d4ed8,#3b82f6':'#92400e,#d97706'});color:#fff;padding:20px;text-align:center">
-      <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:6px">RESULTADO — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:28px;font-weight:900">${resultado>=0?'+':''}${fmtMoeda(resultado)}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:4px">${resultado>=0?'✓ positivo':'⚠️ negativo'}</div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:8px">
-    <div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VENDAS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalVendasMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${vendasDoMes.length} venda${vendasDoMes.length!==1?"s":""}</div>
-    </div>
-    <div class="card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A PAGAR</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalPendente)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${pendentes.length} pendência${pendentes.length!==1?"s":""}</div>
-    </div>
-    <div class="card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">PAGO — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalPagoMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${pagasDoMes.length} pagamento${pagasDoMes.length!==1?"s":""}</div>
-    </div>
-    <div class="card" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">COMPRAS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalComprasMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${comprasDoMes.length} entradas</div>
+    <div class="card" style="border-left:4px solid ${resultado>=0?'#059669':'#dc2626'};background:#fff;padding:20px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:${resultado>=0?'#059669':'#dc2626'};margin-bottom:6px">RESULTADO — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900;color:${resultado>=0?'#059669':'#dc2626'}">${resultado>=0?'+':''}${fmtMoeda(resultado)}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">${resultado>=0?'✓ positivo':'⚠️ negativo'}</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:8px">
-    <div class="card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">INDIRETOS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalCustosDoMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${custosDoMes.length} lançamento${custosDoMes.length!==1?"s":""}</div>
+    <div class="card" style="border-left:4px solid #059669;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#059669;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VENDAS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#059669;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalVendasMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${vendasDoMes.length} venda${vendasDoMes.length!==1?"s":""}</div>
     </div>
-    <div class="card" style="background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MAT. DIRETOS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatDiretosMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${matDiretosDoMes.length} lançamento${matDiretosDoMes.length!==1?"s":""}</div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A PAGAR</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalPendente)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${pendentes.length} pendência${pendentes.length!==1?"s":""}</div>
     </div>
-    <div class="card" style="background:linear-gradient(135deg,#0e7490,#06b6d4);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MAT. QUÍMICOS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatQuimicosMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">${matQuimicosDoMes.length} entrada${matQuimicosDoMes.length!==1?"s":""}</div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MÃO DE OBRA — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalPagoMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${pagasDoMes.length} pagamento${pagasDoMes.length!==1?"s":""}</div>
     </div>
-    <div class="card" style="background:linear-gradient(135deg,#374151,#4b5563);color:#fff;padding:14px 10px;text-align:center">
-      <div style="font-size:9px;font-weight:700;opacity:.8;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
-      <div style="font-size:20px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
-      <div style="font-size:10px;opacity:.7;margin-top:4px">combustível + motoristas</div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ALMOXARIFADO — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalComprasMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${comprasDoMes.length} entradas</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:8px">
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">INDIRETOS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalCustosDoMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${custosDoMes.length} lançamento${custosDoMes.length!==1?"s":""}</div>
+    </div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MAT. DIRETOS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatDiretosMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${matDiretosDoMes.length} lançamento${matDiretosDoMes.length!==1?"s":""}</div>
+    </div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MAT. QUÍMICOS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatQuimicosMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">${matQuimicosDoMes.length} entrada${matQuimicosDoMes.length!==1?"s":""}</div>
+    </div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fff;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#dc2626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">combustível + motoristas</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
