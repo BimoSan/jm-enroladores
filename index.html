@@ -407,6 +407,7 @@ let matDiretosConfig={categorias:['Tecido','Espuma','Madeira','Metal','Embalagem
 let matQuimicos=[];
 let matQuimicosConfig={categorias:[]};
 let vendas=[];
+let pagManuais=[];
 // Engenharia
 let engProdutos=[];
 let engMaterias=[];
@@ -5098,6 +5099,41 @@ window._imprimirFicha=function(id, tipo){
 
 window._finSetFiltroSetor=function(v){ window._finPagFiltroSetor=v; reloadTab(); };
 window._finSetPagView=function(v){ window._finPagView=v; reloadTab(); };
+
+window._finPagManualNovo=function(){
+  const SETORES=['Folha CLT','Folha Geral','Administrativo','Serviços Gerais','Outro'];
+  showModal('+ Pagamento Manual',
+    '<div class="form-group"><label>Descrição / Categoria</label>'
+    +'<input id="pm-nome" list="pm-setor-list" placeholder="Ex: Folha CLT Julho, Salário Administrativo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +'<datalist id="pm-setor-list">'+SETORES.map(s=>`<option value="${s}">`).join('')+'</datalist></div>'
+    +'<div class="form-group"><label>Valor total (R$)</label>'
+    +'<input type="number" id="pm-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data de referência</label>'
+    +'<input type="date" id="pm-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:4px">'
+    +'<input type="checkbox" id="pm-pago" style="width:16px;height:16px"> Já foi pago</label>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._finPagManualSalvar()">Salvar</button>');
+};
+window._finPagManualSalvar=async function(){
+  const nome=document.getElementById('pm-nome')?.value.trim();
+  const valor=parseFloat(document.getElementById('pm-valor')?.value)||0;
+  const data=document.getElementById('pm-data')?.value||today();
+  const pago=document.getElementById('pm-pago')?.checked||false;
+  if(!nome){showToast('Informe a descrição.');return;}
+  if(!valor){showToast('Informe o valor.');return;}
+  closeModal();
+  await addDoc(collection(db,'pag_manuais'),{nome,setor:'Folha',valor,data,pago,dataPagamento:pago?today():null,criadoEm:new Date().toISOString()});
+  showToast('Pagamento registrado!');
+};
+window._finPagarManual=async function(id){
+  await updateDoc(doc(db,'pag_manuais',id),{pago:true,dataPagamento:today()});
+  showToast('Marcado como pago!');
+};
+window._finExcluirManual=async function(id){
+  await deleteDoc(doc(db,'pag_manuais',id));
+  showToast('Excluído!');
+};
 window._finSetRelPagMes=function(v){ window._finRelPagMes=v; reloadTab(); };
 window._finSetFiltroStatus=function(v){ window._finPagFiltroStatus=v; reloadTab(); };
 window._finSetComprasMes=function(v){ window._finComprasMes=v; reloadTab(); };
@@ -13038,6 +13074,23 @@ function finPagamentosTodos(){
     });
   });
 
+  // Pagamentos manuais (folha de funcionários etc.)
+  (pagManuais||[]).forEach(p=>{
+    lista.push({
+      id:'manual-'+p.id,
+      setor:p.setor||'Folha',
+      pessoa:p.nome,
+      valor:parseFloat(p.valor)||0,
+      pago:!!p.pago,
+      dataPagamento:p.dataPagamento||null,
+      dataRef:p.data||'',
+      tipo:'manual',
+      fichaObj:null,
+      setorKey:'manual',
+      _manualId:p.id,
+    });
+  });
+
   return lista.sort((a,b)=>{
     if(!a.pago&&b.pago) return -1;
     if(a.pago&&!b.pago) return 1;
@@ -13474,8 +13527,12 @@ function renderFinPagamentos(){
 
   const btnStatus=(v,label)=>`<button onclick="window._finSetFiltroStatus('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${window._finPagFiltroStatus===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroStatus===v?'#1e40af':'#fff'};color:${window._finPagFiltroStatus===v?'#fff':'#64748b'};cursor:pointer">${label}</button>`;
 
-  // Botão relatório
-  let html=`<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+  // Botão relatório + novo pagamento manual
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+    <button onclick="window._finPagManualNovo()" class="btn btn-primary btn-sm" style="display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      + Pagamento manual
+    </button>
     <button onclick="window._finSetPagView('relatorio')" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid #e2e8f0;background:#fff;color:#475569;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Relatório mensal
@@ -13532,12 +13589,16 @@ function renderFinPagamentos(){
         </button>
         ${podePagar?(p.tipo==='bonus'
           ?'<button class="btn btn-sm btn-primary" onclick="window._pagarBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Marcar pago</button>'
+          :p.tipo==='manual'
+          ?'<button class="btn btn-sm btn-primary" onclick="window._finPagarManual(\''+p._manualId+'\')">Marcar pago</button>'
           :'<button class="btn btn-sm btn-primary" onclick="window._confirmarPago(\''+p.id+'\',\''+p.setorKey+'\')">Marcar pago</button>')
           :''}
         ${podeDesmarcar?(p.tipo==='bonus'
           ?'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPagoBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Desmarcar</button>'
           :'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPago(\''+p.id+'\',\''+p.setorKey+'\')">Desmarcar</button>')
-          :''}      </div>
+          :''}
+        ${p.tipo==='manual'?'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._finExcluirManual(\''+p._manualId+'\')">✕</button>':''}
+      </div>
     </div>`;
   };
 
@@ -15728,6 +15789,10 @@ function iniciarListeners(){
   });
   onSnapshot(collection(db,'fin_vendas'),snap=>{
     vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
+  });
+  onSnapshot(collection(db,'pag_manuais'),snap=>{
+    pagManuais=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
   });
   // Notificações de pagamento
