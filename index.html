@@ -14466,32 +14466,56 @@ function renderAlmMovimento(tipo){
 }
 
 function almHistoricoDia(tipo){
-  const movs=almMovimentos.filter(m=>m.tipo===tipo&&m.data===today())
-    .sort((a,b)=>b.criadoEm>a.criadoEm?1:-1);
-  if(!movs.length) return '';
   const isEnt=tipo==='entrada';
   const cor=isEnt?'#059669':'#d97706';
-  const rows=movs.map(m=>{
+  if(!window._almHistoricoAberto) window._almHistoricoAberto={};
+  const aberto=window._almHistoricoAberto[tipo]||false;
+
+  // Movs de hoje
+  const movsHoje=almMovimentos.filter(m=>m.tipo===tipo&&m.data===today())
+    .sort((a,b)=>b.criadoEm>a.criadoEm?1:-1);
+
+  // Todos os movs (para histórico)
+  const todosMovs=almMovimentos.filter(m=>m.tipo===tipo)
+    .sort((a,b)=>b.data>a.data?1:b.criadoEm>a.criadoEm?1:-1);
+
+  function rowMov(m){
     const item=almItens.find(i=>i.id===m.itemId);
     const desc=item?item.descricao:(m.itemDesc||'Item');
     const und=item?item.unidade:'';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
-      +'<div>'
+      +'<div style="flex:1">'
+      +(aberto?'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">'+fmtDate(m.data)+'</div>':'')
       +'<div style="font-size:12px;font-weight:700">'+desc+'</div>'
-      +'<div style="font-size:10px;color:#64748b">'+m.tipoMov+(m.pessoa?' · '+m.pessoa:'')+(m.setor?' · '+m.setor:'')+'</div>'      +(m.obs?'<div style="font-size:10px;color:#475569;font-style:italic;margin-top:2px">📝 '+m.obs+'</div>':'')
+      +'<div style="font-size:10px;color:#64748b">'+m.tipoMov+(m.pessoa?' · '+m.pessoa:'')+(m.setor?' · '+m.setor:'')+'</div>'
+      +(m.obs?'<div style="font-size:10px;color:#475569;font-style:italic;margin-top:2px">📝 '+m.obs+'</div>':'')
       +'</div>'
-      +'<div style="text-align:right">'
+      +'<div style="text-align:right;margin-right:8px">'
       +'<div style="font-size:15px;font-weight:800;color:'+cor+'">'+(isEnt?'+':'-')+m.quantidade+' '+und+'</div>'
       +(m.custoTotal?'<div style="font-size:10px;color:#92400e">R$ '+parseFloat(m.custoTotal).toFixed(2)+'</div>':'')
       +'</div>'
-      +'<button onclick="window._editarMovAlm(this.dataset.id)" data-id="'+m.id+'" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px">✏️</button>'
+      +'<button onclick="window._editarMovAlm(\''+m.id+'\')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px;flex-shrink:0">✏️</button>'
       +'</div>';
-  }).join('');
+  }
+
+  const movsParaMostrar=aberto?todosMovs:movsHoje;
+  const rows=movsParaMostrar.map(rowMov).join('');
+
   return '<div class="card" style="margin-top:14px;border-left:4px solid '+cor+'">'
-    +'<div style="font-size:12px;font-weight:700;color:'+cor+';margin-bottom:10px">'
-    +(isEnt?'⬇️':'⬆️')+' Movimentações de hoje ('+movs.length+')</div>'
-    +rows+'</div>';
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    +'<div style="font-size:12px;font-weight:700;color:'+cor+'">'
+    +(isEnt?'⬇️':'⬆️')+' '+(aberto?'Histórico completo ('+todosMovs.length+')':'Movimentações de hoje ('+movsHoje.length+')')+'</div>'
+    +'<button onclick="window._almToggleHistorico(\''+tipo+'\')" style="font-size:11px;padding:4px 10px;border-radius:99px;border:1.5px solid '+cor+';background:#fff;color:'+cor+';cursor:pointer;font-weight:700">'
+    +(aberto?'← Só hoje':'🕐 Ver histórico')+'</button>'
+    +'</div>'
+    +(rows||'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:8px">Nenhuma movimentação.</div>')
+    +'</div>';
 }
+window._almToggleHistorico=function(tipo){
+  if(!window._almHistoricoAberto) window._almHistoricoAberto={};
+  window._almHistoricoAberto[tipo]=!window._almHistoricoAberto[tipo];
+  reloadTab();
+};
 
 window._editarMovAlm=function(id){
   const m=almMovimentos.find(x=>x.id===id);
