@@ -15656,14 +15656,24 @@ window._confirmarRetiradaAdmin=async fichaId=>{
   }];
 
   closeModal();
-  await updateDoc(doc(db,'fichas',fichaId),{
-    recolhimentos,
-    status:'cancelada',
-    dataCancelamento:today(),
-    canceladoPor:currentUserData?.nome||'',
-    justificativaCancelamento:justificativa,
-  });
-  showToast('Retirada registrada. Ficha cancelada.');
+
+  // Calcula pendentes após essa retirada
+  const fichaAtualizada={...f, recolhimentos};
+  const pendentesAposRetirada=pendentes(fichaAtualizada);
+  const novoStatus=pendentesAposRetirada<=0?'cancelada':'aberta';
+
+  const updateData={recolhimentos};
+  if(novoStatus==='cancelada'){
+    updateData.status='cancelada';
+    updateData.dataCancelamento=today();
+    updateData.canceladoPor=currentUserData?.nome||'';
+    updateData.justificativaCancelamento=justificativa;
+  }
+
+  await updateDoc(doc(db,'fichas',fichaId),updateData);
+  showToast(novoStatus==='cancelada'
+    ?'Retirada registrada. Ficha cancelada (todas as peças devolvidas).'
+    :`Retirada registrada. Ficha continua aberta com ${pendentesAposRetirada} peça${pendentesAposRetirada!==1?'s':''} pendente${pendentesAposRetirada!==1?'s':''}`);
 };
 
 // Helper para pendentes por tipo
