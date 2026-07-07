@@ -13522,7 +13522,7 @@ function renderFinMatDiretos(){
         html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
           +'<div style="flex:1">'
           +'<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:99px;font-weight:700">'+(it.categoria||'Outros')+'</span>'
-          +(it.descricao?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.descricao+'</div>':'')
+          +(it.qtd?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.qtd+' '+(it.unidade||'un')+'</div>':'')
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px">'
           +'<span style="font-size:13px;font-weight:700;color:#1d4ed8">'+fmtMoeda(parseFloat(it.valor))+'</span>'
@@ -13539,34 +13539,57 @@ function renderFinMatDiretos(){
 window._matDiretosSetMes=function(m){ window._matDiretosMes=m; reloadTab(); };
 
 window._matDiretosNovo=function(){
-  const cats=matDiretosConfig.categorias||['Outros'];
+  const cats=matDiretosConfig.categorias||[];
+  const catOpts=cats.map((c,i)=>{
+    const nome=typeof c==='object'?c.nome:c;
+    return '<option value="'+i+'">'+nome+'</option>';
+  }).join('');
   showModal('+ Material Direto',
     '<div class="form-group"><label>Categoria</label>'
-    +'<select id="md-cat" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
-    +cats.map(c=>'<option>'+c+'</option>').join('')
-    +'</select></div>'
-    +'<div class="form-group"><label>Descrição</label>'
-    +'<input id="md-desc" placeholder="Ex: Tecido jacquard azul" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<select id="md-cat" onchange="window._matDiretosAtualizarUnid()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +catOpts+'</select></div>'
+    +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">'
+    +'<div class="form-group"><label>Quantidade</label>'
+    +'<input type="number" id="md-qtd" min="0" step="0.01" placeholder="0" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Unidade</label>'
+    +'<input id="md-unid" readonly style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;background:#f8fafc;color:#64748b"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Valor total (R$)</label>'
     +'<input type="number" id="md-valor" min="0" step="0.01" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="md-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._matDiretosSalvar()">Salvar</button>');
+  setTimeout(window._matDiretosAtualizarUnid,50);
+};
+
+window._matDiretosAtualizarUnid=function(){
+  const idx=parseInt(document.getElementById('md-cat')?.value)||0;
+  const cats=matDiretosConfig.categorias||[];
+  const cat=cats[idx];
+  const unidade=typeof cat==='object'?cat.unidade:'un';
+  const el=document.getElementById('md-unid');
+  if(el) el.value=unidade;
 };
 
 window._matDiretosGerirCats=function(){
   const cats=matDiretosConfig.categorias||[];
-  const lista=cats.map((c,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
-    +'<span style="font-size:13px">'+c+'</span>'
-    +'<button onclick="window._matDiretosExcluirCat('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
-    +'</div>').join('');
+  const lista=cats.map((c,i)=>{
+    const nome=typeof c==='object'?c.nome:c;
+    const unidade=typeof c==='object'?c.unidade:'un';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+      +'<div><span style="font-size:13px;font-weight:600">'+nome+'</span> <span style="font-size:11px;color:#94a3b8">('+unidade+')</span></div>'
+      +'<button onclick="window._matDiretosExcluirCat('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
+      +'</div>';
+  }).join('');
   const corpo='<div id="md-cats-lista">'+(lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria cadastrada.</div>')+'</div>'
-    +'<div style="display:flex;gap:8px;margin-top:14px">'
-    +'<input id="md-nova-cat" placeholder="Nome da nova categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
-    +'<button class="btn btn-primary btn-sm" onclick="window._matDiretosAddCat()">+ Adicionar</button>'
+    +'<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-top:14px;align-items:end">'
+    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Nome</label>'
+    +'<input id="md-nova-cat" placeholder="Ex: Tecido" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
+    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Unidade</label>'
+    +'<input id="md-nova-unid" placeholder="m, kg, un" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._matDiretosAddCat()" style="height:36px">+ Add</button>'
     +'</div>';
-  // Se modal já está aberto, atualiza só o conteúdo sem fechar/reabrir
   const modalBody=document.getElementById('modal-body');
   if(modalBody){ modalBody.innerHTML=corpo; return; }
   showModal('⚙️ Categorias de Materiais Diretos', corpo,
@@ -13575,10 +13598,12 @@ window._matDiretosGerirCats=function(){
 
 window._matDiretosAddCat=async function(){
   const nome=document.getElementById('md-nova-cat')?.value.trim();
+  const unidade=document.getElementById('md-nova-unid')?.value.trim()||'un';
   if(!nome){showToast('Digite o nome da categoria.');return;}
   const cats=[...(matDiretosConfig.categorias||[])];
-  if(cats.includes(nome)){showToast('Categoria já existe.');return;}
-  cats.push(nome);
+  const jaExiste=cats.some(c=>(typeof c==='object'?c.nome:c)===nome);
+  if(jaExiste){showToast('Categoria já existe.');return;}
+  cats.push({nome,unidade});
   matDiretosConfig={...matDiretosConfig,categorias:cats};
   await setDoc(doc(db,'config_mat_diretos','geral'),matDiretosConfig);
   showToast('Categoria adicionada!');
@@ -13593,20 +13618,27 @@ window._matDiretosExcluirCat=async function(idx){
   showToast('Categoria removida!');
   window._matDiretosGerirCats();
 };
+
 window._matDiretosSalvar=async function(){
-  const categoria=document.getElementById('md-cat')?.value;
-  const descricao=document.getElementById('md-desc')?.value.trim();
+  const idx=parseInt(document.getElementById('md-cat')?.value)||0;
+  const cats=matDiretosConfig.categorias||[];
+  const cat=cats[idx];
+  const categoria=typeof cat==='object'?cat.nome:(cat||'Outros');
+  const unidade=typeof cat==='object'?cat.unidade:'un';
+  const qtd=parseFloat(document.getElementById('md-qtd')?.value)||0;
   const valor=parseFloat(document.getElementById('md-valor')?.value)||0;
   const data=document.getElementById('md-data')?.value||today();
   if(!valor){showToast('Informe o valor.');return;}
   closeModal();
-  await addDoc(collection(db,'mat_diretos'),{categoria,descricao,valor,data,criadoEm:new Date().toISOString()});
+  await addDoc(collection(db,'mat_diretos'),{categoria,unidade,qtd,valor,data,criadoEm:new Date().toISOString()});
   showToast('Lançamento salvo!');
 };
+
 window._matDiretosExcluir=async function(id){
   await deleteDoc(doc(db,'mat_diretos',id));
   showToast('Lançamento excluído!');
 };
+
 
 function renderFinCompras(){
   if(!window._finComprasMes) window._finComprasMes='';
