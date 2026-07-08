@@ -11367,7 +11367,7 @@ window._engVerJogo=function(id){
     +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span>Preço de venda</span><span style="color:#059669;font-size:15px">'+fmtMoeda(c.venda)+'</span></div>'
     +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
-    +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._closeModal();window._engNovoJogo(engProdutos.find(x=>x.id===\''+id+'\'))">Editar</button>':''));
+    +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\',true)">✏️ Editar</button>':''));
 };
 
 window._engSetAba=function(aba){
@@ -11600,11 +11600,18 @@ window._engVerProduto=function(id, aba){
     +resumoCard(c,aba),
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
     +(podeEditar?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+id+'\')">Excluir</button>':'')
-    +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engNovoProduto(engProdutos.find(x=>x.id===\''+id+'\'))">✏️ Editar</button>':''));
+    +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\')">✏️ Editar</button>':''));
+};
+
+window._engEditarProdutoById=function(id,isJogo){
+  const p=engProdutos.find(x=>x.id===id);
+  if(!p) return;
+  closeModal();
+  if(isJogo||p.tipo==='jogo') window._engNovoJogo(p);
+  else window._engNovoProduto(p);
 };
 
 window._engExcluirProduto=function(id){
-  window._pendingEngProduto=id;
   closeModal();
   showModal('Excluir produto','<div style="font-size:13px">Deseja excluir este produto e sua ficha técnica?</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
