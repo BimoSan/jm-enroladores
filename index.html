@@ -10965,17 +10965,18 @@ function calcCustoProduto(produto, versao){
 // indireto de cada peça individual que compõe o conjunto.
 function calcCustoJogo(produto, versao){
   const itens=produto.itensJogo||[];
-  let direto=0, maoObra=0;
+  let direto=0, maoObra=0, indiretoPecas=0;
   itens.forEach(it=>{
     const p=engProdutos.find(x=>x.id===it.produtoId);
     if(!p) return;
     const qtd=parseFloat(it.qtd)||1;
-    const cItem=calcCustoProduto(p,'normal'); // itens do jogo sempre na versão normal
-    direto+=(cItem.direto)*qtd;
-    maoObra+=(cItem.maoObra)*qtd;
-    // NOTA: cItem.indireto é ignorado de propósito — não soma o indireto de cada peça
+    const cItem=calcCustoProduto(p,'normal');
+    direto+=cItem.direto*qtd;
+    maoObra+=cItem.maoObra*qtd;
+    indiretoPecas+=cItem.indireto*qtd; // já considera o indiretoPct de cada peça
   });
-  const indireto=getEngIndireto(produto.categoria); // indireto único do jogo
+  // O indireto já está embutido nas peças (via indiretoPct), não soma um extra do jogo
+  const indireto=indiretoPecas;
   const total=direto+indireto+maoObra;
   const margem=parseFloat(produto.margem)||parseFloat(configEng.margemPadrao)||0;
   const venda=total*(1+margem/100);
