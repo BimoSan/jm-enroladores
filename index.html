@@ -11514,29 +11514,63 @@ window._engRenderReformas=function(){
   const el=document.getElementById('ep-reformas-list');
   if(!el) return;
   const reformas=window._engReformasTemp||[];
+  const mpOpts=engMaterias.map(m=>'<option value="'+m.id+'">'+m.nome+'</option>').join('');
   if(!reformas.length){el.innerHTML='<div style="font-size:12px;color:#94a3b8;text-align:center;padding:12px">Nenhuma reforma cadastrada. Clique em "+ Adicionar tipo de reforma".</div>';return;}
-  el.innerHTML=reformas.map((r,i)=>`
-    <div style="border:1.5px solid #e9d5ff;border-radius:10px;padding:12px;margin-bottom:12px;background:#faf5ff">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <input value="${r.nome||''}" oninput="window._engReformasTemp[${i}].nome=this.value" placeholder="Nome (ex: Reforma de tecido)" style="flex:1;font-size:13px;font-weight:700;border:1.5px solid #d8b4fe;border-radius:8px;padding:7px 10px">
-        <button onclick="window._engExcluirReforma(${i})" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;cursor:pointer;flex-shrink:0">✕</button>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px">Mão de obra</div>
-      <div id="ep-ref-mo-${i}">${(r.maoObraEtapas||[]).map((e,j)=>`<div style="display:flex;gap:6px;margin-bottom:4px">
-        <input value="${e.nome||''}" oninput="window._engReformasTemp[${i}].maoObraEtapas[${j}].nome=this.value" placeholder="Etapa" style="flex:2;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
-        <input type="number" value="${e.valor||0}" oninput="window._engReformasTemp[${i}].maoObraEtapas[${j}].valor=parseFloat(this.value)||0" placeholder="R$" style="flex:1;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
-        <button onclick="window._engReformasTemp[${i}].maoObraEtapas.splice(${j},1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:5px;width:24px;height:30px;cursor:pointer;font-size:11px">✕</button>
-      </div>`).join('')}</div>
-      <button onclick="window._engAddReformaMO(${i})" style="width:100%;padding:6px;border-radius:7px;border:1.5px dashed #c4b5fd;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:600;cursor:pointer;margin:4px 0 10px">+ Etapa de mão de obra</button>
-      <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px">Componentes</div>
-      <div id="ep-ref-comp-${i}">${(r.componentes||[]).map((c,j)=>`<div style="display:flex;gap:6px;margin-bottom:4px">
-        <input value="${c.nome||''}" oninput="window._engReformasTemp[${i}].componentes[${j}].nome=this.value" placeholder="Material" style="flex:2;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
-        <input type="number" value="${c.qtd||1}" oninput="window._engReformasTemp[${i}].componentes[${j}].qtd=parseFloat(this.value)||0" placeholder="Qtd" style="width:50px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
-        <input type="number" value="${c.custoUnit||0}" oninput="window._engReformasTemp[${i}].componentes[${j}].custoUnit=parseFloat(this.value)||0" placeholder="R$/un" style="width:70px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
-        <button onclick="window._engReformasTemp[${i}].componentes.splice(${j},1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:5px;width:24px;height:30px;cursor:pointer;font-size:11px">✕</button>
-      </div>`).join('')}</div>
-      <button onclick="window._engAddReformaComp(${i})" style="width:100%;padding:6px;border-radius:7px;border:1.5px dashed #c4b5fd;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px">+ Componente</button>
-    </div>`).join('');
+
+  el.innerHTML=reformas.map((r,i)=>{
+    const compRows=(r.componentes||[]).map((c,j)=>{
+      const vinculado=!!c.mpId;
+      const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+      return '<div style="background:#fff;border-radius:7px;padding:7px;margin-bottom:5px;border:1px solid #e9d5ff">'
+        +'<div style="display:grid;grid-template-columns:1fr 28px;gap:5px;margin-bottom:5px">'
+        +'<select onchange="window._engReformaSelectMp('+i+','+j+',this.value)" style="font-size:11px;border:1.5px solid #d8b4fe;border-radius:6px;padding:5px;width:100%;color:'+(vinculado?'#7c3aed':'#94a3b8')+'">'
+        +'<option value=""'+(vinculado?'':' selected')+'>✎ Digitar manualmente...</option>'
+        +'<optgroup label="Matérias-primas cadastradas">'+mpOpts.replace('value="'+c.mpId+'"','value="'+c.mpId+'" selected')+'</optgroup>'
+        +'</select>'
+        +'<button onclick="window._engReformasTemp['+i+'].componentes.splice('+j+',1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:13px">✕</button>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:2fr 60px 80px;gap:5px">'
+        +'<input value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Nome" '+(vinculado?'disabled':'')+' oninput="window._engReformasTemp['+i+'].componentes['+j+'].nome=this.value" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;'+(vinculado?'background:#f5f3ff;':'')+'width:100%">'
+        +'<input type="number" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engReformasTemp['+i+'].componentes['+j+'].qtd=parseFloat(this.value)||0" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;width:100%;text-align:center">'
+        +'<input type="number" value="'+(c.custoUnit||'')+'" placeholder="R$/un" '+(vinculado?'disabled':'')+' oninput="window._engReformasTemp['+i+'].componentes['+j+'].custoUnit=parseFloat(this.value)||0" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;'+(vinculado?'background:#f5f3ff;':'')+'width:100%;text-align:center">'
+        +'</div>'
+        +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:3px">subtotal: '+fmtMoeda(subtotal)+'</div>'
+        +'</div>';
+    }).join('');
+
+    const moRows=(r.maoObraEtapas||[]).map((e,j)=>'<div style="display:flex;gap:6px;margin-bottom:4px">'
+      +'<input value="'+(e.nome||'')+'" oninput="window._engReformasTemp['+i+'].maoObraEtapas['+j+'].nome=this.value" placeholder="Etapa" style="flex:2;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">'
+      +'<input type="number" value="'+(e.valor||0)+'" oninput="window._engReformasTemp['+i+'].maoObraEtapas['+j+'].valor=parseFloat(this.value)||0" placeholder="R$" style="flex:1;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">'
+      +'<button onclick="window._engReformasTemp['+i+'].maoObraEtapas.splice('+j+',1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:5px;width:24px;height:30px;cursor:pointer;font-size:11px">✕</button>'
+      +'</div>').join('');
+
+    return '<div style="border:1.5px solid #e9d5ff;border-radius:10px;padding:12px;margin-bottom:12px;background:#faf5ff">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      +'<input value="'+(r.nome||'')+'" oninput="window._engReformasTemp['+i+'].nome=this.value" placeholder="Nome da reforma (ex: Reforma de tecido)" style="flex:1;font-size:13px;font-weight:700;border:1.5px solid #d8b4fe;border-radius:8px;padding:7px 10px">'
+      +'<button onclick="window._engExcluirReforma('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;cursor:pointer;flex-shrink:0">✕</button>'
+      +'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px">Mão de obra</div>'
+      +moRows
+      +'<button onclick="window._engAddReformaMO('+i+')" style="width:100%;padding:6px;border-radius:7px;border:1.5px dashed #c4b5fd;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:600;cursor:pointer;margin:4px 0 10px">+ Etapa de mão de obra</button>'
+      +'<div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px">Componentes</div>'
+      +compRows
+      +'<button onclick="window._engAddReformaComp('+i+')" style="width:100%;padding:6px;border-radius:7px;border:1.5px dashed #c4b5fd;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px">+ Componente</button>'
+      +'</div>';
+  }).join('');
+};
+
+window._engReformaSelectMp=function(i,j,mpId){
+  if(!mpId){
+    window._engReformasTemp[i].componentes[j].mpId=null;
+    window._engRenderReformas();
+    return;
+  }
+  const mp=engMaterias.find(m=>m.id===mpId);
+  if(!mp) return;
+  window._engReformasTemp[i].componentes[j].mpId=mpId;
+  window._engReformasTemp[i].componentes[j].nome=mp.nome;
+  window._engReformasTemp[i].componentes[j].custoUnit=parseFloat(mp.custo)||0;
+  window._engRenderReformas();
 };
 
 window._engAddMaoObra=function(){
