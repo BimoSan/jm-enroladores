@@ -11554,28 +11554,40 @@ window._engVerProduto=function(id){
   const p=engProdutos.find(x=>x.id===id);
   if(!p) return;
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
-  if(podeEditar){ window._engNovoProduto(p); return; }
-  // Visualização somente leitura
   const c=calcCustoProduto(p,'normal');
   const catLabel=ENG_CATEGORIAS.find(x=>x.id===p.categoria)?.label||'—';
-  const linhas=(p.componentes||[]).map(comp=>{
+  const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
+
+  // Componentes
+  const linhasComp=(p.componentes||[]).map(comp=>{
     const subtotal=(parseFloat(comp.qtd)||0)*(parseFloat(comp.custoUnit)||0);
     return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid #f1f5f9">'
-      +'<span>'+comp.nome+' <span style="color:#94a3b8">×'+comp.qtd+'</span></span>'
+      +'<span style="color:#475569">'+comp.nome+' <span style="color:#94a3b8">×'+comp.qtd+'</span></span>'
       +'<span style="font-weight:700">'+fmtMoeda(subtotal)+'</span>'
       +'</div>';
   }).join('');
+
+  // Mão de obra
+  const maoObraEtapas=p.maoObraEtapas||[];
+  const maoObraLabel=maoObraEtapas.length
+    ?'Mão de obra ('+maoObraEtapas.length+' etapa'+(maoObraEtapas.length!==1?'s':'')+')'
+    :'Mão de obra';
+
+  const resumo='<div style="background:#f0fdf4;border-radius:10px;padding:12px;margin-top:12px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#64748b"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#64748b"><span>Custo indireto'+(indiretoPct!==100?' ('+indiretoPct+'%)':'')+'</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#64748b"><span>'+maoObraLabel+'</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;border-top:1px solid #d1fae5;padding-top:8px;margin-top:6px;color:#dc2626"><span>Custo total</span><span>'+fmtMoeda(c.total)+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:4px;color:#059669"><span>Venda ('+(p.margem||parseFloat(configEng.margemPadrao)||0)+'%)</span><span>'+fmtMoeda(c.venda)+'</span></div>'
+    +'</div>';
+
   showModal(p.nome,
     '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+'</div>'
-    +linhas
-    +'<div style="margin-top:10px;background:#f8fafc;border-radius:10px;padding:10px">'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo indireto</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Mão de obra</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span>Custo total</span><span style="color:#dc2626;font-size:15px">'+fmtMoeda(c.total)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span>Preço de venda</span><span style="color:#059669;font-size:15px">'+fmtMoeda(c.venda)+'</span></div>'
-    +'</div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+    +(linhasComp||'<div style="font-size:12px;color:#94a3b8">Sem componentes cadastrados.</div>')
+    +resumo,
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
+    +(podeEditar?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+id+'\')">Excluir</button>':''  )
+    +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engNovoProduto(engProdutos.find(x=>x.id===\''+id+'\'))">✏️ Editar</button>':''));
 };
 
 window._engExcluirProduto=function(id){
