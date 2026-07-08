@@ -11371,35 +11371,93 @@ window._engSalvarJogo=async function(id){
   showToast('Jogo salvo!');
 };
 
-window._engVerJogo=function(id){
+window._engVerJogo=function(id, aba){
+  aba=aba||'normal';
   const p=engProdutos.find(x=>x.id===id);
   if(!p) return;
   const c=calcCustoProduto(p,'normal');
   const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
+  const margem=parseFloat(p.margem)||parseFloat(configEng.margemPadrao)||0;
 
-  const itensHtml=(p.itensJogo||[]).map(it=>{
+  // Coleta todos os tipos de reforma de todos os itens do jogo
+  const tiposReformaMap={};
+  (p.itensJogo||[]).forEach(it=>{
     const prod=engProdutos.find(x=>x.id===it.produtoId);
-    if(!prod) return '';
-    const cItem=calcCustoProduto(prod,'normal');
-    const subtotal=(cItem.direto+cItem.maoObra)*(parseFloat(it.qtd)||1);
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
-      +'<div><span style="font-size:12px;font-weight:600">'+prod.nome+'</span> <span style="font-size:11px;color:#94a3b8">×'+it.qtd+'</span></div>'
-      +'<span style="font-size:12px;font-weight:700;color:#7c3aed">'+fmtMoeda(subtotal)+'</span>'
+    if(!prod) return;
+    (prod.reformas||[]).forEach(r=>{
+      if(!tiposReformaMap[r.nome]) tiposReformaMap[r.nome]={nome:r.nome,itens:[]};
+      tiposReformaMap[r.nome].itens.push({prod,reforma:r,qtd:parseFloat(it.qtd)||1});
+    });
+  });
+  const tiposReforma=Object.values(tiposReformaMap);
+
+  function renderNormal(){
+    const itensHtml=(p.itensJogo||[]).map(it=>{
+      const prod=engProdutos.find(x=>x.id===it.produtoId);
+      if(!prod) return '';
+      const cItem=calcCustoProduto(prod,'normal');
+      const subtotal=(cItem.direto+cItem.maoObra+cItem.indireto)*(parseFloat(it.qtd)||1);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+        +'<div><span style="font-size:12px;font-weight:600">'+prod.nome+'</span> <span style="font-size:11px;color:#94a3b8">×'+it.qtd+'</span></div>'
+        +'<span style="font-size:12px;font-weight:700;color:#7c3aed">'+fmtMoeda(subtotal)+'</span>'
+        +'</div>';
+    }).join('');
+    return '<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Itens do jogo</div>'
+      +itensHtml
+      +'<div style="margin-top:12px;background:#faf5ff;border-radius:10px;padding:10px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Mão de obra</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo indireto</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px;color:#dc2626"><span>Custo total</span><span>'+fmtMoeda(c.total)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:4px;color:#059669"><span>Venda ('+margem+'%)</span><span>'+fmtMoeda(c.venda)+'</span></div>'
       +'</div>';
-  }).join('');
+  }
+
+  function renderReforma(tipo){
+    let dirTotal=0, moTotal=0, indTotal=0;
+    const linhas=tipo.itens.map(({prod,reforma,qtd})=>{
+      const mo=(reforma.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0)*qtd;
+      const dir=(reforma.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0)*qtd;
+      const indiretoPct=prod.indiretoPct!=null?prod.indiretoPct:100;
+      const ind=getEngIndireto(prod.categoria)*(indiretoPct/100)*qtd;
+      dirTotal+=dir; moTotal+=mo; indTotal+=ind;
+      const sub=dir+mo+ind;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+        +'<div><span style="font-size:12px;font-weight:600">'+prod.nome+'</span> <span style="font-size:11px;color:#94a3b8">×'+qtd+'</span></div>'
+        +'<span style="font-size:12px;font-weight:700;color:#7c3aed">'+fmtMoeda(sub)+'</span>'
+        +'</div>';
+    }).join('');
+    const total=dirTotal+moTotal+indTotal;
+    const venda=total*(1+margem/100);
+    return linhas
+      +'<div style="margin-top:12px;background:#f5f3ff;border-radius:10px;padding:10px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(dirTotal)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Mão de obra</span><span style="font-weight:700">'+fmtMoeda(moTotal)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo indireto</span><span style="font-weight:700">'+fmtMoeda(indTotal)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;border-top:1px solid #e9d5ff;padding-top:8px;margin-top:6px;color:#7c3aed"><span>Custo total</span><span>'+fmtMoeda(total)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:4px;color:#059669"><span>Venda ('+margem+'%)</span><span>'+fmtMoeda(venda)+'</span></div>'
+      +'</div>';
+  }
+
+  const tabs=tiposReforma.length
+    ?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+      +'<button onclick="window._engVerJogo(\''+id+'\',\'normal\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(aba==='normal'?'#7c3aed':'#e2e8f0')+';background:'+(aba==='normal'?'#7c3aed':'#fff')+';color:'+(aba==='normal'?'#fff':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">Normal</button>'
+      +tiposReforma.map((t,i)=>'<button onclick="window._engVerJogo(\''+id+'\',\'reforma-'+i+'\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(aba==='reforma-'+i?'#7c3aed':'#e2e8f0')+';background:'+(aba==='reforma-'+i?'#7c3aed':'#fff')+';color:'+(aba==='reforma-'+i?'#fff':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">'+t.nome+'</button>').join('')
+      +'</div>'
+    :'';
+
+  let conteudo;
+  if(aba.startsWith('reforma-')){
+    const ri=parseInt(aba.replace('reforma-',''));
+    conteudo=renderReforma(tiposReforma[ri]);
+  } else {
+    conteudo=renderNormal();
+  }
 
   showModal('🛋️ '+p.nome,
     '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+' · Jogo com '+(p.itensJogo||[]).length+' item'+((p.itensJogo||[]).length!==1?'s':'')+'</div>'
-    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">Itens do jogo</div>'
-    +itensHtml
-    +'<div style="margin-top:12px;background:#faf5ff;border-radius:10px;padding:10px">'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo direto (peças)</span><span style="font-weight:700">'+fmtMoeda(c.direto)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Mão de obra (peças)</span><span style="font-weight:700">'+fmtMoeda(c.maoObra)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:#64748b"><span>Custo indireto (único, do jogo)</span><span style="font-weight:700">'+fmtMoeda(c.indireto)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span>Custo total</span><span style="color:#dc2626;font-size:15px">'+fmtMoeda(c.total)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-top:6px"><span style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span>Preço de venda</span><span style="color:#059669;font-size:15px">'+fmtMoeda(c.venda)+'</span></div>'
-    +'</div>',
+    +tabs+conteudo,
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
     +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\',true)">✏️ Editar</button>':''));
 };
@@ -11640,7 +11698,7 @@ window._engVerProduto=function(id, aba){
   const cRef=calcCustoProduto(p,'reforma');
   const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
   const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
-  const temReforma=(produto.reformas||[]).length>0||(p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReforma>0);
+  const temReforma=(p.reformas||[]).length>0||(p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReforma>0);
 
   function resumoCard(c,versao){
     const etapas=versao==='reforma'?(p.maoObraReformaEtapas||[]):(p.maoObraEtapas||[]);
