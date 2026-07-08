@@ -11206,7 +11206,21 @@ window._engNovoProduto=function(produto={}){
   window._engMaoObraTemp=produto.maoObraEtapas?JSON.parse(JSON.stringify(produto.maoObraEtapas)):(produto.maoObra?[{nome:'Mão de obra',valor:produto.maoObra}]:[]);
   window._engMaoObraReformaTemp=produto.maoObraReformaEtapas?JSON.parse(JSON.stringify(produto.maoObraReformaEtapas)):(produto.maoObraReforma?[{nome:'Mão de obra',valor:produto.maoObraReforma}]:[]);
   window._engAba='normal';
-  window._engReformasTemp=produto.reformas?JSON.parse(JSON.stringify(produto.reformas)):[];
+  // Migra dados antigos de reforma (componentesReforma/maoObraReformaEtapas) para o novo formato
+  if(produto.reformas&&produto.reformas.length){
+    window._engReformasTemp=JSON.parse(JSON.stringify(produto.reformas));
+  } else if((produto.componentesReforma&&produto.componentesReforma.length)||(produto.maoObraReformaEtapas&&produto.maoObraReformaEtapas.length)||produto.maoObraReforma){
+    window._engReformasTemp=[{
+      id:'r_legado',
+      nome:'Reforma',
+      maoObraEtapas:produto.maoObraReformaEtapas&&produto.maoObraReformaEtapas.length
+        ?JSON.parse(JSON.stringify(produto.maoObraReformaEtapas))
+        :(produto.maoObraReforma?[{nome:'Mão de obra',valor:parseFloat(produto.maoObraReforma)||0}]:[]),
+      componentes:JSON.parse(JSON.stringify(produto.componentesReforma||[]))
+    }];
+  } else {
+    window._engReformasTemp=[];
+  }
   const isEdit=!!produto.id;
   const catOpts=getEngCategorias().map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
 
@@ -11698,7 +11712,14 @@ window._engVerProduto=function(id, aba){
   const cRef=calcCustoProduto(p,'reforma');
   const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
   const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
-  const temReforma=(p.reformas||[]).length>0||(p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReforma>0);
+  const _reformasRaw=p.reformas&&p.reformas.length?p.reformas
+    :((p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReformaEtapas&&p.maoObraReformaEtapas.length)||(parseFloat(p.maoObraReforma)||0)>0)
+    ?[{id:'r_legado',nome:'Reforma',
+      maoObraEtapas:p.maoObraReformaEtapas&&p.maoObraReformaEtapas.length?p.maoObraReformaEtapas
+        :(p.maoObraReforma?[{nome:'Mão de obra',valor:parseFloat(p.maoObraReforma)||0}]:[]),
+      componentes:p.componentesReforma||[]}]
+    :[];
+  const temReforma=_reformasRaw.length>0;
 
   function resumoCard(c,versao){
     const etapas=versao==='reforma'?(p.maoObraReformaEtapas||[]):(p.maoObraEtapas||[]);
@@ -11721,7 +11742,7 @@ window._engVerProduto=function(id, aba){
       +'</div>';
   }
 
-  const reformas=p.reformas||[];
+  const reformas=_reformasRaw;
   const tabs=reformas.length
     ?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
       +'<button onclick="window._engVerProduto(\''+id+'\',\'normal\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(aba==='normal'?'#1d4ed8':'#e2e8f0')+';background:'+(aba==='normal'?'#1d4ed8':'#fff')+';color:'+(aba==='normal'?'#fff':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">Normal</button>'
