@@ -11567,9 +11567,14 @@ window._engReformaSelectMp=function(i,j,mpId){
   }
   const mp=engMaterias.find(m=>m.id===mpId);
   if(!mp) return;
+  const custoBase=mp.qtdEmbalagem&&mp.precoEmbalagem
+    ?(parseFloat(mp.precoEmbalagem)/parseFloat(mp.qtdEmbalagem))
+    :(parseFloat(mp.custo)||0);
+  const perda=parseFloat(mp.desperdicio)||0;
+  const custoComPerda=custoBase*(1+perda/100);
   window._engReformasTemp[i].componentes[j].mpId=mpId;
-  window._engReformasTemp[i].componentes[j].nome=mp.nome;
-  window._engReformasTemp[i].componentes[j].custoUnit=parseFloat(mp.custo)||0;
+  window._engReformasTemp[i].componentes[j].nome=mp.nome+(mp.unidade?' ('+mp.unidade+')':'');
+  window._engReformasTemp[i].componentes[j].custoUnit=custoComPerda;
   window._engRenderReformas();
 };
 
