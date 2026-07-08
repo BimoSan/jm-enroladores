@@ -11187,7 +11187,7 @@ function renderEngProdutos(){
         +'<div style="display:flex;justify-content:space-between;align-items:center">'
         +'<div>'
         +'<div style="font-size:14px;font-weight:700">'+(isJogo?'🛋️ ':'')+p.nome+'</div>'
-        +'<div style="font-size:11px;color:#64748b">'+(isJogo?'Jogo':numComp+' componente'+(numComp!==1?'s':''))+(p.indiretoPct!=null&&p.indiretoPct!==100?' · <span style="color:#f59e0b;font-weight:700">indireto '+p.indiretoPct+'%</span>':'')+(p.componentesReforma&&p.componentesReforma.length?' · <span style="color:#7c3aed">tem reforma</span>':'')+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+(isJogo?'Jogo':numComp+' componente'+(numComp!==1?'s':''))+(p.indiretoPct!=null&&p.indiretoPct!==100?' · <span style="color:#f59e0b;font-weight:700">indireto '+p.indiretoPct+'%</span>':'')+(((p.reformas&&p.reformas.length)||(p.componentesReforma&&p.componentesReforma.length)||(parseFloat(p.maoObraReforma)||0)>0)?' · <span style="color:#7c3aed">tem reforma</span>':'')+'</div>'
         +'</div>'
         +'<div style="text-align:right">'
         +'<div style="font-size:10px;color:#dc2626;font-weight:700;margin-bottom:2px">CUSTO</div>'
