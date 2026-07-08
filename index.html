@@ -10935,9 +10935,7 @@ function renderTabEngenharia(tab){
 // ── Config: valores de rateio de custo indireto + margem padrão ───
 function getEngIndireto(categoria){
   const v=configEng.indiretos||{};
-  if(categoria==='cadeira_pintada') return parseFloat(v.cadeiraPintada)||0;
-  if(categoria==='estofado') return parseFloat(v.estofado)||0;
-  return parseFloat(v.cadeiraNaoPintada)||0; // default: cadeira não pintada
+  return parseFloat(v[categoria])||0;
 }
 
 function custoComponentes(lista){
@@ -11134,11 +11132,10 @@ window._engConfirmarExcluirMp=async function(){
   showToast('Matéria-prima excluída!');
 };
 
-const ENG_CATEGORIAS=[
-  {id:'cadeira_nao_pintada',label:'Cadeira não pintada'},
-  {id:'cadeira_pintada',label:'Cadeira pintada'},
-  {id:'estofado',label:'Estofado'},
-];
+// getEngCategorias() é dinâmico — lido de configEng.categorias
+function getEngCategorias(){
+  return (configEng.categorias||[{id:'estofado',label:'Estofado'}]);
+}
 
 function renderEngProdutos(){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
@@ -11152,25 +11149,53 @@ function renderEngProdutos(){
     return html;
   }
 
+  // Agrupa por categoria
+  const porCat={};
   engProdutos.forEach(p=>{
-    const c=calcCustoProduto(p,'normal');
-    const isJogo=p.tipo==='jogo';
-    const numComp=isJogo?(p.itensJogo||[]).length:(p.componentes||[]).length;
-    const catLabel=ENG_CATEGORIAS.find(x=>x.id===p.categoria)?.label||'—';
-    const onclick=isJogo?'window._engVerJogo(\''+p.id+'\')':'window._engVerProduto(\''+p.id+'\')';
-    html+='<div class="card" style="margin-bottom:10px;cursor:pointer;'+(isJogo?'border-left:4px solid #7c3aed':'')+'" onclick="'+onclick+'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<div>'
-      +'<div style="font-size:14px;font-weight:700">'+(isJogo?'🛋️ ':'')+p.nome+'</div>'
-      +'<div style="font-size:11px;color:#64748b">'+catLabel+(isJogo?' · Jogo':'')+(p.indiretoPct!=null&&p.indiretoPct!==100?' · <span style="color:#f59e0b;font-weight:700">indireto '+p.indiretoPct+'%</span>':'')+'</div>'
-      +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+numComp+' '+(isJogo?'item'+(numComp!==1?'s':''):'componente'+(numComp!==1?'s':''))+(p.componentesReforma&&p.componentesReforma.length?' · tem reforma':'')+'</div>'
-      +'</div>'
-      +'<div style="text-align:right">'
-      +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px"><span style="font-size:9px;color:#dc2626;font-weight:700;background:#fee2e2;padding:1px 6px;border-radius:99px">CUSTO</span></div>'
-      +'<div style="font-size:18px;font-weight:800;color:#dc2626">'+fmtMoeda(c.total)+'</div>'
-      +'<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:6px"><span style="font-size:9px;color:#059669;font-weight:700;background:#d1fae5;padding:1px 6px;border-radius:99px">VENDA</span></div>'
-      +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(c.venda)+'</div>'
-      +'</div></div></div>';
+    const catKey=p.categoria||'_sem';
+    if(!porCat[catKey]) porCat[catKey]=[];
+    porCat[catKey].push(p);
+  });
+
+  // Ordena categorias na mesma ordem de getEngCategorias(), jogos no final
+  const ordemCats=[...getEngCategorias().map(c=>c.id),'_jogo','_sem'];
+  const catsOrdenadas=Object.keys(porCat).sort((a,b)=>{
+    const ia=ordemCats.indexOf(a)<0?99:ordemCats.indexOf(a);
+    const ib=ordemCats.indexOf(b)<0?99:ordemCats.indexOf(b);
+    return ia-ib;
+  });
+
+  catsOrdenadas.forEach(catKey=>{
+    const prods=porCat[catKey];
+    const catLabel=getEngCategorias().find(x=>x.id===catKey)?.label||(catKey==='_sem'?'Sem categoria':'Outros');
+    const temJogos=prods.some(p=>p.tipo==='jogo');
+    const temProd=prods.some(p=>p.tipo!=='jogo');
+
+    // Cabeçalho da categoria
+    html+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px">'
+      +'<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em">'+catLabel+'</div>'
+      +'<div style="flex:1;height:1px;background:#e2e8f0"></div>'
+      +'<span style="font-size:10px;color:#94a3b8">'+prods.length+' produto'+(prods.length!==1?'s':'')+'</span>'
+      +'</div>';
+
+    prods.forEach(p=>{
+      const c=calcCustoProduto(p,'normal');
+      const isJogo=p.tipo==='jogo';
+      const numComp=isJogo?(p.itensJogo||[]).length:(p.componentes||[]).length;
+      const onclick=isJogo?'window._engVerJogo(\''+p.id+'\')':'window._engVerProduto(\''+p.id+'\')';
+      html+='<div class="card" style="margin-bottom:10px;cursor:pointer;'+(isJogo?'border-left:4px solid #7c3aed':'')+'" onclick="'+onclick+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<div>'
+        +'<div style="font-size:14px;font-weight:700">'+(isJogo?'🛋️ ':'')+p.nome+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+(isJogo?'Jogo':numComp+' componente'+(numComp!==1?'s':''))+(p.indiretoPct!=null&&p.indiretoPct!==100?' · <span style="color:#f59e0b;font-weight:700">indireto '+p.indiretoPct+'%</span>':'')+(p.componentesReforma&&p.componentesReforma.length?' · <span style="color:#7c3aed">tem reforma</span>':'')+'</div>'
+        +'</div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:10px;color:#dc2626;font-weight:700;margin-bottom:2px">CUSTO</div>'
+        +'<div style="font-size:18px;font-weight:800;color:#dc2626">'+fmtMoeda(c.total)+'</div>'
+        +'<div style="font-size:10px;color:#059669;font-weight:700;margin-top:4px;margin-bottom:2px">VENDA</div>'
+        +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(c.venda)+'</div>'
+        +'</div></div></div>';
+    });
   });
   return html;
 }
@@ -11182,7 +11207,7 @@ window._engNovoProduto=function(produto={}){
   window._engMaoObraReformaTemp=produto.maoObraReformaEtapas?JSON.parse(JSON.stringify(produto.maoObraReformaEtapas)):(produto.maoObraReforma?[{nome:'Mão de obra',valor:produto.maoObraReforma}]:[]);
   window._engAba='normal';
   const isEdit=!!produto.id;
-  const catOpts=ENG_CATEGORIAS.map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
+  const catOpts=getEngCategorias().map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
 
   showModal(isEdit?'Editar produto':'+ Novo produto',
     '<div class="form-group"><label>Nome do produto</label>'
@@ -11218,7 +11243,7 @@ window._engNovoProduto=function(produto={}){
 window._engNovoJogo=function(produto={}){
   window._engItensJogoTemp=produto.itensJogo?JSON.parse(JSON.stringify(produto.itensJogo)):[];
   const isEdit=!!produto.id;
-  const catOpts=ENG_CATEGORIAS.map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
+  const catOpts=getEngCategorias().map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
 
   showModal(isEdit?'Editar jogo':'🛋️ + Novo Jogo',
     '<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px;margin-bottom:14px;font-size:11px;color:#5b21b6">'
@@ -11341,7 +11366,7 @@ window._engVerJogo=function(id){
   const p=engProdutos.find(x=>x.id===id);
   if(!p) return;
   const c=calcCustoProduto(p,'normal');
-  const catLabel=ENG_CATEGORIAS.find(x=>x.id===p.categoria)?.label||'—';
+  const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
 
   const itensHtml=(p.itensJogo||[]).map(it=>{
@@ -11558,7 +11583,7 @@ window._engVerProduto=function(id, aba){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
   const cNorm=calcCustoProduto(p,'normal');
   const cRef=calcCustoProduto(p,'reforma');
-  const catLabel=ENG_CATEGORIAS.find(x=>x.id===p.categoria)?.label||'—';
+  const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
   const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
   const temReforma=(p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReforma>0)||(p.maoObraReformaEtapas&&p.maoObraReformaEtapas.length);
 
@@ -11700,15 +11725,31 @@ window._engCalcEspuma=function(){
 function renderEngConfig(){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
   const ind=configEng.indiretos||{};
-  let html='<div class="card" style="margin-bottom:14px">'
-    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">⚙️ Custo indireto por peça (rateio)</div>'
+  const cats=configEng.categorias||[];
+  let html='';
+
+  // Gestão de categorias
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:12px">📂 Categorias de produtos</div>'
+    +cats.map((cat,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+      +'<span style="font-size:13px;font-weight:600">'+cat.label+'</span>'
+      +(podeEditar?'<button onclick="window._engExcluirCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>':'')
+      +'</div>').join('')
+    +(cats.length===0?'<div style="font-size:12px;color:#94a3b8;padding:8px 0">Nenhuma categoria cadastrada.</div>':'')
+    +(podeEditar?'<div style="display:flex;gap:8px;margin-top:12px">'
+    +'<input id="eng-nova-cat" placeholder="Nome da categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<button class="btn btn-primary btn-sm" onclick="window._engAddCategoria()">+ Adicionar</button>'
+    +'</div>':'')
+    +'</div>';
+
+  // Custo indireto por categoria
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">⚙️ Custo indireto por categoria (rateio)</div>'
     +'<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Valor de despesas fixas dividido pela produção do período. Atualize manualmente quando quiser recalcular.</div>'
-    +'<div class="form-group"><label>Cadeira não pintada (R$/peça)</label>'
-    +'<input type="number" id="ec-cadeira-np" min="0" step="0.01" value="'+(ind.cadeiraNaoPintada||0)+'" '+(podeEditar?'':'disabled')+' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Cadeira pintada (R$/peça)</label>'
-    +'<input type="number" id="ec-cadeira-p" min="0" step="0.01" value="'+(ind.cadeiraPintada||0)+'" '+(podeEditar?'':'disabled')+' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Estofado (R$/peça)</label>'
-    +'<input type="number" id="ec-estofado" min="0" step="0.01" value="'+(ind.estofado||0)+'" '+(podeEditar?'':'disabled')+' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +cats.map(cat=>'<div class="form-group"><label>'+cat.label+' (R$/peça)</label>'
+    +'<input type="number" id="ec-ind-'+cat.id+'" min="0" step="0.01" value="'+(ind[cat.id]||0)+'" '+(podeEditar?'':'disabled')+' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>').join('')
+    +(cats.length===0?'<div style="font-size:12px;color:#94a3b8">Cadastre categorias acima para configurar o custo indireto.</div>':'')
+    +(podeEditar&&cats.length?'<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="window._engSalvarIndiretos()">Salvar custos indiretos</button>':'')
     +'</div>';
 
   html+='<div class="card" style="margin-bottom:14px">'
@@ -11724,14 +11765,47 @@ function renderEngConfig(){
   return html;
 }
 
+window._engSalvarIndiretos=async function(){
+  const cats=configEng.categorias||[];
+  const indiretos={};
+  cats.forEach(cat=>{
+    indiretos[cat.id]=parseFloat(document.getElementById('ec-ind-'+cat.id)?.value)||0;
+  });
+  configEng={...configEng,indiretos};
+  await setDoc(doc(db,'config_eng','geral'),configEng);
+  showToast('Custos indiretos salvos!');
+};
+
 window._engSalvarConfig=async function(){
-  const cadeiraNaoPintada=parseFloat(document.getElementById('ec-cadeira-np')?.value)||0;
-  const cadeiraPintada=parseFloat(document.getElementById('ec-cadeira-p')?.value)||0;
-  const estofado=parseFloat(document.getElementById('ec-estofado')?.value)||0;
   const margemPadrao=parseFloat(document.getElementById('ec-margem-padrao')?.value)||0;
-  configEng={indiretos:{cadeiraNaoPintada,cadeiraPintada,estofado},margemPadrao};
+  configEng={...configEng,margemPadrao};
   await setDoc(doc(db,'config_eng','geral'),configEng);
   showToast('Configurações salvas!');
+};
+
+window._engAddCategoria=async function(){
+  const nome=document.getElementById('eng-nova-cat')?.value.trim();
+  if(!nome){showToast('Digite o nome da categoria.');return;}
+  const cats=[...(configEng.categorias||[])];
+  const id=nome.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  if(cats.some(c=>c.id===id||c.label===nome)){showToast('Categoria já existe.');return;}
+  cats.push({id,label:nome});
+  configEng={...configEng,categorias:cats};
+  await setDoc(doc(db,'config_eng','geral'),configEng);
+  showToast('Categoria adicionada!');
+  reloadTab();
+};
+
+window._engExcluirCategoria=async function(idx){
+  const cats=[...(configEng.categorias||[])];
+  const cat=cats[idx];
+  const emUso=engProdutos.some(p=>p.categoria===cat.id);
+  if(emUso){showToast('Categoria em uso por produto(s). Remova dos produtos antes de excluir.');return;}
+  cats.splice(idx,1);
+  configEng={...configEng,categorias:cats};
+  await setDoc(doc(db,'config_eng','geral'),configEng);
+  showToast('Categoria removida!');
+  reloadTab();
 };
 
 function renderEngRelatorio(){
