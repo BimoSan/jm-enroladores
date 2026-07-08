@@ -11206,6 +11206,7 @@ window._engNovoProduto=function(produto={}){
   window._engMaoObraTemp=produto.maoObraEtapas?JSON.parse(JSON.stringify(produto.maoObraEtapas)):(produto.maoObra?[{nome:'Mão de obra',valor:produto.maoObra}]:[]);
   window._engMaoObraReformaTemp=produto.maoObraReformaEtapas?JSON.parse(JSON.stringify(produto.maoObraReformaEtapas)):(produto.maoObraReforma?[{nome:'Mão de obra',valor:produto.maoObraReforma}]:[]);
   window._engAba='normal';
+  window._engReformasTemp=produto.reformas?JSON.parse(JSON.stringify(produto.reformas)):[];
   const isEdit=!!produto.id;
   const catOpts=getEngCategorias().map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
 
@@ -11222,16 +11223,24 @@ window._engNovoProduto=function(produto={}){
     +'<div class="form-group"><label>Margem de venda (%) — opcional, vazio usa a padrão</label>'
     +'<input type="number" id="ep-margem" min="0" step="0.1" value="'+(produto.margem||'')+'" placeholder="Ex: 30" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div style="display:flex;gap:8px;margin:10px 0">'
-    +'<button type="button" onclick="window._engSetAba(\'normal\',\''+(produto.id||'')+'\')" id="ep-tab-normal" style="flex:1;padding:8px;border-radius:8px;border:2px solid #1d4ed8;background:#1d4ed8;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Normal</button>'
-    +'<button type="button" onclick="window._engSetAba(\'reforma\',\''+(produto.id||'')+'\')" id="ep-tab-reforma" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer">Reforma</button>'
+    +'<button type="button" onclick="window._engSetAba(\'normal\')" id="ep-tab-normal" style="flex:1;padding:8px;border-radius:8px;border:2px solid #1d4ed8;background:#1d4ed8;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Normal</button>'
+    +'<button type="button" onclick="window._engSetAba(\'reformas\')" id="ep-tab-reforma" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer">Reformas ('+(produto.reformas||[]).length+')</button>'
     +'</div>'
+    // Aba Normal
+    +'<div id="ep-aba-normal">'
     +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px;margin-top:6px" id="ep-mao-obra-label">Mão de obra</div>'
     +'<div id="ep-mao-obra-list"></div>'
     +'<button type="button" onclick="window._engAddMaoObra()" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar etapa de mão de obra</button>'
     +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px;margin-top:16px">Componentes</div>'
     +'<div id="ep-componentes-list"></div>'
     +'<button type="button" onclick="window._engAddComponente()" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1.5px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar componente</button>'
-    +'<div style="margin-top:12px;background:#f0fdfa;border-radius:10px;padding:10px" id="ep-resumo-custo"></div>',
+    +'<div style="margin-top:12px;background:#f0fdfa;border-radius:10px;padding:10px" id="ep-resumo-custo"></div>'
+    +'</div>'
+    // Aba Reformas
+    +'<div id="ep-aba-reformas" style="display:none">'
+    +'<div id="ep-reformas-list"></div>'
+    +'<button type="button" onclick="window._engAddReforma()" style="margin-top:10px;width:100%;padding:10px;border-radius:8px;border:1.5px dashed #a78bfa;background:#f5f3ff;color:#7c3aed;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar tipo de reforma</button>'
+    +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+produto.id+'\')">Excluir</button>':'')
     +'<button class="btn btn-sm btn-primary" onclick="window._engSalvarProduto(\''+(produto.id||'')+'\')">Salvar</button>');
@@ -11397,20 +11406,65 @@ window._engVerJogo=function(id){
 
 window._engSetAba=function(aba){
   window._engAba=aba;
-  const bn=document.getElementById('ep-tab-normal'), br=document.getElementById('ep-tab-reforma');
-  if(bn&&br){
-    if(aba==='normal'){
-      bn.style.background='#1d4ed8';bn.style.color='#fff';bn.style.borderColor='#1d4ed8';
-      br.style.background='#fff';br.style.color='#64748b';br.style.borderColor='#e2e8f0';
-    } else {
-      br.style.background='#1d4ed8';br.style.color='#fff';br.style.borderColor='#1d4ed8';
-      bn.style.background='#fff';bn.style.color='#64748b';bn.style.borderColor='#e2e8f0';
-    }
-  }
-  const lbl=document.getElementById('ep-mao-obra-label');
-  if(lbl) lbl.textContent='Mão de obra'+(aba==='reforma'?' (Reforma)':'');
-  window._engRenderComponentes();
-  window._engRenderMaoObra();
+  const isNormal=aba==='normal';
+  const tabN=document.getElementById('ep-tab-normal');
+  const tabR=document.getElementById('ep-tab-reforma');
+  const abaN=document.getElementById('ep-aba-normal');
+  const abaR=document.getElementById('ep-aba-reformas');
+  if(tabN){tabN.style.background=isNormal?'#1d4ed8':'#fff';tabN.style.color=isNormal?'#fff':'#64748b';tabN.style.borderColor=isNormal?'#1d4ed8':'#e2e8f0';}
+  if(tabR){tabR.style.background=!isNormal?'#7c3aed':'#fff';tabR.style.color=!isNormal?'#fff':'#64748b';tabR.style.borderColor=!isNormal?'#7c3aed':'#e2e8f0';}
+  if(abaN) abaN.style.display=isNormal?'':'none';
+  if(abaR) abaR.style.display=isNormal?'none':'';
+  if(isNormal){window._engRenderComponentes();window._engRenderMaoObra();}
+  else window._engRenderReformas();
+};
+
+window._engAddReforma=function(){
+  if(!window._engReformasTemp) window._engReformasTemp=[];
+  window._engReformasTemp.push({id:'r'+Date.now(),nome:'',maoObraEtapas:[],componentes:[]});
+  window._engRenderReformas();
+};
+window._engExcluirReforma=function(idx){
+  window._engReformasTemp.splice(idx,1);
+  window._engRenderReformas();
+};
+window._engAddReformaMO=function(i){
+  if(!window._engReformasTemp[i].maoObraEtapas) window._engReformasTemp[i].maoObraEtapas=[];
+  window._engReformasTemp[i].maoObraEtapas.push({nome:'',valor:0});
+  window._engRenderReformas();
+};
+window._engAddReformaComp=function(i){
+  if(!window._engReformasTemp[i].componentes) window._engReformasTemp[i].componentes=[];
+  window._engReformasTemp[i].componentes.push({nome:'',qtd:1,custoUnit:0});
+  window._engRenderReformas();
+};
+window._engRenderReformas=function(){
+  const el=document.getElementById('ep-reformas-list');
+  if(!el) return;
+  const reformas=window._engReformasTemp||[];
+  if(!reformas.length){el.innerHTML='<div style="font-size:12px;color:#94a3b8;text-align:center;padding:12px">Nenhuma reforma cadastrada. Clique em "+ Adicionar tipo de reforma".</div>';return;}
+  el.innerHTML=reformas.map((r,i)=>`
+    <div style="border:1.5px solid #e9d5ff;border-radius:10px;padding:12px;margin-bottom:12px;background:#faf5ff">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <input value="${r.nome||''}" oninput="window._engReformasTemp[${i}].nome=this.value" placeholder="Nome (ex: Reforma de tecido)" style="flex:1;font-size:13px;font-weight:700;border:1.5px solid #d8b4fe;border-radius:8px;padding:7px 10px">
+        <button onclick="window._engExcluirReforma(${i})" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;cursor:pointer;flex-shrink:0">✕</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px">Mão de obra</div>
+      <div id="ep-ref-mo-${i}">${(r.maoObraEtapas||[]).map((e,j)=>`<div style="display:flex;gap:6px;margin-bottom:4px">
+        <input value="${e.nome||''}" oninput="window._engReformasTemp[${i}].maoObraEtapas[${j}].nome=this.value" placeholder="Etapa" style="flex:2;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
+        <input type="number" value="${e.valor||0}" oninput="window._engReformasTemp[${i}].maoObraEtapas[${j}].valor=parseFloat(this.value)||0" placeholder="R$" style="flex:1;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
+        <button onclick="window._engReformasTemp[${i}].maoObraEtapas.splice(${j},1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:5px;width:24px;height:30px;cursor:pointer;font-size:11px">✕</button>
+      </div>`).join('')}</div>
+      <button onclick="window._engAddReformaMO(${i})" style="width:100%;padding:6px;border-radius:7px;border:1.5px dashed #c4b5fd;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:600;cursor:pointer;margin:4px 0 10px">+ Etapa de mão de obra</button>
+      <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px">Componentes</div>
+      <div id="ep-ref-comp-${i}">${(r.componentes||[]).map((c,j)=>`<div style="display:flex;gap:6px;margin-bottom:4px">
+        <input value="${c.nome||''}" oninput="window._engReformasTemp[${i}].componentes[${j}].nome=this.value" placeholder="Material" style="flex:2;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
+        <input type="number" value="${c.qtd||1}" oninput="window._engReformasTemp[${i}].componentes[${j}].qtd=parseFloat(this.value)||0" placeholder="Qtd" style="width:50px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
+        <input type="number" value="${c.custoUnit||0}" oninput="window._engReformasTemp[${i}].componentes[${j}].custoUnit=parseFloat(this.value)||0" placeholder="R$/un" style="width:70px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px">
+        <button onclick="window._engReformasTemp[${i}].componentes.splice(${j},1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:5px;width:24px;height:30px;cursor:pointer;font-size:11px">✕</button>
+      </div>`).join('')}</div>
+      <button onclick="window._engAddReformaComp(${i})" style="width:100%;padding:6px;border-radius:7px;border:1.5px dashed #c4b5fd;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px">+ Componente</button>
+    </div>`).join('');
 };
 
 window._engAddMaoObra=function(){
@@ -11567,7 +11621,8 @@ window._engSalvarProduto=async function(id){
   const maoObra=maoObraEtapas.reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
   const maoObraReforma=maoObraReformaEtapas.reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
   closeModal();
-  const dados={nome,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma};
+  const reformas=(window._engReformasTemp||[]).filter(r=>r.nome.trim());
+  const dados={nome,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma,reformas};
   if(id){
     await updateDoc(doc(db,'eng_produtos',id),dados);
   } else {
@@ -11585,7 +11640,7 @@ window._engVerProduto=function(id, aba){
   const cRef=calcCustoProduto(p,'reforma');
   const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
   const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
-  const temReforma=(p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReforma>0)||(p.maoObraReformaEtapas&&p.maoObraReformaEtapas.length);
+  const temReforma=(produto.reformas||[]).length>0||(p.componentesReforma&&p.componentesReforma.length)||(p.maoObraReforma>0);
 
   function resumoCard(c,versao){
     const etapas=versao==='reforma'?(p.maoObraReformaEtapas||[]):(p.maoObraEtapas||[]);
@@ -11608,21 +11663,51 @@ window._engVerProduto=function(id, aba){
       +'</div>';
   }
 
-  const tabStyle=(ativo)=>'flex:1;padding:8px;border-radius:8px;border:2px solid '+(ativo?'#1d4ed8':'#e2e8f0')+';background:'+(ativo?'#1d4ed8':'#fff')+';color:'+(ativo?'#fff':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer';
-
-  const tabs=temReforma
-    ?'<div style="display:flex;gap:8px;margin-bottom:14px">'
-      +'<button type="button" onclick="window._engVerProduto(\''+id+'\',\'normal\')" style="'+tabStyle(aba==='normal')+'">Normal</button>'
-      +'<button type="button" onclick="window._engVerProduto(\''+id+'\',\'reforma\')" style="'+tabStyle(aba==='reforma')+'">Reforma</button>'
+  const reformas=p.reformas||[];
+  const tabs=reformas.length
+    ?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+      +'<button onclick="window._engVerProduto(\''+id+'\',\'normal\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(aba==='normal'?'#1d4ed8':'#e2e8f0')+';background:'+(aba==='normal'?'#1d4ed8':'#fff')+';color:'+(aba==='normal'?'#fff':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">Normal</button>'
+      +reformas.map((r,i)=>'<button onclick="window._engVerProduto(\''+id+'\',\'reforma-'+i+'\')" style="padding:6px 14px;border-radius:8px;border:2px solid '+(aba==='reforma-'+i?'#7c3aed':'#e2e8f0')+';background:'+(aba==='reforma-'+i?'#7c3aed':'#fff')+';color:'+(aba==='reforma-'+i?'#fff':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">'+r.nome+'</button>').join('')
       +'</div>'
     :'';
 
-  const c=aba==='reforma'?cRef:cNorm;
+  let conteudo;
+  if(aba.startsWith('reforma-')){
+    const ri=parseInt(aba.replace('reforma-',''));
+    const r=reformas[ri];
+    if(!r){conteudo='<div style="color:#94a3b8">Reforma não encontrada.</div>';}
+    else{
+      const maoObra=(r.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
+      const direto=(r.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+      const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
+      const indireto=getEngIndireto(p.categoria)*(indiretoPct/100);
+      const total=direto+indireto+maoObra;
+      const margem=parseFloat(p.margem)||parseFloat(configEng.margemPadrao)||0;
+      const venda=total*(1+margem/100);
+      const linhasComp=(r.componentes||[]).map(c=>{
+        const sub=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid #f1f5f9">'
+          +'<span style="color:#475569">'+c.nome+' <span style="color:#94a3b8">×'+c.qtd+'</span></span>'
+          +'<span style="font-weight:700">'+fmtMoeda(sub)+'</span></div>';
+      }).join('');
+      const maoObraLabel='Mão de obra'+(r.maoObraEtapas&&r.maoObraEtapas.length?' ('+r.maoObraEtapas.length+' etapa'+(r.maoObraEtapas.length!==1?'s':'')+')'  :'');
+      conteudo=(linhasComp||'<div style="font-size:12px;color:#94a3b8;padding:6px 0">Sem componentes.</div>')
+        +'<div style="background:#f5f3ff;border-radius:10px;padding:12px;margin-top:12px">'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#64748b"><span>Custo direto</span><span style="font-weight:700">'+fmtMoeda(direto)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#64748b"><span>Custo indireto'+(indiretoPct!==100?' ('+indiretoPct+'%)':'')+'</span><span style="font-weight:700">'+fmtMoeda(indireto)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#64748b"><span>'+maoObraLabel+'</span><span style="font-weight:700">'+fmtMoeda(maoObra)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;border-top:1px solid #e9d5ff;padding-top:8px;margin-top:6px;color:#7c3aed"><span>Custo total</span><span>'+fmtMoeda(total)+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:4px;color:#059669"><span>Venda ('+margem+'%)</span><span>'+fmtMoeda(venda)+'</span></div>'
+        +'</div>';
+    }
+  } else {
+    conteudo=resumoCard(cNorm,'normal');
+  }
 
   showModal(p.nome,
     '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+'</div>'
     +tabs
-    +resumoCard(c,aba),
+    +conteudo,
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
     +(podeEditar?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+id+'\')">Excluir</button>':'')
     +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\')">✏️ Editar</button>':''));
