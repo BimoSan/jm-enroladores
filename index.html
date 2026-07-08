@@ -714,7 +714,7 @@ function renderSelecionarFabrica(){
     if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
     if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
     if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico','encarregado_cad','encarregado_est','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
-    if(f.id==='engenharia') return ['admin','proprietario','administracao'].includes(currentUserData?.perfil);
+    if(f.id==='engenharia') return ['admin','proprietario','administracao','escritorio','financeiro'].includes(currentUserData?.perfil);
     return fabricasDisponiveis.includes(f.id);
   });
 
@@ -11608,12 +11608,12 @@ function renderEngEspuma(){
         </select></div>`
       :'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Nenhuma matéria-prima marcada como espuma. Vá em <strong>Matérias-primas</strong>, edite a espuma e marque <strong>"Usar na calculadora de espuma"</strong>.</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
-        <div class="form-group" style="margin:0"><label>Largura (m)</label>
-          <input type="number" id="calc-l" min="0" step="0.001" placeholder="Ex: 1.40" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
-        <div class="form-group" style="margin:0"><label>Altura (m)</label>
-          <input type="number" id="calc-a" min="0" step="0.001" placeholder="Ex: 0.12" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
-        <div class="form-group" style="margin:0"><label>Comprimento (m)</label>
-          <input type="number" id="calc-e" min="0" step="0.001" placeholder="Ex: 1.90" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Largura (cm)</label>
+          <input type="number" id="calc-l" min="0" step="1" placeholder="Ex: 140" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Altura (cm)</label>
+          <input type="number" id="calc-a" min="0" step="1" placeholder="Ex: 12" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Comprimento (cm)</label>
+          <input type="number" id="calc-e" min="0" step="1" placeholder="Ex: 190" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
       </div>
       <div id="calc-resultado" style="display:none"></div>
     </div>
@@ -11638,22 +11638,24 @@ function renderEngEspuma(){
 
 window._engCalcEspuma=function(){
   const mpId=document.getElementById('calc-mp')?.value;
-  const l=parseFloat(document.getElementById('calc-l')?.value)||0;
-  const a=parseFloat(document.getElementById('calc-a')?.value)||0;
-  const e=parseFloat(document.getElementById('calc-e')?.value)||0;
+  const lCm=parseFloat(document.getElementById('calc-l')?.value)||0;
+  const aCm=parseFloat(document.getElementById('calc-a')?.value)||0;
+  const eCm=parseFloat(document.getElementById('calc-e')?.value)||0;
   const res=document.getElementById('calc-resultado');
   if(!res) return;
   const MARGEM_VENDA=30;
   const IMPOSTO=0.12;
   const mp=engMaterias.find(m=>m.id===mpId);
-  if(!mpId||!mp||!l||!a||!e){ res.style.display='none'; return; }
+  if(!mpId||!mp||!lCm||!aCm||!eCm){ res.style.display='none'; return; }
+  // Converte cm → m
+  const l=lCm/100, a=aCm/100, e=eCm/100;
   const vol=l*a*e;
   const custoM3=parseFloat(mp.custo)||0;
   const custoTotal=custoM3*vol;
   const venda=custoTotal*(1+MARGEM_VENDA/100);
   res.style.display='block';
   res.innerHTML='<div style="background:linear-gradient(135deg,#4c1d95,#7c3aed);border-radius:14px;padding:18px;color:#fff">'
-    +'<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px">'+mp.nome+' · '+l+'×'+a+'×'+e+' m = <strong>'+vol.toFixed(4)+' m³</strong></div>'
+    +'<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px">'+mp.nome+' · '+lCm+' × '+aCm+' × '+eCm+' cm = <strong>'+vol.toFixed(6)+' m³</strong></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
     +'<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px"><div style="font-size:10px;opacity:.75">Custo total</div><div style="font-size:22px;font-weight:900">'+fmtMoeda(custoTotal)+'</div></div>'
     +'<div style="background:rgba(255,255,255,.95);border-radius:10px;padding:10px"><div style="font-size:10px;color:#4c1d95;font-weight:700">Venda (+'+MARGEM_VENDA+'%)</div><div style="font-size:22px;font-weight:900;color:#059669">'+fmtMoeda(venda)+'</div></div>'
