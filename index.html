@@ -251,7 +251,7 @@ if('serviceWorker' in navigator){
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc as _setDoc, updateDoc as _updateDoc, deleteDoc as _deleteDoc, onSnapshot, addDoc as _addDoc, query, orderBy, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── Firebase config ──────────────────────────────────────────────
@@ -266,6 +266,57 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+// ── Log de Auditoria ────────────────────────────────────────────
+// Toda gravação (criar/editar/excluir) passa por aqui automaticamente.
+// addDoc/updateDoc/deleteDoc abaixo SUBSTITUEM as funções importadas do Firebase
+// (que foram renomeadas para _addDoc/_updateDoc/_deleteDoc acima), então nenhum
+// dos ~100 pontos do sistema que já chamam addDoc/updateDoc/deleteDoc precisa mudar.
+function _sanitizeParaLog(obj){
+  try{ return JSON.parse(JSON.stringify(obj||{})); }
+  catch(e){ return {aviso:'não foi possível serializar os dados'}; }
+}
+async function logAudit(acao, colecaoPath, docId, dados){
+  try{
+    const colecaoRaiz = (colecaoPath||'').split('/')[0];
+    if(colecaoRaiz==='auditLog') return; // nunca audita a si mesmo
+    await _addDoc(collection(db,'auditLog'),{
+      acao,                                  // 'criar' | 'editar' | 'excluir'
+      colecao: colecaoRaiz,
+      docId: docId||null,
+      dados: _sanitizeParaLog(dados),
+      usuarioNome: currentUserData?.nome || currentUser?.email || 'desconhecido',
+      usuarioPerfil: currentUserData?.perfil || null,
+      usuarioUid: currentUser?.uid || null,
+      fabrica: currentFabrica || null,
+      setor: currentSetor || null,
+      ts: serverTimestamp(),
+      tsCliente: new Date().toISOString()
+    });
+  }catch(e){
+    console.error('Falha ao gravar log de auditoria (a operação original não foi afetada):', e);
+  }
+}
+async function addDoc(colRef, data){
+  const ref = await _addDoc(colRef, data);
+  logAudit('criar', colRef.path, ref.id, data);
+  return ref;
+}
+async function setDoc(docRef, data, opts){
+  const r = await _setDoc(docRef, data, opts);
+  logAudit(opts&&opts.merge?'editar':'criar', docRef.path, docRef.id, data);
+  return r;
+}
+async function updateDoc(docRef, data){
+  const r = await _updateDoc(docRef, data);
+  logAudit('editar', docRef.path, docRef.id, data);
+  return r;
+}
+async function deleteDoc(docRef){
+  const r = await _deleteDoc(docRef);
+  logAudit('excluir', docRef.path, docRef.id, null);
+  return r;
+}
 
 // ── Constantes ───────────────────────────────────────────────────
 const TIPOS=[
@@ -459,6 +510,10 @@ let usuarios=[];
 let unsubFichas=null;
 let unsubEnroladores=null;
 let unsubUsuarios=null;
+let auditLogCache=[];
+let auditLogLoaded=false;
+let auditLogCarregando=false;
+let auditFiltroTexto='';
 
 // ── Helpers ──────────────────────────────────────────────────────
 const avatarColor=i=>COLORS[i%COLORS.length];
@@ -596,6 +651,7 @@ window._doLogin=async function(){
 
 // ── App shell ────────────────────────────────────────────────────
 const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  'auditoria': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   'cam_rotas':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',
   'cam_abastecimento':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>',
   'cam_manutencao':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
@@ -672,7 +728,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
   'relatorio':'Relatório','ranking':'Ranking','historico':'📅 Histórico Semanal','valores':'Pagamentos',
-  'enroladores':'Enroladores','usuarios':'Usuários',
+  'enroladores':'Enroladores','usuarios':'Usuários','auditoria':'Auditoria',
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','ponto_metal':'Folha de Ponto','config_metal':'Configurações',
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking',
@@ -960,6 +1016,7 @@ function renderApp(){
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   }
+  if(can('gerenciarUsuarios'))tabs.push('auditoria');
   if(!tabs.includes(currentTab))currentTab=tabs[0]||'fichas';
 
   const perfisFixos=['soldador','enrolador','entregador',
@@ -1072,6 +1129,7 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  if(tab==='auditoria') return renderAuditoria();
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
@@ -3297,7 +3355,8 @@ function renderUsuariosContexto(contexto, fabrica, setor, titulo){
     +'<div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>'
     +'<div class="form-group"><label>Perfil</label><select id="nu-perfil">'+optsPerfilHtml+'</select></div></div>'
     +'<div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>'
-    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>'
+    +'<div class="form-group"><label>UID (Firebase Console → Authentication)</label><input type="text" id="nu-uid" placeholder="cole aqui o UID do login"></div></div>'
+    +'<div style="font-size:11px;color:#64748b;margin:-4px 0 10px 2px;line-height:1.5">1) Crie o login em Firebase Console → Authentication → Add user (defina e-mail e senha lá). 2) Copie o UID gerado e cole acima.</div>'
     +'<button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>'
     +'</div>'
     +'<div class="section-label">usuários cadastrados</div>'
@@ -3352,7 +3411,8 @@ function renderUsuarios(){
     +'<div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="nu-nome" placeholder="Nome completo"></div>'
     +'<div class="form-group"><label>Perfil</label><select id="nu-perfil">'+optsPerfilHtml+'</select></div></div>'
     +'<div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>'
-    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="nu-senha" placeholder="mínimo 6 caracteres"></div></div>'
+    +'<div class="form-group"><label>UID (Firebase Console → Authentication)</label><input type="text" id="nu-uid" placeholder="cole aqui o UID do login"></div></div>'
+    +'<div style="font-size:11px;color:#64748b;margin:-4px 0 10px 2px;line-height:1.5">1) Crie o login em Firebase Console → Authentication → Add user (defina e-mail e senha lá). 2) Copie o UID gerado e cole acima.</div>'
     +'<button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>'
     +'</div>'
     +'<div class="section-label">usuários deste setor</div>'
@@ -3364,12 +3424,14 @@ window._cadastrarUsuario=async()=>{
   const nome=document.getElementById('nu-nome').value.trim();
   const perfil=document.getElementById('nu-perfil').value;
   const email=document.getElementById('nu-email').value.trim();
-  const senha=document.getElementById('nu-senha').value.trim();
-  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
-  if(senha.length<6){showToast('A senha precisa ter pelo menos 6 caracteres.');return;}
+  const uid=document.getElementById('nu-uid').value.trim();
+  if(!nome||!email||!uid){showToast('Preencha nome, e-mail e UID.');return;}
+  if(uid.length<10){showToast('UID inválido — copie exatamente o valor do Firebase Console.');return;}
   try{
-    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
-    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    const jaExiste=await getDoc(doc(db,'usuarios',uid));
+    if(jaExiste.exists()){showToast('Já existe um usuário cadastrado com esse UID.');return;}
+    await setDoc(doc(db,'usuarios',uid),{nome,perfil,email});
+    showToast('Usuário cadastrado com sucesso!');
     reloadTab();
   }catch(e){showToast('Erro: '+e.message);}
 };
@@ -3415,6 +3477,102 @@ window._confirmarExcluirUsuario=async()=>{
   await deleteDoc(doc(db,'usuarios',id));
   window._pendingExcluirUsuarioId=null;
   showToast('Usuário removido.');
+};
+
+// ── Auditoria (admin) ──────────────────────────────────────────────
+function renderAuditoria(){
+  if(!auditLogLoaded && !auditLogCarregando){
+    auditLogCarregando=true;
+    window._carregarAuditoria();
+  }
+
+  // Usuários cadastrados antes da migração de UID (doc ainda tem campo 'uid', mesmo vazio)
+  const legados=usuarios.filter(u=>u.uid!==undefined);
+  const blocoMigracao = legados.length ? (
+    '<div class="card" style="margin-bottom:14px;border:1.5px solid #f59e0b;background:#fffbeb">'
+    +'<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px">⚠️ '+legados.length+' usuário(s) ainda não migrado(s)</div>'
+    +'<div style="font-size:12px;color:#78350f;margin-bottom:10px;line-height:1.5">Esses usuários foram cadastrados antes da vinculação por UID e não são cobertos pelas regras de segurança novas. Para cada um: crie (ou confirme) o login em Firebase Console → Authentication, copie o UID, e vincule aqui.</div>'
+    +legados.map(u=>'<div class="card" style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-size:13px;font-weight:600">'+u.nome+'</div><div style="font-size:11px;color:#64748b">'+u.email+' · '+(PERFIS[u.perfil]?.label||u.perfil)+'</div></div>'
+      +'<button class="btn btn-sm btn-warn" onclick="window._migrarUsuarioLegado(&quot;'+u.id+'&quot;)">Vincular UID</button>'
+      +'</div>').join('')
+    +'</div>'
+  ) : '<div class="card" style="margin-bottom:14px;border:1.5px solid #16a34a;background:#f0fdf4"><div style="font-size:13px;color:#166534;font-weight:600">✅ Todos os usuários estão vinculados por UID.</div></div>';
+
+  const filtro=(auditFiltroTexto||'').toLowerCase();
+  const entradas = auditLogCache.filter(e=>{
+    if(!filtro) return true;
+    return (e.usuarioNome||'').toLowerCase().includes(filtro)
+      || (e.colecao||'').toLowerCase().includes(filtro)
+      || (e.acao||'').toLowerCase().includes(filtro)
+      || (e.docId||'').toLowerCase().includes(filtro);
+  });
+
+  const corAcao={criar:'#16a34a',editar:'#d97706',excluir:'#dc2626'};
+  const linhasLog = entradas.slice(0,150).map(e=>{
+    const dt=e.tsCliente?new Date(e.tsCliente):null;
+    const dtFmt=dt?dt.toLocaleString('pt-BR'):'—';
+    const cor=corAcao[e.acao]||'#475569';
+    return '<div class="card" style="margin-bottom:6px;padding:10px 12px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+      +'<div style="font-size:12px"><span style="font-weight:700;color:'+cor+'">'+(e.acao||'').toUpperCase()+'</span>'
+      +' <span style="color:#475569">'+(e.colecao||'')+'</span>'
+      +' <span style="color:#94a3b8;font-size:11px">#'+(e.docId||'').slice(0,8)+'</span></div>'
+      +'<div style="font-size:11px;color:#64748b">'+dtFmt+'</div></div>'
+      +'<div style="font-size:11px;color:#334155;margin-top:4px">'+(e.usuarioNome||'—')+' <span style="color:#94a3b8">('+(e.usuarioPerfil||'?')+')</span></div>'
+      +'</div>';
+  }).join('');
+
+  return '<div style="padding:4px">'
+    +blocoMigracao
+    +'<div class="card" style="margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">📋 Log de Auditoria — últimos 150 registros</div>'
+    +'<input type="text" placeholder="Filtrar por usuário, coleção, ação ou ID..." value="'+auditFiltroTexto+'" oninput="window._auditFiltrar(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-bottom:10px">'
+    +(auditLogCarregando&&!auditLogLoaded?'<div style="text-align:center;padding:20px;color:#64748b;font-size:13px">Carregando...</div>'
+      :(linhasLog||'<div style="text-align:center;padding:20px;color:#64748b;font-size:13px">Nenhum registro encontrado.</div>'))
+    +'</div></div>';
+}
+
+window._carregarAuditoria=async function(){
+  try{
+    const q=query(collection(db,'auditLog'),orderBy('tsCliente','desc'),limit(300));
+    const snap=await getDocs(q);
+    auditLogCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){
+    console.error('Erro ao carregar auditoria:',e);
+    auditLogCache=[];
+  }
+  auditLogLoaded=true;
+  auditLogCarregando=false;
+  if(currentTab==='auditoria') reloadTab();
+};
+
+window._auditFiltrar=function(v){
+  auditFiltroTexto=v;
+  reloadTab();
+};
+
+window._migrarUsuarioLegado=function(docIdAntigo){
+  const u=usuarios.find(x=>x.id===docIdAntigo);if(!u)return;
+  showModal('Vincular UID — '+u.nome,
+    '<div style="font-size:12px;color:#475569;margin-bottom:10px;line-height:1.5">Confirme no Firebase Console → Authentication que o login <strong>'+u.email+'</strong> existe, copie o UID gerado e cole abaixo.</div>'
+    +'<div class="form-group"><label>UID</label><input type="text" id="mig-uid" placeholder="cole o UID do login" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._confirmarMigrarUsuario(&quot;'+docIdAntigo+'&quot;)">Vincular</button>');
+};
+window._confirmarMigrarUsuario=async function(docIdAntigo){
+  const u=usuarios.find(x=>x.id===docIdAntigo);if(!u)return;
+  const uid=document.getElementById('mig-uid')?.value.trim();
+  if(!uid||uid.length<10){showToast('UID inválido.');return;}
+  try{
+    const jaExiste=await getDoc(doc(db,'usuarios',uid));
+    if(jaExiste.exists()){showToast('Já existe um usuário com esse UID.');return;}
+    await setDoc(doc(db,'usuarios',uid),{nome:u.nome,perfil:u.perfil,email:u.email});
+    await deleteDoc(doc(db,'usuarios',docIdAntigo));
+    closeModal();
+    showToast('Usuário migrado com sucesso!');
+    reloadTab();
+  }catch(e){showToast('Erro: '+e.message);}
 };
 
 // ── Constantes do Almoxarifado ───────────────────────────────────
@@ -6847,7 +7005,7 @@ function renderEspConfig(){
     +'<div class="form-group"><label>Nome</label><input id="nesp-nome" placeholder="Nome completo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Perfil</label><select id="nesp-perfil" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+optsPerfilEsp+'</select></div>'
     +'<div class="form-group"><label>E-mail (login)</label><input type="email" id="nesp-email" placeholder="email@empresa.com" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="nesp-senha" placeholder="mín. 6 caracteres" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>UID (Firebase Console → Authentication)</label><input type="text" id="nesp-uid" placeholder="cole o UID do login" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<button class="btn btn-primary btn-sm" onclick="window._espCadastrarUsuario()">Cadastrar</button>'
     +'</div>'
     +(usuariosEsp.length?'<div class="section-label" style="margin-top:14px">Usuários cadastrados</div>'
@@ -6873,12 +7031,14 @@ window._espCadastrarUsuario=async function(){
   const nome=document.getElementById('nesp-nome')?.value.trim();
   const perfil=document.getElementById('nesp-perfil')?.value;
   const email=document.getElementById('nesp-email')?.value.trim();
-  const senha=document.getElementById('nesp-senha')?.value.trim();
-  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
-  if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;}
+  const uid=document.getElementById('nesp-uid')?.value.trim();
+  if(!nome||!email||!uid){showToast('Preencha nome, e-mail e UID.');return;}
+  if(uid.length<10){showToast('UID inválido — copie exatamente o valor do Firebase Console.');return;}
   try{
-    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
-    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    const jaExiste=await getDoc(doc(db,'usuarios',uid));
+    if(jaExiste.exists()){showToast('Já existe um usuário cadastrado com esse UID.');return;}
+    await setDoc(doc(db,'usuarios',uid),{nome,perfil,email});
+    showToast('Usuário cadastrado com sucesso!');
     reloadTab();
   }catch(e){showToast('Erro: '+e.message);}
 };
@@ -8032,7 +8192,7 @@ function renderGradConfig(){
     +'</select></div>'
     +'<div class="form-group"><label>Nome</label><input id="ngra-nome" placeholder="Nome completo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>E-mail (login)</label><input type="email" id="ngra-email" placeholder="email@empresa.com" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="ngra-senha" placeholder="mín. 6 caracteres" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>UID (Firebase Console → Authentication)</label><input type="text" id="ngra-uid" placeholder="cole o UID do login" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<button class="btn btn-primary btn-sm" onclick="window._gradCadastrarUsuario()">Cadastrar</button>'
     +'</div>'
     +(usuariosGrad.length?'<div class="section-label" style="margin-top:14px">Usuários cadastrados</div>'
@@ -8057,17 +8217,19 @@ window._gradCadastrarUsuario=async function(){
   const perfil=document.getElementById('ngra-perfil')?.value||'apontador_gra';
   const nome=document.getElementById('ngra-nome')?.value.trim();
   const email=document.getElementById('ngra-email')?.value.trim();
-  const senha=document.getElementById('ngra-senha')?.value.trim();
-  if(!nome||!email||!senha){showToast('Preencha nome, e-mail e senha.');return;}
-  if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;}
+  const uid=document.getElementById('ngra-uid')?.value.trim();
+  if(!nome||!email||!uid){showToast('Preencha nome, e-mail e UID.');return;}
+  if(uid.length<10){showToast('UID inválido — copie exatamente o valor do Firebase Console.');return;}
   try{
-    await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''});
+    const jaExisteUsuario=await getDoc(doc(db,'usuarios',uid));
+    if(jaExisteUsuario.exists()){showToast('Já existe um usuário cadastrado com esse UID.');return;}
+    await setDoc(doc(db,'usuarios',uid),{nome,perfil,email});
     if(perfil==='gradista'){
       // Só cria o registro de operador se ainda não existir um gradista com esse nome
       const jaExiste=gradistas.some(g=>g.nome.trim().toLowerCase()===nome.toLowerCase());
       if(!jaExiste) await addDoc(collection(db,'gradistas'),{nome,ativo:true});
     }
-    showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.');
+    showToast('Usuário cadastrado com sucesso!');
     reloadTab();
   }catch(e){showToast('Erro: '+e.message);}
 };
@@ -9457,7 +9619,7 @@ function renderTapConfig(){
     +'<div class="form-group"><label>Perfil</label><select id="ntap-perfil" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"><option value="apontador_tap">Apontador Tapeçamento</option><option value="tapecador">Tapecador</option></select></div>'
     +'<div class="form-group"><label>Nome</label><input id="ntap-nome" placeholder="Nome completo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>E-mail</label><input type="email" id="ntap-email" placeholder="email@empresa.com" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
-    +'<div class="form-group"><label>Senha inicial</label><input type="text" id="ntap-senha" placeholder="mín. 6 caracteres" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>UID (Firebase Console → Authentication)</label><input type="text" id="ntap-uid" placeholder="cole o UID do login" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<button class="btn btn-primary btn-sm" onclick="window._tapCadastrarUsuario()">Cadastrar</button></div>'
     +(usuariosTap.length?'<div class="section-label" style="margin-top:14px">Usuários cadastrados</div>'
       +usuariosTap.map(u=>{ const p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'}; return '<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:'+p.bg+';color:'+p.color+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(u.nome)+'</div><div><div style="font-size:13px;font-weight:700">'+u.nome+'</div><div style="font-size:11px;color:#64748b">'+u.email+'</div></div></div><div style="display:flex;gap:6px;align-items:center"><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+p.bg+';color:'+p.color+'">'+p.label+'</span>'+(u.uid!==currentUser?.uid?'<button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarUsuario(&quot;'+u.id+'&quot;)">Editar</button>':'')+(u.uid!==currentUser?.uid?'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._excluirUsuario(&quot;'+u.id+'&quot;)">Excluir</button>':'')+'</div></div></div>'; }).join(''):'');
@@ -9467,7 +9629,7 @@ window._tapNovaPeca=async function(){ const label=document.getElementById('tp-la
 window._tapExcluirPeca=async function(id){ const pecasExcluidas=[...(configTap.pecasExcluidas||[]),id]; await setDoc(doc(db,'config_tap','geral'),{...configTap,pecasExcluidas}); showToast('Peça removida!'); };
 window._tapSalvarValores=async function(){ const valores={...(configTap.valores||{})}; getPecasTapAtivas().forEach(p=>{ const v=parseFloat(document.getElementById('tv-'+p.id)?.value)||0; valores[p.id]=v; }); await setDoc(doc(db,'config_tap','geral'),{...configTap,valores}); showToast('Valores salvos!'); };
 window._tapSalvarGrupoCamas=async function(){ const grupoCamas=getPecasTapAtivas().filter(p=>document.getElementById('tg-'+p.id)?.checked).map(p=>p.id); await setDoc(doc(db,'config_tap','geral'),{...configTap,grupoCamas}); showToast('Grupo salvo!'); };
-window._tapCadastrarUsuario=async function(){ const perfil=document.getElementById('ntap-perfil')?.value||'apontador_tap'; const nome=document.getElementById('ntap-nome')?.value.trim(); const email=document.getElementById('ntap-email')?.value.trim(); const senha=document.getElementById('ntap-senha')?.value.trim(); if(!nome||!email||!senha){showToast('Preencha todos os campos.');return;} if(senha.length<6){showToast('Senha precisa ter pelo menos 6 caracteres.');return;} await addDoc(collection(db,'usuarios'),{nome,perfil,email,uid:''}); if(perfil==='tapecador'){ const jaExiste=tapecadores.some(t=>t.nome.trim().toLowerCase()===nome.toLowerCase()); if(!jaExiste) await addDoc(collection(db,'tapecadores'),{nome,ativo:true}); } showToast('Usuário salvo! Crie o login no Firebase Console → Authentication → Add user.'); reloadTab(); };
+window._tapCadastrarUsuario=async function(){ const perfil=document.getElementById('ntap-perfil')?.value||'apontador_tap'; const nome=document.getElementById('ntap-nome')?.value.trim(); const email=document.getElementById('ntap-email')?.value.trim(); const uid=document.getElementById('ntap-uid')?.value.trim(); if(!nome||!email||!uid){showToast('Preencha nome, e-mail e UID.');return;} if(uid.length<10){showToast('UID inválido — copie exatamente o valor do Firebase Console.');return;} try{ const jaExisteUsuario=await getDoc(doc(db,'usuarios',uid)); if(jaExisteUsuario.exists()){showToast('Já existe um usuário cadastrado com esse UID.');return;} await setDoc(doc(db,'usuarios',uid),{nome,perfil,email}); if(perfil==='tapecador'){ const jaExiste=tapecadores.some(t=>t.nome.trim().toLowerCase()===nome.toLowerCase()); if(!jaExiste) await addDoc(collection(db,'tapecadores'),{nome,ativo:true}); } showToast('Usuário cadastrado com sucesso!'); reloadTab(); }catch(e){showToast('Erro: '+e.message);} };
 
 // ── Telas pessoais do Tapecador ────────────────────────────────────
 function renderTapMinhaFicha(){
@@ -16314,11 +16476,19 @@ document.getElementById('root').innerHTML=`<div class="loading"><div class="spin
 onAuthStateChanged(auth,async user=>{
   if(user){
     currentUser=user;
-    // Busca perfil do usuário no Firestore
-    const snap=await getDocs(collection(db,'usuarios'));
-    const uDoc=snap.docs.find(d=>d.data().uid===user.uid||d.data().email===user.email);
-    if(uDoc){
-      currentUserData={id:uDoc.id,...uDoc.data()};
+    // Busca perfil do usuário no Firestore.
+    // Caminho rápido e seguro: documento com ID = UID do Auth (novo padrão, permite regras
+    // de segurança confiáveis). Caminho de compatibilidade: usuários antigos ainda
+    // identificados por e-mail (cadastrados antes da migração de UID).
+    let uDoc=await getDoc(doc(db,'usuarios',user.uid));
+    let uDocData=uDoc.exists()?{id:uDoc.id,...uDoc.data()}:null;
+    if(!uDocData){
+      const snap=await getDocs(collection(db,'usuarios'));
+      const legado=snap.docs.find(d=>d.data().email===user.email);
+      if(legado) uDocData={id:legado.id,...legado.data()};
+    }
+    if(uDocData){
+      currentUserData=uDocData;
       // Vincula uid ao registro de gradista automaticamente (se ainda não estiver vinculado)
       if(currentUserData.perfil==='gradista'){
         const gradSemUid=gradistas.find(g=>!g.usuarioUid&&g.nome?.toLowerCase()===currentUserData.nome?.toLowerCase());
