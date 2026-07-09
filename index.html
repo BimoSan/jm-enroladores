@@ -514,6 +514,8 @@ let auditLogCache=[];
 let auditLogLoaded=false;
 let auditLogCarregando=false;
 let auditFiltroTexto='';
+let unsubsSetorAtual=[];
+let setorComListenersAtivos=undefined; // undefined força a primeira ativação
 
 // ── Helpers ──────────────────────────────────────────────────────
 const avatarColor=i=>COLORS[i%COLORS.length];
@@ -1129,6 +1131,7 @@ window._switchTab=tab=>{
   if(el)el.innerHTML=renderTab(tab);
 };
 function renderTab(tab){
+  ativarListenersSetor(currentSetor);
   if(tab==='auditoria') return renderAuditoria();
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
@@ -16211,6 +16214,7 @@ function iniciarListeners(){
   if(unsubFichas)unsubFichas();
   if(unsubUsuarios)unsubUsuarios();
 
+  // ── Listeners GLOBAIS: necessários em qualquer tela, para qualquer perfil ──
   unsubEnroladores=onSnapshot(collection(db,'enroladores'),snap=>{
     enroladores=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentUserData)reloadTab();
@@ -16242,201 +16246,6 @@ function iniciarListeners(){
   onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   });
-  ['cam_veiculos','cam_motoristas','cam_rotas','cam_abastecimentos','cam_manutencoes','cam_postos'].forEach(col=>{
-    onSnapshot(collection(db,col),snap=>{
-      const data=snap.docs.map(d=>({id:d.id,...d.data()}));
-      if(col==='cam_veiculos') camVeiculos=data.sort((a,b)=>a.modelo.localeCompare(b.modelo,'pt-BR'));
-      else if(col==='cam_motoristas') camMotoristas=data.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-      else if(col==='cam_rotas') camRotas=data.sort((a,b)=>b.data>a.data?1:-1);
-      else if(col==='cam_abastecimentos') camAbastecimentos=data;
-      else if(col==='cam_manutencoes') camManutencoes=data;
-      else if(col==='cam_postos') camPostos=data.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-      if(currentUserData&&currentSetor==='caminhoes')reloadTab();
-    });
-  });
-
-  // Almoxarifado config
-  onSnapshot(doc(db,'alm_config','geral'),snap=>{
-    if(snap.exists()) almConfig={...almConfig,...snap.data()};
-    if(currentUserData&&currentSetor==='almoxarifado')reloadTab();
-  });
-  // Almoxarifado
-  onSnapshot(collection(db,'alm_itens'),snap=>{
-    almItens=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='almoxarifado')reloadTab();
-  });
-  onSnapshot(collection(db,'alm_movimentos'),snap=>{
-    almMovimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='almoxarifado')reloadTab();
-  });
-
-  // Ponto metalúrgica
-  onSnapshot(collection(db,'ponto_funcionarios'),snap=>{
-    pontoFuncionarios=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
-  });
-  onSnapshot(collection(db,'ponto_registros'),snap=>{
-    pontoRegistros=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
-  });
-
-  // Metalúrgica — carrega sempre (necessário para restauração de sessão no mobile)
-  onSnapshot(collection(db,'soldadores'),snap=>{
-    soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
-  });
-  onSnapshot(collection(db,'apontamentos_metal'),snap=>{
-    apontamentosMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
-  });
-  onSnapshot(doc(db,'config_metal','geral'),snap=>{
-    if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
-    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
-  });
-  onSnapshot(collection(db,'fichas_metal'),snap=>{
-    fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='metalurgica')reloadTab();
-  });
-  // Espuma
-  onSnapshot(collection(db,'esp_producao'),snap=>{
-    espumaProducao=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
-    if(currentUserData&&currentSetor==='espuma')reloadTab();
-  });
-  onSnapshot(collection(db,'esp_saidas'),snap=>{
-    espumaSaidas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
-    if(currentUserData&&currentSetor==='espuma')reloadTab();
-  });
-  onSnapshot(collection(db,'esp_estoque'),snap=>{
-    espumaEstoque=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='espuma')reloadTab();
-  });
-  onSnapshot(collection(db,'esp_operadores'),snap=>{
-    espumaOperadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='espuma')reloadTab();
-  });
-  onSnapshot(doc(db,'config_espuma','geral'),snap=>{
-    if(snap.exists()) configEspuma={...configEspuma,...snap.data()};
-    if(currentUserData&&currentSetor==='espuma')reloadTab();
-  });
-  // Custos Indiretos
-  onSnapshot(collection(db,'fin_custos'),snap=>{
-    custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
-  });
-  // Engenharia
-  onSnapshot(collection(db,'eng_materias'),snap=>{
-    engMaterias=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
-    if(currentUserData&&currentSetor==='engenharia')reloadTab();
-  });
-  onSnapshot(collection(db,'eng_produtos'),snap=>{
-    engProdutos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='engenharia')reloadTab();
-  });
-  onSnapshot(doc(db,'config_eng','geral'),snap=>{
-    if(snap.exists()) configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0,...snap.data()};
-    if(currentUserData&&currentSetor==='engenharia')reloadTab();
-  });
-  // Materiais Diretos
-  onSnapshot(collection(db,'mat_diretos'),snap=>{
-    matDiretos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
-  });
-  onSnapshot(doc(db,'config_mat_diretos','geral'),snap=>{
-    if(snap.exists()) matDiretosConfig={categorias:['Outros'],...snap.data()};
-  });
-  onSnapshot(collection(db,'mat_quimicos'),snap=>{
-    matQuimicos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
-  });
-  onSnapshot(doc(db,'config_mat_quimicos','geral'),snap=>{
-    if(snap.exists()) matQuimicosConfig={categorias:[],...snap.data()};
-  });
-  onSnapshot(collection(db,'fin_vendas'),snap=>{
-    vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
-  });
-  onSnapshot(collection(db,'fin_clientes'),snap=>{
-    clientes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
-  });
-  onSnapshot(collection(db,'pag_manuais'),snap=>{
-    pagManuais=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='financeiro_geral')reloadTab();
-  });
-  // Notificações de pagamento
-  onSnapshot(collection(db,'notif_pagamento'),snap=>{
-    notifPagamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderNotifPagamento();
-  });
-  // Tapeçamento
-  onSnapshot(collection(db,'tapecadores'),snap=>{
-    tapecadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
-    if(currentUserData&&currentSetor==='tapecamento')reloadTab();
-  });
-  onSnapshot(collection(db,'fichas_tap'),snap=>{
-    fichasTap=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='tapecamento')reloadTab();
-  });
-  onSnapshot(doc(db,'config_tap','geral'),snap=>{
-    if(snap.exists()) configTap={pecasExcluidas:[],pecasCustom:[],valores:{},...snap.data()};
-    if(currentUserData&&currentSetor==='tapecamento')reloadTab();
-  });
-  // Manutenção
-  onSnapshot(collection(db,'manut_maquinas'),snap=>{
-    manutMaquinas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='manutencao')reloadTab();
-  });
-  onSnapshot(collection(db,'manut_registros'),snap=>{
-    manutRegistros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
-    if(currentUserData&&currentSetor==='manutencao')reloadTab();
-  });
-  onSnapshot(collection(db,'manut_quadros'),snap=>{
-    manutQuadros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='manutencao')reloadTab();
-  });
-  // Grades
-  onSnapshot(collection(db,'gradistas'),snap=>{
-    gradistas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='grades')reloadTab();
-  });
-  onSnapshot(collection(db,'fichas_grad'),snap=>{
-    fichasGrad=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='grades')reloadTab();
-  });
-  onSnapshot(doc(db,'config_grad','geral'),snap=>{
-    if(snap.exists()) configGrad={valores:{},...snap.data()};
-    if(currentUserData&&currentSetor==='grades')reloadTab();
-  });
-  // Enrolamento Interno
-  onSnapshot(collection(db,'enroladores_int'),snap=>{
-    enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-    if(currentUserData&&currentSetor==='enrolamento_int')reloadTab();
-  });
-  onSnapshot(collection(db,'fichas_int'),snap=>{
-    fichasInt=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='enrolamento_int')reloadTab();
-  });
-  onSnapshot(doc(db,'config_int','geral'),snap=>{
-    if(snap.exists()) configInt={tipos:[],valores:{},...snap.data()};
-    if(currentUserData&&currentSetor==='enrolamento_int')reloadTab();
-  });
-  // Fitas
-  onSnapshot(doc(db,'config_fitas','geral'),snap=>{
-    configFitas=snap.exists()?{cores:[],tiposFio:['Fio Padrão'],...snap.data()}:{cores:[],tiposFio:['Fio Padrão']};
-    if(currentUserData&&currentSetor==='fitas')reloadTab();
-  });
-  onSnapshot(collection(db,'producao_fitas'),snap=>{
-    producaoFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='fitas')reloadTab();
-  });
-  onSnapshot(collection(db,'saidas_fitas'),snap=>{
-    saidasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&currentSetor==='fitas')reloadTab();
-  });
-  onSnapshot(collection(db,'entregas_fitas'),snap=>{
-    entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentUserData&&(currentSetor==='fitas'||currentSetor==='enrolamento_int'))reloadTab();
-  });
 
   // Config bônus
   onSnapshot(doc(db,'configuracoes','bonus_volume'),snap=>{
@@ -16461,6 +16270,242 @@ function iniciarListeners(){
       }
     );
   }
+  // Notificações de pagamento
+  onSnapshot(collection(db,'notif_pagamento'),snap=>{
+    notifPagamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderNotifPagamento();
+  });
+}
+
+// ── Listeners POR SETOR: só ligam quando a pessoa está naquele setor ────────
+// Corrige o problema de todo mundo baixar os dados de todos os setores o
+// tempo todo (era a causa principal do excesso de leituras no Firestore, e
+// também expunha dado sensível de setor no navegador de quem não deveria ver).
+const LISTENERS_POR_SETOR={
+  caminhoes: [
+    ()=>onSnapshot(collection(db,'cam_veiculos'),snap=>{
+      camVeiculos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.modelo.localeCompare(b.modelo,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_motoristas'),snap=>{
+      camMotoristas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_rotas'),snap=>{
+      camRotas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.data>a.data?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_abastecimentos'),snap=>{
+      camAbastecimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_manutencoes'),snap=>{
+      camManutencoes=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_postos'),snap=>{
+      camPostos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  almoxarifado: [
+    ()=>onSnapshot(doc(db,'alm_config','geral'),snap=>{
+      if(snap.exists()) almConfig={...almConfig,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'alm_itens'),snap=>{
+      almItens=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'alm_movimentos'),snap=>{
+      almMovimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  metalurgica: [
+    ()=>onSnapshot(collection(db,'ponto_funcionarios'),snap=>{
+      pontoFuncionarios=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'ponto_registros'),snap=>{
+      pontoRegistros=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'soldadores'),snap=>{
+      soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'apontamentos_metal'),snap=>{
+      apontamentosMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_metal','geral'),snap=>{
+      if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_metal'),snap=>{
+      fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  espuma: [
+    ()=>onSnapshot(collection(db,'esp_producao'),snap=>{
+      espumaProducao=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_saidas'),snap=>{
+      espumaSaidas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_estoque'),snap=>{
+      espumaEstoque=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_operadores'),snap=>{
+      espumaOperadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_espuma','geral'),snap=>{
+      if(snap.exists()) configEspuma={...configEspuma,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  financeiro_geral: [
+    ()=>onSnapshot(collection(db,'fin_custos'),snap=>{
+      custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'mat_diretos'),snap=>{
+      matDiretos=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_mat_diretos','geral'),snap=>{
+      if(snap.exists()) matDiretosConfig={categorias:['Outros'],...snap.data()};
+    }),
+    ()=>onSnapshot(collection(db,'mat_quimicos'),snap=>{
+      matQuimicos=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_mat_quimicos','geral'),snap=>{
+      if(snap.exists()) matQuimicosConfig={categorias:[],...snap.data()};
+    }),
+    ()=>onSnapshot(collection(db,'fin_vendas'),snap=>{
+      vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fin_clientes'),snap=>{
+      clientes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'pag_manuais'),snap=>{
+      pagManuais=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  engenharia: [
+    ()=>onSnapshot(collection(db,'eng_materias'),snap=>{
+      engMaterias=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'eng_produtos'),snap=>{
+      engProdutos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_eng','geral'),snap=>{
+      if(snap.exists()) configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  tapecamento: [
+    ()=>onSnapshot(collection(db,'tapecadores'),snap=>{
+      tapecadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_tap'),snap=>{
+      fichasTap=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_tap','geral'),snap=>{
+      if(snap.exists()) configTap={pecasExcluidas:[],pecasCustom:[],valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  manutencao: [
+    ()=>onSnapshot(collection(db,'manut_maquinas'),snap=>{
+      manutMaquinas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'manut_registros'),snap=>{
+      manutRegistros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'manut_quadros'),snap=>{
+      manutQuadros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  grades: [
+    ()=>onSnapshot(collection(db,'gradistas'),snap=>{
+      gradistas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_grad'),snap=>{
+      fichasGrad=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_grad','geral'),snap=>{
+      if(snap.exists()) configGrad={valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  enrolamento_int: [
+    ()=>onSnapshot(collection(db,'enroladores_int'),snap=>{
+      enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_int'),snap=>{
+      fichasInt=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_int','geral'),snap=>{
+      if(snap.exists()) configInt={tipos:[],valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'entregas_fitas'),snap=>{
+      entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  fitas: [
+    ()=>onSnapshot(doc(db,'config_fitas','geral'),snap=>{
+      configFitas=snap.exists()?{cores:[],tiposFio:['Fio Padrão'],...snap.data()}:{cores:[],tiposFio:['Fio Padrão']};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'producao_fitas'),snap=>{
+      producaoFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'saidas_fitas'),snap=>{
+      saidasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'entregas_fitas'),snap=>{
+      entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+};
+
+function pararListenersSetor(){
+  unsubsSetorAtual.forEach(fn=>{ try{ fn&&fn(); }catch(e){} });
+  unsubsSetorAtual=[];
+}
+function ativarListenersSetor(setor){
+  if(setor===setorComListenersAtivos) return; // já está no setor certo, não faz nada
+  pararListenersSetor();
+  setorComListenersAtivos=setor;
+  const grupo=LISTENERS_POR_SETOR[setor];
+  if(grupo) unsubsSetorAtual=grupo.map(iniciar=>iniciar());
 }
 
 function pararListeners(){
