@@ -11155,6 +11155,14 @@ function custoComponentes(lista){
   return (lista||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
 }
 
+// Custo indireto de UMA peça: indireto-base da categoria × percentual configurado
+// nela (padrão 100% se não definido). Único lugar que calcula essa fórmula —
+// todo o resto do arquivo chama esta função, para nunca divergir.
+function calcIndiretoPeca(categoria, indiretoPctRaw){
+  const pct=(indiretoPctRaw!=null&&indiretoPctRaw!=='')?parseFloat(indiretoPctRaw):100;
+  return getEngIndireto(categoria)*((isNaN(pct)?100:pct)/100);
+}
+
 // Retorna {direto, indireto, maoObra, total, venda} para a versão 'normal' ou 'reforma'
 function calcCustoProduto(produto, versao){
   if(produto.tipo==='jogo'){
@@ -11162,8 +11170,7 @@ function calcCustoProduto(produto, versao){
   }
   const comps=versao==='reforma'?(produto.componentesReforma||[]):(produto.componentes||[]);
   const direto=custoComponentes(comps);
-  const indiretoPct=produto.indiretoPct!=null?parseFloat(produto.indiretoPct):100;
-  const indireto=getEngIndireto(produto.categoria)*(indiretoPct/100);
+  const indireto=calcIndiretoPeca(produto.categoria, produto.indiretoPct);
   const maoObra=parseFloat(versao==='reforma'?(produto.maoObraReforma||0):(produto.maoObra||0))||0;
   const total=direto+indireto+maoObra;
   const margem=parseFloat(produto.margem)||parseFloat(configEng.margemPadrao)||0;
@@ -11646,8 +11653,7 @@ window._engVerJogo=function(id, aba){
     const linhas=tipo.itens.map(({prod,reforma,qtd})=>{
       const mo=(reforma.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0)*qtd;
       const dir=(reforma.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0)*qtd;
-      const indiretoPct=prod.indiretoPct!=null?prod.indiretoPct:100;
-      const ind=getEngIndireto(prod.categoria)*(indiretoPct/100)*qtd;
+      const ind=calcIndiretoPeca(prod.categoria,prod.indiretoPct)*qtd;
       dirTotal+=dir; moTotal+=mo; indTotal+=ind;
       const sub=dir+mo+ind;
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
@@ -11759,9 +11765,9 @@ window._engRenderReformas=function(){
 
     const custoDireto=(r.componentes||[]).reduce((s,c)=>(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0)+s,0);
     const custoMO=(r.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
-    const indiretoPct=parseFloat(document.getElementById('ep-indireto-pct')?.value)||100;
+    const indiretoPctVal=document.getElementById('ep-indireto-pct')?.value;
     const catId=document.getElementById('ep-categoria')?.value;
-    const indireto=getEngIndireto(catId)*(indiretoPct/100);
+    const indireto=calcIndiretoPeca(catId,indiretoPctVal);
     const custoTotal=custoDireto+custoMO+indireto;
     const margemPct=parseFloat(document.getElementById('ep-margem')?.value)||parseFloat(configEng.margemPadrao)||0;
     const custoVenda=custoTotal*(1+margemPct/100);
@@ -11851,9 +11857,9 @@ window._engAtualizarResumoCusto=function(){
   const comps=(window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp)||[];
   const direto=comps.reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
   const categoria=document.getElementById('ep-categoria')?.value;
-  const indiretoPct=parseFloat(document.getElementById('ep-indireto-pct')?.value);
-  const pct=isNaN(indiretoPct)?100:indiretoPct;
-  const indireto=getEngIndireto(categoria)*(pct/100);
+  const indiretoPctVal=document.getElementById('ep-indireto-pct')?.value;
+  const pct=isNaN(parseFloat(indiretoPctVal))?100:parseFloat(indiretoPctVal);
+  const indireto=calcIndiretoPeca(categoria,indiretoPctVal);
   const etapasMo=(window._engAba==='reforma'?window._engMaoObraReformaTemp:window._engMaoObraTemp)||[];
   const maoObra=etapasMo.reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
   const total=direto+indireto+maoObra;
@@ -12026,8 +12032,8 @@ window._engVerProduto=function(id, aba){
     else{
       const maoObra=(r.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
       const direto=(r.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+      const indireto=calcIndiretoPeca(p.categoria,p.indiretoPct);
       const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
-      const indireto=getEngIndireto(p.categoria)*(indiretoPct/100);
       const total=direto+indireto+maoObra;
       const margem=parseFloat(p.margem)||parseFloat(configEng.margemPadrao)||0;
       const venda=total*(1+margem/100);
