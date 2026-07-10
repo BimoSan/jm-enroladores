@@ -16401,6 +16401,72 @@ const LISTENERS_POR_SETOR={
       pagManuais=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
+    // ── Dados operacionais de outros setores usados nos relatórios
+    // consolidados do Financeiro (folha, produção geral, custos por setor) ──
+    ()=>onSnapshot(collection(db,'soldadores'),snap=>{
+      soldadores=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_metal'),snap=>{
+      fichasMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'gradistas'),snap=>{
+      gradistas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_grad'),snap=>{
+      fichasGrad=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'tapecadores'),snap=>{
+      tapecadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_tap'),snap=>{
+      fichasTap=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'enroladores_int'),snap=>{
+      enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_int'),snap=>{
+      fichasInt=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_producao'),snap=>{
+      espumaProducao=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_estoque'),snap=>{
+      espumaEstoque=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_operadores'),snap=>{
+      espumaOperadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_veiculos'),snap=>{
+      camVeiculos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.modelo.localeCompare(b.modelo,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_motoristas'),snap=>{
+      camMotoristas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'cam_rotas'),snap=>{
+      camRotas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.data>a.data?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'alm_itens'),snap=>{
+      almItens=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'alm_movimentos'),snap=>{
+      almMovimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
   ],
   engenharia: [
     ()=>onSnapshot(collection(db,'eng_materias'),snap=>{
@@ -16477,6 +16543,10 @@ const LISTENERS_POR_SETOR={
     }),
   ],
   fitas: [
+    ()=>onSnapshot(collection(db,'enroladores_int'),snap=>{
+      enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
     ()=>onSnapshot(doc(db,'config_fitas','geral'),snap=>{
       configFitas=snap.exists()?{cores:[],tiposFio:['Fio Padrão'],...snap.data()}:{cores:[],tiposFio:['Fio Padrão']};
       if(currentUserData)reloadTab();
