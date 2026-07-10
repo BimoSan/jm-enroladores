@@ -16661,6 +16661,26 @@ const LISTENERS_POR_SETOR={
     }),
   ],
   financeiro_geral: [
+    // Configurações de preço por peça de cada setor — necessárias porque a
+    // tela de Mão de Obra recalcula o ganho de tapeceiros/gradistas/enrolamento
+    // interno na hora (ao contrário da Metalúrgica, que salva o valor já
+    // calculado na própria ficha ao fechar).
+    ()=>onSnapshot(doc(db,'config_tap','geral'),snap=>{
+      if(snap.exists()) configTap={pecasExcluidas:[],pecasCustom:[],valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_grad','geral'),snap=>{
+      if(snap.exists()) configGrad={valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_int','geral'),snap=>{
+      if(snap.exists()) configInt={tipos:[],valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_metal','geral'),snap=>{
+      if(snap.exists()) configMetal={metas:{},valoresProd:{},valoresMeta:{},valoresRef:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
     ()=>onSnapshot(collection(db,'fin_custos'),snap=>{
       custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
       if(currentUserData)reloadTab();
