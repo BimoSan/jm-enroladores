@@ -251,7 +251,7 @@ if('serviceWorker' in navigator){
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, getDoc, setDoc as _setDoc, updateDoc as _updateDoc, deleteDoc as _deleteDoc, onSnapshot, addDoc as _addDoc, query, orderBy, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc as _setDoc, updateDoc as _updateDoc, deleteDoc as _deleteDoc, onSnapshot as _onSnapshot, addDoc as _addDoc, query, orderBy, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── Firebase config ──────────────────────────────────────────────
@@ -316,6 +316,12 @@ async function deleteDoc(docRef){
   const r = await _deleteDoc(docRef);
   logAudit('excluir', docRef.path, docRef.id, null);
   return r;
+}
+function onSnapshot(ref, onNext, onError){
+  const caminho = ref?.path || '(consulta composta — provavelmente "notificacoes" com where)';
+  return _onSnapshot(ref, onNext, onError || (err=>{
+    console.error('❌ [Firestore] Falha ao escutar coleção/caminho:', caminho, '| código:', err.code, '| perfil atual:', currentUserData?.perfil, '| setor atual:', currentSetor);
+  }));
 }
 
 // ── Constantes ───────────────────────────────────────────────────
