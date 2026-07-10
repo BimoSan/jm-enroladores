@@ -757,6 +757,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'minha_prod':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'ranking_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  'hist_prod_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
@@ -764,7 +765,7 @@ const TAB_LABELS={
   'enroladores':'Enroladores','usuarios':'Usuários','auditoria':'Auditoria',
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','ponto_metal':'Folha de Ponto','config_metal':'Configurações',
-  'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking',
+  'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking','hist_prod_metal':'Histórico Mensal',
   // Caminhões
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
@@ -974,11 +975,11 @@ function renderApp(){
     // Tabs da metalúrgica
     const perfMetal=currentUserData?.perfil;
     if(['admin','encarregado_cad'].includes(perfMetal)){
-      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','soldadores_metal','ponto_metal','config_metal');
+      tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','hist_prod_metal','soldadores_metal','ponto_metal','config_metal');
     }else if(perfMetal==='apontador_metal'){
       tabs.push('painel_metal','apontar','fichas_metal','ranking_metal','ponto_metal');
     }else if(['financeiro','escritorio','proprietario'].includes(perfMetal)){
-      tabs.push('painel_metal','fichas_metal','ranking_metal','soldadores_metal','ponto_metal');
+      tabs.push('painel_metal','fichas_metal','ranking_metal','hist_prod_metal','soldadores_metal','ponto_metal');
     }else if(perfMetal==='soldador'){
       tabs.push('minha_prod','meu_desempenho','ranking_metal');
     }else{
@@ -10940,6 +10941,54 @@ function renderRankingMetal(){
   </div>`+filtroPerHtml+destaqueBannerMetal+cardsPecas;
 }
 
+// ── Histórico de Produção Mensal por Peça ────────────────────────
+function renderHistoricoProducaoMetal(){
+  const MESES3=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesesDisp=[...new Set(apontamentosMetal.map(a=>(a.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+
+  if(!window._histProdMetalMes && mesesDisp.length) window._histProdMetalMes=mesesDisp[0];
+  const mesAtual=window._histProdMetalMes||'';
+
+  const mesLabel3=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES3[parseInt(mo)-1]+' '+y;};
+
+  const apDoMes=apontamentosMetal.filter(a=>(a.data||'').startsWith(mesAtual));
+
+  // Soma a quantidade de cada peça (normal + reforma) no mês selecionado
+  const totais={};
+  apDoMes.forEach(a=>{
+    Object.entries(a.pecas||{}).forEach(([pecaId,qtd])=>{
+      totais[pecaId]=(totais[pecaId]||0)+(parseInt(qtd)||0);
+    });
+  });
+
+  const normais=PECAS_METAL_FULL.filter(p=>!p.reforma).map(p=>({...p,qtd:totais[p.id]||0})).filter(p=>p.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+  const reformas=PECAS_METAL_FULL.filter(p=>p.reforma).map(p=>({...p,qtd:totais[p.id]||0})).filter(p=>p.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+  const totalGeral=normais.reduce((s,p)=>s+p.qtd,0)+reformas.reduce((s,p)=>s+p.qtd,0);
+
+  const mesSelect=`<select onchange="window._setHistProdMetalMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">
+    ${mesesDisp.length?mesesDisp.map(m=>'<option value="'+m+'"'+(m===mesAtual?' selected':'')+'>'+mesLabel3(m)+'</option>').join(''):'<option value="">Sem apontamentos</option>'}
+  </select>`;
+
+  const tabela=(titulo,cor,lista)=>!lista.length?'':(
+    '<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:'+cor+';margin-bottom:10px">'+titulo+'</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Peça</th><th style="padding:7px 10px;text-align:right">Quantidade produzida</th></tr></thead><tbody>'
+    +lista.map((p,i)=>'<tr style="'+(i%2?'background:#f8fafc':'')+'"><td style="padding:7px 10px;font-weight:600">'+p.label+'</td><td style="padding:7px 10px;text-align:right;font-weight:700;color:'+cor+'">'+p.qtd+'</td></tr>').join('')
+    +'</tbody></table></div></div>'
+  );
+
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
+    +mesSelect
+    +'<div style="text-align:right"><div style="font-size:10px;color:#64748b">'+(mesAtual?mesLabel3(mesAtual):'')+'</div><div style="font-size:22px;font-weight:900;color:#1e293b">'+totalGeral+' peças</div></div>'
+    +'</div>'
+    +(!apDoMes.length?'<div class="card"><div style="text-align:center;color:#94a3b8;padding:16px">Nenhum apontamento encontrado nesse mês.</div></div>'
+      :tabela('🔩 Peças normais','#1e40af',normais)+tabela('🛠️ Reformas','#7c3aed',reformas));
+}
+window._setHistProdMetalMes=function(v){
+  window._histProdMetalMes=v;
+  reloadTab();
+};
 
 function renderFichasMetal(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -16222,6 +16271,7 @@ function renderTabMetal(tab){
   if(tab==='minha_prod')       return renderMinhaProd();
   if(tab==='meu_desempenho')   return renderMeuDesempenho();
   if(tab==='ranking_metal')    return renderRankingMetal();
+  if(tab==='hist_prod_metal')  return renderHistoricoProducaoMetal();
   if(tab==='usuarios')         return renderUsuarios();
   return renderPainelMetal();
 }
