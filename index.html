@@ -920,6 +920,7 @@ function aplicarSetorAutomatico(){
   return false;
 }
 window._voltarFabrica=()=>{
+  pararListenersSetor();
   currentFabrica=null;
   currentSetor=null;
   sessionStorage.removeItem('jm_fabrica');
@@ -927,6 +928,7 @@ window._voltarFabrica=()=>{
   render();
 };
 window._voltarSetores=()=>{
+  pararListenersSetor();
   // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
   if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'||currentFabrica==='manutencao'){
     currentFabrica=null;
@@ -1115,8 +1117,15 @@ window._closeSidebar=()=>{
 
 
 window._doLogout=async()=>{
+  pararListenersSetor();
+  if(unsubEnroladores)unsubEnroladores();
+  if(unsubFichas)unsubFichas();
+  if(unsubUsuarios)unsubUsuarios();
   currentFabrica=null;
   currentSetor=null;
+  currentUserData=null;
+  currentUser=null;
+  setorComListenersAtivos=undefined;
   sessionStorage.removeItem('jm_fabrica');
   sessionStorage.removeItem('jm_setor');
   await signOut(auth);
@@ -16609,6 +16618,7 @@ const LISTENERS_POR_SETOR={
 function pararListenersSetor(){
   unsubsSetorAtual.forEach(fn=>{ try{ fn&&fn(); }catch(e){} });
   unsubsSetorAtual=[];
+  setorComListenersAtivos=undefined;
 }
 function ativarListenersSetor(setor){
   if(setor===setorComListenersAtivos) return; // já está no setor certo, não faz nada
