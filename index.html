@@ -3825,14 +3825,17 @@ function calcGanhoSoldador(soldadorId, periodo){
   const qAtual=getQuinzenaAtual();
 
   if(s.contrato==='producao'){
-    // Ganha por tudo que produzir: peças normais usam vProd, reformas usam vRef
+    // Ganha por tudo que produzir. Reformas usam preço próprio de produção
+    // (config nova); se ainda não configurado, cai no preço legado de reforma.
     return PECAS_METAL_FULL.reduce((sum,p)=>{
       const qtd=totalPecaPeriodo(soldadorId,p.id,periodo);
-      const val=p.reforma ? (parseFloat(vRef[p.id.replace('ref_','')])||0) : (parseFloat(vProd[p.id])||0);
+      const val=p.reforma
+        ? (parseFloat(vProd[p.id])||parseFloat(vRef[p.id.replace('ref_','')])||0)
+        : (parseFloat(vProd[p.id])||0);
       return sum+(qtd*val);
     },0);
   } else {
-    // Fichado: excedente usa vMeta para peças, vRef para reformas
+    // Fichado: excedente usa vMeta para peças normais e para reformas com meta própria
     const diasPeriodo=new Set(
       apontSoldador(soldadorId)
         .filter(a=>{
@@ -3849,17 +3852,28 @@ function calcGanhoSoldador(soldadorId, periodo){
     let totalGanho=0;
     diasPeriodo.forEach(dia=>{
       const apDia=apontSoldador(soldadorId).filter(a=>a.data===dia);
+      const ehSabadoDia=new Date(dia+'T12:00:00').getDay()===6;
 
-      // Reformas: sempre pagar tudo
+      // Reformas: cada uma com meta própria (independente das demais peças do dia).
+      // Se a reforma não tiver meta cadastrada (0), mantém o comportamento antigo:
+      // paga tudo integralmente, no preço de fichado (ou legado, se ainda não migrado).
       PECAS_METAL_FULL.filter(p=>p.reforma).forEach(p=>{
         const qtd=apDia.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
         if(!qtd) return;
-        const val=parseFloat(vRef[p.id.replace('ref_','')])||0;
-        totalGanho+=qtd*val;
+        const metaRef=ehSabadoDia?Math.round((parseInt(metas[p.id])||0)/2):(parseInt(metas[p.id])||0);
+        const val=parseFloat(vMeta[p.id])||parseFloat(vRef[p.id.replace('ref_','')])||0;
+        if(metaRef<=0){
+          // Sem meta cadastrada: comportamento legado, paga tudo
+          totalGanho+=qtd*val;
+        } else if(qtd>=metaRef){
+          // Bateu a meta da reforma: paga só o excedente
+          totalGanho+=(qtd-metaRef)*val;
+        }
+        // Não bateu a meta da reforma: não ganha nada por ela nesse dia
+        // (mesma regra aplicada às peças normais).
       });
 
       // Peças normais do dia com produção
-      const ehSabadoDia=new Date(dia+'T12:00:00').getDay()===6;
       const pecaBaseDefinida=apDia.map(a=>a.pecaBase).find(pb=>pb&&pb!=='');
       const modoCalculo=apDia.find(a=>a.modoCalculo)?.modoCalculo||'normal';
 
@@ -10393,11 +10407,20 @@ function renderConfigMetal(){
   const vProd=configMetal.valoresProd||{};
   const vMeta=configMetal.valoresMeta||{};
   const vRef=configMetal.valoresRef||{};
+  const PECAS_REFORMA=PECAS_METAL_FULL.filter(p=>p.reforma);
 
   const metasInputs=PECAS_METAL.map(p=>`
     <div class="num-group">
       <label style="font-size:10px">${p.label}</label>
       <input type="number" id="meta-${p.id}" min="0" step="1" placeholder="0"
+        value="${parseInt(metas[p.id])||0}"
+        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif" onfocus="this.select()">
+    </div>`).join('');
+
+  const metasReformaInputs=PECAS_REFORMA.map(p=>`
+    <div class="num-group">
+      <label style="font-size:10px">${p.label}</label>
+      <input type="number" id="meta-${p.id}" min="0" step="1" placeholder="0 = sem meta (paga integral, como hoje)"
         value="${parseInt(metas[p.id])||0}"
         style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 8px;text-align:center;font-family:'Nunito',sans-serif" onfocus="this.select()">
     </div>`).join('');
@@ -10412,7 +10435,7 @@ function renderConfigMetal(){
           <div style="display:flex;align-items:center;gap:3px">
             <span style="font-size:11px;color:#64748b">R$</span>
             <input type="number" id="${prefixId}-${p.id}" min="0" step="0.01" placeholder="0,00"
-              value="${(parseFloat(valoresObj[p.id])||0).toFixed(2)}"
+              value="${(parseFloat(valoresObj[p.id])||(p.reforma?parseFloat(vRef[p.id.replace('ref_','')]):0)||0).toFixed(2)}"
               style="font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;width:100%">
           </div>
         </div>`).join('')}
@@ -10426,25 +10449,32 @@ function renderConfigMetal(){
     <div class="num-inputs">${metasInputs}</div>
     <button class="btn btn-primary" style="margin-top:12px" onclick="window._salvarMetas()">Salvar metas</button>
   </div>
-  ${tabelaPrecos('prod','Preços — Por Produção','Valor pago por peça para soldadores por produção (sobre tudo que produzirem).','#1e40af',PECAS_METAL,vProd)}
-  ${tabelaPrecos('fichado','Preços — Na Meta (Fichados)','Valor pago por peça para soldadores fichados (só sobre o excedente da meta).','#059669',PECAS_METAL,vMeta)}
-  ${tabelaPrecos('ref','Preços — Reformas','Valor pago por reforma de qualquer peça (vale para todos os contratos).','#7c3aed',PECAS_METAL,vRef)}`;
+  <div class="card" style="margin-bottom:14px;border-left:4px solid #7c3aed">
+    <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:4px">Metas diárias — Reformas</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:12px">Cada reforma tem meta própria, separada da peça normal. Deixe 0 para continuar pagando integral (sem meta), como funciona hoje.</div>
+    <div class="num-inputs">${metasReformaInputs}</div>
+    <button class="btn btn-primary" style="margin-top:12px;background:#7c3aed" onclick="window._salvarMetas()">Salvar metas de reforma</button>
+  </div>
+  ${tabelaPrecos('prod','Preços — Por Produção','Valor pago por peça para soldadores por produção (sobre tudo que produzirem). Inclui reformas.','#1e40af',PECAS_METAL_FULL,vProd)}
+  ${tabelaPrecos('fichado','Preços — Na Meta (Fichados)','Valor pago por peça para soldadores fichados (só sobre o excedente da meta). Inclui reformas.','#059669',PECAS_METAL_FULL,vMeta)}
+  ${tabelaPrecos('ref','Preços — Reformas (legado)','Só é usado para reformas sem meta cadastrada acima (0 = sem meta). Assim que uma reforma ganhar meta, ela passa a usar o preço de produção/fichado.','#7c3aed',PECAS_METAL,vRef)}`;
 }
 
 window._salvarMetas=async()=>{
   const metas={};
-  PECAS_METAL.forEach(p=>{metas[p.id]=parseInt(document.getElementById(`meta-${p.id}`)?.value)||0;});
+  PECAS_METAL_FULL.forEach(p=>{metas[p.id]=parseInt(document.getElementById(`meta-${p.id}`)?.value)||0;});
   const cur=configMetal||{};
   await setDoc(doc(db,'config_metal','geral'),{...cur,metas});
   showToast('Metas salvas!');
 };
 window._salvarValoresMetal=async(prefixId)=>{
   const vals={};
-  PECAS_METAL.forEach(p=>{vals[p.id]=parseFloat(document.getElementById(prefixId+'-'+p.id)?.value)||0;});
+  const lista=prefixId==='ref'?PECAS_METAL:PECAS_METAL_FULL; // 'ref' (legado) só peças normais; prod/fichado incluem reformas
+  lista.forEach(p=>{vals[p.id]=parseFloat(document.getElementById(prefixId+'-'+p.id)?.value)||0;});
   const campo=prefixId==='prod'?'valoresProd':prefixId==='fichado'?'valoresMeta':'valoresRef';
   const cur=configMetal||{metas:{}};
   await setDoc(doc(db,'config_metal','geral'),{...cur,[campo]:vals});
-  const labels={'prod':'Preços por Produção','meta':'Preços na Meta','ref':'Preços de Reforma'};
+  const labels={'prod':'Preços por Produção','fichado':'Preços na Meta','ref':'Preços de Reforma'};
   showToast((labels[prefixId]||'Valores')+' salvos!');
 };
 
