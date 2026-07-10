@@ -11334,6 +11334,8 @@ window._engNovaMp=function(mp={}){
     +'<input type="checkbox" id="emp2-colc-vies" '+(mp.isColchaoVies?'checked':'')+' style="width:16px;height:16px">Viés</label>'
     +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">'
     +'<input type="checkbox" id="emp2-colc-cola" '+(mp.isColchaoCola?'checked':'')+' style="width:16px;height:16px">Cola</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px">'
+    +'<input type="checkbox" id="emp2-colc-embalagem" '+(mp.isColchaoEmbalagem?'checked':'')+' style="width:16px;height:16px">Embalagem</label>'
     +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirMp(\''+mp.id+'\')">Excluir</button>':'')
@@ -11367,10 +11369,11 @@ window._engSalvarMp=async function(id){
   const isColchaoEstampado=document.getElementById('emp2-colc-estampado')?.checked||false;
   const isColchaoVies=document.getElementById('emp2-colc-vies')?.checked||false;
   const isColchaoCola=document.getElementById('emp2-colc-cola')?.checked||false;
+  const isColchaoEmbalagem=document.getElementById('emp2-colc-embalagem')?.checked||false;
   if(!nome){showToast('Digite o nome.');return;}
   closeModal();
   const dados={nome,unidade,custo,observacao,desperdicio,isEspuma,
-    isColchaoEspuma,isColchaoSuede,isColchaoEstampado,isColchaoVies,isColchaoCola,
+    isColchaoEspuma,isColchaoSuede,isColchaoEstampado,isColchaoVies,isColchaoCola,isColchaoEmbalagem,
     ...(unidadeEmbalagem?{unidadeEmbalagem}:{}),
     ...(precoEmbalagem?{precoEmbalagem}:{}),
     ...(qtdEmbalagem?{qtdEmbalagem}:{})};
@@ -12204,6 +12207,7 @@ function renderEngColchao(){
   const mpEstampado=engMaterias.filter(m=>m.isColchaoEstampado)[0]||null;
   const mpVies=engMaterias.filter(m=>m.isColchaoVies)[0]||null;
   const mpCola=engMaterias.filter(m=>m.isColchaoCola)[0]||null;
+  const mpEmbalagem=engMaterias.filter(m=>m.isColchaoEmbalagem)[0]||null;
 
   const faltando=[];
   if(!mpEspuma) faltando.push('Espuma (núcleo)');
@@ -12211,6 +12215,7 @@ function renderEngColchao(){
   if(!mpEstampado) faltando.push('Tecido Estampado');
   if(!mpVies) faltando.push('Viés');
   if(!mpCola) faltando.push('Cola');
+  if(!mpEmbalagem) faltando.push('Embalagem');
 
   const linhaPadrao=(label,mp,unidade)=>mp?'<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:#64748b">'+label+'</span><strong>'+mp.nome+' — '+fmtMoeda(parseFloat(mp.custo)||0)+'/'+unidade+'</strong></div>':'';
 
@@ -12225,6 +12230,7 @@ function renderEngColchao(){
         +linhaPadrao('Tecido Estampado',mpEstampado,'m')
         +linhaPadrao('Viés',mpVies,'m')
         +linhaPadrao('Cola',mpCola,'kg')
+        +linhaPadrao('Embalagem',mpEmbalagem,'kg')
       +'</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
         <div class="form-group" style="margin:0"><label>Largura (cm)</label>
@@ -12245,6 +12251,7 @@ window._engCalcColchao=function(){
   const MARGEM_VENDA=30;
   const LARGURA_ROLO_ESTAMPADO_M=2;
   const COLA_KG_FIXO=0.052;
+  const EMBALAGEM_KG_FIXO=0.4;
   const ETIQUETA_VALOR_FIXO=1.00;
 
   const lCm=parseFloat(document.getElementById('colc-l')?.value)||0;
@@ -12256,8 +12263,9 @@ window._engCalcColchao=function(){
   const mpEstampado=engMaterias.filter(m=>m.isColchaoEstampado)[0]||null;
   const mpVies=engMaterias.filter(m=>m.isColchaoVies)[0]||null;
   const mpCola=engMaterias.filter(m=>m.isColchaoCola)[0]||null;
+  const mpEmbalagem=engMaterias.filter(m=>m.isColchaoEmbalagem)[0]||null;
 
-  if(!lCm||!aCm||!cCm||!mpEspuma||!mpSuede||!mpEstampado||!mpVies||!mpCola){
+  if(!lCm||!aCm||!cCm||!mpEspuma||!mpSuede||!mpEstampado||!mpVies||!mpCola||!mpEmbalagem){
     res.style.display='none';
     return;
   }
@@ -12288,10 +12296,13 @@ window._engCalcColchao=function(){
   // 5) Cola — fixo por colchão
   const custoCola=COLA_KG_FIXO*(parseFloat(mpCola.custo)||0);
 
-  // 6) Etiqueta — valor fixo
+  // 6) Embalagem — fixo por colchão
+  const custoEmbalagem=EMBALAGEM_KG_FIXO*(parseFloat(mpEmbalagem.custo)||0);
+
+  // 7) Etiqueta — valor fixo
   const custoEtiqueta=ETIQUETA_VALOR_FIXO;
 
-  const custoTotal=custoEspuma+custoSuede+custoEstampado+custoVies+custoCola+custoEtiqueta;
+  const custoTotal=custoEspuma+custoSuede+custoEstampado+custoVies+custoCola+custoEmbalagem+custoEtiqueta;
   const venda=custoTotal*(1+MARGEM_VENDA/100);
 
   const linha=(label,detalhe,valor)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.12)">'
@@ -12306,6 +12317,7 @@ window._engCalcColchao=function(){
     +linha('Tecido Estampado',metrosEstampado.toFixed(4)+' m ('+areaEstampado.toFixed(4)+' m²)',custoEstampado)
     +linha('Viés',metrosVies.toFixed(2)+' m',custoVies)
     +linha('Cola',COLA_KG_FIXO+' kg (fixo)',custoCola)
+    +linha('Embalagem',EMBALAGEM_KG_FIXO+' kg (fixo)',custoEmbalagem)
     +linha('Etiqueta','fixo',custoEtiqueta)
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
     +'<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px"><div style="font-size:10px;opacity:.75">Custo total</div><div style="font-size:22px;font-weight:900">'+fmtMoeda(custoTotal)+'</div></div>'
