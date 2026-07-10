@@ -244,6 +244,7 @@ if('serviceWorker' in navigator){
 </style>
 </head>
 <body>
+<div id="staging-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:#1a1a1a;text-align:center;font-weight:800;font-size:13px;padding:7px;font-family:'Nunito',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15)">🧪 AMBIENTE DE TESTE — os dados aqui não afetam a produção</div>
 <div id="toast" class="toast"></div>
 <div id="root"></div>
 <div id="modal-root"></div>
@@ -255,7 +256,21 @@ import { getFirestore, collection, doc, getDocs, getDoc, setDoc as _setDoc, upda
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── Firebase config ──────────────────────────────────────────────
-const firebaseConfig = {
+// ── Detecção automática de ambiente ──────────────────────────────
+// Produção (jm-enroladores.vercel.app) e qualquer outro domínio não listado
+// como staging conectam no banco de PRODUÇÃO. Só o domínio de staging abaixo
+// conecta no banco de teste. Isso evita o erro humano de esquecer de trocar
+// a config antes de publicar.
+const IS_STAGING = /jm-teste/i.test(window.location.hostname) || window.location.hostname==='localhost';
+
+const firebaseConfig = IS_STAGING ? {
+  apiKey: "AIzaSyC53_k_BoCJEQw7dyT9RggwWaJ_ADthwp4",
+  authDomain: "jm-teste-d03d0.firebaseapp.com",
+  projectId: "jm-teste-d03d0",
+  storageBucket: "jm-teste-d03d0.firebasestorage.app",
+  messagingSenderId: "485363876709",
+  appId: "1:485363876709:web:824700d952e568df11978c"
+} : {
   apiKey: "AIzaSyBP5VqlhSyP4EohIlnBGe3Ldr6R46YOGZM",
   authDomain: "jm-enroladores.firebaseapp.com",
   projectId: "jm-enroladores",
@@ -266,6 +281,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+if(IS_STAGING){
+  const banner=document.getElementById('staging-banner');
+  if(banner){
+    banner.style.display='block';
+    document.body.style.paddingTop='34px';
+  }
+  document.title='[TESTE] '+document.title;
+}
 
 // ── Log de Auditoria ────────────────────────────────────────────
 // Toda gravação (criar/editar/excluir) passa por aqui automaticamente.
