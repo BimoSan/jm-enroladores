@@ -708,6 +708,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'eng_mp':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
   'eng_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'eng_espuma':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+  'eng_colchao':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M2 12h20M6 7v10M18 7v10"/></svg>',
   'eng_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_dashboard': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'esp_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
@@ -770,7 +771,7 @@ const TAB_LABELS={
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'fin_dashboard':'Dashboard','fin_vendas':'Entradas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
-  'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_relatorio':'Relatórios','eng_config':'Configurações',
+  'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_colchao':'Calculadora de Colchão','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'grad_minha_ficha':'Minha Ficha','grad_meu_desempenho':'Meu Desempenho',
   'tap_painel':'Painel','tap_apontar':'Apontamento','tap_fichas':'Fichas','tap_ranking':'Ranking','tap_tapecadores':'Tapecadores','tap_config':'Configurações',
@@ -991,7 +992,7 @@ function renderApp(){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
   } else if(currentSetor==='engenharia'){
-    tabs.push('eng_produtos','eng_mp','eng_espuma','eng_relatorio');
+    tabs.push('eng_produtos','eng_mp','eng_espuma','eng_colchao','eng_relatorio');
     const pgEng=currentUserData?.perfil;
     if(['admin','proprietario'].includes(pgEng)) tabs.push('eng_config');
     if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_produtos';
@@ -11159,6 +11160,7 @@ function renderTabEngenharia(tab){
     if(tab==='eng_mp')        return renderEngMp();
     if(tab==='eng_produtos')  return renderEngProdutos();
     if(tab==='eng_espuma')    return renderEngEspuma();
+    if(tab==='eng_colchao')   return renderEngColchao();
     if(tab==='eng_relatorio') return renderEngRelatorio();
     if(tab==='eng_config')    return renderEngConfig();
     return renderEngProdutos();
@@ -11319,7 +11321,20 @@ window._engNovaMp=function(mp={}){
     +'<input id="emp2-obs" value="'+(mp.observacao||'').replace(/"/g,'&quot;')+'" placeholder="Ex: comprado em caixa de 1000 un." style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:4px">'
     +'<input type="checkbox" id="emp2-espuma" '+(mp.isEspuma?'checked':'')+' style="width:16px;height:16px">'
-    +'Usar na calculadora de espuma</label>',
+    +'Usar na calculadora de espuma</label>'
+    +'<div style="background:#ede9fe;border:1.5px solid #ddd6fe;border-radius:10px;padding:12px;margin-top:10px">'
+    +'<div style="font-size:11px;font-weight:700;color:#5b21b6;margin-bottom:8px">🛏️ Calculadora de colchão — usar esta MP como:</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px">'
+    +'<input type="checkbox" id="emp2-colc-espuma" '+(mp.isColchaoEspuma?'checked':'')+' style="width:16px;height:16px">Espuma (núcleo)</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px">'
+    +'<input type="checkbox" id="emp2-colc-suede" '+(mp.isColchaoSuede?'checked':'')+' style="width:16px;height:16px">Tecido Suede (faixa lateral)</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px">'
+    +'<input type="checkbox" id="emp2-colc-estampado" '+(mp.isColchaoEstampado?'checked':'')+' style="width:16px;height:16px">Tecido Estampado (topo/fundo)</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px">'
+    +'<input type="checkbox" id="emp2-colc-vies" '+(mp.isColchaoVies?'checked':'')+' style="width:16px;height:16px">Viés</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">'
+    +'<input type="checkbox" id="emp2-colc-cola" '+(mp.isColchaoCola?'checked':'')+' style="width:16px;height:16px">Cola</label>'
+    +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirMp(\''+mp.id+'\')">Excluir</button>':'')
     +'<button class="btn btn-sm btn-primary" onclick="window._engSalvarMp(\''+(mp.id||'')+'\')">Salvar</button>');
@@ -11347,9 +11362,15 @@ window._engSalvarMp=async function(id){
   const custo=precoEmbalagem&&qtdEmbalagem?(precoEmbalagem/qtdEmbalagem):custoDireto;
   const observacao=document.getElementById('emp2-obs')?.value.trim()||'';
   const isEspuma=document.getElementById('emp2-espuma')?.checked||false;
+  const isColchaoEspuma=document.getElementById('emp2-colc-espuma')?.checked||false;
+  const isColchaoSuede=document.getElementById('emp2-colc-suede')?.checked||false;
+  const isColchaoEstampado=document.getElementById('emp2-colc-estampado')?.checked||false;
+  const isColchaoVies=document.getElementById('emp2-colc-vies')?.checked||false;
+  const isColchaoCola=document.getElementById('emp2-colc-cola')?.checked||false;
   if(!nome){showToast('Digite o nome.');return;}
   closeModal();
   const dados={nome,unidade,custo,observacao,desperdicio,isEspuma,
+    isColchaoEspuma,isColchaoSuede,isColchaoEstampado,isColchaoVies,isColchaoCola,
     ...(unidadeEmbalagem?{unidadeEmbalagem}:{}),
     ...(precoEmbalagem?{precoEmbalagem}:{}),
     ...(qtdEmbalagem?{qtdEmbalagem}:{})};
@@ -12179,6 +12200,128 @@ window._engCalcEspuma=function(){
     +'<div style="background:rgba(255,255,255,.95);border-radius:10px;padding:10px"><div style="font-size:10px;color:#4c1d95;font-weight:700">Venda (+'+MARGEM_VENDA+'%)</div><div style="font-size:22px;font-weight:900;color:#059669">'+fmtMoeda(venda)+'</div></div>'
     +'</div>'
     +'<div style="font-size:10px;opacity:.65">Referência: '+fmtMoeda(custoM3)+'/m³ · volume: '+vol.toFixed(4)+' m³</div>'
+    +'</div>';
+};
+
+
+function renderEngColchao(){
+  const MARGEM_VENDA=30;
+  const mpsEspuma=engMaterias.filter(m=>m.isColchaoEspuma);
+  const mpsSuede=engMaterias.filter(m=>m.isColchaoSuede);
+  const mpsEstampado=engMaterias.filter(m=>m.isColchaoEstampado);
+  const mpsVies=engMaterias.filter(m=>m.isColchaoVies);
+  const mpsCola=engMaterias.filter(m=>m.isColchaoCola);
+
+  const faltando=[];
+  if(!mpsEspuma.length) faltando.push('Espuma (núcleo)');
+  if(!mpsSuede.length) faltando.push('Tecido Suede');
+  if(!mpsEstampado.length) faltando.push('Tecido Estampado');
+  if(!mpsVies.length) faltando.push('Viés');
+  if(!mpsCola.length) faltando.push('Cola');
+
+  const selectMp=(id,label,unidade,lista)=>{
+    if(!lista.length) return '';
+    const opts=lista.map(m=>'<option value="'+m.id+'">'+m.nome+' — '+fmtMoeda(parseFloat(m.custo)||0)+'/'+unidade+'</option>').join('');
+    return '<div class="form-group"><label>'+label+'</label>'
+      +'<select id="'+id+'" onchange="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+      +'<option value="">Selecione...</option>'+opts+'</select></div>';
+  };
+
+  return `
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:4px">🛏️ Calculadora de custo de colchão</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Informe as dimensões do colchão para calcular espuma, tecidos, viés e o custo total.</div>
+      ${faltando.length?'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Faltam matérias-primas marcadas para: <strong>'+faltando.join(', ')+'</strong>. Vá em <strong>Matérias-primas</strong>, edite o item e marque a opção correspondente no bloco roxo "Calculadora de colchão".</div>':''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="form-group" style="margin:0"><label>Largura (cm)</label>
+          <input type="number" id="colc-l" min="0" step="1" placeholder="Ex: 110" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Altura (cm)</label>
+          <input type="number" id="colc-a" min="0" step="1" placeholder="Ex: 10" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+        <div class="form-group" style="margin:0"><label>Comprimento (cm)</label>
+          <input type="number" id="colc-c" min="0" step="1" placeholder="Ex: 80" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+      </div>
+      ${selectMp('colc-mp-espuma','Espuma (núcleo)','m³',mpsEspuma)}
+      ${selectMp('colc-mp-suede','Tecido Suede (faixa lateral)','m²',mpsSuede)}
+      ${selectMp('colc-mp-estampado','Tecido Estampado (topo/fundo)','m',mpsEstampado)}
+      ${selectMp('colc-mp-vies','Viés','m',mpsVies)}
+      ${selectMp('colc-mp-cola','Cola','kg',mpsCola)}
+      <div id="colc-resultado" style="display:none;margin-top:6px"></div>
+    </div>
+  `;
+}
+
+window._engCalcColchao=function(){
+  const res=document.getElementById('colc-resultado');
+  if(!res) return;
+  const MARGEM_VENDA=30;
+  const LARGURA_ROLO_ESTAMPADO_M=2;
+  const COLA_KG_FIXO=0.052;
+  const ETIQUETA_VALOR_FIXO=1.00;
+
+  const lCm=parseFloat(document.getElementById('colc-l')?.value)||0;
+  const aCm=parseFloat(document.getElementById('colc-a')?.value)||0;
+  const cCm=parseFloat(document.getElementById('colc-c')?.value)||0;
+
+  const mpEspuma=engMaterias.find(m=>m.id===document.getElementById('colc-mp-espuma')?.value);
+  const mpSuede=engMaterias.find(m=>m.id===document.getElementById('colc-mp-suede')?.value);
+  const mpEstampado=engMaterias.find(m=>m.id===document.getElementById('colc-mp-estampado')?.value);
+  const mpVies=engMaterias.find(m=>m.id===document.getElementById('colc-mp-vies')?.value);
+  const mpCola=engMaterias.find(m=>m.id===document.getElementById('colc-mp-cola')?.value);
+
+  if(!lCm||!aCm||!cCm||!mpEspuma||!mpSuede||!mpEstampado||!mpVies||!mpCola){
+    res.style.display='none';
+    return;
+  }
+
+  // Conversões cm → m
+  const l=lCm/100, a=aCm/100, c=cCm/100;
+  const perimetro=2*(l+c); // m
+
+  // 1) Espuma (núcleo) — volume
+  const volume=l*a*c; // m³
+  const custoEspuma=volume*(parseFloat(mpEspuma.custo)||0);
+
+  // 2) Tecido Suede (faixa lateral) — altura da faixa + 2cm × perímetro
+  const alturaFaixa=(aCm+2)/100; // m
+  const areaSuede=alturaFaixa*perimetro; // m²
+  const custoSuede=areaSuede*(parseFloat(mpSuede.custo)||0);
+
+  // 3) Tecido Estampado (topo+fundo) — +3cm de costura em cada medida, área ÷ largura do rolo (2m)
+  const lEst=(lCm+3)/100, cEst=(cCm+3)/100;
+  const areaEstampado=2*(lEst*cEst); // m²
+  const metrosEstampado=areaEstampado/LARGURA_ROLO_ESTAMPADO_M;
+  const custoEstampado=metrosEstampado*(parseFloat(mpEstampado.custo)||0);
+
+  // 4) Viés — duas voltas no perímetro
+  const metrosVies=2*perimetro;
+  const custoVies=metrosVies*(parseFloat(mpVies.custo)||0);
+
+  // 5) Cola — fixo por colchão
+  const custoCola=COLA_KG_FIXO*(parseFloat(mpCola.custo)||0);
+
+  // 6) Etiqueta — valor fixo
+  const custoEtiqueta=ETIQUETA_VALOR_FIXO;
+
+  const custoTotal=custoEspuma+custoSuede+custoEstampado+custoVies+custoCola+custoEtiqueta;
+  const venda=custoTotal*(1+MARGEM_VENDA/100);
+
+  const linha=(label,detalhe,valor)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.12)">'
+    +'<div><div style="font-size:12px;font-weight:700">'+label+'</div><div style="font-size:10px;opacity:.7">'+detalhe+'</div></div>'
+    +'<div style="font-size:13px;font-weight:800">'+fmtMoeda(valor)+'</div></div>';
+
+  res.style.display='block';
+  res.innerHTML='<div style="background:linear-gradient(135deg,#4c1d95,#7c3aed);border-radius:14px;padding:18px;color:#fff">'
+    +'<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px">'+lCm+' × '+aCm+' × '+cCm+' cm</div>'
+    +linha('Espuma (núcleo)',volume.toFixed(6)+' m³',custoEspuma)
+    +linha('Tecido Suede',areaSuede.toFixed(4)+' m²',custoSuede)
+    +linha('Tecido Estampado',metrosEstampado.toFixed(4)+' m ('+areaEstampado.toFixed(4)+' m²)',custoEstampado)
+    +linha('Viés',metrosVies.toFixed(2)+' m',custoVies)
+    +linha('Cola',COLA_KG_FIXO+' kg (fixo)',custoCola)
+    +linha('Etiqueta','fixo',custoEtiqueta)
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'
+    +'<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px"><div style="font-size:10px;opacity:.75">Custo total</div><div style="font-size:22px;font-weight:900">'+fmtMoeda(custoTotal)+'</div></div>'
+    +'<div style="background:rgba(255,255,255,.95);border-radius:10px;padding:10px"><div style="font-size:10px;color:#4c1d95;font-weight:700">Venda (+'+MARGEM_VENDA+'%)</div><div style="font-size:22px;font-weight:900;color:#059669">'+fmtMoeda(venda)+'</div></div>'
+    +'</div>'
     +'</div>';
 };
 
