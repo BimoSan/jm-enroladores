@@ -14657,24 +14657,8 @@ function renderFinCompras(){
     </div>
   </div>`;
 
-  // Resumo por item
-  const itensOrdenados=Object.entries(porItem).sort((a,b)=>b[1].custo-a[1].custo);
-  if(itensOrdenados.length){
-    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📦 Resumo por item</div>';
-    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html+='<thead><tr style="background:#fef3c7"><th style="padding:7px 10px;text-align:left">Item</th><th style="padding:7px 10px;text-align:center">Qtd.</th><th style="padding:7px 10px;text-align:center">Entradas</th><th style="padding:7px 10px;text-align:right">Total</th></tr></thead><tbody>';
-    html+=itensOrdenados.map(([,v],i)=>`<tr style="${i%2?'background:#fafaf9':''}">
-      <td style="padding:7px 10px;font-weight:600">${v.desc}</td>
-      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.qtd} ${v.unidade}</td>
-      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.movs}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#b45309">${fmtMoeda(v.custo)}</td>
-    </tr>`).join('');
-    html+='<tr style="background:#fef9c3;font-weight:800"><td style="padding:7px 10px">Total</td><td colspan="2"></td><td style="padding:7px 10px;text-align:right;color:#b45309">${fmtMoeda(totalMes)}</td></tr>'.replace('${fmtMoeda(totalMes)}',fmtMoeda(totalMes));
-    html+='</tbody></table></div></div>';
-  }
-
   // Transações individuais
-  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧾 Transações</div>';
+  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧾 Transações</div>';
   if(!filtradas.length){
     html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma compra encontrada.</div>';
   } else {
@@ -14696,6 +14680,22 @@ function renderFinCompras(){
     html+='</tbody></table></div>';
   }
   html+='</div>';
+
+  // Resumo por item
+  const itensOrdenados=Object.entries(porItem).sort((a,b)=>b[1].custo-a[1].custo);
+  if(itensOrdenados.length){
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📦 Resumo por item</div>';
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="background:#fef3c7"><th style="padding:7px 10px;text-align:left">Item</th><th style="padding:7px 10px;text-align:center">Qtd.</th><th style="padding:7px 10px;text-align:center">Entradas</th><th style="padding:7px 10px;text-align:right">Total</th></tr></thead><tbody>';
+    html+=itensOrdenados.map(([,v],i)=>`<tr style="${i%2?'background:#fafaf9':''}">
+      <td style="padding:7px 10px;font-weight:600">${v.desc}</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.qtd} ${v.unidade}</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748b">${v.movs}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#b45309">${fmtMoeda(v.custo)}</td>
+    </tr>`).join('');
+    html+='<tr style="background:#fef9c3;font-weight:800"><td style="padding:7px 10px">Total</td><td colspan="2"></td><td style="padding:7px 10px;text-align:right;color:#b45309">${fmtMoeda(totalMes)}</td></tr>'.replace('${fmtMoeda(totalMes)}',fmtMoeda(totalMes));
+    html+='</tbody></table></div></div>';
+  }
   return html;
 }
 
