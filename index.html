@@ -14417,12 +14417,23 @@ function renderFinPagamentos(){
   };
 
   const MESES_PAG=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  // Os setores guardam a data de formas diferentes: AAAA-MM-DD (maioria),
+  // AAAA-MM-Qn (quinzena da Metalúrgica/Grades/Tapeçamento) ou DD/MM/AAAA
+  // (Espuma, já formatada pra exibição). Essa função entende os três.
+  const extrairAnoMesRef=str=>{
+    if(!str) return null;
+    const mBarra=String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(mBarra) return mBarra[3]+'-'+mBarra[2];
+    const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
+    if(mTraco) return mTraco[1]+'-'+mTraco[2];
+    return null;
+  };
   const renderItensSetor=(itensSetor)=>{
     if(window._finPagFiltroStatus!=='pago') return itensSetor.map((p,i)=>renderFichaLinha(p,i)).join('');
     // Agrupa por mês (usa data do pagamento; se não tiver, usa a data de referência)
     const porMes={};
     itensSetor.forEach(p=>{
-      const chave=(p.dataPagamento||p.dataRef||'').slice(0,7)||'—';
+      const chave=extrairAnoMesRef(p.dataPagamento)||extrairAnoMesRef(p.dataRef)||'—';
       if(!porMes[chave]) porMes[chave]=[];
       porMes[chave].push(p);
     });
