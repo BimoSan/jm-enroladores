@@ -16447,6 +16447,10 @@ const LISTENERS_POR_SETOR={
       espumaOperadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
       if(currentUserData)reloadTab();
     }),
+    ()=>onSnapshot(doc(db,'config_espuma','geral'),snap=>{
+      if(snap.exists()) configEspuma={...configEspuma,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
     ()=>onSnapshot(collection(db,'cam_veiculos'),snap=>{
       camVeiculos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.modelo.localeCompare(b.modelo,'pt-BR'));
       if(currentUserData)reloadTab();
