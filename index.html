@@ -12134,17 +12134,13 @@ window._engConfirmarExcluirProduto=async function(){
 // ── Configurações: valores de rateio + margem padrão ───────────────
 function renderEngEspuma(){
   const MARGEM_VENDA=30;
-  const IMPOSTO=0.12;
   const mpsEspuma=engMaterias.filter(m=>m.isEspuma);
-  const mpOpts=mpsEspuma.map(m=>'<option value="'+m.id+'">'+m.nome+' — '+fmtMoeda(parseFloat(m.custo)||0)+'/m³</option>').join('');
+  const mpPadrao=mpsEspuma[0]||null;
   return `
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:4px">🧮 Calculadora de custo de espuma</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Informe as dimensões do pedaço para calcular o custo e preço de venda.</div>
-      ${mpsEspuma.length?`<div class="form-group"><label>Tipo de espuma</label>
-        <select id="calc-mp" onchange="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">
-          <option value="">Selecione...</option>${mpOpts}
-        </select></div>`
+      ${mpPadrao?'<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#5b21b6"><strong>'+mpPadrao.nome+'</strong> — '+fmtMoeda(parseFloat(mpPadrao.custo)||0)+'/m³</div>'
       :'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Nenhuma matéria-prima marcada como espuma. Vá em <strong>Matérias-primas</strong>, edite a espuma e marque <strong>"Usar na calculadora de espuma"</strong>.</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
         <div class="form-group" style="margin:0"><label>Largura (cm)</label>
@@ -12176,16 +12172,14 @@ function renderEngEspuma(){
 }
 
 window._engCalcEspuma=function(){
-  const mpId=document.getElementById('calc-mp')?.value;
+  const mp=engMaterias.filter(m=>m.isEspuma)[0]||null;
   const lCm=parseFloat(document.getElementById('calc-l')?.value)||0;
   const aCm=parseFloat(document.getElementById('calc-a')?.value)||0;
   const eCm=parseFloat(document.getElementById('calc-e')?.value)||0;
   const res=document.getElementById('calc-resultado');
   if(!res) return;
   const MARGEM_VENDA=30;
-  const IMPOSTO=0.12;
-  const mp=engMaterias.find(m=>m.id===mpId);
-  if(!mpId||!mp||!lCm||!aCm||!eCm){ res.style.display='none'; return; }
+  if(!mp||!lCm||!aCm||!eCm){ res.style.display='none'; return; }
   // Converte cm → m
   const l=lCm/100, a=aCm/100, e=eCm/100;
   const vol=l*a*e;
@@ -12205,33 +12199,33 @@ window._engCalcEspuma=function(){
 
 
 function renderEngColchao(){
-  const MARGEM_VENDA=30;
-  const mpsEspuma=engMaterias.filter(m=>m.isColchaoEspuma);
-  const mpsSuede=engMaterias.filter(m=>m.isColchaoSuede);
-  const mpsEstampado=engMaterias.filter(m=>m.isColchaoEstampado);
-  const mpsVies=engMaterias.filter(m=>m.isColchaoVies);
-  const mpsCola=engMaterias.filter(m=>m.isColchaoCola);
+  const mpEspuma=engMaterias.filter(m=>m.isColchaoEspuma)[0]||null;
+  const mpSuede=engMaterias.filter(m=>m.isColchaoSuede)[0]||null;
+  const mpEstampado=engMaterias.filter(m=>m.isColchaoEstampado)[0]||null;
+  const mpVies=engMaterias.filter(m=>m.isColchaoVies)[0]||null;
+  const mpCola=engMaterias.filter(m=>m.isColchaoCola)[0]||null;
 
   const faltando=[];
-  if(!mpsEspuma.length) faltando.push('Espuma (núcleo)');
-  if(!mpsSuede.length) faltando.push('Tecido Suede');
-  if(!mpsEstampado.length) faltando.push('Tecido Estampado');
-  if(!mpsVies.length) faltando.push('Viés');
-  if(!mpsCola.length) faltando.push('Cola');
+  if(!mpEspuma) faltando.push('Espuma (núcleo)');
+  if(!mpSuede) faltando.push('Tecido Suede');
+  if(!mpEstampado) faltando.push('Tecido Estampado');
+  if(!mpVies) faltando.push('Viés');
+  if(!mpCola) faltando.push('Cola');
 
-  const selectMp=(id,label,unidade,lista)=>{
-    if(!lista.length) return '';
-    const opts=lista.map(m=>'<option value="'+m.id+'">'+m.nome+' — '+fmtMoeda(parseFloat(m.custo)||0)+'/'+unidade+'</option>').join('');
-    return '<div class="form-group"><label>'+label+'</label>'
-      +'<select id="'+id+'" onchange="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
-      +'<option value="">Selecione...</option>'+opts+'</select></div>';
-  };
+  const linhaPadrao=(label,mp,unidade)=>mp?'<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:#64748b">'+label+'</span><strong>'+mp.nome+' — '+fmtMoeda(parseFloat(mp.custo)||0)+'/'+unidade+'</strong></div>':'';
 
   return `
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:4px">🛏️ Calculadora de custo de colchão</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Informe as dimensões do colchão para calcular espuma, tecidos, viés e o custo total.</div>
-      ${faltando.length?'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Faltam matérias-primas marcadas para: <strong>'+faltando.join(', ')+'</strong>. Vá em <strong>Matérias-primas</strong>, edite o item e marque a opção correspondente no bloco roxo "Calculadora de colchão".</div>':''}
+      ${faltando.length?'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Faltam matérias-primas marcadas para: <strong>'+faltando.join(', ')+'</strong>. Vá em <strong>Matérias-primas</strong>, edite o item e marque a opção correspondente no bloco roxo "Calculadora de colchão".</div>':
+      '<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;margin-bottom:12px">'
+        +linhaPadrao('Espuma (núcleo)',mpEspuma,'m³')
+        +linhaPadrao('Tecido Suede',mpSuede,'m²')
+        +linhaPadrao('Tecido Estampado',mpEstampado,'m')
+        +linhaPadrao('Viés',mpVies,'m')
+        +linhaPadrao('Cola',mpCola,'kg')
+      +'</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
         <div class="form-group" style="margin:0"><label>Largura (cm)</label>
           <input type="number" id="colc-l" min="0" step="1" placeholder="Ex: 110" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
@@ -12240,11 +12234,6 @@ function renderEngColchao(){
         <div class="form-group" style="margin:0"><label>Comprimento (cm)</label>
           <input type="number" id="colc-c" min="0" step="1" placeholder="Ex: 80" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
       </div>
-      ${selectMp('colc-mp-espuma','Espuma (núcleo)','m³',mpsEspuma)}
-      ${selectMp('colc-mp-suede','Tecido Suede (faixa lateral)','m²',mpsSuede)}
-      ${selectMp('colc-mp-estampado','Tecido Estampado (topo/fundo)','m',mpsEstampado)}
-      ${selectMp('colc-mp-vies','Viés','m',mpsVies)}
-      ${selectMp('colc-mp-cola','Cola','kg',mpsCola)}
       <div id="colc-resultado" style="display:none;margin-top:6px"></div>
     </div>
   `;
@@ -12262,11 +12251,11 @@ window._engCalcColchao=function(){
   const aCm=parseFloat(document.getElementById('colc-a')?.value)||0;
   const cCm=parseFloat(document.getElementById('colc-c')?.value)||0;
 
-  const mpEspuma=engMaterias.find(m=>m.id===document.getElementById('colc-mp-espuma')?.value);
-  const mpSuede=engMaterias.find(m=>m.id===document.getElementById('colc-mp-suede')?.value);
-  const mpEstampado=engMaterias.find(m=>m.id===document.getElementById('colc-mp-estampado')?.value);
-  const mpVies=engMaterias.find(m=>m.id===document.getElementById('colc-mp-vies')?.value);
-  const mpCola=engMaterias.find(m=>m.id===document.getElementById('colc-mp-cola')?.value);
+  const mpEspuma=engMaterias.filter(m=>m.isColchaoEspuma)[0]||null;
+  const mpSuede=engMaterias.filter(m=>m.isColchaoSuede)[0]||null;
+  const mpEstampado=engMaterias.filter(m=>m.isColchaoEstampado)[0]||null;
+  const mpVies=engMaterias.filter(m=>m.isColchaoVies)[0]||null;
+  const mpCola=engMaterias.filter(m=>m.isColchaoCola)[0]||null;
 
   if(!lCm||!aCm||!cCm||!mpEspuma||!mpSuede||!mpEstampado||!mpVies||!mpCola){
     res.style.display='none';
