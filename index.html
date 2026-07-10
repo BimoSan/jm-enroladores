@@ -516,6 +516,7 @@ let usuarios=[];
 let unsubFichas=null;
 let unsubEnroladores=null;
 let unsubUsuarios=null;
+let unsubsGlobaisExtra=[];
 let auditLogCache=[];
 let auditLogLoaded=false;
 let auditLogCarregando=false;
@@ -1121,6 +1122,8 @@ window._doLogout=async()=>{
   if(unsubEnroladores)unsubEnroladores();
   if(unsubFichas)unsubFichas();
   if(unsubUsuarios)unsubUsuarios();
+  unsubsGlobaisExtra.forEach(fn=>{ try{ fn&&fn(); }catch(e){} });
+  unsubsGlobaisExtra=[];
   currentFabrica=null;
   currentSetor=null;
   currentUserData=null;
@@ -16258,6 +16261,11 @@ function iniciarListeners(){
   if(unsubEnroladores)unsubEnroladores();
   if(unsubFichas)unsubFichas();
   if(unsubUsuarios)unsubUsuarios();
+  // Desliga também as demais escutas globais de uma eventual sessão anterior
+  // (ex: login trocado sem recarregar a página) — evita escutas "penduradas"
+  // presas ao token de autenticação de quem já deslogou.
+  unsubsGlobaisExtra.forEach(fn=>{ try{ fn&&fn(); }catch(e){} });
+  unsubsGlobaisExtra=[];
 
   // ── Listeners GLOBAIS: necessários em qualquer tela, para qualquer perfil ──
   unsubEnroladores=onSnapshot(collection(db,'enroladores'),snap=>{
@@ -16285,41 +16293,41 @@ function iniciarListeners(){
   });
 
   // Listener de valores unitários
-  onSnapshot(doc(db,'configuracoes','valores_apontador1'),snap=>{
+  unsubsGlobaisExtra.push(onSnapshot(doc(db,'configuracoes','valores_apontador1'),snap=>{
     if(snap.exists()){valoresPecas.apontador1={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
-  });
-  onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
+  }));
+  unsubsGlobaisExtra.push(onSnapshot(doc(db,'configuracoes','valores_apontador2'),snap=>{
     if(snap.exists()){valoresPecas.apontador2={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
-  });
+  }));
 
   // Config bônus
-  onSnapshot(doc(db,'configuracoes','bonus_volume'),snap=>{
+  unsubsGlobaisExtra.push(onSnapshot(doc(db,'configuracoes','bonus_volume'),snap=>{
     if(snap.exists()) configBonus={meta:300,valorBonus:1.00,ativo:true,...snap.data()};
     if(currentUserData)reloadTab();
-  });
+  }));
   // Bônus pagos
-  onSnapshot(collection(db,'bonus_pagos'),snap=>{
+  unsubsGlobaisExtra.push(onSnapshot(collection(db,'bonus_pagos'),snap=>{
     bonusPagos={};
     snap.docs.forEach(d=>{bonusPagos[d.id]=d.data();});
     if(currentUserData)reloadTab();
-  });
+  }));
 
   // Notificações — só carrega para perfis que precisam
   if(['financeiro','admin','proprietario'].includes(currentUserData?.perfil)){
-    onSnapshot(
+    unsubsGlobaisExtra.push(onSnapshot(
       query(collection(db,'notificacoes'),where('lida','==',false)),
       snap=>{
         notificacoes=snap.docs.map(d=>({id:d.id,...d.data()}));
         atualizarBadgeNotif();
         if(currentUserData)reloadTab();
       }
-    );
+    ));
   }
   // Notificações de pagamento
-  onSnapshot(collection(db,'notif_pagamento'),snap=>{
+  unsubsGlobaisExtra.push(onSnapshot(collection(db,'notif_pagamento'),snap=>{
     notifPagamentos=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderNotifPagamento();
-  });
+  }));
 }
 
 // ── Listeners POR SETOR: só ligam quando a pessoa está naquele setor ────────
