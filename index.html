@@ -14630,7 +14630,9 @@ function renderFinCompras(){
   const MESES_N2=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesLabel2=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES_N2[parseInt(mo)-1]+' '+y;};
 
-  const filtradas=window._finComprasMes?compras.filter(c=>(c.data||'').startsWith(window._finComprasMes)):compras;
+  const filtradas=(window._finComprasMes?compras.filter(c=>(c.data||'').startsWith(window._finComprasMes)):compras)
+    .slice()
+    .sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const totalMes=filtradas.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
 
   // Por item (agrupado)
