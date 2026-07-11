@@ -10044,15 +10044,18 @@ window._fitasModalAcao=function(acao, cor, extrusora){
 
   // Saída precisa de destino
   if(acao==='saida'){
+    const destinos=[
+      {v:'interno',l:'Setor Interno'},
+      {v:'inacio',l:'Inácio'},
+      {v:'mirandinha',l:'Mirandinha'},
+      {v:'venda',l:'Venda'},
+      {v:'perda',l:'Perda'},
+    ];
     campos='<div class="form-group"><label>Destino</label>'
-      +'<select id="fm-destino" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
-      +'<option value="">— Selecione —</option>'
-      +'<option value="interno">Setor Interno</option>'
-      +'<option value="inacio">Inácio</option>'
-      +'<option value="mirandinha">Mirandinha</option>'
-      +'<option value="venda">Venda</option>'
-      +'<option value="perda">Perda</option>'
-      +'</select></div>'
+      +'<input type="hidden" id="fm-destino" value="">'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
+      +destinos.map(d=>'<button type="button" onclick="window._fitasSelDestino(this,\''+d.v+'\')" style="padding:12px 8px;border-radius:10px;background:#f1f5f9;border:2px solid #e2e8f0;font-size:13px;font-weight:700;color:#334155;cursor:pointer">'+d.l+'</button>').join('')
+      +'</div></div>'
       +campos;
   }
 
@@ -10062,6 +10065,16 @@ window._fitasModalAcao=function(acao, cor, extrusora){
   showModal(titulo+' — '+itemLabel, campos,
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._fitasSalvarAcao(\''+acao+'\',\''+cor+'\')">Salvar</button>');
+};
+
+window._fitasSelDestino=function(btn,val){
+  const hidden=document.getElementById('fm-destino');
+  if(hidden) hidden.value=val;
+  const container=btn.parentElement;
+  if(container) Array.from(container.children).forEach(b=>{
+    b.style.background='#f1f5f9'; b.style.color='#334155'; b.style.border='2px solid #e2e8f0';
+  });
+  btn.style.background='#1e40af'; btn.style.color='#fff'; btn.style.border='2px solid #1e40af';
 };
 
 window._fitasSalvarAcao=async function(acao, cor){
