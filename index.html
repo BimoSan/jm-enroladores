@@ -9874,6 +9874,7 @@ function renderEstoqueFitas(){
   }
 
   // Cards por cor — clicáveis
+  html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📤 Estoque — toque para registrar saída</div>';
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
   const estoqMin=configFitas.estoqueMin||{};
   cores.forEach(c=>{
@@ -9887,7 +9888,7 @@ function renderEstoqueFitas(){
       +'<div style="font-size:10px;color:#94a3b8">rolos'+(estoqMin[c.nome]?' · mín: '+estoqMin[c.nome]:'')+'</div>'
       +(baixo?'<div style="font-size:10px;color:#d97706;margin-top:4px">⚠️ Estoque baixo</div>':'')
       +(qtd===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
-      +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
+      +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para registrar saída</div>'
       +'</div>';
   });
   html+='</div>';
@@ -9903,7 +9904,7 @@ function renderEstoqueFitas(){
     +'<div style="font-size:10px;color:#94a3b8">rolos'+(estoqMin['fio']?' · mín: '+estoqMin['fio']:'')+'</div>'
     +(baixoFio&&qtdFio>0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">⚠️ Estoque baixo</div>':'')
     +(qtdFio===0?'<div style="font-size:10px;color:#dc2626;margin-top:4px">❌ Sem estoque</div>':'')
-    +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para registrar saída</div>'
     +'</div></div>';
 
   // Movimentos de hoje com editar/excluir
@@ -9997,23 +9998,11 @@ window._fitasConfirmarExcluirMov=async function(){
 };
 
 window._fitasAbrirCor=function(cor){
-  const qtd=estoqueCor(cor);
-  showModal('🔩 '+cor+' — '+qtd+' rolos',
-    '<div style="display:flex;flex-direction:column;gap:10px">'
-    +'<button onclick="window._fitasModalAcao(\'prod\',\''+cor+'\')" style="padding:18px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1e40af;cursor:pointer;text-align:left">📦 Registrar produção</button>'
-    +'<button onclick="window._fitasModalAcao(\'saida\',\''+cor+'\')" style="padding:18px;border-radius:12px;background:#fee2e2;border:2px solid #fca5a5;font-size:15px;font-weight:700;color:#dc2626;cursor:pointer;text-align:left">📤 Registrar saída</button>'
-    +'</div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+  window._fitasModalAcao('saida',cor);
 };
 
 window._fitasAbrirFio=function(){
-  const qtd=estoqueFio();
-  showModal('🧵 Fio — '+qtd+' rolos',
-    '<div style="display:flex;flex-direction:column;gap:10px">'
-    +'<button onclick="window._fitasModalAcao(\'prod\',\'fio\')" style="padding:18px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1e40af;cursor:pointer;text-align:left">📦 Registrar produção</button>'
-    +'<button onclick="window._fitasModalAcao(\'saida\',\'fio\')" style="padding:18px;border-radius:12px;background:#fee2e2;border:2px solid #fca5a5;font-size:15px;font-weight:700;color:#dc2626;cursor:pointer;text-align:left">📤 Registrar saída</button>'
-    +'</div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+  window._fitasModalAcao('saida','fio');
 };
 
 window._fitasAbrirExtrusora=function(extrusoraNome){
