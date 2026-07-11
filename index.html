@@ -525,7 +525,7 @@ let operFitas=[];
 let entregasFitas=[];
 let producaoFitas=[];
 let saidasFitas=[];
-let configFitas={cores:[],tiposFio:['Fio Padrão']};
+let configFitas={cores:[],tiposFio:['Fio Padrão'],extrusoras:[]};
 // Caminhões
 let camVeiculos=[];
 let camMotoristas=[];
@@ -9840,7 +9840,34 @@ function estoqueFio(){
 // ── Estoque ───────────────────────────────────────────────────────
 function renderEstoqueFitas(){
   const cores=getCoresFitas();
+  const extrusoras=(configFitas.extrusoras||[]).filter(e=>e.ativo!==false);
   let html='<div style="font-size:15px;font-weight:700;margin-bottom:14px">🔩 Estoque de Fitas e Fio</div>';
+
+  const ICONE_EXTRUSORA='<svg viewBox="0 0 100 100" style="width:100%;height:56px">'
+    +'<rect x="10" y="45" width="55" height="22" rx="4" fill="#ffffff" fill-opacity=".9"/>'
+    +'<rect x="10" y="45" width="55" height="7" rx="3" fill="#ffffff"/>'
+    +'<polygon points="22,20 42,20 36,45 28,45" fill="#ffffff" fill-opacity=".75"/>'
+    +'<rect x="20" y="15" width="24" height="8" rx="2" fill="#ffffff" fill-opacity=".6"/>'
+    +'<circle cx="20" cy="56" r="5" fill="#00000030"/><circle cx="34" cy="56" r="5" fill="#00000030"/><circle cx="48" cy="56" r="5" fill="#00000030"/>'
+    +'<rect x="65" y="52" width="14" height="9" fill="#ffffff" fill-opacity=".9"/>'
+    +'<path d="M79 56 C88 56 88 70 96 70" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    +'<rect x="8" y="67" width="10" height="14" fill="#ffffff" fill-opacity=".6"/><rect x="55" y="67" width="10" height="14" fill="#ffffff" fill-opacity=".6"/>'
+    +'</svg>';
+
+  if(extrusoras.length){
+    html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">⚙️ Extrusoras — toque para lançar produção</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px">';
+    extrusoras.forEach((e,i)=>{
+      const cores_bg=['#7c3aed','#0e7490','#b45309','#166534','#be123c','#4338ca'];
+      const bg=cores_bg[i%cores_bg.length];
+      html+='<div style="text-align:center;padding:14px 10px;border-radius:14px;cursor:pointer;background:'+bg+';box-shadow:0 3px 10px rgba(0,0,0,.15)" onclick="window._fitasAbrirExtrusora(\''+e.nome+'\')">'
+        +ICONE_EXTRUSORA
+        +'<div style="font-size:13px;font-weight:800;color:#fff;margin-top:8px">'+e.nome+'</div>'
+        +'<div style="font-size:10px;color:rgba(255,255,255,.8);margin-top:2px">toque para lançar</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
 
   if(!cores.length){
     return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Configure as cores nas Configurações.</div></div>';
@@ -9989,7 +10016,18 @@ window._fitasAbrirFio=function(){
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
 };
 
-window._fitasModalAcao=function(acao, cor){
+window._fitasAbrirExtrusora=function(extrusoraNome){
+  const cores=getCoresFitas();
+  const botoesCor=cores.map(c=>'<button onclick="window._fitasModalAcao(\'prod\',\''+c.nome+'\',\''+extrusoraNome+'\')" style="padding:14px;border-radius:12px;background:'+(c.hex||'#6366f1')+';border:none;font-size:14px;font-weight:700;color:#fff;cursor:pointer;text-align:left">'+c.nome+'</button>').join('');
+  showModal('⚙️ '+extrusoraNome+' — o que foi produzido?',
+    '<div style="display:flex;flex-direction:column;gap:8px">'
+    +botoesCor
+    +'<button onclick="window._fitasModalAcao(\'prod\',\'fio\',\''+extrusoraNome+'\')" style="padding:14px;border-radius:12px;background:#6b7280;border:none;font-size:14px;font-weight:700;color:#fff;cursor:pointer;text-align:left">🧵 Fio</button>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>');
+};
+
+window._fitasModalAcao=function(acao, cor, extrusora){
   closeModal();
   const isFio=cor==='fio';
   const titulo=acao==='prod'?'📦 Produção':'📤 Saída';
@@ -10001,6 +10039,17 @@ window._fitasModalAcao=function(acao, cor){
     +'<input type="number" id="fm-rolos" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%;text-align:center"></div>'
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="fm-data" value="'+hoje+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>';
+
+  // Produção precisa de extrusora (obrigatório) — vem pré-selecionada se veio do
+  // fluxo "clicar na extrusora"; senão, pede pra escolher.
+  if(acao==='prod'){
+    const extrusoras=(configFitas.extrusoras||[]).filter(e=>e.ativo!==false);
+    const optsExt=extrusoras.map(e=>'<option value="'+e.nome+'"'+(e.nome===extrusora?' selected':'')+'>'+e.nome+'</option>').join('');
+    campos='<div class="form-group"><label>Extrusora</label>'
+      +'<select id="fm-extrusora" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+      +'<option value="">— Selecione —</option>'+optsExt+'</select></div>'
+      +campos;
+  }
 
   // Saída de fita ou fio precisa de enrolador
   if(acao==='saida'){
@@ -10030,14 +10079,18 @@ window._fitasSalvarAcao=async function(acao, cor){
   const data=document.getElementById('fm-data')?.value||today();
   const obs=document.getElementById('fm-obs')?.value.trim()||'';
   if(!rolos){showToast('Informe a quantidade de rolos.');return;}
-  closeModal();
 
   if(acao==='prod'){
+    const extrusora=document.getElementById('fm-extrusora')?.value||'';
+    if(!extrusora){showToast('Selecione a extrusora que produziu.');return;}
+    closeModal();
     await addDoc(collection(db,'producao_fitas'),{
       tipo:isFio?'fio':'fita', cor:isFio?null:cor,
+      extrusora,
       rolos, data, obs, criadoEm:new Date().toISOString()
     });
   } else {
+    closeModal();
     const enroladorIntId=document.getElementById('fm-enrolador-int')?.value||null;
     const apontadorPerfil=document.getElementById('fm-apt')?.value||null;
     await addDoc(collection(db,'saidas_fitas'),{
@@ -10318,6 +10371,31 @@ function renderRelatorioFitas(){
     +'<div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6)"><div><div class="stat-label">Fio saído</div><div class="stat-value">'+totalSaidFio+' rolos</div></div></div>'
     +'</div>';
 
+  const extrusoras=configFitas.extrusoras||[];
+  if(extrusoras.length && prodMes.length){
+    const porExt=extrusoras.map(e=>{
+      const itens=prodMes.filter(p=>p.extrusora===e.nome);
+      const total=itens.reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+      const dias=new Set(itens.map(p=>p.data)).size;
+      return {nome:e.nome,total,mediaDia:dias?(total/dias):0,dias};
+    }).sort((a,b)=>b.total-a.total);
+    const semExtrusora=prodMes.filter(p=>!p.extrusora).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+
+    html+='<div class="card" style="margin-bottom:12px;border-left:4px solid #7c3aed">'
+      +'<div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:8px">⚙️ Produção por extrusora — capacidade no mês</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f5f3ff"><th style="padding:7px 10px;text-align:left">Extrusora</th><th style="padding:7px 10px;text-align:right">Total (rolos)</th><th style="padding:7px 10px;text-align:right">Dias produzindo</th><th style="padding:7px 10px;text-align:right">Média/dia</th></tr></thead><tbody>'
+      +porExt.map((e,i)=>'<tr style="'+(i%2?'background:#faf9ff;':'')+'">'
+        +'<td style="padding:7px 10px;font-weight:700">'+e.nome+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#7c3aed">'+e.total+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#64748b">'+e.dias+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#64748b">'+e.mediaDia.toFixed(1)+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table></div>'
+      +(semExtrusora>0?'<div style="font-size:10px;color:#94a3b8;margin-top:8px">⚠️ '+semExtrusora+' rolo(s) registrados sem extrusora informada (lançamentos antigos ou pelo formulário antigo).</div>':'')
+      +'</div>';
+  }
+
   // Produção por cor no mês
   const cores=getCoresFitas();
   if(cores.length&&prodMes.length){
@@ -10368,10 +10446,18 @@ window._fitNavMes=function(mes){ window._fitRelMes=mes; reloadTab(); };
 function renderConfigFitas(){
   const cores=getCoresFitas();
   const estoqMin=configFitas.estoqueMin||{};
+  const extrusoras=configFitas.extrusoras||[];
   const coresHtml=cores.map((c,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
     +'<input type="color" value="'+(c.hex||'#6366f1')+'" id="cf-hex-'+i+'" style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">'
     +'<input value="'+c.nome+'" id="cf-nome-'+i+'" placeholder="Nome da cor" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
     +'<input type="number" value="'+(estoqMin[c.nome]||'')+'" id="cf-min-'+i+'" min="0" placeholder="Mín." title="Estoque mínimo" style="width:60px;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px;text-align:center">'
+    +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
+    +'</div>').join('');
+
+  const extrusorasHtml=extrusoras.map((e,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+    +'<input value="'+e.nome+'" id="cf-ext-nome-'+i+'" placeholder="Ex: Extrusora 1" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;white-space:nowrap">'
+    +'<input type="checkbox" id="cf-ext-ativo-'+i+'" '+(e.ativo!==false?'checked':'')+' style="width:15px;height:15px">Ativa</label>'
     +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
     +'</div>').join('');
 
@@ -10383,6 +10469,14 @@ function renderConfigFitas(){
     +'<div style="margin-top:14px">'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarConfigFitas()">Salvar</button>'
     +'</div></div>'
+    +'<div class="card" style="margin-bottom:12px;border-left:4px solid #7c3aed">'
+    +'<div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:4px">⚙️ Extrusoras</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Cada máquina cadastrada aqui aparece na hora de registrar produção — assim dá pra acompanhar a capacidade de cada uma.</div>'
+    +'<div id="cf-ext-lista">'+extrusorasHtml+'</div>'
+    +'<button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="window._addExtrusora()">+ Adicionar extrusora</button>'
+    +'<div style="margin-top:14px">'
+    +'<button class="btn btn-primary btn-sm" style="background:#7c3aed" onclick="window._salvarExtrusoras()">Salvar extrusoras</button>'
+    +'</div></div>'
     +'<div class="card">'
     +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🧵 Estoque mínimo — Fio</div>'
     +'<div style="display:flex;align-items:center;gap:8px">'
@@ -10392,6 +10486,39 @@ function renderConfigFitas(){
     +'<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="window._salvarMinFio()">Salvar</button>'
     +'</div>';
 }
+
+window._addExtrusora=function(){
+  const lista=document.getElementById('cf-ext-lista');
+  if(!lista) return;
+  const i=lista.children.length;
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px';
+  div.innerHTML='<input placeholder="Ex: Extrusora '+(i+1)+'" id="cf-ext-nome-'+i+'" style="flex:1;font-size:13px;border:1px solid #e2e8f0;border-radius:7px;padding:5px 8px">'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;white-space:nowrap">'
+    +'<input type="checkbox" id="cf-ext-ativo-'+i+'" checked style="width:15px;height:15px">Ativa</label>'
+    +'<button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>';
+  lista.appendChild(div);
+};
+
+window._salvarExtrusoras=async function(){
+  const lista=document.getElementById('cf-ext-lista');
+  if(!lista) return;
+  const extrusoras=[];
+  Array.from(lista.children).forEach(row=>{
+    const nomeEl=row.querySelector('input[id^="cf-ext-nome"]');
+    const ativoEl=row.querySelector('input[type="checkbox"]');
+    const nome=(nomeEl?.value||'').trim();
+    if(nome) extrusoras.push({nome,ativo:ativoEl?.checked!==false});
+  });
+  try{
+    await setDoc(doc(db,'config_fitas','geral'),{...configFitas,extrusoras});
+    const snap=await getDoc(doc(db,'config_fitas','geral'));
+    if(snap.exists()) configFitas={cores:[],tiposFio:['Fio Padrão'],extrusoras:[],...snap.data()};
+    showToast('Extrusoras salvas! ('+extrusoras.length+')');
+    setTimeout(()=>reloadTab(),500);
+  }catch(e){showToast('Erro: '+e.message);}
+};
+
 
 window._addCorFita=function(){
   const lista=document.getElementById('cf-lista');
