@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>JM — Gestão Fabril</title>
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><clipPath id="rf"><rect width="192" height="192" rx="32"/></clipPath></defs><g clip-path="url(%23rf)"><rect width="192" height="192" fill="%23dedcd4"/><rect y="72" width="192" height="72" fill="%23a8402e"/><rect y="144" width="192" height="48" fill="%234b5568"/></g><text x="98" y="125" text-anchor="middle" font-size="80" font-weight="900" fill="%23000000" fill-opacity="0.35" font-family="Arial,sans-serif">JM</text><text x="96" y="123" text-anchor="middle" font-size="80" font-weight="900" fill="white" font-family="Arial,sans-serif">JM</text></svg>'>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,7 +21,7 @@
     background_color:'#1d4ed8',
     theme_color:'#dedcd4',
     icons:[{
-      src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="%231d4ed8"/><text x="50%" y="125" text-anchor="middle" font-size="90" font-weight="900" fill="white" font-family="sans-serif">JM</text></svg>',
+      src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><clipPath id="r"><rect width="192" height="192" rx="32"/></clipPath></defs><g clip-path="url(%23r)"><rect width="192" height="192" fill="%23dedcd4"/><rect y="72" width="192" height="72" fill="%23a8402e"/><rect y="144" width="192" height="48" fill="%234b5568"/></g><text x="98" y="125" text-anchor="middle" font-size="80" font-weight="900" fill="%23000000" fill-opacity="0.35" font-family="Arial,sans-serif">JM</text><text x="96" y="123" text-anchor="middle" font-size="80" font-weight="900" fill="white" font-family="Arial,sans-serif">JM</text></svg>',
       sizes:'192x192',
       type:'image/svg+xml'
     }]
@@ -44,7 +45,7 @@ if('serviceWorker' in navigator){
 <meta name="theme-color" content="#dedcd4">
 <script>
 (function(){
-  const manifest={name:'JM — Gestão Fabril',short_name:'JM Sistema',start_url:location.href,display:'standalone',background_color:'#1e40af',theme_color:'#dedcd4',icons:[{src:'https://placehold.co/192x192/1e40af/ffffff?text=JM',sizes:'192x192',type:'image/png'},{src:'https://placehold.co/512x512/1e40af/ffffff?text=JM',sizes:'512x512',type:'image/png'}]};
+  const manifest={name:'JM — Gestão Fabril',short_name:'JM Sistema',start_url:location.href,display:'standalone',background_color:'#dedcd4',theme_color:'#dedcd4',icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><clipPath id="r2"><rect width="192" height="192" rx="32"/></clipPath></defs><g clip-path="url(%23r2)"><rect width="192" height="192" fill="%23dedcd4"/><rect y="72" width="192" height="72" fill="%23a8402e"/><rect y="144" width="192" height="48" fill="%234b5568"/></g><text x="98" y="125" text-anchor="middle" font-size="80" font-weight="900" fill="%23000000" fill-opacity="0.35" font-family="Arial,sans-serif">JM</text><text x="96" y="123" text-anchor="middle" font-size="80" font-weight="900" fill="white" font-family="Arial,sans-serif">JM</text></svg>',sizes:'192x192',type:'image/svg+xml'},{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><clipPath id="r3"><rect width="192" height="192" rx="32"/></clipPath></defs><g clip-path="url(%23r3)"><rect width="192" height="192" fill="%23dedcd4"/><rect y="72" width="192" height="72" fill="%23a8402e"/><rect y="144" width="192" height="48" fill="%234b5568"/></g><text x="98" y="125" text-anchor="middle" font-size="80" font-weight="900" fill="%23000000" fill-opacity="0.35" font-family="Arial,sans-serif">JM</text><text x="96" y="123" text-anchor="middle" font-size="80" font-weight="900" fill="white" font-family="Arial,sans-serif">JM</text></svg>',sizes:'512x512',type:'image/svg+xml'}]};
   const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
   const url=URL.createObjectURL(blob);
   const link=document.createElement('link');
