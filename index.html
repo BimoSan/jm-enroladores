@@ -9843,7 +9843,7 @@ function renderEstoqueFitas(){
   const extrusoras=(configFitas.extrusoras||[]).filter(e=>e.ativo!==false);
   let html='<div style="font-size:15px;font-weight:700;margin-bottom:14px">🔩 Estoque de Fitas e Fio</div>';
 
-  const ICONE_EXTRUSORA='<svg viewBox="0 0 100 100" style="width:100%;height:56px">'
+  const ICONE_EXTRUSORA='<svg viewBox="0 0 100 100" style="width:100%;height:40px;display:block">'
     +'<rect x="10" y="45" width="55" height="22" rx="4" fill="#ffffff" fill-opacity=".9"/>'
     +'<rect x="10" y="45" width="55" height="7" rx="3" fill="#ffffff"/>'
     +'<polygon points="22,20 42,20 36,45 28,45" fill="#ffffff" fill-opacity=".75"/>'
@@ -9856,14 +9856,14 @@ function renderEstoqueFitas(){
 
   if(extrusoras.length){
     html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">⚙️ Extrusoras — toque para lançar produção</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px">';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px">';
     extrusoras.forEach((e,i)=>{
       const cores_bg=['#7c3aed','#0e7490','#b45309','#166534','#be123c','#4338ca'];
       const bg=cores_bg[i%cores_bg.length];
-      html+='<div style="text-align:center;padding:14px 10px;border-radius:14px;cursor:pointer;background:'+bg+';box-shadow:0 3px 10px rgba(0,0,0,.15)" onclick="window._fitasAbrirExtrusora(\''+e.nome+'\')">'
+      html+='<div style="text-align:center;padding:14px;border-radius:14px;cursor:pointer;background:'+bg+';box-shadow:0 3px 10px rgba(0,0,0,.15)" onclick="window._fitasAbrirExtrusora(\''+e.nome+'\')">'
         +ICONE_EXTRUSORA
-        +'<div style="font-size:13px;font-weight:800;color:#fff;margin-top:8px">'+e.nome+'</div>'
-        +'<div style="font-size:10px;color:rgba(255,255,255,.8);margin-top:2px">toque para lançar</div>'
+        +'<div style="font-size:12px;font-weight:700;color:#fff;margin-top:6px">'+e.nome+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">toque para lançar</div>'
         +'</div>';
     });
     html+='</div>';
