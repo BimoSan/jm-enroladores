@@ -9919,9 +9919,11 @@ function renderEstoqueFitas(){
     movHoje.forEach((m,i)=>{
       const isProd=m._tipo==='prod';
       const label=m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||''));
+      const subLabel=isProd?(m.extrusora?'⚙️ '+m.extrusora:''):(m.destinoNome?'📤 '+m.destinoNome:'');
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
         +'<div>'
         +'<div style="font-size:12px;font-weight:600">'+label+'</div>'
+        +(subLabel?'<div style="font-size:10px;color:#64748b">'+subLabel+'</div>':'')
         +(m.obs?'<div style="font-size:10px;color:#94a3b8">'+m.obs+'</div>':'')
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
@@ -10040,17 +10042,17 @@ window._fitasModalAcao=function(acao, cor, extrusora){
       +campos;
   }
 
-  // Saída de fita ou fio precisa de enrolador
+  // Saída precisa de destino
   if(acao==='saida'){
-    const optsEnr=enroladoresInt.filter(e=>e.ativo!==false)
-      .map(e=>'<option value="'+e.id+'">'+e.nome+'</option>').join('');
-    const optsApt='<option value="apontador1">Inácio</option><option value="apontador2">Mirandinha</option>';
-    campos='<div class="form-group"><label>Enrolador (interno)</label>'
-      +'<select id="fm-enrolador-int" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
-      +'<option value="">— Nenhum —</option>'+optsEnr+'</select></div>'
-      +'<div class="form-group"><label>Apontador (terceirizado)</label>'
-      +'<select id="fm-apt" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
-      +'<option value="">— Nenhum —</option>'+optsApt+'</select></div>'
+    campos='<div class="form-group"><label>Destino</label>'
+      +'<select id="fm-destino" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+      +'<option value="">— Selecione —</option>'
+      +'<option value="interno">Setor Interno</option>'
+      +'<option value="inacio">Inácio</option>'
+      +'<option value="mirandinha">Mirandinha</option>'
+      +'<option value="venda">Venda</option>'
+      +'<option value="perda">Perda</option>'
+      +'</select></div>'
       +campos;
   }
 
@@ -10079,14 +10081,14 @@ window._fitasSalvarAcao=async function(acao, cor){
       rolos, data, obs, criadoEm:new Date().toISOString()
     });
   } else {
+    const destino=document.getElementById('fm-destino')?.value||'';
+    if(!destino){showToast('Selecione o destino.');return;}
+    const labels={interno:'Setor Interno',inacio:'Inácio',mirandinha:'Mirandinha',venda:'Venda',perda:'Perda'};
     closeModal();
-    const enroladorIntId=document.getElementById('fm-enrolador-int')?.value||null;
-    const apontadorPerfil=document.getElementById('fm-apt')?.value||null;
     await addDoc(collection(db,'saidas_fitas'),{
       tipo:isFio?'fio':'fita', cor:isFio?null:cor,
       rolos, data, obs,
-      enroladorIntId:enroladorIntId||null,
-      apontadorPerfil:apontadorPerfil||null,
+      destino, destinoNome:labels[destino]||destino,
       criadoEm:new Date().toISOString()
     });
   }
