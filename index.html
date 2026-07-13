@@ -2772,7 +2772,7 @@ function renderEntrega(){
   setTimeout(()=>buildTiposInputs('e-tipos'),0);
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
-    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2')return e.apontadorPerfil===p;return true;}).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].filter(e=>e.ativo!==false).filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2')return e.apontadorPerfil===p;return true;}).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
     <div id="e-ficha-opcao" style="display:none;margin-bottom:10px"></div>
     <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
@@ -3068,10 +3068,11 @@ function renderEnroladores(){
     const fList=fichas.filter(f=>f.enroladorId===e.id);
     const env=fList.reduce((a,f)=>a+totalEnv(f),0),rec=fList.reduce((a,f)=>a+totalRec(f),0);
     const c=avatarColor(i);
-    return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">
+    const inativo=e.ativo===false;
+    return `<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px;${inativo?'opacity:.6':''}">
       <div style="width:44px;height:44px;border-radius:50%;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${initials(e.nome)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:700">${e.nome}</div>
+        <div style="font-size:14px;font-weight:700">${e.nome} ${inativo?'<span style="font-size:10px;background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:99px;font-weight:600">Inativo</span>':''}</div>
         <div style="font-size:11px;color:#64748b">${e.endereco||'—'} · ${e.telefone||'—'}</div>
         ${e.usuarioUid?`<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:600;margin-top:3px;display:inline-block">✓ Login vinculado</span>`:`<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:99px;font-weight:600;margin-top:3px;display:inline-block">Sem login</span>`}
       </div>
@@ -3081,6 +3082,7 @@ function renderEnroladores(){
         <div style="font-size:10px;margin-top:4px;padding:2px 8px;border-radius:99px;font-weight:600;background:${e.apontadorPerfil==='apontador1'?'#ccfbf1':'#fef3c7'};color:${e.apontadorPerfil==='apontador1'?'#0f766e':'#b45309'}">${e.apontadorPerfil==='apontador2'?'Apontador 2':'Apontador 1'}</div>
       </div>
       <button class="btn btn-sm btn-warn" onclick="window._editarEnrolador('${e.id}')">Editar</button>
+      ${inativo?`<button class="btn btn-sm" onclick="window._reativarEnrolador('${e.id}')">Reativar</button>`:''}
       <button class="btn btn-sm btn-danger" onclick="window._excluirEnrolador('${e.id}')">Excluir</button>
     </div>`;
   }).join('');
@@ -3146,11 +3148,11 @@ window._excluirEnrolador=id=>{
   const enr=enroladores.find(e=>e.id===id);if(!enr)return;
   const temFichas=fichas.some(f=>f.enroladorId===id);
   window._pendingExcluirEnrId=id;
-  const aviso=temFichas?'<div style="margin-top:8px;font-size:12px;background:#ffebee;color:#c62828;padding:8px 10px;border-radius:8px">⚠️ Este enrolador possui fichas cadastradas. Exclua as fichas primeiro antes de excluir o enrolador.</div>':'';
+  const aviso=temFichas?'<div style="margin-top:8px;font-size:12px;background:#ffebee;color:#c62828;padding:8px 10px;border-radius:8px">⚠️ Este enrolador possui fichas cadastradas — não dá pra excluir sem perder o histórico de relatórios e estatísticas.<br><br>Se ele parou de enrolar, use <strong>"Inativar"</strong> em vez de excluir: o histórico continua intacto, e ele só some da lista de quem pode receber ficha nova.</div>':'';
   showModal('Excluir enrolador',
     `<div style="font-size:13px;color:#444;line-height:1.6">Excluir permanentemente o enrolador <strong>${enr.nome}</strong>?${aviso}</div>`,
     `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     ${!temFichas?`<button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirEnr()">Excluir</button>`:''}`);
+     ${temFichas?`<button class="btn btn-sm btn-warn" onclick="window._inativarEnrolador('${id}')">Inativar</button>`:`<button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirEnr()">Excluir</button>`}`);
 };
 window._confirmarExcluirEnr=async()=>{
   const id=window._pendingExcluirEnrId;if(!id)return;
@@ -3158,6 +3160,15 @@ window._confirmarExcluirEnr=async()=>{
   await deleteDoc(doc(db,'enroladores',id));
   window._pendingExcluirEnrId=null;
   showToast('Enrolador excluído.');
+};
+window._inativarEnrolador=async(id)=>{
+  closeModal();
+  await updateDoc(doc(db,'enroladores',id),{ativo:false});
+  showToast('Enrolador inativado — histórico preservado.');
+};
+window._reativarEnrolador=async(id)=>{
+  await updateDoc(doc(db,'enroladores',id),{ativo:true});
+  showToast('Enrolador reativado!');
 };
 
 // ── Ações fichas ─────────────────────────────────────────────────
