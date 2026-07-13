@@ -8927,6 +8927,21 @@ window._confirmarExcluirApontInt=async()=>{
   showToast('Apontamento excluído.');
 };
 
+window._excluirFichaInt=(fichaId)=>{
+  window._pendingExcluirFichaInt=fichaId;
+  showModal('Excluir ficha',
+    '<div style="font-size:13px;color:#444">Tem certeza que deseja excluir esta ficha permanentemente, com todos os lançamentos dela? Esta ação não pode ser desfeita.</div>',
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirFichaInt()">Excluir</button>`);
+};
+window._confirmarExcluirFichaInt=async()=>{
+  const fichaId=window._pendingExcluirFichaInt;
+  if(!fichaId)return;
+  closeModal();
+  await deleteDoc(doc(db,'fichas_int',fichaId));
+  showToast('Ficha excluída.');
+};
+
 function renderFichasInt(){
   if(!window._fichasIntFiltro) window._fichasIntFiltro='abertas';
   const filtro=window._fichasIntFiltro;
@@ -9001,6 +9016,7 @@ function renderFichasInt(){
             <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${f.status==='aberta'?'#d1fae5':'#f1f5f9'};color:${f.status==='aberta'?'#065f46':'#64748b'}">${f.status}</span>
           </div>
           ${podeFechar?`<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt('${f.id}')">Fechar ficha</button>`:''}
+          ${isAdminInt?`<button class="btn btn-sm btn-danger" onclick="window._excluirFichaInt('${f.id}')">Excluir ficha</button>`:''}
         </div>
       </div>
       <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
