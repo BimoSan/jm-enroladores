@@ -14310,7 +14310,7 @@ function renderFinDashboard(){
   // Viagens do mês: combustível + gastos com motoristas
   const rotasDoMes=camRotas.filter(r=>(r.data||'').startsWith(mesAtualFin));
   const totalCombMes=rotasDoMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
-  const totalGastoMotMes=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMotorista)||0),0),0);
+  const totalGastoMotMes=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
   const totalViagensMes=totalCombMes+totalGastoMotMes;
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
@@ -14362,7 +14362,7 @@ function renderFinDashboard(){
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=rotaTotalCombustivel(r);
-    porMes[mes_]+=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMotorista)||0),0);
+    porMes[mes_]+=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
@@ -15107,7 +15107,7 @@ function renderFinViagens(){
 
   const rotasDoMes=camRotas.filter(r=>(r.data||'').startsWith(mes));
   const totalComb=rotasDoMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
-  const totalGastMot=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMotorista)||0),0),0);
+  const totalGastMot=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
   const totalGeral=totalComb+totalGastMot;
 
   const mesSelect='<select onchange="window._finViagensSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
@@ -15144,7 +15144,7 @@ function renderFinViagens(){
       const v=camVeiculos.find(x=>x.id===r.veiculoId);
       const m=camMotoristas.find(x=>x.id===r.motoristId);
       const comb=rotaTotalCombustivel(r);
-      const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMotorista)||0),0);
+      const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
       const total=comb+mot;
       return `<tr style="${i%2?'background:#f8fafc':''}">
         <td style="padding:7px 8px;white-space:nowrap">${fmtDate(r.data)}</td>
@@ -15195,7 +15195,7 @@ function renderFinRelatorio(){
     const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
     const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
-    const viagVal=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r)+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMotorista)||0),0),0);
+    const viagVal=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r)+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
     return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,total:pagVal+compVal+indVal+matVal+quimVal+viagVal};
   });
 
