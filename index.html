@@ -8742,33 +8742,77 @@ function renderPainelInt(){
 
 // ── Apontamento ───────────────────────────────────────────────────
 function renderApontarInt(){
-  const optsEnr=enroladoresInt.map(e=>'<option value="'+e.id+'">'+e.nome+'</option>').join('');
-  const tiposHtml=getTiposInt().map(t=>'<div class="num-group">'
-    +'<label style="font-size:10px">'+t.label+'</label>'
-    +'<input type="number" id="ai-'+t.id+'" min="0" step="1" placeholder="0" onfocus="this.select()"'
-    +' style="font-size:13px;border:1px solid #e2e8f0;border-radius:8px;padding:5px 6px;text-align:center;width:100%">'
-    +'</div>').join('');
+  if(!window._aiEnrSelecionado && enroladoresInt.length===1) window._aiEnrSelecionado=enroladoresInt[0].id;
+  const enrSel=window._aiEnrSelecionado||'';
+  if(!window._aiQtds) window._aiQtds={};
+  if(!window._aiData) window._aiData=today();
 
-  return '<div class="card">'
-    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar produção</div>'
-    +'<div class="form-row">'
-    +'<div class="form-group"><label>Enrolador</label>'
-    +'<select id="ai-enrolador" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'
-    +'<option value="">Selecione...</option>'+optsEnr+'</select></div>'
-    +'<div class="form-group"><label>Data</label>'
-    +'<input type="date" id="ai-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
+  // Passo 1: escolher o enrolador (botões grandes, não menu)
+  const botoesEnr=enroladoresInt.map(e=>{
+    const ativo=enrSel===e.id;
+    return '<button onclick="window._aiSelecionarEnr(\''+e.id+'\')" style="padding:18px 10px;border-radius:14px;background:'+(ativo?'#1e40af':'#f1f5f9')+';border:2px solid '+(ativo?'#1e40af':'#e2e8f0')+';font-size:16px;font-weight:800;color:'+(ativo?'#fff':'#334155')+';cursor:pointer">'+e.nome+'</button>';
+  }).join('');
+
+  let html='<div class="card">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:14px">👤 Quem está enrolando?</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:8px">'+botoesEnr+'</div>'
+    +'</div>';
+
+  if(!enrSel){
+    return html+'<div class="card" style="margin-top:12px"><div style="text-align:center;color:#94a3b8;padding:16px;font-size:14px">Toque no nome do enrolador acima pra continuar.</div></div>';
+  }
+
+  // Passo 2: quantidade por tipo de peça, com botões grandes de + e -
+  const tipos=getTiposInt();
+  const stepperHtml=tipos.map(t=>{
+    const qtd=window._aiQtds[t.id]||0;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:14px;margin-bottom:10px">'
+      +'<div style="font-size:16px;font-weight:700;color:#334155">'+t.label+'</div>'
+      +'<div style="display:flex;align-items:center;gap:14px">'
+      +'<button onclick="window._aiAjustarQtd(\''+t.id+'\',-1)" style="width:44px;height:44px;border-radius:50%;background:#fee2e2;border:none;font-size:24px;font-weight:900;color:#dc2626;cursor:pointer">−</button>'
+      +'<div style="font-size:24px;font-weight:900;color:#1e293b;min-width:36px;text-align:center">'+qtd+'</div>'
+      +'<button onclick="window._aiAjustarQtd(\''+t.id+'\',1)" style="width:44px;height:44px;border-radius:50%;background:#dcfce7;border:none;font-size:24px;font-weight:900;color:#16a34a;cursor:pointer">+</button>'
+      +'</div></div>';
+  }).join('');
+
+  const dataFmt=window._aiData.split('-').reverse().join('/');
+  html+='<div class="card" style="margin-top:12px">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:4px">📦 Quantas peças?</div>'
+    +'<div style="font-size:12px;color:#94a3b8;margin-bottom:14px">Toque no + pra cada peça produzida hoje.</div>'
+    +(tipos.length?stepperHtml:'<div style="color:#94a3b8;font-size:12px;padding:8px">Configure os tipos de peça nas Configurações.</div>')
+    +'<div style="text-align:center;margin-top:6px;margin-bottom:14px">'
+    +'<span style="font-size:12px;color:#64748b">Data: <strong>'+dataFmt+'</strong></span> '
+    +'<button onclick="window._aiMudarData()" style="background:none;border:none;color:#1e40af;font-size:12px;text-decoration:underline;cursor:pointer">trocar</button>'
     +'</div>'
-    +(getTiposInt().length?'<div class="section-label" style="margin-top:8px">peças produzidas</div><div class="num-inputs">'+tiposHtml+'</div>':'<div style="color:#94a3b8;font-size:12px;padding:8px">Configure os tipos de peça nas Configurações.</div>')
-    +'<div style="margin-top:12px;display:flex;gap:8px">'
-    +'<button class="btn btn-primary" onclick="window._registrarApontInt()">Registrar</button>'
-    +'<button class="btn btn-ghost" onclick="window._limparApontInt()">Limpar</button>'
-    +'</div>'
-    +'</div>'
-    +'<div class="card" style="margin-top:12px">'
+    +'<button onclick="window._registrarApontInt()" style="width:100%;padding:18px;border-radius:14px;background:#16a34a;border:none;font-size:18px;font-weight:800;color:#fff;cursor:pointer">✔ Registrar produção</button>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-top:12px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Apontamentos de hoje</div>'
     +historicoApontInt()
     +'</div>';
+  return html;
 }
+
+window._aiSelecionarEnr=function(enrId){
+  window._aiEnrSelecionado=enrId;
+  reloadTab();
+};
+window._aiAjustarQtd=function(tipoId,delta){
+  if(!window._aiQtds) window._aiQtds={};
+  const atual=window._aiQtds[tipoId]||0;
+  window._aiQtds[tipoId]=Math.max(0,atual+delta);
+  reloadTab();
+};
+window._aiMudarData=function(){
+  const nova=prompt('Data (DD/MM/AAAA):', window._aiData.split('-').reverse().join('/'));
+  if(!nova) return;
+  const partes=nova.split('/');
+  if(partes.length===3){
+    window._aiData=partes[2]+'-'+partes[1].padStart(2,'0')+'-'+partes[0].padStart(2,'0');
+    reloadTab();
+  }
+};
 
 function historicoApontInt(){
   const hoje=today();
@@ -8849,13 +8893,13 @@ window._confirmarExcluirApontInt=async function(){
 };
 
 window._registrarApontInt=async function(){
-  const enrId=document.getElementById('ai-enrolador')?.value;
-  const data=document.getElementById('ai-data')?.value;
-  if(!enrId||!data){showToast('Selecione o enrolador e a data.');return;}
+  const enrId=window._aiEnrSelecionado;
+  const data=window._aiData||today();
+  if(!enrId){showToast('Selecione o enrolador.');return;}
   const tipos={};
   let total=0;
   getTiposInt().forEach(t=>{
-    const v=parseInt(document.getElementById('ai-'+t.id)?.value)||0;
+    const v=parseInt(window._aiQtds?.[t.id])||0;
     if(v>0){tipos[t.id]=v;total+=v;}
   });
   if(!total){showToast('Registre pelo menos uma peça.');return;}
@@ -8880,7 +8924,8 @@ window._registrarApontInt=async function(){
 };
 
 window._limparApontInt=function(){
-  getTiposInt().forEach(t=>{const el=document.getElementById('ai-'+t.id);if(el)el.value='';});
+  window._aiQtds={};
+  reloadTab();
 };
 
 // ── Fichas ────────────────────────────────────────────────────────
