@@ -14488,6 +14488,19 @@ function renderFinPagamentos(){
 
   const pagamentos=finPagamentosTodos();
 
+  // Os setores guardam a data de formas diferentes: AAAA-MM-DD (maioria),
+  // AAAA-MM-Qn (quinzena da Metalúrgica/Grades/Tapeçamento) ou DD/MM/AAAA
+  // (Espuma, já formatada pra exibição). Essa função entende os três.
+  const extrairAnoMesRef=str=>{
+    if(!str) return null;
+    const mBarra=String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(mBarra) return mBarra[3]+'-'+mBarra[2];
+    const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
+    if(mTraco) return mTraco[1]+'-'+mTraco[2];
+    return null;
+  };
+  const mesAtualPag=today().slice(0,7);
+
   const filtrados=pagamentos.filter(p=>{
     if(window._finPagFiltroStatus==='pendente'&&p.pago) return false;
     if(window._finPagFiltroStatus==='pago'&&!p.pago) return false;
@@ -14496,7 +14509,8 @@ function renderFinPagamentos(){
 
   const totalFiltrado=filtrados.reduce((s,p)=>s+p.valor,0);
   const totalPendente=pagamentos.filter(p=>!p.pago).reduce((s,p)=>s+p.valor,0);
-  const totalPago=pagamentos.filter(p=>p.pago).reduce((s,p)=>s+p.valor,0);
+  const pagosMesAtual=pagamentos.filter(p=>p.pago&&extrairAnoMesRef(p.dataPagamento||p.dataRef)===mesAtualPag);
+  const totalPago=pagosMesAtual.reduce((s,p)=>s+p.valor,0);
 
   const btnStatus=(v,label)=>`<button onclick="window._finSetFiltroStatus('${v}')" style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${window._finPagFiltroStatus===v?'#1e40af':'#e2e8f0'};background:${window._finPagFiltroStatus===v?'#1e40af':'#fff'};color:${window._finPagFiltroStatus===v?'#fff':'#64748b'};cursor:pointer">${label}</button>`;
 
@@ -14520,9 +14534,9 @@ function renderFinPagamentos(){
       <div style="font-size:10px;color:${window._finPagFiltroStatus==='pendente'?'rgba(255,255,255,.7)':'#94a3b8'};margin-top:2px">${pagamentos.filter(p=>!p.pago).length} pendências</div>
     </div>
     <div class="card" style="text-align:center;padding:14px;background:${window._finPagFiltroStatus==='pago'?'linear-gradient(135deg,#059669,#10b981)':'#fff'};cursor:pointer" onclick="window._finSetFiltroStatus('pago')">
-      <div style="font-size:10px;font-weight:700;color:${window._finPagFiltroStatus==='pago'?'rgba(255,255,255,.8)':'#94a3b8'};margin-bottom:4px">PAGO</div>
+      <div style="font-size:10px;font-weight:700;color:${window._finPagFiltroStatus==='pago'?'rgba(255,255,255,.8)':'#94a3b8'};margin-bottom:4px">PAGO NO MÊS</div>
       <div style="font-size:22px;font-weight:900;color:${window._finPagFiltroStatus==='pago'?'#fff':'#059669'}">${fmtMoeda(totalPago)}</div>
-      <div style="font-size:10px;color:${window._finPagFiltroStatus==='pago'?'rgba(255,255,255,.7)':'#94a3b8'};margin-top:2px">${pagamentos.filter(p=>p.pago).length} pagamentos</div>
+      <div style="font-size:10px;color:${window._finPagFiltroStatus==='pago'?'rgba(255,255,255,.7)':'#94a3b8'};margin-top:2px">${pagosMesAtual.length} pagamentos</div>
     </div>
   </div>`;
 
@@ -14577,16 +14591,6 @@ function renderFinPagamentos(){
 
   const MESES_PAG=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   // Os setores guardam a data de formas diferentes: AAAA-MM-DD (maioria),
-  // AAAA-MM-Qn (quinzena da Metalúrgica/Grades/Tapeçamento) ou DD/MM/AAAA
-  // (Espuma, já formatada pra exibição). Essa função entende os três.
-  const extrairAnoMesRef=str=>{
-    if(!str) return null;
-    const mBarra=String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if(mBarra) return mBarra[3]+'-'+mBarra[2];
-    const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
-    if(mTraco) return mTraco[1]+'-'+mTraco[2];
-    return null;
-  };
   const renderItensSetor=(itensSetor)=>{
     if(window._finPagFiltroStatus!=='pago') return itensSetor.map((p,i)=>renderFichaLinha(p,i)).join('');
     // Agrupa por mês (usa data do pagamento; se não tiver, usa a data de referência)
