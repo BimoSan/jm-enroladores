@@ -8688,12 +8688,13 @@ function renderPainelInt(){
     });
     const totalMes=Object.values(totMes).reduce((s,v)=>s+v,0);
 
-    html+='<div class="card" style="padding:14px">'
+    html+='<div class="card" style="padding:14px;cursor:pointer" onclick="window._aiAbrirEnrolador(\''+enr.id+'\')">'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<div style="display:flex;align-items:center;gap:10px">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:#065f46;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">'+enr.nome[0]+'</div>'
       +'<div><div style="font-weight:700;font-size:13px">'+enr.nome+'</div>'
       +'<div style="font-size:11px;color:#64748b">'+(ficha?'Ficha aberta desde '+fmtDate(ficha.dataAbertura):'Sem ficha aberta')+'</div>'
+      +'<div style="font-size:10px;color:#1e40af;font-weight:600;margin-top:1px">toque para lançar produção ›</div>'
       +'</div></div>'
       +'<div style="text-align:right">'
       +'<div style="font-size:10px;color:#64748b">peças hoje</div>'
@@ -8742,191 +8743,54 @@ function renderPainelInt(){
 
 // ── Apontamento ───────────────────────────────────────────────────
 function renderApontarInt(){
-  if(!window._aiEnrSelecionado && enroladoresInt.length===1) window._aiEnrSelecionado=enroladoresInt[0].id;
-  const enrSel=window._aiEnrSelecionado||'';
-  if(!window._aiQtds) window._aiQtds={};
-  if(!window._aiData) window._aiData=today();
-
-  // Passo 1: escolher o enrolador (botões grandes, não menu)
-  const botoesEnr=enroladoresInt.map(e=>{
-    const ativo=enrSel===e.id;
-    return '<button onclick="window._aiSelecionarEnr(\''+e.id+'\')" style="padding:18px 10px;border-radius:14px;background:'+(ativo?'#1e40af':'#f1f5f9')+';border:2px solid '+(ativo?'#1e40af':'#e2e8f0')+';font-size:16px;font-weight:800;color:'+(ativo?'#fff':'#334155')+';cursor:pointer">'+e.nome+'</button>';
-  }).join('');
-
-  let html='<div class="card">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:14px">👤 Quem está enrolando?</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:8px">'+botoesEnr+'</div>'
-    +'</div>';
-
-  if(!enrSel){
-    return html+'<div class="card" style="margin-top:12px"><div style="text-align:center;color:#94a3b8;padding:16px;font-size:14px">Toque no nome do enrolador acima pra continuar.</div></div>';
-  }
-
-  // Passo 2: quantidade por tipo de peça, com botões grandes de + e -
-  const tipos=getTiposInt();
-  const stepperHtml=tipos.map(t=>{
-    const qtd=window._aiQtds[t.id]||0;
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#f8fafc;border-radius:14px;margin-bottom:10px">'
-      +'<div style="font-size:16px;font-weight:700;color:#334155">'+t.label+'</div>'
-      +'<div style="display:flex;align-items:center;gap:14px">'
-      +'<button onclick="window._aiAjustarQtd(\''+t.id+'\',-1)" style="width:44px;height:44px;border-radius:50%;background:#fee2e2;border:none;font-size:24px;font-weight:900;color:#dc2626;cursor:pointer">−</button>'
-      +'<div style="font-size:24px;font-weight:900;color:#1e293b;min-width:36px;text-align:center">'+qtd+'</div>'
-      +'<button onclick="window._aiAjustarQtd(\''+t.id+'\',1)" style="width:44px;height:44px;border-radius:50%;background:#dcfce7;border:none;font-size:24px;font-weight:900;color:#16a34a;cursor:pointer">+</button>'
-      +'</div></div>';
-  }).join('');
-
-  const dataFmt=window._aiData.split('-').reverse().join('/');
-  html+='<div class="card" style="margin-top:12px">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:4px">📦 Quantas peças?</div>'
-    +'<div style="font-size:12px;color:#94a3b8;margin-bottom:14px">Toque no + pra cada peça produzida hoje.</div>'
-    +(tipos.length?stepperHtml:'<div style="color:#94a3b8;font-size:12px;padding:8px">Configure os tipos de peça nas Configurações.</div>')
-    +'<div style="text-align:center;margin-top:6px;margin-bottom:14px">'
-    +'<span style="font-size:12px;color:#64748b">Data: <strong>'+dataFmt+'</strong></span> '
-    +'<button onclick="window._aiMudarData()" style="background:none;border:none;color:#1e40af;font-size:12px;text-decoration:underline;cursor:pointer">trocar</button>'
-    +'</div>'
-    +'<button onclick="window._registrarApontInt()" style="width:100%;padding:18px;border-radius:14px;background:#16a34a;border:none;font-size:18px;font-weight:800;color:#fff;cursor:pointer">✔ Registrar produção</button>'
-    +'</div>';
-
-  html+='<div class="card" style="margin-top:12px">'
-    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Apontamentos de hoje</div>'
+  return '<div class="card">'
+    +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">📋 Histórico de apontamentos — hoje</div>'
+    +'<div style="font-size:12px;color:#94a3b8;margin-bottom:14px">O lançamento de produção agora é feito direto na tela inicial (Painel) — toque no nome do enrolador lá.</div>'
     +historicoApontInt()
     +'</div>';
-  return html;
 }
 
-window._aiSelecionarEnr=function(enrId){
-  window._aiEnrSelecionado=enrId;
-  reloadTab();
-};
-window._aiAjustarQtd=function(tipoId,delta){
-  if(!window._aiQtds) window._aiQtds={};
-  const atual=window._aiQtds[tipoId]||0;
-  window._aiQtds[tipoId]=Math.max(0,atual+delta);
-  reloadTab();
-};
-window._aiMudarData=function(){
-  const nova=prompt('Data (DD/MM/AAAA):', window._aiData.split('-').reverse().join('/'));
-  if(!nova) return;
-  const partes=nova.split('/');
-  if(partes.length===3){
-    window._aiData=partes[2]+'-'+partes[1].padStart(2,'0')+'-'+partes[0].padStart(2,'0');
-    reloadTab();
-  }
+// Fluxo de lançamento rápido a partir do Painel:
+// toca no enrolador -> escolhe o tipo de peça -> informa quantidade e data.
+window._aiAbrirEnrolador=function(enrId){
+  const enr=getEnrInt(enrId);
+  const tipos=getTiposInt();
+  if(!tipos.length){showToast('Configure os tipos de peça nas Configurações antes de lançar.');return;}
+  const botoes=tipos.map(t=>'<button onclick="window._aiAbrirTipo(\''+enrId+'\',\''+t.id+'\')" style="padding:16px;border-radius:12px;background:#1e40af;border:none;font-size:15px;font-weight:700;color:#fff;cursor:pointer;text-align:left">'+t.label+'</button>').join('');
+  showModal('👤 '+(enr.nome||'')+' — o que foi produzido?',
+    '<div style="display:flex;flex-direction:column;gap:8px">'+botoes+'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>');
 };
 
-function historicoApontInt(){
-  const hoje=today();
-  const movs=[];
-  fichasInt.forEach(f=>{
-    (f.apontamentos||[]).filter(a=>a.data===hoje).forEach(a=>{
-      const enr=getEnrInt(f.enroladorId);
-      const pecas=getTiposInt().map(t=>{
-        const v=parseInt((a.tipos||{})[t.id])||0;
-        return v>0?v+'× '+t.label:'';
-      }).filter(Boolean).join(', ');
-      if(pecas) movs.push({nome:enr.nome||'?',pecas,apontId:a.id,fichaId:f.id,tipos:a.tipos||{}});
-    });
-  });
-  if(!movs.length) return '<div style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">Nenhum apontamento hoje.</div>';
-  return movs.map((m,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-    +'<div><div style="font-weight:700;font-size:12px">'+m.nome+'</div>'
-    +'<div style="font-size:11px;color:#64748b">'+m.pecas+'</div></div>'
-    +'<div style="display:flex;gap:6px">'
-    +'<button class="btn btn-sm" style="font-size:11px;padding:3px 10px" onclick="window._editarApontInt(\''+m.fichaId+'\',\''+m.apontId+'\')">Editar</button>'
-    +'<button class="btn btn-sm btn-danger" style="font-size:11px;padding:3px 10px" onclick="window._excluirApontInt(\''+m.fichaId+'\',\''+m.apontId+'\')">Excluir</button>'
-    +'</div>'
-    +'</div>').join('');
-}
-
-window._editarApontInt=function(fichaId, apontId){
-  const ficha=fichasInt.find(f=>f.id===fichaId);
-  if(!ficha) return;
-  const apont=ficha.apontamentos.find(a=>a.id===apontId);
-  if(!apont) return;
-  const enr=getEnrInt(ficha.enroladorId);
-  const campos=getTiposInt().map(t=>`
-    <div class="form-group">
-      <label>${t.label}</label>
-      <input type="number" id="edit-apont-${t.id}" min="0" value="${parseInt((apont.tipos||{})[t.id])||0}"
-        style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">
-    </div>`).join('');
-  showModal('Editar apontamento — '+enr.nome,
-    `<div style="font-size:12px;color:#64748b;margin-bottom:12px">Data: ${apont.data?apont.data.split('-').reverse().join('/'):'—'}</div>
-     <div class="form-row">${campos}</div>`,
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-primary" onclick="window._salvarEdicaoApontInt('${fichaId}','${apontId}')">Salvar</button>`
-  );
+window._aiAbrirTipo=function(enrId,tipoId){
+  const tipo=getTiposInt().find(t=>t.id===tipoId);
+  showModal('📦 '+(tipo?.label||'')+' — quantidade',
+    '<div class="form-group"><label>Quantidade</label>'
+    +'<input type="number" id="ait-qtd" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:24px;font-weight:800;border:2px solid #e2e8f0;border-radius:10px;padding:12px;width:100%;text-align:center"></div>'
+    +'<div class="form-group" style="margin-top:10px"><label>Data</label>'
+    +'<input type="date" id="ait-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._aiConfirmarApontRapido(\''+enrId+'\',\''+tipoId+'\')">Registrar</button>');
 };
 
-window._salvarEdicaoApontInt=async function(fichaId, apontId){
-  const ficha=fichasInt.find(f=>f.id===fichaId);
-  if(!ficha) return;
-  const tipos={};
-  getTiposInt().forEach(t=>{
-    const v=parseInt(document.getElementById('edit-apont-'+t.id)?.value)||0;
-    if(v>0) tipos[t.id]=v;
-  });
-  const apontamentos=ficha.apontamentos.map(a=>a.id===apontId?{...a,tipos}:a);
+window._aiConfirmarApontRapido=async function(enrId,tipoId){
+  const qtd=parseInt(document.getElementById('ait-qtd')?.value)||0;
+  const data=document.getElementById('ait-data')?.value||today();
+  if(!qtd){showToast('Informe a quantidade.');return;}
   closeModal();
-  await updateDoc(doc(db,'fichas_int',fichaId),{apontamentos});
-  showToast('Apontamento atualizado!');
-};
-
-window._excluirApontInt=function(fichaId, apontId){
-  window._pendingExcluirApont={fichaId,apontId};
-  showModal('Excluir apontamento',
-    '<div style="font-size:13px;color:#444;line-height:1.6">Tem certeza que deseja excluir este apontamento?</div>',
-    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
-     <button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirApontInt()">Excluir</button>`);
-};
-
-window._confirmarExcluirApontInt=async function(){
-  const {fichaId,apontId}=window._pendingExcluirApont||{};
-  if(!fichaId||!apontId) return;
-  closeModal();
-  const ficha=fichasInt.find(f=>f.id===fichaId);
-  if(!ficha) return;
-  const apontamentos=ficha.apontamentos.filter(a=>a.id!==apontId);
-  await updateDoc(doc(db,'fichas_int',fichaId),{apontamentos});
-  window._pendingExcluirApont=null;
-  showToast('Apontamento excluído!');
-};
-
-window._registrarApontInt=async function(){
-  const enrId=window._aiEnrSelecionado;
-  const data=window._aiData||today();
-  if(!enrId){showToast('Selecione o enrolador.');return;}
-  const tipos={};
-  let total=0;
-  getTiposInt().forEach(t=>{
-    const v=parseInt(window._aiQtds?.[t.id])||0;
-    if(v>0){tipos[t.id]=v;total+=v;}
-  });
-  if(!total){showToast('Registre pelo menos uma peça.');return;}
-
-  // Buscar ou criar ficha ativa
   let ficha=fichaIntAtiva(enrId);
   if(!ficha){
-    const enr=getEnrInt(enrId);
-    const ref=await addDoc(collection(db,'fichas_int'),{
-      enroladorId:enrId,dataAbertura:data,status:'aberta',apontamentos:[]
-    });
+    const ref=await addDoc(collection(db,'fichas_int'),{enroladorId:enrId,dataAbertura:data,status:'aberta',apontamentos:[]});
     ficha={id:ref.id,enroladorId:enrId,dataAbertura:data,status:'aberta',apontamentos:[]};
   }
-
   const apontamentos=[...(ficha.apontamentos||[]),{
-    id:Date.now().toString(),data,tipos,criadoEm:new Date().toISOString(),
+    id:Date.now().toString(),data,tipos:{[tipoId]:qtd},criadoEm:new Date().toISOString(),
     apontadorId:currentUserData?.uid||'',apontadorNome:currentUserData?.nome||''
   }];
   await updateDoc(doc(db,'fichas_int',ficha.id),{apontamentos});
   showToast('Produção registrada!');
-  window._limparApontInt();
 };
 
-window._limparApontInt=function(){
-  window._aiQtds={};
-  reloadTab();
-};
 
 // ── Fichas ────────────────────────────────────────────────────────
 window._editarApontamentoInt=(fichaId,idx)=>{
