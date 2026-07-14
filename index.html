@@ -583,7 +583,7 @@ function can(p){
   if(!currentUserData)return false;
   const perfil=currentUserData.perfil;
   const rules={
-    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao'],
+    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
     verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','geral','mecanico','administracao'],
     verFichasEntregador: ['entregador'],
     verFichasEnrolador:  ['enrolador'],
@@ -593,7 +593,7 @@ function can(p){
     cadastrarEnrolador:  ['admin'],
     gerenciarUsuarios:   ['admin'],
     verRelatorio:    ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','mecanico','administracao'],
-    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao'],
+    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
     verValores:      ['admin','proprietario','financeiro'],
     editar:          ['admin'],
     verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','entregador','enrolador','geral','mecanico','administracao'],
@@ -4268,6 +4268,7 @@ function renderPainelMetal(){
       <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
       <div><div class="stat-label">Peças quinzena</div><div class="stat-value">${totalQ}</div><div class="stat-sub">${quinzenaLabel(qAtual)}</div></div>
     </div>
+    ${['admin','proprietario','financeiro','escritorio','administracao','encarregado_cad'].includes(currentUserData?.perfil)?`
     <div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)">
       <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
       <div><div class="stat-label">A pagar hoje</div><div class="stat-value" style="font-size:18px">${fmtR(totalPagarHoje)}</div></div>
@@ -4275,7 +4276,7 @@ function renderPainelMetal(){
     <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">
       <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
       <div><div class="stat-label">A pagar quinzena</div><div class="stat-value" style="font-size:18px">${fmtR(totalPagarQ)}</div></div>
-    </div>
+    </div>`:''}
   </div>
   ${renderEspMetalTrofeus(hoje_)}
   <div class="section-label">produção de hoje — ${hoje_}</div>`;
@@ -8765,14 +8766,15 @@ function renderPainelInt(){
       });
     });
     const totalMes=Object.values(totMes).reduce((s,v)=>s+v,0);
+    const podeLancar=['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
 
-    html+='<div class="card" style="padding:14px;cursor:pointer" onclick="window._aiAbrirEnrolador(\''+enr.id+'\')">'
+    html+='<div class="card" style="padding:14px;'+(podeLancar?'cursor:pointer':'')+'"'+(podeLancar?' onclick="window._aiAbrirEnrolador(\''+enr.id+'\')"':'')+'>'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<div style="display:flex;align-items:center;gap:10px">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:#065f46;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">'+enr.nome[0]+'</div>'
       +'<div><div style="font-weight:700;font-size:13px">'+enr.nome+'</div>'
       +'<div style="font-size:11px;color:#64748b">'+(ficha?'Ficha aberta desde '+fmtDate(ficha.dataAbertura):'Sem ficha aberta')+'</div>'
-      +'<div style="font-size:10px;color:#1e40af;font-weight:600;margin-top:1px">toque para lançar produção ›</div>'
+      +(podeLancar?'<div style="font-size:10px;color:#1e40af;font-weight:600;margin-top:1px">toque para lançar produção ›</div>':'')
       +'</div></div>'
       +'<div style="text-align:right">'
       +'<div style="font-size:10px;color:#64748b">peças hoje</div>'
@@ -8930,6 +8932,7 @@ window._aiAbrirTipo=function(enrId,tipoId){
 };
 
 window._aiConfirmarApontRapido=async function(enrId,tipoId){
+  if(!['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil)){showToast('Você não tem permissão para registrar produção.');return;}
   const qtd=parseInt(document.getElementById('ait-qtd')?.value)||0;
   const data=document.getElementById('ait-data')?.value||today();
   if(!qtd){showToast('Informe a quantidade.');return;}
