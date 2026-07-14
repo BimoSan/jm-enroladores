@@ -264,6 +264,7 @@ if('serviceWorker' in navigator){
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc, getDocs, getDoc, setDoc as _setDoc, updateDoc as _updateDoc, deleteDoc as _deleteDoc, onSnapshot as _onSnapshot, addDoc as _addDoc, query, orderBy, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 // ── Firebase config ──────────────────────────────────────────────
 // ── Detecção automática de ambiente ──────────────────────────────
@@ -291,6 +292,7 @@ const firebaseConfig = IS_STAGING ? {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 if(IS_STAGING){
   const banner=document.getElementById('staging-banner');
   if(banner){
@@ -457,6 +459,7 @@ const PERFIS={
   apontador_int:    {label:'Apontador Interno',    color:'#065f46',bg:'#d1fae5', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
   enrolador_int:    {label:'Enrolador Interno',    color:'#047857',bg:'#a7f3d0', fabricas:['cadeiras'],            setor:'enrolamento_int',  fichaColor:null},
   operador_fitas:   {label:'Operador de Fitas',    color:'#9d174d',bg:'#fce7f3', fabricas:['cadeiras'],            setor:'fitas',            fichaColor:null},
+  encarregado_fitas:{label:'Encarregado de Fitas', color:'#831843',bg:'#fce7f3', fabricas:['cadeiras'],            setor:'fitas',            fichaColor:null},
   geral:            {label:'Geral',                color:'#555',   bg:'#f0f0f0', fabricas:['cadeiras'],            setor:null,               fichaColor:null},
   // Fábrica de Estofados
   encarregado_est:  {label:'Encarregado Estofados',color:'#6d28d9',bg:'#ede9fe', fabricas:['estofados'],           setor:null,               fichaColor:null},
@@ -11817,6 +11820,8 @@ window._engNovoProduto=function(produto={}){
   window._engMaoObraTemp=produto.maoObraEtapas?JSON.parse(JSON.stringify(produto.maoObraEtapas)):(produto.maoObra?[{nome:'Mão de obra',valor:produto.maoObra}]:[]);
   window._engMaoObraReformaTemp=produto.maoObraReformaEtapas?JSON.parse(JSON.stringify(produto.maoObraReformaEtapas)):(produto.maoObraReforma?[{nome:'Mão de obra',valor:produto.maoObraReforma}]:[]);
   window._engAba='normal';
+  window._engMedidasTemp=produto.medidas?JSON.parse(JSON.stringify(produto.medidas)):[];
+  window._engImagemTemp=produto.imagemUrl||'';
   // Migra dados antigos de reforma (componentesReforma/maoObraReformaEtapas) para o novo formato
   if(produto.reformas&&produto.reformas.length){
     window._engReformasTemp=JSON.parse(JSON.stringify(produto.reformas));
@@ -11850,6 +11855,7 @@ window._engNovoProduto=function(produto={}){
     +'<div style="display:flex;gap:8px;margin:10px 0">'
     +'<button type="button" onclick="window._engSetAba(\'normal\')" id="ep-tab-normal" style="flex:1;padding:8px;border-radius:8px;border:2px solid #1d4ed8;background:#1d4ed8;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Normal</button>'
     +'<button type="button" onclick="window._engSetAba(\'reformas\')" id="ep-tab-reforma" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer">Reformas ('+(produto.reformas||[]).length+')</button>'
+    +'<button type="button" onclick="window._engSetAba(\'ficha\')" id="ep-tab-ficha" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer">📋 Ficha Técnica</button>'
     +'</div>'
     // Aba Normal
     +'<div id="ep-aba-normal">'
@@ -11865,6 +11871,17 @@ window._engNovoProduto=function(produto={}){
     +'<div id="ep-aba-reformas" style="display:none">'
     +'<div id="ep-reformas-list"></div>'
     +'<button type="button" onclick="window._engAddReforma()" style="margin-top:10px;width:100%;padding:10px;border-radius:8px;border:1.5px dashed #a78bfa;background:#f5f3ff;color:#7c3aed;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar tipo de reforma</button>'
+    +'</div>'
+    // Aba Ficha Técnica (imagem + medidas)
+    +'<div id="ep-aba-ficha" style="display:none">'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px">Foto do produto</div>'
+    +'<div id="ep-imagem-preview" style="margin-bottom:8px"></div>'
+    +'<input type="file" id="ep-imagem-input" accept="image/*" onchange="window._engUploadImagem(this)" style="font-size:12px;width:100%">'
+    +'<div id="ep-imagem-status" style="font-size:11px;color:#94a3b8;margin-top:4px"></div>'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px;margin-top:18px">Medidas / lista de corte</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Organize por categoria de material — ex: "Madeira" com as peças e tamanhos, "Tecido" com a metragem, etc.</div>'
+    +'<div id="ep-medidas-list"></div>'
+    +'<button type="button" onclick="window._engAddCategoriaMedida()" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar categoria de medida</button>'
     +'</div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+produto.id+'\')">Excluir</button>':'')
@@ -12088,17 +12105,171 @@ window._engVerJogo=function(id, aba){
 
 window._engSetAba=function(aba){
   window._engAba=aba;
-  const isNormal=aba==='normal';
-  const tabN=document.getElementById('ep-tab-normal');
-  const tabR=document.getElementById('ep-tab-reforma');
-  const abaN=document.getElementById('ep-aba-normal');
-  const abaR=document.getElementById('ep-aba-reformas');
-  if(tabN){tabN.style.background=isNormal?'#1d4ed8':'#fff';tabN.style.color=isNormal?'#fff':'#64748b';tabN.style.borderColor=isNormal?'#1d4ed8':'#e2e8f0';}
-  if(tabR){tabR.style.background=!isNormal?'#7c3aed':'#fff';tabR.style.color=!isNormal?'#fff':'#64748b';tabR.style.borderColor=!isNormal?'#7c3aed':'#e2e8f0';}
-  if(abaN) abaN.style.display=isNormal?'':'none';
-  if(abaR) abaR.style.display=isNormal?'none':'';
-  if(isNormal){window._engRenderComponentes();window._engRenderMaoObra();}
-  else window._engRenderReformas();
+  const tabs={normal:{tab:'ep-tab-normal',pane:'ep-aba-normal',cor:'#1d4ed8'},reformas:{tab:'ep-tab-reforma',pane:'ep-aba-reformas',cor:'#7c3aed'},ficha:{tab:'ep-tab-ficha',pane:'ep-aba-ficha',cor:'#0e7490'}};
+  Object.entries(tabs).forEach(([key,{tab,pane,cor}])=>{
+    const ativo=key===aba;
+    const tabEl=document.getElementById(tab);
+    const paneEl=document.getElementById(pane);
+    if(tabEl){tabEl.style.background=ativo?cor:'#fff';tabEl.style.color=ativo?'#fff':'#64748b';tabEl.style.borderColor=ativo?cor:'#e2e8f0';}
+    if(paneEl) paneEl.style.display=ativo?'':'none';
+  });
+  if(aba==='normal'){window._engRenderComponentes();window._engRenderMaoObra();}
+  else if(aba==='reformas') window._engRenderReformas();
+  else if(aba==='ficha'){window._engRenderMedidas();window._engRenderImagemPreview();}
+};
+
+// ── Imagem do produto (Firebase Storage) ─────────────────────────
+window._engRenderImagemPreview=function(){
+  const el=document.getElementById('ep-imagem-preview');
+  if(!el) return;
+  const url=window._engImagemTemp;
+  el.innerHTML=url
+    ? '<div style="position:relative;display:inline-block"><img src="'+url+'" style="max-width:180px;max-height:180px;border-radius:10px;border:1.5px solid #e2e8f0;display:block"><button type="button" onclick="window._engRemoverImagem()" style="position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;background:#dc2626;color:#fff;border:2px solid #fff;font-size:13px;cursor:pointer">✕</button></div>'
+    : '<div style="width:100%;padding:20px;text-align:center;background:#f8fafc;border-radius:10px;color:#94a3b8;font-size:12px">Nenhuma foto ainda</div>';
+};
+window._engUploadImagem=async function(inputEl){
+  const file=inputEl.files?.[0];
+  if(!file) return;
+  const status=document.getElementById('ep-imagem-status');
+  if(status) status.textContent='Enviando...';
+  try{
+    const caminho='produtos/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const ref_=storageRef(storage,caminho);
+    await uploadBytes(ref_,file);
+    const url=await getDownloadURL(ref_);
+    window._engImagemTemp=url;
+    window._engImagemPathTemp=caminho;
+    window._engRenderImagemPreview();
+    if(status) status.textContent='✓ Foto enviada!';
+  }catch(e){
+    if(status) status.textContent='Erro ao enviar: '+e.message;
+  }
+};
+window._engRemoverImagem=function(){
+  window._engImagemTemp='';
+  window._engRenderImagemPreview();
+};
+
+// ── Medidas / lista de corte (por categoria) ─────────────────────
+window._engAddCategoriaMedida=function(){
+  if(!window._engMedidasTemp) window._engMedidasTemp=[];
+  window._engMedidasTemp.push({categoria:'',pecas:[]});
+  window._engRenderMedidas();
+};
+window._engRemoverCategoriaMedida=function(catIdx){
+  window._engMedidasTemp.splice(catIdx,1);
+  window._engRenderMedidas();
+};
+window._engAtualizarCategoriaMedida=function(catIdx,valor){
+  window._engMedidasTemp[catIdx].categoria=valor;
+};
+window._engAddPecaMedida=function(catIdx){
+  window._engMedidasTemp[catIdx].pecas.push({qtd:1,medida:'',desc:''});
+  window._engRenderMedidas();
+};
+window._engRemoverPecaMedida=function(catIdx,pecaIdx){
+  window._engMedidasTemp[catIdx].pecas.splice(pecaIdx,1);
+  window._engRenderMedidas();
+};
+window._engAtualizarPecaMedida=function(catIdx,pecaIdx,campo,valor){
+  window._engMedidasTemp[catIdx].pecas[pecaIdx][campo]=campo==='qtd'?(parseInt(valor)||0):valor;
+};
+window._engRenderMedidas=function(){
+  const lista_=document.getElementById('ep-medidas-list');
+  if(!lista_) return;
+  const cats=window._engMedidasTemp||[];
+  lista_.innerHTML=cats.map((cat,ci)=>{
+    const pecasHtml=(cat.pecas||[]).map((p,pi)=>
+      '<div style="display:grid;grid-template-columns:50px 90px 1fr 28px;gap:6px;margin-bottom:5px;align-items:center">'
+      +'<input type="number" min="1" value="'+(p.qtd||1)+'" oninput="window._engAtualizarPecaMedida('+ci+','+pi+',\'qtd\',this.value)" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:6px;padding:5px;text-align:center" title="Quantidade">'
+      +'<input value="'+(p.medida||'').replace(/"/g,'&quot;')+'" placeholder="ex: 60cm" oninput="window._engAtualizarPecaMedida('+ci+','+pi+',\'medida\',this.value)" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:6px;padding:5px" title="Medida">'
+      +'<input value="'+(p.desc||'').replace(/"/g,'&quot;')+'" placeholder="descrição (opcional, ex: pé frontal)" oninput="window._engAtualizarPecaMedida('+ci+','+pi+',\'desc\',this.value)" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:6px;padding:5px">'
+      +'<button type="button" onclick="window._engRemoverPecaMedida('+ci+','+pi+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:12px;cursor:pointer">✕</button>'
+      +'</div>'
+    ).join('');
+    return '<div style="background:#f8fafc;border-radius:10px;padding:10px;margin-bottom:10px;border:1.5px solid #e2e8f0">'
+      +'<div style="display:flex;gap:6px;margin-bottom:8px">'
+      +'<input value="'+(cat.categoria||'').replace(/"/g,'&quot;')+'" placeholder="Nome da categoria (ex: Madeira, Tecido)" oninput="window._engAtualizarCategoriaMedida('+ci+',this.value)" style="flex:1;font-size:12px;font-weight:700;border:1.5px solid #cbd5e1;border-radius:7px;padding:6px 8px">'
+      +'<button type="button" onclick="window._engRemoverCategoriaMedida('+ci+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer">✕</button>'
+      +'</div>'
+      +pecasHtml
+      +'<button type="button" onclick="window._engAddPecaMedida('+ci+')" style="margin-top:2px;width:100%;padding:6px;border-radius:6px;border:1.5px dashed #cbd5e1;background:#fff;color:#475569;font-size:11px;font-weight:600;cursor:pointer">+ peça</button>'
+      +'</div>';
+  }).join('')||'<div style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">Nenhuma categoria ainda.</div>';
+};
+
+window._engImprimirFichaTecnica=function(id){
+  const p=engProdutos.find(x=>x.id===id);
+  if(!p) return;
+  const c=calcCustoProduto(p,'normal');
+  const catLabel=getEngCategorias().find(x=>x.id===p.categoria)?.label||'—';
+  const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
+  const margem=parseFloat(p.margem)||parseFloat(configEng.margemPadrao)||0;
+
+  const medidasHtml=(p.medidas&&p.medidas.length)
+    ? p.medidas.map(cat=>
+        '<div style="margin-bottom:14px">'
+        +'<div style="font-size:13px;font-weight:800;color:#1e293b;background:#f1f5f9;padding:6px 10px;border-radius:6px 6px 0 0">'+(cat.categoria||'Sem nome')+'</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:#f8fafc"><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Qtd.</th><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Medida</th><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Descrição</th></tr></thead>'
+        +'<tbody>'+(cat.pecas||[]).map(pc=>'<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">'+pc.qtd+'×</td><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;font-weight:700">'+(pc.medida||'—')+'</td><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;color:#64748b">'+(pc.desc||'')+'</td></tr>').join('')
+        +'</tbody></table></div>'
+      ).join('')
+    : '<div style="color:#94a3b8;font-size:12px">Nenhuma medida cadastrada.</div>';
+
+  const materiaisHtml=(p.componentes&&p.componentes.length)
+    ? '<table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f8fafc"><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Material</th><th style="padding:5px 10px;text-align:center;border-bottom:1px solid #e2e8f0">Qtd.</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Custo unit.</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Subtotal</th></tr></thead>'
+      +'<tbody>'+p.componentes.map(comp=>{
+        const sub=(parseFloat(comp.qtd)||0)*(parseFloat(comp.custoUnit)||0);
+        return '<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">'+comp.nome+'</td><td style="padding:5px 10px;text-align:center;border-bottom:1px solid #f1f5f9">'+comp.qtd+'</td><td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9">'+fmtMoeda(parseFloat(comp.custoUnit)||0)+'</td><td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700">'+fmtMoeda(sub)+'</td></tr>';
+      }).join('')
+      +'</tbody></table>'
+    : '<div style="color:#94a3b8;font-size:12px">Nenhum material cadastrado.</div>';
+
+  const maoObraHtml=(p.maoObraEtapas&&p.maoObraEtapas.length)
+    ? p.maoObraEtapas.map(e=>'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>'+e.nome+'</span><span style="font-weight:700">'+fmtMoeda(parseFloat(e.valor)||0)+'</span></div>').join('')
+    : '<div style="color:#94a3b8;font-size:12px">—</div>';
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Ficha Técnica — ${p.nome}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;margin:24px;color:#1e293b;font-size:13px}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:#64748b;font-size:13px;margin-bottom:18px}
+  .secao{margin-bottom:22px}
+  .secao-titulo{font-size:14px;font-weight:800;color:#1e293b;margin-bottom:8px;border-bottom:2px solid #1e293b;padding-bottom:4px}
+  img{max-width:280px;max-height:280px;border-radius:8px;border:1px solid #e2e8f0}
+  @media print{@page{size:A4;margin:14mm}}
+</style></head><body>
+  <h1>${p.nome}</h1>
+  <div class="sub">Categoria: ${catLabel}${(p.reformas&&p.reformas.length)?' · possui reforma cadastrada':''}</div>
+  ${p.imagemUrl?'<img src="'+p.imagemUrl+'">':''}
+  <div class="secao">
+    <div class="secao-titulo">📐 Medidas / Lista de corte</div>
+    ${medidasHtml}
+  </div>
+  <div class="secao">
+    <div class="secao-titulo">🧱 Materiais</div>
+    ${materiaisHtml}
+  </div>
+  <div class="secao">
+    <div class="secao-titulo">👷 Mão de obra</div>
+    ${maoObraHtml}
+  </div>
+  <div class="secao" style="background:#f0fdf4;border-radius:10px;padding:14px">
+    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Custo direto (materiais)</span><span style="font-weight:700">${fmtMoeda(c.direto)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Custo indireto${indiretoPct!==100?' ('+indiretoPct+'%)':''}</span><span style="font-weight:700">${fmtMoeda(c.indireto)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Mão de obra</span><span style="font-weight:700">${fmtMoeda(c.maoObra)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:800;border-top:1px solid #d1fae5;padding-top:8px;margin-top:6px;color:#dc2626"><span>Custo total</span><span>${fmtMoeda(c.total)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin-top:4px;color:#059669"><span>Preço de venda (+${margem}%)</span><span>${fmtMoeda(c.venda)}</span></div>
+  </div>
+  <div style="font-size:10px;color:#94a3b8;margin-top:20px">Gerado em ${new Date().toLocaleString('pt-BR')} · JM Gestão Fabril</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),600);
 };
 
 window._engAddReforma=function(){
@@ -12359,7 +12530,8 @@ window._engSalvarProduto=async function(id){
   const maoObraReforma=maoObraReformaEtapas.reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
   closeModal();
   const reformas=(window._engReformasTemp||[]).filter(r=>r.nome.trim());
-  const dados={nome,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma,reformas};
+  const dados={nome,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma,reformas,
+    imagemUrl:window._engImagemTemp||'',medidas:window._engMedidasTemp||[]};
   if(id){
     await updateDoc(doc(db,'eng_produtos',id),dados);
   } else {
@@ -12449,10 +12621,12 @@ window._engVerProduto=function(id, aba){
   }
 
   showModal(p.nome,
-    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+'</div>'
+    (p.imagemUrl?'<img src="'+p.imagemUrl+'" style="max-width:100%;max-height:220px;border-radius:10px;margin-bottom:12px;display:block">':'')
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+'</div>'
     +tabs
     +conteudo,
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
+    +'<button class="btn btn-sm" style="border:1.5px solid #0e7490;color:#0e7490" onclick="window._engImprimirFichaTecnica(\''+id+'\')">📋 Ficha Técnica</button>'
     +(podeEditar?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+id+'\')">Excluir</button>':'')
     +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\')">✏️ Editar</button>':''));
 };
