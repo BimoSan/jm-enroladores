@@ -1045,8 +1045,8 @@ function renderApp(){
       tabs.push('painel_int','fichas_int');
     }
   } else if(currentSetor==='fitas'){
-    tabs.push('estoque_fitas','relatorio_fitas','config_fitas');
-    if(['admin','encarregado_fitas'].includes(currentUserData?.perfil)) tabs.push('usuarios_fitas');
+    tabs.push('estoque_fitas','relatorio_fitas');
+    if(currentUserData?.perfil==='admin') tabs.push('config_fitas','usuarios_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
     const podeEditar=['admin','apontador1'].includes(pf);
@@ -10248,6 +10248,11 @@ window._fitasSalvarAcao=async function(acao, cor){
   } else {
     const destino=document.getElementById('fm-destino')?.value||'';
     if(!destino){showToast('Selecione o destino.');return;}
+    const estoqueAtual=isFio?estoqueFio():estoqueCor(cor);
+    if(rolos>estoqueAtual){
+      showToast('Estoque insuficiente — só tem '+estoqueAtual+' rolo'+(estoqueAtual!==1?'s':'')+' disponíve'+(estoqueAtual!==1?'is':'l')+'.');
+      return;
+    }
     const labels={interno:'Setor Interno',inacio:'Inácio',mirandinha:'Mirandinha',venda:'Venda',perda:'Perda'};
     closeModal();
     await addDoc(collection(db,'saidas_fitas'),{
