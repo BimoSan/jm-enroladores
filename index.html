@@ -1300,6 +1300,25 @@ function gerarResumoAlertas(){
     +rows+'</div>';
 }
 
+function gerarResumoCasasVazias(){
+  if(currentUserData?.perfil==='enrolador') return '';
+  const apt=window._painelApt||'apontador1';
+  const vazias=enroladores.filter(e=>{
+    if(e.apontadorPerfil!==apt) return false;
+    if(e.ativo===false) return false;
+    return !fichas.some(f=>f.enroladorId===e.id&&f.status==='aberta');
+  }).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  if(!vazias.length) return '';
+  const rows=vazias.map(e=>
+    '<div style="padding:6px 0;border-bottom:1px solid #bfdbfe">'
+    +'<span style="font-size:12px;color:#1e40af;font-weight:600">'+e.nome+'</span>'
+    +'</div>'
+  ).join('');
+  return '<div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:14px;padding:14px 18px;margin-bottom:16px;width:100%">'
+    +'<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:10px">🏠 '+vazias.length+' casa'+(vazias.length>1?'s':'')+' vazia'+(vazias.length>1?'s':'')+' — disponíve'+(vazias.length>1?'is':'l')+' pra nova ficha</div>'
+    +rows+'</div>';
+}
+
 // ── Relatório de bônus mensal ─────────────────────────────────────
 let bonusPagos={};
 
@@ -1649,7 +1668,8 @@ function renderPainel(){
     </div>
         ${gerarResumoMovimento()}
     ${renderPainelBonus()}
-    ${gerarResumoAlertas()}`;
+    ${gerarResumoAlertas()}
+    ${gerarResumoCasasVazias()}`;
 
   // ── Avisos de sinalizações ────────────────────────────────────────
   const sinalizadas=abertas.filter(f=>f.prontoSinalizado&&Object.values(f.prontos||{}).reduce((s,v)=>s+v,0)>0)
