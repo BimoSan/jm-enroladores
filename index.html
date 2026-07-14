@@ -10132,35 +10132,96 @@ function renderEstoqueFitas(){
   html+=linhaEstoque('Fio','🧵',qtdFio,minimoFio,'#6b7280',"window._fitasAbrirFio()");
   html+='</div>';
 
-  // Movimentos de hoje com editar/excluir
-  const movHoje=[
-    ...producaoFitas.filter(p=>p.data===hoje).map(p=>({...p,_tipo:'prod'})),
-    ...saidasFitas.filter(s=>s.data===hoje).map(s=>({...s,_tipo:'saida'})),
-  ].sort((a,b)=>(b.criadoEm||'')>(a.criadoEm||'')?1:-1);
+  // Movimentos — hoje por padrão, ou histórico completo agrupado por mês/dia
+  const podeExcluirMov=['admin','encarregado_fitas'].includes(currentUserData?.perfil);
+  const horaMov=iso=>{
+    if(!iso) return '';
+    const d=new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  };
+  const linhaMov=(m,mostrarBorda)=>{
+    const isProd=m._tipo==='prod';
+    const label=m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||''));
+    const subLabel=isProd?(m.extrusora?'⚙️ '+m.extrusora:''):(m.destinoNome?(m.isDevolucao?m.destinoNome:'📤 '+m.destinoNome):'');
+    const hora=horaMov(m.criadoEm);
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(mostrarBorda?'border-top:1px solid #f1f5f9':'')+'">'
+      +'<div>'
+      +'<div style="font-size:12px;font-weight:600">'+label+(hora?' <span style="font-size:10px;font-weight:600;color:#94a3b8">'+hora+'</span>':'')+'</div>'
+      +(subLabel?'<div style="font-size:10px;color:#64748b">'+subLabel+'</div>':'')
+      +(m.obs?'<div style="font-size:10px;color:#94a3b8">'+m.obs+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="font-size:13px;font-weight:800;color:'+(isProd?'#059669':'#dc2626')+'">'+(isProd?'+':'-')+m.rolos+' rolos</div>'
+      +(podeExcluirMov?'<button class="btn btn-sm btn-danger" style="font-size:10px;padding:2px 7px" onclick="window._fitasExcluirMov(\''+m._tipo+'\',\''+m.id+'\')">✕</button>':'')
+      +'</div>'
+      +'</div>';
+  };
 
-  if(movHoje.length){
-    html+='<div class="card" style="margin-top:4px"><div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:8px">🕒 Movimentações de hoje</div>';
-    movHoje.forEach((m,i)=>{
-      const isProd=m._tipo==='prod';
-      const label=m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||''));
-      const subLabel=isProd?(m.extrusora?'⚙️ '+m.extrusora:''):(m.destinoNome?(m.isDevolucao?m.destinoNome:'📤 '+m.destinoNome):'');
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-        +'<div>'
-        +'<div style="font-size:12px;font-weight:600">'+label+'</div>'
-        +(subLabel?'<div style="font-size:10px;color:#64748b">'+subLabel+'</div>':'')
-        +(m.obs?'<div style="font-size:10px;color:#94a3b8">'+m.obs+'</div>':'')
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:8px">'
-        +'<div style="font-size:13px;font-weight:800;color:'+(isProd?'#059669':'#dc2626')+'">'+(isProd?'+':'-')+m.rolos+' rolos</div>'
-        +'<button class="btn btn-sm btn-danger" style="font-size:10px;padding:2px 7px" onclick="window._fitasExcluirMov(\''+m._tipo+'\',\''+m.id+'\')">✕</button>'
-        +'</div>'
-        +'</div>';
+  const verHistCompleto=!!window._fitasVerHistCompleto;
+  const MESES_MOV=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  html+='<div class="card" style="margin-top:4px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    +'<div style="font-size:14px;font-weight:800;color:#1e293b">🕒 '+(verHistCompleto?'Histórico completo':'Movimentações de hoje')+'</div>'
+    +'<button onclick="window._fitasToggleHistorico()" style="font-size:11px;font-weight:700;color:#1e40af;background:#eff6ff;border:none;border-radius:99px;padding:5px 12px;cursor:pointer">'+(verHistCompleto?'Ver só hoje':'Ver histórico completo')+'</button>'
+    +'</div>';
+
+  if(!verHistCompleto){
+    const movHoje=[
+      ...producaoFitas.filter(p=>p.data===hoje).map(p=>({...p,_tipo:'prod'})),
+      ...saidasFitas.filter(s=>s.data===hoje).map(s=>({...s,_tipo:'saida'})),
+    ].sort((a,b)=>(b.criadoEm||'')>(a.criadoEm||'')?1:-1);
+    html+=movHoje.length
+      ? movHoje.map((m,i)=>linhaMov(m,i>0)).join('')
+      : '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:12px">Nenhuma movimentação hoje.</div>';
+  } else {
+    const todosMovs=[
+      ...producaoFitas.map(p=>({...p,_tipo:'prod'})),
+      ...saidasFitas.map(s=>({...s,_tipo:'saida'})),
+    ].filter(m=>m.data).sort((a,b)=>(b.criadoEm||'')>(a.criadoEm||'')?1:-1);
+
+    const porMes={};
+    todosMovs.forEach(m=>{
+      const mesKey=m.data.slice(0,7);
+      if(!porMes[mesKey]) porMes[mesKey]={};
+      const diaKey=m.data;
+      if(!porMes[mesKey][diaKey]) porMes[mesKey][diaKey]=[];
+      porMes[mesKey][diaKey].push(m);
     });
-    html+='</div>';
+    const mesesOrd=Object.keys(porMes).sort((a,b)=>b>a?1:-1);
+
+    if(!mesesOrd.length){
+      html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:12px">Nenhuma movimentação registrada ainda.</div>';
+    } else {
+      html+=mesesOrd.map(mesKey=>{
+        const [ano,mNum]=mesKey.split('-');
+        const mesLabel=MESES_MOV[parseInt(mNum)-1]+' '+ano;
+        const diasOrd=Object.keys(porMes[mesKey]).sort((a,b)=>b>a?1:-1);
+        const diasHtml=diasOrd.map(diaKey=>{
+          const [dAno,dMes,dDia]=diaKey.split('-');
+          const movsDia=porMes[mesKey][diaKey];
+          return '<div style="margin-top:10px">'
+            +'<div style="font-size:11px;font-weight:700;color:#64748b;background:#f8fafc;border-radius:6px;padding:4px 10px;margin-bottom:2px">📅 '+dDia+'/'+dMes+'/'+dAno+'</div>'
+            +movsDia.map((m,i)=>linhaMov(m,i>0)).join('')
+            +'</div>';
+        }).join('');
+        return '<div style="margin-bottom:16px">'
+          +'<div style="font-size:12px;font-weight:800;color:#1e40af;border-bottom:2px solid #1e40af;padding-bottom:4px">'+mesLabel+'</div>'
+          +diasHtml
+          +'</div>';
+      }).join('');
+    }
   }
+  html+='</div>';
 
   return html;
 }
+
+window._fitasToggleHistorico=function(){
+  window._fitasVerHistCompleto=!window._fitasVerHistCompleto;
+  reloadTab();
+};
 
 // ── Produção ──────────────────────────────────────────────────────
 function renderProducaoFitas(){
@@ -10208,6 +10269,7 @@ function renderProducaoFitas(){
 }
 
 window._fitasExcluirMov=function(tipo, id){
+  if(!['admin','encarregado_fitas'].includes(currentUserData?.perfil)){showToast('Você não tem permissão para excluir movimentações.');return;}
   window._pendingFitasMov={tipo,id};
   showModal('Excluir movimento',
     '<div style="font-size:13px;color:#444">Deseja excluir este lançamento?</div>',
@@ -10215,6 +10277,7 @@ window._fitasExcluirMov=function(tipo, id){
     +'<button class="btn btn-sm btn-danger" onclick="window._fitasConfirmarExcluirMov()">Excluir</button>');
 };
 window._fitasConfirmarExcluirMov=async function(){
+  if(!['admin','encarregado_fitas'].includes(currentUserData?.perfil)){showToast('Você não tem permissão para excluir movimentações.');return;}
   const {tipo,id}=window._pendingFitasMov||{};
   if(!id) return;
   closeModal();
