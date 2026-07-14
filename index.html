@@ -3423,7 +3423,7 @@ function renderUsuariosContexto(contexto, fabrica, setor, titulo){
     ? usuarios.filter(function(u){var p=PERFIS[u.perfil];return p&&p.fabricas&&p.fabricas.includes('cadeiras')&&p.fabricas.includes('estofados');})
     : contexto==='fabrica'
     ? usuarios.filter(function(u){var p=PERFIS[u.perfil];return p&&p.fabricas&&p.fabricas.includes(fabrica)&&!p.setor;})
-    : usuarios;
+    : usuarios.filter(function(u){var p=PERFIS[u.perfil];return p&&p.fabricas&&p.fabricas.includes(fabrica)&&p.setor===setor;});
 
   var rows=usuariosFiltrados.map(function(u){
     var p=PERFIS[u.perfil]||{label:u.perfil,color:'#555',bg:'#f0f0f0'};
