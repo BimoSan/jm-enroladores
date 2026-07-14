@@ -584,7 +584,7 @@ function can(p){
   const perfil=currentUserData.perfil;
   const rules={
     verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao'],
-    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','enrolador','geral','mecanico','administracao'],
+    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','entregador','geral','mecanico','administracao'],
     verFichasEntregador: ['entregador'],
     verFichasEnrolador:  ['enrolador'],
     registrar:       ['admin','apontador1','apontador2'],
@@ -669,7 +669,7 @@ function render(){
 }
 function reloadTab(){
   const el=document.getElementById('tab-content');
-  if(el)el.innerHTML=renderTab(currentTab);
+  if(el)el.innerHTML=currentTab?renderTab(currentTab):'<div class="card" style="text-align:center;padding:40px 20px;color:#94a3b8"><div style="font-size:32px;margin-bottom:10px">🔒</div><div style="font-size:14px;font-weight:700;color:#475569">Sem acesso a este setor</div><div style="font-size:12px;margin-top:4px">Seu perfil não tem permissão para ver nenhuma tela aqui.</div></div>';
 }
 
 // ── Login ────────────────────────────────────────────────────────
@@ -1068,7 +1068,7 @@ function renderApp(){
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   }
   if(can('gerenciarUsuarios'))tabs.push('auditoria');
-  if(!tabs.includes(currentTab))currentTab=tabs[0]||'fichas';
+  if(!tabs.includes(currentTab))currentTab=tabs.length?tabs[0]:null;
 
   const perfisFixos=['soldador','enrolador','entregador',
     'enrolador_int','costureira','gradista','tapecador','encarregado_esp','operador_esp'];
@@ -1142,7 +1142,7 @@ function renderApp(){
           <span class="perfil-badge">${p.label}</span>
         </div>
       </div>
-      <div class="page" id="tab-content" style="width:100%">${renderTab(currentTab)}</div>
+      <div class="page" id="tab-content" style="width:100%">${currentTab?renderTab(currentTab):'<div class="card" style="text-align:center;padding:40px 20px;color:#94a3b8"><div style="font-size:32px;margin-bottom:10px">🔒</div><div style="font-size:14px;font-weight:700;color:#475569">Sem acesso a este setor</div><div style="font-size:12px;margin-top:4px">Seu perfil não tem permissão para ver nenhuma tela aqui.</div></div>'}</div>
     </div>
   </div>`;
 }
