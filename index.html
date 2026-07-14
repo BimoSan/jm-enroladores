@@ -4783,6 +4783,12 @@ function renderPontoMetal(){
   if(!window._pontoMes) window._pontoMes=today().slice(0,7);
   const podeEditar=['admin','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
   const mes=window._pontoMes;
+  // Mostra sempre os ativos; funcionários inativados só aparecem nos meses em
+  // que eles de fato têm registro — preserva o histórico sem poluir os meses
+  // atuais/futuros com quem não trabalha mais aqui.
+  const pontoFuncionariosView=pontoFuncionarios.filter(f=>
+    f.ativo!==false || pontoRegistros.some(r=>r.funcId===f.id&&(r.data||'').startsWith(mes))
+  );
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const [ano,m]=mes.split('-');
   const mesNome=MESES[parseInt(m)-1]+' '+ano;
@@ -4814,7 +4820,7 @@ function renderPontoMetal(){
     </div>
   </div>`;
 
-  if(!pontoFuncionarios.length){
+  if(!pontoFuncionariosView.length){
     return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum funcionário cadastrado. Clique em "+ Funcionário" para adicionar.</div></div>';
   }
 
@@ -4844,7 +4850,7 @@ function renderPontoMetal(){
     +'<th style="padding:8px 6px;text-align:center;min-width:50px">Faltas</th>'
     +'<th style="padding:8px 6px;text-align:center;min-width:50px">H.Extra</th>'
     +'</tr></thead><tbody>'
-    +pontoFuncionarios.map((func,fi)=>{
+    +pontoFuncionariosView.map((func,fi)=>{
       let totalFaltas=0; let totalHExtra=0;
       const cells=dias.map(({d,dt,dow,isDom,isSab,isFds})=>{
         const reg=getRegistro(func.id,dt);
@@ -4909,7 +4915,7 @@ function renderPontoMetal(){
   // Resumo
   html+='<div class="section-label" style="margin-top:16px">Resumo do mês</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'
-    +pontoFuncionarios.map(func=>{
+    +pontoFuncionariosView.map(func=>{
       let faltas=0; let hExtra=0; let presencas=0;
       for(let d=1;d<=diasNoMes;d++){
         const dt=ano+'-'+m.padStart(2,'0')+'-'+String(d).padStart(2,'0');
@@ -4924,8 +4930,9 @@ function renderPontoMetal(){
       }
       const domPerds=domingosPerdidos(func.id);
       const totalComDomingos=Math.ceil(faltas)+domPerds.length;
-      return '<div class="card" style="padding:12px">'
-        +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">'+func.nome+'</div>'
+      const inativo=func.ativo===false;
+      return '<div class="card" style="padding:12px;'+(inativo?'opacity:.6':'')+'">'
+        +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">'+func.nome+(inativo?' <span style="font-size:9px;background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:99px;font-weight:600">Inativo</span>':'')+'</div>'
         +(func.cargo?'<div style="font-size:10px;color:#64748b;margin-bottom:8px">'+func.cargo+'</div>':'')
         +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'
         +'<span style="color:#64748b">Presenças</span><span style="font-weight:700;color:#059669">'+presencas+'</span></div>'
@@ -4944,6 +4951,11 @@ function renderPontoMetal(){
           +'</div>':'')
         +(totalComDomingos>0?'<div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px solid #f1f5f9;padding-top:6px;margin-top:8px">'
         +'<span style="font-weight:700;color:#64748b">Total descontos</span><span style="font-weight:800;color:#dc2626">'+totalComDomingos+'</span></div>':'')
+        +(podeEditar?'<div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px">'
+          +(inativo
+            ?'<button class="btn btn-sm" style="font-size:11px;flex:1" onclick="window._reativarFuncPonto(\''+func.id+'\')">Reativar</button>'
+            :'<button class="btn btn-sm btn-warn" style="font-size:11px;flex:1" onclick="window._excluirFuncPonto(\''+func.id+'\')">Não trabalha mais</button>')
+          +'</div>':'')
         +'</div>';
     }).join('')
     +'</div>';
@@ -4952,6 +4964,35 @@ function renderPontoMetal(){
 }
 
 // ── Funções do ponto ──────────────────────────────────────────────
+
+window._excluirFuncPonto=function(funcId){
+  const func=pontoFuncionarios.find(f=>f.id===funcId);if(!func)return;
+  const temRegistros=pontoRegistros.some(r=>r.funcId===funcId);
+  window._pendingExcluirFuncPontoId=funcId;
+  const aviso=temRegistros
+    ?'<div style="margin-top:8px;font-size:12px;background:#ffebee;color:#c62828;padding:8px 10px;border-radius:8px">⚠️ Este funcionário tem registros de ponto em meses anteriores — excluir perderia esse histórico da folha de pagamento.<br><br>Use <strong>"Inativar"</strong>: o histórico continua intacto, e ele só some da lista dos meses novos.</div>'
+    :'';
+  showModal(temRegistros?'Funcionário não trabalha mais aqui?':'Excluir funcionário',
+    `<div style="font-size:13px;color:#444;line-height:1.6">${temRegistros?'O que fazer com <strong>'+func.nome+'</strong>?':'Excluir permanentemente <strong>'+func.nome+'</strong>? Ele não tem nenhum registro de ponto ainda, então não há histórico a perder.'}${aviso}</div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     ${temRegistros?`<button class="btn btn-sm btn-warn" onclick="window._inativarFuncPonto('${funcId}')">Inativar</button>`:`<button class="btn btn-sm btn-danger" onclick="window._confirmarExcluirFuncPonto()">Excluir</button>`}`);
+};
+window._confirmarExcluirFuncPonto=async()=>{
+  const id=window._pendingExcluirFuncPontoId;if(!id)return;
+  closeModal();
+  await deleteDoc(doc(db,'ponto_funcionarios',id));
+  window._pendingExcluirFuncPontoId=null;
+  showToast('Funcionário excluído.');
+};
+window._inativarFuncPonto=async(id)=>{
+  closeModal();
+  await updateDoc(doc(db,'ponto_funcionarios',id),{ativo:false});
+  showToast('Funcionário marcado como inativo — histórico preservado.');
+};
+window._reativarFuncPonto=async(id)=>{
+  await updateDoc(doc(db,'ponto_funcionarios',id),{ativo:true});
+  showToast('Funcionário reativado!');
+};
 
 window._imprimirPonto=function(mes){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -5123,7 +5164,8 @@ window._excluirPonto=async(regId)=>{
 };
 
 window._abrirRegistroPonto=()=>{
-  const optsFunc=pontoFuncionarios.map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');
+  const ativos=pontoFuncionarios.filter(f=>f.ativo!==false);
+  const optsFunc=ativos.map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');
   const STATUS={P:'Presente',F:'Falta',FJ:'Falta Just.',M:'Meio Período',FO:'Folga'};
   const optsStatus=Object.entries(STATUS).map(([k,v])=>'<option value="'+k+'">'+k+' — '+v+'</option>').join('');
   showModal('Registrar dia completo',
@@ -5131,7 +5173,7 @@ window._abrirRegistroPonto=()=>{
     +'<div class="form-group"><label>Status para todos</label><select id="pr-status" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsStatus+'</select></div>'
     +'<div style="font-size:12px;color:#475569;margin-top:8px">Desmarque quem não aplicar:</div>'
     +'<div style="max-height:180px;overflow-y:auto;margin-top:8px">'
-    +pontoFuncionarios.map(f=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px"><input type="checkbox" id="pr-func-'+f.id+'" checked> '+f.nome+'</label>').join('')
+    +ativos.map(f=>'<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px"><input type="checkbox" id="pr-func-'+f.id+'" checked> '+f.nome+'</label>').join('')
     +'</div>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarPontoLote()">Salvar</button>',true);
