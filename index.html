@@ -10027,13 +10027,15 @@ window._registrarEntregaFita=async function(){
 function getCoresFitas(){ return configFitas.cores||[]; }
 function estoqueCor(cor){
   const prod=producaoFitas.filter(p=>p.cor===cor).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
-  const said=saidasFitas.filter(s=>s.cor===cor).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
-  return prod-said;
+  const said=saidasFitas.filter(s=>s.cor===cor&&!s.isDevolucao).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const devol=saidasFitas.filter(s=>s.cor===cor&&s.isDevolucao).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  return prod-said+devol;
 }
 function estoqueFio(){
   const prod=producaoFitas.filter(p=>p.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
-  const said=saidasFitas.filter(s=>s.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
-  return prod-said;
+  const said=saidasFitas.filter(s=>s.tipo==='fio'&&!s.isDevolucao).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const devol=saidasFitas.filter(s=>s.tipo==='fio'&&s.isDevolucao).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  return prod-said+devol;
 }
 
 // ── Estoque ───────────────────────────────────────────────────────
@@ -10100,8 +10102,10 @@ function renderEstoqueFitas(){
   // ── Fitas / Fio (estilo "transações recentes": lista) ────────
   html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
     +'<div style="font-size:14px;font-weight:800;color:#1e293b">📤 Estoque</div>'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<button onclick="window._fitasAbrirDevolucao()" style="font-size:11px;font-weight:700;color:#059669;background:#d1fae5;border:none;border-radius:99px;padding:6px 14px;cursor:pointer">↩️ Devolução</button>'
     +'<div style="font-size:11px;color:#94a3b8">toque pra registrar saída</div>'
-    +'</div>';
+    +'</div></div>';
 
   const linhaEstoque=(nome,icone,qtd,minimo,cor_bg,onclickFn)=>{
     const baixo=qtd>0&&qtd<=minimo;
@@ -10139,7 +10143,7 @@ function renderEstoqueFitas(){
     movHoje.forEach((m,i)=>{
       const isProd=m._tipo==='prod';
       const label=m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||''));
-      const subLabel=isProd?(m.extrusora?'⚙️ '+m.extrusora:''):(m.destinoNome?'📤 '+m.destinoNome:'');
+      const subLabel=isProd?(m.extrusora?'⚙️ '+m.extrusora:''):(m.destinoNome?(m.isDevolucao?m.destinoNome:'📤 '+m.destinoNome):'');
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
         +'<div>'
         +'<div style="font-size:12px;font-weight:600">'+label+'</div>'
@@ -10217,6 +10221,73 @@ window._fitasConfirmarExcluirMov=async function(){
   const col=tipo==='prod'?'producao_fitas':'saidas_fitas';
   await deleteDoc(doc(db,col,id));
   showToast('Lançamento excluído!');
+};
+
+window._fitasAbrirDevolucao=function(){
+  const cores=getCoresFitas();
+  const botoesCor=cores.map(c=>'<button onclick="window._fitasModalDevolucao(\''+c.nome+'\')" style="padding:14px;border-radius:12px;background:'+(c.hex||'#6366f1')+';border:none;font-size:14px;font-weight:700;color:#fff;cursor:pointer;text-align:left">'+c.nome+'</button>').join('');
+  showModal('↩️ Devolução — qual fita voltou?',
+    '<div style="display:flex;flex-direction:column;gap:8px">'
+    +botoesCor
+    +'<button onclick="window._fitasModalDevolucao(\'fio\')" style="padding:14px;border-radius:12px;background:#6b7280;border:none;font-size:14px;font-weight:700;color:#fff;cursor:pointer;text-align:left">🧵 Fio</button>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>');
+};
+
+window._fitasModalDevolucao=function(cor){
+  const isFio=cor==='fio';
+  const itemLabel=isFio?'Fio':'Fita '+cor;
+  const quemOpcoes=[
+    {v:'inacio',l:'Inácio'},
+    {v:'mirandinha',l:'Mirandinha'},
+    {v:'interno',l:'Setor Interno'},
+    {v:'outro',l:'Outro'},
+  ];
+  const campos='<input type="hidden" id="fm-devol-quem" value="">'
+    +'<div class="form-group"><label>Quem devolveu?</label>'
+    +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
+    +quemOpcoes.map(q=>'<button type="button" onclick="window._fitasSelDevolQuem(this,\''+q.v+'\')" style="padding:12px 8px;border-radius:10px;background:#f1f5f9;border:2px solid #e2e8f0;font-size:13px;font-weight:700;color:#334155;cursor:pointer">'+q.l+'</button>').join('')
+    +'</div></div>'
+    +'<div class="form-group" style="margin-top:10px"><label>Rolos</label>'
+    +'<input type="number" id="fm-devol-rolos" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%;text-align:center"></div>'
+    +'<div class="form-group" style="margin-top:10px"><label>Data</label>'
+    +'<input type="date" id="fm-devol-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group" style="margin-top:10px"><label>Observação (opcional)</label>'
+    +'<input id="fm-devol-obs" placeholder="" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>';
+
+  showModal('↩️ Devolução — '+itemLabel, campos,
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._fitasSalvarDevolucao(\''+cor+'\')">Registrar</button>');
+};
+
+window._fitasSelDevolQuem=function(btn,val){
+  const hidden=document.getElementById('fm-devol-quem');
+  if(hidden) hidden.value=val;
+  const container=btn.parentElement;
+  if(container) Array.from(container.children).forEach(b=>{
+    b.style.background='#f1f5f9'; b.style.color='#334155'; b.style.border='2px solid #e2e8f0';
+  });
+  btn.style.background='#059669'; btn.style.color='#fff'; btn.style.border='2px solid #059669';
+};
+
+window._fitasSalvarDevolucao=async function(cor){
+  const isFio=cor==='fio';
+  const quem=document.getElementById('fm-devol-quem')?.value||'';
+  const rolos=parseInt(document.getElementById('fm-devol-rolos')?.value)||0;
+  const data=document.getElementById('fm-devol-data')?.value||today();
+  const obs=document.getElementById('fm-devol-obs')?.value.trim()||'';
+  if(!quem){showToast('Selecione quem devolveu.');return;}
+  if(!rolos){showToast('Informe a quantidade de rolos.');return;}
+  const labels={inacio:'Inácio',mirandinha:'Mirandinha',interno:'Setor Interno',outro:'Outro'};
+  closeModal();
+  await addDoc(collection(db,'saidas_fitas'),{
+    tipo:isFio?'fio':'fita', cor:isFio?null:cor,
+    rolos, data, obs,
+    isDevolucao:true,
+    destino:quem, destinoNome:'↩️ Devolução — '+(labels[quem]||quem),
+    criadoEm:new Date().toISOString()
+  });
+  showToast('Devolução registrada!');
 };
 
 window._fitasAbrirCor=function(cor){
@@ -10588,12 +10659,14 @@ function renderRelatorioFitas(){
   const mProxStr=mProx.getFullYear()+'-'+String(mProx.getMonth()+1).padStart(2,'0');
 
   const prodMes=producaoFitas.filter(p=>(p.data||'').slice(0,7)===mes);
-  const saidMes=saidasFitas.filter(s=>(s.data||'').slice(0,7)===mes);
+  const saidMes=saidasFitas.filter(s=>(s.data||'').slice(0,7)===mes&&!s.isDevolucao);
+  const devolMes=saidasFitas.filter(s=>(s.data||'').slice(0,7)===mes&&s.isDevolucao);
 
   const totalProdFita=prodMes.filter(p=>p.tipo==='fita').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
   const totalProdFio=prodMes.filter(p=>p.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
   const totalSaidFita=saidMes.filter(s=>s.tipo==='fita').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
   const totalSaidFio=saidMes.filter(s=>s.tipo==='fio').reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+  const totalDevol=devolMes.reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
 
   let html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">'
     +'<button class="btn btn-ghost btn-sm" onclick="window._fitNavMes(\''+mAntStr+'\')">←</button>'
@@ -10607,6 +10680,7 @@ function renderRelatorioFitas(){
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Fita saída</div><div class="stat-value">'+totalSaidFita+' rolos</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Fio produzido</div><div class="stat-value">'+totalProdFio+' rolos</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6)"><div><div class="stat-label">Fio saído</div><div class="stat-value">'+totalSaidFio+' rolos</div></div></div>'
+    +(totalDevol>0?'<div class="stat-card" style="background:linear-gradient(135deg,#047857,#34d399);grid-column:span 2"><div><div class="stat-label">↩️ Devoluções no mês</div><div class="stat-value">'+totalDevol+' rolos ('+devolMes.length+' registro'+(devolMes.length>1?'s':'')+')</div></div></div>':'')
     +'</div>';
 
   const extrusoras=configFitas.extrusoras||[];
