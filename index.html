@@ -10142,6 +10142,7 @@ function renderEstoqueFitas(){
   };
   const linhaMov=(m,mostrarBorda)=>{
     const isProd=m._tipo==='prod';
+    const isEntrada=isProd||m.isDevolucao;
     const label=m.tipo==='fio'?'🧵 Fio':('🔩 '+(m.cor||''));
     const subLabel=isProd?(m.extrusora?'⚙️ '+m.extrusora:''):(m.destinoNome?(m.isDevolucao?m.destinoNome:'📤 '+m.destinoNome):'');
     const hora=horaMov(m.criadoEm);
@@ -10152,7 +10153,7 @@ function renderEstoqueFitas(){
       +(m.obs?'<div style="font-size:10px;color:#94a3b8">'+m.obs+'</div>':'')
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<div style="font-size:13px;font-weight:800;color:'+(isProd?'#059669':'#dc2626')+'">'+(isProd?'+':'-')+m.rolos+' rolos</div>'
+      +'<div style="font-size:13px;font-weight:800;color:'+(isEntrada?'#059669':'#dc2626')+'">'+(isEntrada?'+':'-')+m.rolos+' rolos</div>'
       +(podeExcluirMov?'<button class="btn btn-sm btn-danger" style="font-size:10px;padding:2px 7px" onclick="window._fitasExcluirMov(\''+m._tipo+'\',\''+m.id+'\')">✕</button>':'')
       +'</div>'
       +'</div>';
