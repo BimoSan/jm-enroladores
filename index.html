@@ -12886,14 +12886,13 @@ window._engConfirmarExcluirProduto=async function(){
 // ── Configurações: valores de rateio + margem padrão ───────────────
 function renderEngEspuma(){
   const MARGEM_VENDA=30;
-  const mpsEspuma=engMaterias.filter(m=>m.isEspuma);
-  const mpPadrao=mpsEspuma[0]||null;
+  const custoM3=parseFloat(configEng.custoM3Espuma)||0;
   return `
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:4px">🧮 Calculadora de custo de espuma</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Informe as dimensões do pedaço para calcular o custo e preço de venda.</div>
-      ${mpPadrao?'<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#5b21b6"><strong>'+mpPadrao.nome+'</strong> — '+fmtMoeda(parseFloat(mpPadrao.custo)||0)+'/m³</div>'
-      :'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Nenhuma matéria-prima marcada como espuma. Vá em <strong>Matérias-primas</strong>, edite a espuma e marque <strong>"Usar na calculadora de espuma"</strong>.</div>'}
+      ${custoM3>0?'<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#5b21b6">Custo do m³: <strong>'+fmtMoeda(custoM3)+'</strong></div>'
+      :'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Custo do m³ de espuma ainda não configurado. Vá em <strong>Configurações → Custo do m³ de espuma</strong> e preencha.</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
         <div class="form-group" style="margin:0"><label>Largura (cm)</label>
           <input type="number" id="calc-l" min="0" step="1" placeholder="Ex: 140" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
@@ -12904,43 +12903,26 @@ function renderEngEspuma(){
       </div>
       <div id="calc-resultado" style="display:none"></div>
     </div>
-    ${mpsEspuma.length?`<div class="card">
-      <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📋 Espumas cadastradas (referência por m³)</div>
-      ${mpsEspuma.map(m=>{
-        const custo=parseFloat(m.custo)||0;
-        const venda=custo*(1+MARGEM_VENDA/100);
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9">'
-          +'<div><div style="font-size:13px;font-weight:700">'+m.nome+'</div>'
-          +(m.observacao?'<div style="font-size:11px;color:#94a3b8">'+m.observacao+'</div>':'')
-          +'</div>'
-          +'<div style="text-align:right">'
-          +'<div style="font-size:12px;color:#dc2626;font-weight:700">'+fmtMoeda(custo)+'/m³</div>'
-          +'<div style="font-size:14px;font-weight:800;color:#059669">venda: '+fmtMoeda(venda)+'/m³</div>'
-          +'</div></div>';
-      }).join('')}
-      <div style="font-size:10px;color:#94a3b8;margin-top:6px">* Venda = custo + ${MARGEM_VENDA}% margem</div>
-    </div>`:''}
   `;
 }
 
 window._engCalcEspuma=function(){
-  const mp=engMaterias.filter(m=>m.isEspuma)[0]||null;
+  const custoM3=parseFloat(configEng.custoM3Espuma)||0;
   const lCm=parseFloat(document.getElementById('calc-l')?.value)||0;
   const aCm=parseFloat(document.getElementById('calc-a')?.value)||0;
   const eCm=parseFloat(document.getElementById('calc-e')?.value)||0;
   const res=document.getElementById('calc-resultado');
   if(!res) return;
   const MARGEM_VENDA=30;
-  if(!mp||!lCm||!aCm||!eCm){ res.style.display='none'; return; }
+  if(!custoM3||!lCm||!aCm||!eCm){ res.style.display='none'; return; }
   // Converte cm → m
   const l=lCm/100, a=aCm/100, e=eCm/100;
   const vol=l*a*e;
-  const custoM3=parseFloat(mp.custo)||0;
   const custoTotal=custoM3*vol;
   const venda=custoTotal*(1+MARGEM_VENDA/100);
   res.style.display='block';
   res.innerHTML='<div style="background:linear-gradient(135deg,#4c1d95,#7c3aed);border-radius:14px;padding:18px;color:#fff">'
-    +'<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px">'+mp.nome+' · '+lCm+' × '+aCm+' × '+eCm+' cm = <strong>'+vol.toFixed(6)+' m³</strong></div>'
+    +'<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px">'+lCm+' × '+aCm+' × '+eCm+' cm = <strong>'+vol.toFixed(6)+' m³</strong></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'
     +'<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px"><div style="font-size:10px;opacity:.75">Custo total</div><div style="font-size:22px;font-weight:900">'+fmtMoeda(custoTotal)+'</div></div>'
     +'<div style="background:rgba(255,255,255,.95);border-radius:10px;padding:10px"><div style="font-size:10px;color:#4c1d95;font-weight:700">Venda (+'+MARGEM_VENDA+'%)</div><div style="font-size:22px;font-weight:900;color:#059669">'+fmtMoeda(venda)+'</div></div>'
@@ -12951,7 +12933,7 @@ window._engCalcEspuma=function(){
 
 
 function renderEngColchao(){
-  const mpEspuma=engMaterias.filter(m=>m.isColchaoEspuma)[0]||null;
+  const custoM3Espuma=parseFloat(configEng.custoM3Espuma)||0;
   const mpSuede=engMaterias.filter(m=>m.isColchaoSuede)[0]||null;
   const mpEstampado=engMaterias.filter(m=>m.isColchaoEstampado)[0]||null;
   const mpVies=engMaterias.filter(m=>m.isColchaoVies)[0]||null;
@@ -12959,7 +12941,7 @@ function renderEngColchao(){
   const mpEmbalagem=engMaterias.filter(m=>m.isColchaoEmbalagem)[0]||null;
 
   const faltando=[];
-  if(!mpEspuma) faltando.push('Espuma (núcleo)');
+  if(!custoM3Espuma) faltando.push('Custo do m³ de espuma (Configurações)');
   if(!mpSuede) faltando.push('Tecido Suede');
   if(!mpEstampado) faltando.push('Tecido Estampado');
   if(!mpVies) faltando.push('Viés');
@@ -12972,9 +12954,9 @@ function renderEngColchao(){
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:14px;font-weight:800;color:#1e293b;margin-bottom:4px">🛏️ Calculadora de custo de colchão</div>
       <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Informe as dimensões do colchão para calcular espuma, tecidos, viés e o custo total.</div>
-      ${faltando.length?'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Faltam matérias-primas marcadas para: <strong>'+faltando.join(', ')+'</strong>. Vá em <strong>Matérias-primas</strong>, edite o item e marque a opção correspondente no bloco roxo "Calculadora de colchão".</div>':
+      ${faltando.length?'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Faltam configurar: <strong>'+faltando.join(', ')+'</strong>. Matérias-primas: vá em Matérias-primas e marque a opção correspondente no bloco roxo "Calculadora de colchão".</div>':
       '<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;margin-bottom:12px">'
-        +linhaPadrao('Espuma (núcleo)',mpEspuma,'m³')
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="color:#64748b">Espuma (núcleo)</span><strong>'+fmtMoeda(custoM3Espuma)+'/m³</strong></div>'
         +linhaPadrao('Tecido Suede',mpSuede,'m²')
         +linhaPadrao('Tecido Estampado',mpEstampado,'m')
         +linhaPadrao('Viés',mpVies,'m')
@@ -13007,14 +12989,14 @@ window._engCalcColchao=function(){
   const aCm=parseFloat(document.getElementById('colc-a')?.value)||0;
   const cCm=parseFloat(document.getElementById('colc-c')?.value)||0;
 
-  const mpEspuma=engMaterias.filter(m=>m.isColchaoEspuma)[0]||null;
   const mpSuede=engMaterias.filter(m=>m.isColchaoSuede)[0]||null;
   const mpEstampado=engMaterias.filter(m=>m.isColchaoEstampado)[0]||null;
   const mpVies=engMaterias.filter(m=>m.isColchaoVies)[0]||null;
   const mpCola=engMaterias.filter(m=>m.isColchaoCola)[0]||null;
   const mpEmbalagem=engMaterias.filter(m=>m.isColchaoEmbalagem)[0]||null;
+  const custoM3Espuma=parseFloat(configEng.custoM3Espuma)||0;
 
-  if(!lCm||!aCm||!cCm||!mpEspuma||!mpSuede||!mpEstampado||!mpVies||!mpCola||!mpEmbalagem){
+  if(!lCm||!aCm||!cCm||!custoM3Espuma||!mpSuede||!mpEstampado||!mpVies||!mpCola||!mpEmbalagem){
     res.style.display='none';
     return;
   }
@@ -13025,7 +13007,7 @@ window._engCalcColchao=function(){
 
   // 1) Espuma (núcleo) — volume
   const volume=l*a*c; // m³
-  const custoEspuma=volume*(parseFloat(mpEspuma.custo)||0);
+  const custoEspuma=volume*custoM3Espuma;
 
   // 2) Tecido Suede (faixa lateral) — altura da faixa + 2cm × perímetro
   const alturaFaixa=(aCm+2)/100; // m
@@ -13111,6 +13093,13 @@ function renderEngConfig(){
     +'</div>';
 
   html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">🧊 Custo do m³ de espuma</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Valor manual — não é mais puxado do cadastro de matérias-primas. Usado nas calculadoras de Espuma e de Colchão.</div>'
+    +'<div class="form-group"><label>Custo (R$/m³)</label>'
+    +'<input type="number" id="ec-custo-m3-espuma" min="0" step="0.01" value="'+(configEng.custoM3Espuma||0)+'" '+(podeEditar?'':'disabled')+' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'</div>';
+
+  html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">🛏️ Custo indireto do colchão</div>'
     +'<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Valor fixo por colchão, somado ao custo de espuma/tecidos/viés/cola/embalagem na calculadora.</div>'
     +'<div class="form-group"><label>Custo indireto (R$/colchão)</label>'
@@ -13144,7 +13133,8 @@ window._engSalvarIndiretos=async function(){
 window._engSalvarConfig=async function(){
   const margemPadrao=parseFloat(document.getElementById('ec-margem-padrao')?.value)||0;
   const indiretoColchao=parseFloat(document.getElementById('ec-indireto-colchao')?.value)||0;
-  configEng={...configEng,margemPadrao,indiretoColchao};
+  const custoM3Espuma=parseFloat(document.getElementById('ec-custo-m3-espuma')?.value)||0;
+  configEng={...configEng,margemPadrao,indiretoColchao,custoM3Espuma};
   await setDoc(doc(db,'config_eng','geral'),configEng);
   showToast('Configurações salvas!');
 };
