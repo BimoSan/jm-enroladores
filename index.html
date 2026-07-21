@@ -482,6 +482,14 @@ let currentSetor=null;
 let enroladores=[];
 let notificacoes=[];
 let configBonus={meta:300, valorBonus:1.00, ativo:true}; // configuração do bônus de volume
+let configFin={categoriasCustos:['Energia','Sistema','Internet','Aluguel','Água',
+  'Imposto','Multas','Patrocínio/Doação','Perdas',
+  'Almoço/Merenda','Despesas com Pessoal','Salários Administrativos',
+  'Manutenção de Maquinário','Peças para Maquinários',
+  'Manutenção de Caminhão','Peças Automotivas','Manutenção Carro/Moto',
+  'Materiais Administrativos','Materiais Diversos','Materiais de Limpeza',
+  'Fretes','Ferramentas','Investimento','Combustível','EPI',
+  'Sem Identificação','Outros']};
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
@@ -14005,17 +14013,6 @@ window._manConfirmarExcluir=async function(){
 // CUSTOS INDIRETOS
 // ════════════════════════════════════════════════════════════════
 
-const CATEGORIAS_CUSTOS=[
-  'Energia','Sistema','Internet','Aluguel','Água',
-  'Imposto','Multas','Patrocínio/Doação','Perdas',
-  'Almoço/Merenda','Despesas com Pessoal','Salários Administrativos',
-  'Manutenção de Maquinário','Peças para Maquinários',
-  'Manutenção de Caminhão','Peças Automotivas','Manutenção Carro/Moto',
-  'Materiais Administrativos','Materiais Diversos','Materiais de Limpeza',
-  'Fretes','Ferramentas','Investimento','Combustível','EPI',
-  'Sem Identificação','Outros',
-];
-
 function renderFinCustos(){
   if(!window._custoMes) window._custoMes=today().slice(0,7);
   if(!window._custoView) window._custoView='mensal'; // mensal | historico
@@ -14390,10 +14387,13 @@ window._setCustoView=function(view){ window._custoView=view; reloadTab(); };
 window._setCustoMesView=function(mes){ window._custoMes=mes; window._custoView='mensal'; reloadTab(); };
 
 window._custoNovo=function(){
-  const opts=CATEGORIAS_CUSTOS.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+  const opts=(configFin.categoriasCustos||[]).map(c=>'<option value="'+c+'">'+c+'</option>').join('');
   showModal('+ Custo Indireto',
     '<div class="form-group"><label>Categoria</label>'
-    +'<select id="ci-cat" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+opts+'</select></div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<select id="ci-cat" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;flex:1">'+opts+'</select>'
+    +'<button type="button" onclick="window._custoGerenciarCategorias()" style="font-size:11px;font-weight:700;color:#1e40af;background:#eff6ff;border:none;border-radius:9px;padding:0 12px;cursor:pointer;white-space:nowrap">Gerenciar</button>'
+    +'</div></div>'
     +'<div class="form-group"><label>Valor (R$)</label>'
     +'<input type="number" id="ci-valor" min="0" step="0.01" placeholder="0,00" onfocus="this.select()" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
@@ -14402,6 +14402,41 @@ window._custoNovo=function(){
     +'<input id="ci-desc" placeholder="Ex: Conta de luz ref. maio" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-danger" onclick="window._custoSalvar()">Salvar</button>');
+};
+
+window._custoGerenciarCategorias=function(){
+  const cats=configFin.categoriasCustos||[];
+  const linhas=cats.map((c,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+    +'<div style="flex:1;font-size:13px;padding:6px 8px;background:#f8fafc;border-radius:7px">'+c+'</div>'
+    +'<button type="button" onclick="window._custoRemoverCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:13px;cursor:pointer">✕</button>'
+    +'</div>').join('');
+  showModal('Gerenciar categorias de custo',
+    '<div id="ci-cat-lista" style="max-height:260px;overflow-y:auto;margin-bottom:10px">'+linhas+'</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<input id="ci-cat-nova" placeholder="Nova categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
+    +'<button type="button" onclick="window._custoAdicionarCategoria()" style="background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:0 16px;font-size:13px;font-weight:700;cursor:pointer">+</button>'
+    +'</div>',
+    '<button class="btn btn-sm btn-primary" onclick="window._custoNovo()">Voltar</button>');
+};
+window._custoAdicionarCategoria=async function(){
+  const input=document.getElementById('ci-cat-nova');
+  const nome=input?.value.trim();
+  if(!nome){showToast('Digite o nome da categoria.');return;}
+  const cats=configFin.categoriasCustos||[];
+  if(cats.includes(nome)){showToast('Essa categoria já existe.');return;}
+  const novaLista=[...cats,nome];
+  await setDoc(doc(db,'config_financeiro','geral'),{...configFin,categoriasCustos:novaLista});
+  configFin={...configFin,categoriasCustos:novaLista};
+  showToast('Categoria adicionada!');
+  window._custoGerenciarCategorias();
+};
+window._custoRemoverCategoria=async function(idx){
+  const cats=configFin.categoriasCustos||[];
+  const novaLista=cats.filter((_,i)=>i!==idx);
+  await setDoc(doc(db,'config_financeiro','geral'),{...configFin,categoriasCustos:novaLista});
+  configFin={...configFin,categoriasCustos:novaLista};
+  showToast('Categoria removida.');
+  window._custoGerenciarCategorias();
 };
 window._custoSalvar=async function(){
   const categoria=document.getElementById('ci-cat')?.value;
@@ -17378,6 +17413,10 @@ const LISTENERS_POR_SETOR={
     }),
   ],
   financeiro_geral: [
+    ()=>onSnapshot(doc(db,'config_financeiro','geral'),snap=>{
+      if(snap.exists()) configFin={...configFin,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
     // Configurações de preço por peça de cada setor — necessárias porque a
     // tela de Mão de Obra recalcula o ganho de tapeceiros/gradistas/enrolamento
     // interno na hora (ao contrário da Metalúrgica, que salva o valor já
