@@ -9920,29 +9920,26 @@ function renderTapMinhaFicha(){
   const tap=tapecadorProprio();
   if(!tap) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum tapecador. Peça ao apontador para verificar seu cadastro.</div></div>';
   const c=avatarColor(tapecadores.findIndex(t=>t.id===tap.id));
-  const q=getQuinzenaAtualTap();
-  const ficha=fichasTap.find(f=>f.tapId===tap.id&&f.status==='aberta'&&f.quinzena===q)
-           ||fichasTap.find(f=>f.tapId===tap.id&&f.status==='aberta');
+  const ficha=fichasTap.find(f=>f.tapId===tap.id&&f.status==='aberta');
   const aponts=ficha?.apontamentos||[];
   const ganhoQ=calcGanhoTap(aponts); const totalQ=totalPecasTap(aponts);
   const pago=ficha?.pago||false; const status=ficha?.status||'aberta';
   const badge=status==='fechada'?(pago?'<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:10px;background:#ede9fe;color:#4c1d95;padding:3px 10px;border-radius:99px;font-weight:700">Aguardando pagamento</span>'):'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700">Em aberto</span>';
+  const diasMap={};
+  aponts.forEach(a=>{ if(!a.data) return; if(!diasMap[a.data]) diasMap[a.data]={}; getPecasTapAtivas().forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v>0) diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+v; }); });
+  const dias=Object.keys(diasMap).sort();
   let html='<div style="background:linear-gradient(135deg,#0e7490,#22d3ee);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
-    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na quinzena atual</div>'
+    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber nesta ficha</div>'
     +'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtR(ganhoQ)+'</div>'
-    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+(totalQ?totalQ+' peças produzidas':'')+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+(totalQ?totalQ+' peças produzidas':'')+(dias.length?' · aberta desde '+fmtDate(dias[0]):'')+'</div>'
     +'<div style="margin-top:10px">'+badge+'</div></div>';
   html+='<div class="card" style="border-left:4px solid '+c+'">';
-  const diasMap={};
-  const [qAno,qMes]=q.split('-');
-  aponts.forEach(a=>{ if(!a.data||getQuinzenaTap(a.data)!==q) return; if(!diasMap[a.data]) diasMap[a.data]={}; getPecasTapAtivas().forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v>0) diasMap[a.data][p.id]=(diasMap[a.data][p.id]||0)+v; }); });
-  const dias=Object.keys(diasMap).sort();
   if(dias.length){
     html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
       +'<thead><tr style="background:#f1f5f9"><th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left">Data</th><th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center">Peças</th><th style="padding:7px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:right">Ganho</th></tr></thead><tbody>';
-    dias.forEach((dia,i)=>{ const tots=diasMap[dia]; const tDia=Object.values(tots).reduce((s,v)=>s+v,0); const gDia=getPecasTapAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorTap(p.id),0); const[,, dd]=dia.split('-'); html+='<tr style="'+(i%2?'background:#f8fafc':'')+';border-bottom:1px solid #f1f5f9"><td style="padding:7px 10px;font-size:12px;font-weight:600">'+dd+'/'+qMes+'/'+qAno+'</td><td style="padding:7px 10px;font-size:13px;font-weight:800;color:#0e7490;text-align:center">'+tDia+'</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">'+fmtR(gDia)+'</td></tr>'; });
-    html+='<tfoot><tr style="background:#cffafe;font-weight:800"><td style="padding:8px 10px;font-size:12px;color:#0e7490">Total quinzena</td><td style="padding:8px 10px;font-size:14px;color:#0e7490;text-align:center">'+totalQ+'</td><td style="padding:8px 10px;font-size:14px;color:#059669;text-align:right">'+fmtR(ganhoQ)+'</td></tr></tfoot></table></div>';
-  } else { html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhum apontamento nesta quinzena ainda.</div>'; }
+    dias.forEach((dia,i)=>{ const tots=diasMap[dia]; const tDia=Object.values(tots).reduce((s,v)=>s+v,0); const gDia=getPecasTapAtivas().reduce((s,p)=>s+(tots[p.id]||0)*getValorTap(p.id),0); html+='<tr style="'+(i%2?'background:#f8fafc':'')+';border-bottom:1px solid #f1f5f9"><td style="padding:7px 10px;font-size:12px;font-weight:600">'+fmtDate(dia)+'</td><td style="padding:7px 10px;font-size:13px;font-weight:800;color:#0e7490;text-align:center">'+tDia+'</td><td style="padding:7px 10px;font-size:12px;font-weight:700;color:#059669;text-align:right">'+fmtR(gDia)+'</td></tr>'; });
+    html+='<tfoot><tr style="background:#cffafe;font-weight:800"><td style="padding:8px 10px;font-size:12px;color:#0e7490">Total da ficha</td><td style="padding:8px 10px;font-size:14px;color:#0e7490;text-align:center">'+totalQ+'</td><td style="padding:8px 10px;font-size:14px;color:#059669;text-align:right">'+fmtR(ganhoQ)+'</td></tr></tfoot></table></div>';
+  } else { html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhum apontamento nesta ficha ainda.</div>'; }
   html+='</div>';
   return html;
 }
@@ -9951,23 +9948,23 @@ function renderTapMeuDesempenho(){
   if(!tap) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum tapecador.</div></div>';
   const c=avatarColor(tapecadores.findIndex(t=>t.id===tap.id));
   const pecasAtivas=getPecasTapAtivas();
-  const porQ={};
-  fichasTap.filter(f=>f.tapId===tap.id).forEach(f=>{
-    if(!f.quinzena) return;
-    if(!porQ[f.quinzena]) porQ[f.quinzena]={pecas:0,ganho:0,status:f.status,pago:f.pago,porTipo:{}};
+  const fichas=fichasTap.filter(f=>f.tapId===tap.id).map(f=>{
     const aponts=f.apontamentos||[];
-    porQ[f.quinzena].pecas+=totalPecasTap(aponts);
-    porQ[f.quinzena].ganho+=calcGanhoTap(aponts);
-    aponts.forEach(a=>{ pecasAtivas.forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v>0) porQ[f.quinzena].porTipo[p.id]=(porQ[f.quinzena].porTipo[p.id]||0)+v; }); });
-    if(f.status==='fechada') porQ[f.quinzena].status='fechada';
-    if(f.pago) porQ[f.quinzena].pago=true;
-  });
-  const quinzenas=Object.keys(porQ).sort().reverse();
+    const datas=aponts.map(a=>a.data).filter(Boolean).sort();
+    const porTipo={};
+    aponts.forEach(a=>{ pecasAtivas.forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v>0) porTipo[p.id]=(porTipo[p.id]||0)+v; }); });
+    return{
+      id:f.id,status:f.status,pago:f.pago,
+      ganho:calcGanhoTap(aponts),pecas:totalPecasTap(aponts),porTipo,
+      inicio:datas[0]||f.dataFechamento||'',
+      fim:f.dataFechamento||datas[datas.length-1]||''
+    };
+  }).sort((a,b)=>(b.fim||b.inicio||'')>(a.fim||a.inicio||'')?1:-1);
   let html='<div class="card" style="margin-bottom:14px;border-left:4px solid '+c+'">'
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">'+initials(tap.nome)+'</div>'
-    +'<div><div style="font-size:15px;font-weight:800">'+tap.nome+'</div><div style="font-size:11px;color:#64748b">Histórico de quinzenas</div></div></div>';
-  if(!quinzenas.length){ html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhuma produção registrada ainda.</div>'; }
-  else { const melhor=quinzenas.reduce((b,q)=>porQ[q].ganho>porQ[b].ganho?q:b,quinzenas[0]); quinzenas.forEach(q=>{ const{pecas,ganho,status,pago,porTipo}=porQ[q]; const badge=status==='fechada'?(pago?'<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:9px;background:#ede9fe;color:#4c1d95;padding:2px 7px;border-radius:99px;font-weight:700">Fechada</span>'):'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:99px;font-weight:700">Aberta</span>'; const detalhe=pecasAtivas.filter(p=>(porTipo[p.id]||0)>0).map(p=>porTipo[p.id]+' '+p.label).join(' · ')||(pecas+' peças'); html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9"><div><div style="font-size:12px;font-weight:700">'+quinzenaLabelTap(q)+(q===melhor?' 🏆':'')+'</div><div style="font-size:11px;color:#64748b;margin-top:1px">'+detalhe+'</div></div><div style="display:flex;align-items:center;gap:8px">'+badge+'<div style="font-size:16px;font-weight:800;color:'+(ganho>0?'#059669':'#94a3b8')+'">'+fmtR(ganho)+'</div></div></div>'; }); }
+    +'<div><div style="font-size:15px;font-weight:800">'+tap.nome+'</div><div style="font-size:11px;color:#64748b">Histórico de fichas</div></div></div>';
+  if(!fichas.length){ html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhuma produção registrada ainda.</div>'; }
+  else { const melhor=fichas.reduce((b,f)=>f.ganho>b.ganho?f:b,fichas[0]); fichas.forEach(f=>{ const badge=f.status==='fechada'?(f.pago?'<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:9px;background:#ede9fe;color:#4c1d95;padding:2px 7px;border-radius:99px;font-weight:700">Fechada</span>'):'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:99px;font-weight:700">Aberta</span>'; const periodo=f.inicio&&f.fim&&f.inicio!==f.fim?fmtDate(f.inicio)+' – '+fmtDate(f.fim):(fmtDate(f.inicio||f.fim)||'—'); const detalhe=pecasAtivas.filter(p=>(f.porTipo[p.id]||0)>0).map(p=>f.porTipo[p.id]+' '+p.label).join(' · ')||(f.pecas+' peças'); html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9"><div><div style="font-size:12px;font-weight:700">'+periodo+(f.id===melhor.id?' 🏆':'')+'</div><div style="font-size:11px;color:#64748b;margin-top:1px">'+detalhe+'</div></div><div style="display:flex;align-items:center;gap:8px">'+badge+'<div style="font-size:16px;font-weight:800;color:'+(f.ganho>0?'#059669':'#94a3b8')+'">'+fmtR(f.ganho)+'</div></div></div>'; }); }
   html+='</div>';
   return html;
 }
