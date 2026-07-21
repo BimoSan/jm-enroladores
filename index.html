@@ -10028,6 +10028,7 @@ function renderEntregasFitas(){
 }
 
 window._registrarEntregaFita=async function(){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar entrega de fitas.');return;}
   const enroladorIntId=document.getElementById('ef-enrolador')?.value;
   const data=document.getElementById('ef-data')?.value;
   const rolos=parseInt(document.getElementById('ef-rolos')?.value)||0;
@@ -10047,6 +10048,7 @@ window._registrarEntregaFita=async function(){
 
 
 // ── Helpers Fitas ─────────────────────────────────────────────────
+function podeFitas(){ return ['admin','encarregado_fitas'].includes(currentUserData?.perfil); }
 function getCoresFitas(){ return configFitas.cores||[]; }
 function estoqueCor(cor){
   const prod=producaoFitas.filter(p=>p.cor===cor).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
@@ -10063,6 +10065,7 @@ function estoqueFio(){
 
 // ── Estoque ───────────────────────────────────────────────────────
 function renderEstoqueFitas(){
+  const podeEditarFitas=podeFitas();
   const cores=getCoresFitas();
   const extrusoras=(configFitas.extrusoras||[]).filter(e=>e.ativo!==false);
   const estoqMin=configFitas.estoqueMin||{};
@@ -10104,12 +10107,12 @@ function renderEstoqueFitas(){
     const cores_bg=['#7c3aed','#0e7490','#b45309','#166534','#be123c','#4338ca'];
     html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
       +'<div style="font-size:14px;font-weight:800;color:#1e293b">⚙️ Extrusoras</div>'
-      +'<div style="font-size:11px;color:#94a3b8">toque pra lançar produção</div>'
+      +'<div style="font-size:11px;color:#94a3b8">'+(podeEditarFitas?'toque pra lançar produção':'')+'</div>'
       +'</div>';
     html+='<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin-bottom:24px">';
     extrusoras.forEach((e,i)=>{
       const bg=cores_bg[i%cores_bg.length];
-      html+='<div style="flex:0 0 auto;width:128px;text-align:left;padding:12px;border-radius:16px;cursor:pointer;background:#fff;border:1.5px solid #f1f5f9;box-shadow:0 1px 4px rgba(0,0,0,.06)" onclick="window._fitasAbrirExtrusora(\''+e.nome+'\')">'
+      html+='<div style="flex:0 0 auto;width:128px;text-align:left;padding:12px;border-radius:16px;'+(podeEditarFitas?'cursor:pointer':'')+';background:#fff;border:1.5px solid #f1f5f9;box-shadow:0 1px 4px rgba(0,0,0,.06)"'+(podeEditarFitas?' onclick="window._fitasAbrirExtrusora(\''+e.nome+'\')"':'')+'>'
         +'<div style="width:40px;height:40px;border-radius:12px;background:'+bg+';display:flex;align-items:center;justify-content:center;margin-bottom:8px">'+ICONE_EXTRUSORA_MINI+'</div>'
         +'<div style="font-size:12px;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+e.nome+'</div>'
         +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+(e.tipo==='fio'?'🧵 Fio':'🔩 Fita')+'</div>'
@@ -10126,15 +10129,15 @@ function renderEstoqueFitas(){
   html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
     +'<div style="font-size:14px;font-weight:800;color:#1e293b">📤 Estoque</div>'
     +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<button onclick="window._fitasAbrirDevolucao()" style="font-size:11px;font-weight:700;color:#059669;background:#d1fae5;border:none;border-radius:99px;padding:6px 14px;cursor:pointer">↩️ Devolução</button>'
-    +'<div style="font-size:11px;color:#94a3b8">toque pra registrar saída</div>'
+    +(podeEditarFitas?'<button onclick="window._fitasAbrirDevolucao()" style="font-size:11px;font-weight:700;color:#059669;background:#d1fae5;border:none;border-radius:99px;padding:6px 14px;cursor:pointer">↩️ Devolução</button>':'')
+    +'<div style="font-size:11px;color:#94a3b8">'+(podeEditarFitas?'toque pra registrar saída':'')+'</div>'
     +'</div></div>';
 
   const linhaEstoque=(nome,icone,qtd,minimo,cor_bg,onclickFn)=>{
     const baixo=qtd>0&&qtd<=minimo;
     const statusTxt=qtd===0?'Sem estoque':baixo?'Estoque baixo':'Estoque OK';
     const statusCor=qtd===0?'#94a3b8':baixo?'#b45309':'#059669';
-    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="'+onclickFn+'">'
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #f1f5f9;'+(podeEditarFitas?'cursor:pointer':'')+'"'+(podeEditarFitas?' onclick="'+onclickFn+'"':'')+'>'
       +'<div style="width:42px;height:42px;border-radius:50%;background:'+hexToRgba(cor_bg,.15)+';border:2px solid '+cor_bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+icone+'</div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:13px;font-weight:700;color:#1e293b">'+nome+'</div>'
@@ -10156,7 +10159,7 @@ function renderEstoqueFitas(){
   html+='</div>';
 
   // Movimentos — hoje por padrão, ou histórico completo agrupado por mês/dia
-  const podeExcluirMov=['admin','encarregado_fitas'].includes(currentUserData?.perfil);
+  const podeExcluirMov=podeEditarFitas;
   const horaMov=iso=>{
     if(!iso) return '';
     const d=new Date(iso);
@@ -10293,7 +10296,7 @@ function renderProducaoFitas(){
 }
 
 window._fitasExcluirMov=function(tipo, id){
-  if(!['admin','encarregado_fitas'].includes(currentUserData?.perfil)){showToast('Você não tem permissão para excluir movimentações.');return;}
+  if(!podeFitas()){showToast('Você não tem permissão para excluir movimentações.');return;}
   window._pendingFitasMov={tipo,id};
   showModal('Excluir movimento',
     '<div style="font-size:13px;color:#444">Deseja excluir este lançamento?</div>',
@@ -10301,7 +10304,7 @@ window._fitasExcluirMov=function(tipo, id){
     +'<button class="btn btn-sm btn-danger" onclick="window._fitasConfirmarExcluirMov()">Excluir</button>');
 };
 window._fitasConfirmarExcluirMov=async function(){
-  if(!['admin','encarregado_fitas'].includes(currentUserData?.perfil)){showToast('Você não tem permissão para excluir movimentações.');return;}
+  if(!podeFitas()){showToast('Você não tem permissão para excluir movimentações.');return;}
   const {tipo,id}=window._pendingFitasMov||{};
   if(!id) return;
   closeModal();
@@ -10311,6 +10314,7 @@ window._fitasConfirmarExcluirMov=async function(){
 };
 
 window._fitasAbrirDevolucao=function(){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar movimentações de fitas.');return;}
   const cores=getCoresFitas();
   const botoesCor=cores.map(c=>'<button onclick="window._fitasModalDevolucao(\''+c.nome+'\')" style="padding:14px;border-radius:12px;background:'+(c.hex||'#6366f1')+';border:none;font-size:14px;font-weight:700;color:#fff;cursor:pointer;text-align:left">'+c.nome+'</button>').join('');
   showModal('↩️ Devolução — qual fita voltou?',
@@ -10358,6 +10362,7 @@ window._fitasSelDevolQuem=function(btn,val){
 };
 
 window._fitasSalvarDevolucao=async function(cor){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar movimentações de fitas.');return;}
   const isFio=cor==='fio';
   const quem=document.getElementById('fm-devol-quem')?.value||'';
   const rolos=parseInt(document.getElementById('fm-devol-rolos')?.value)||0;
@@ -10406,6 +10411,7 @@ window._fitasAbrirExtrusora=function(extrusoraNome){
 };
 
 window._fitasModalAcao=function(acao, cor, extrusora){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar movimentações de fitas.');return;}
   closeModal();
   const isFio=cor==='fio';
   const titulo=acao==='prod'?'📦 Produção':'📤 Saída';
@@ -10465,6 +10471,7 @@ window._fitasSelDestino=function(btn,val){
 };
 
 window._fitasSalvarAcao=async function(acao, cor){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar movimentações de fitas.');return;}
   const isFio=cor==='fio';
   const rolos=parseInt(document.getElementById('fm-rolos')?.value)||0;
   const data=document.getElementById('fm-data')?.value||today();
@@ -10513,6 +10520,7 @@ window._pFitasTipoChange=function(){
 };
 
 window._registrarProducaoFita=async function(){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar produção de fitas.');return;}
   const tipo=document.getElementById('pf-tipo')?.value||'fita';
   const cor=tipo==='fita'?document.getElementById('pf-cor')?.value:'';
   const rolos=parseInt(document.getElementById('pf-rolos')?.value)||0;
@@ -10591,6 +10599,7 @@ function renderSaidasFitas(){
 }
 
 window._editarProdFita=function(id){
+  if(!podeFitas()){showToast('Você não tem permissão para editar produção de fitas.');return;}
   const p=producaoFitas.find(x=>x.id===id);
   if(!p) return;
   const cores=getCoresFitas();
@@ -10617,6 +10626,7 @@ window._editarProdFita=function(id){
 };
 
 window._salvarProdFita=async function(id){
+  if(!podeFitas()){showToast('Você não tem permissão para editar produção de fitas.');return;}
   const tipo=document.getElementById('ep-tipo')?.value||'fita';
   const cor=tipo==='fita'?document.getElementById('ep-cor')?.value:'';
   const rolos=parseInt(document.getElementById('ep-rolos')?.value)||0;
@@ -10629,6 +10639,7 @@ window._salvarProdFita=async function(id){
 };
 
 window._excluirProdFita=async function(id){
+  if(!podeFitas()){showToast('Você não tem permissão para excluir produção de fitas.');return;}
   if(!confirm('Excluir este registro de produção?')) return;
   closeModal();
   await deleteDoc(doc(db,'producao_fitas',id));
@@ -10636,6 +10647,7 @@ window._excluirProdFita=async function(id){
 };
 
 window._editarSaidaFita=function(id){
+  if(!podeFitas()){showToast('Você não tem permissão para editar saída de fitas.');return;}
   const s=saidasFitas.find(x=>x.id===id);
   if(!s) return;
   const cores=getCoresFitas();
@@ -10662,6 +10674,7 @@ window._editarSaidaFita=function(id){
 };
 
 window._salvarSaidaFita=async function(id){
+  if(!podeFitas()){showToast('Você não tem permissão para editar saída de fitas.');return;}
   const tipo=document.getElementById('es-tipo')?.value||'fita';
   const cor=tipo==='fita'?document.getElementById('es-cor')?.value:'';
   const rolos=parseInt(document.getElementById('es-rolos')?.value)||0;
@@ -10674,6 +10687,7 @@ window._salvarSaidaFita=async function(id){
 };
 
 window._excluirSaidaFita=async function(id){
+  if(!podeFitas()){showToast('Você não tem permissão para excluir saída de fitas.');return;}
   if(!confirm('Excluir esta saída?')) return;
   closeModal();
   await deleteDoc(doc(db,'saidas_fitas',id));
@@ -10687,6 +10701,7 @@ window._sFitasTipoChange=function(){
 };
 
 window._registrarSaidaFita=async function(){
+  if(!podeFitas()){showToast('Você não tem permissão para registrar saída de fitas.');return;}
   const destino=document.getElementById('sf-destino')?.value;
   const tipo=document.getElementById('sf-tipo')?.value||'fita';
   const cor=tipo==='fita'?document.getElementById('sf-cor')?.value:'';
