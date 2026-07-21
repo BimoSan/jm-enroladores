@@ -9950,14 +9950,24 @@ function renderTapMeuDesempenho(){
   const tap=tapecadorProprio();
   if(!tap) return '<div class="card"><div style="color:#64748b;text-align:center;padding:20px">Seu usuário não está vinculado a nenhum tapecador.</div></div>';
   const c=avatarColor(tapecadores.findIndex(t=>t.id===tap.id));
+  const pecasAtivas=getPecasTapAtivas();
   const porQ={};
-  fichasTap.filter(f=>f.tapId===tap.id).forEach(f=>{ if(!f.quinzena) return; if(!porQ[f.quinzena]) porQ[f.quinzena]={pecas:0,ganho:0,status:f.status,pago:f.pago}; porQ[f.quinzena].pecas+=totalPecasTap(f.apontamentos||[]); porQ[f.quinzena].ganho+=calcGanhoTap(f.apontamentos||[]); if(f.status==='fechada') porQ[f.quinzena].status='fechada'; if(f.pago) porQ[f.quinzena].pago=true; });
+  fichasTap.filter(f=>f.tapId===tap.id).forEach(f=>{
+    if(!f.quinzena) return;
+    if(!porQ[f.quinzena]) porQ[f.quinzena]={pecas:0,ganho:0,status:f.status,pago:f.pago,porTipo:{}};
+    const aponts=f.apontamentos||[];
+    porQ[f.quinzena].pecas+=totalPecasTap(aponts);
+    porQ[f.quinzena].ganho+=calcGanhoTap(aponts);
+    aponts.forEach(a=>{ pecasAtivas.forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v>0) porQ[f.quinzena].porTipo[p.id]=(porQ[f.quinzena].porTipo[p.id]||0)+v; }); });
+    if(f.status==='fechada') porQ[f.quinzena].status='fechada';
+    if(f.pago) porQ[f.quinzena].pago=true;
+  });
   const quinzenas=Object.keys(porQ).sort().reverse();
   let html='<div class="card" style="margin-bottom:14px;border-left:4px solid '+c+'">'
     +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">'+initials(tap.nome)+'</div>'
     +'<div><div style="font-size:15px;font-weight:800">'+tap.nome+'</div><div style="font-size:11px;color:#64748b">Histórico de quinzenas</div></div></div>';
   if(!quinzenas.length){ html+='<div style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">Nenhuma produção registrada ainda.</div>'; }
-  else { const melhor=quinzenas.reduce((b,q)=>porQ[q].ganho>porQ[b].ganho?q:b,quinzenas[0]); quinzenas.forEach(q=>{ const{pecas,ganho,status,pago}=porQ[q]; const badge=status==='fechada'?(pago?'<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:9px;background:#ede9fe;color:#4c1d95;padding:2px 7px;border-radius:99px;font-weight:700">Fechada</span>'):'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:99px;font-weight:700">Aberta</span>'; html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9"><div><div style="font-size:12px;font-weight:700">'+quinzenaLabelTap(q)+(q===melhor?' 🏆':'')+'</div><div style="font-size:11px;color:#64748b;margin-top:1px">'+pecas+' peças</div></div><div style="display:flex;align-items:center;gap:8px">'+badge+'<div style="font-size:16px;font-weight:800;color:'+(ganho>0?'#059669':'#94a3b8')+'">'+fmtR(ganho)+'</div></div></div>'; }); }
+  else { const melhor=quinzenas.reduce((b,q)=>porQ[q].ganho>porQ[b].ganho?q:b,quinzenas[0]); quinzenas.forEach(q=>{ const{pecas,ganho,status,pago,porTipo}=porQ[q]; const badge=status==='fechada'?(pago?'<span style="font-size:9px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:99px;font-weight:700">✓ Pago</span>':'<span style="font-size:9px;background:#ede9fe;color:#4c1d95;padding:2px 7px;border-radius:99px;font-weight:700">Fechada</span>'):'<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:99px;font-weight:700">Aberta</span>'; const detalhe=pecasAtivas.filter(p=>(porTipo[p.id]||0)>0).map(p=>porTipo[p.id]+' '+p.label).join(' · ')||(pecas+' peças'); html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9"><div><div style="font-size:12px;font-weight:700">'+quinzenaLabelTap(q)+(q===melhor?' 🏆':'')+'</div><div style="font-size:11px;color:#64748b;margin-top:1px">'+detalhe+'</div></div><div style="display:flex;align-items:center;gap:8px">'+badge+'<div style="font-size:16px;font-weight:800;color:'+(ganho>0?'#059669':'#94a3b8')+'">'+fmtR(ganho)+'</div></div></div>'; }); }
   html+='</div>';
   return html;
 }
