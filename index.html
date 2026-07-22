@@ -781,6 +781,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'meu_desempenho':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'ranking_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'hist_prod_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+  'setores_resumo': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
@@ -808,6 +809,7 @@ const TAB_LABELS={
   // Fitas
   'estoque_fitas':'Estoque','producao_fitas':'Produção','saidas_fitas':'Saídas',
   'relatorio_fitas':'Relatórios','config_fitas':'Configurações','usuarios_fitas':'Usuários',
+  'setores_resumo':'Resumo Mensal',
 };
 // ── Seleção de fábrica ──────────────────────────────────────────
 function renderSelecionarFabrica(){
@@ -822,12 +824,14 @@ function renderSelecionarFabrica(){
     {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
     {id:'manutencao',   nome:'Manutenção',             icon:'🔧', cor:'#374151', bg:'linear-gradient(135deg,#374151,#6b7280)', desc:'Máquinas, manutenções e status'},
     {id:'engenharia',   nome:'Engenharia',             icon:'📐', cor:'#0e7490', bg:'linear-gradient(135deg,#0e7490,#22d3ee)', desc:'Produtos, fichas técnicas e custos'},
+    {id:'setores_geral',nome:'Resumo dos Setores',     icon:'📊', cor:'#4338ca', bg:'linear-gradient(135deg,#4338ca,#818cf8)', desc:'Comparativo de produção entre todos os setores'},
   ].filter(f=>{
     if(f.id==='almoxarifado') return ['admin','proprietario','financeiro','escritorio','apontador1','mecanico','administracao'].includes(currentUserData?.perfil);
     if(f.id==='caminhoes') return ['admin','proprietario','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
     if(f.id==='financeiro') return ['admin','proprietario','financeiro'].includes(currentUserData?.perfil);
     if(f.id==='manutencao') return ['admin','proprietario','apontador_metal','mecanico','encarregado_cad','encarregado_est','financeiro','escritorio','administracao'].includes(currentUserData?.perfil);
     if(f.id==='engenharia') return ['admin','proprietario','administracao','escritorio','financeiro'].includes(currentUserData?.perfil);
+    if(f.id==='setores_geral') return ['admin','proprietario','financeiro','escritorio'].includes(currentUserData?.perfil);
     return fabricasDisponiveis.includes(f.id);
   });
 
@@ -882,6 +886,10 @@ window._selecionarFabrica=id=>{
     currentSetor='engenharia';
     sessionStorage.setItem('jm_setor','engenharia');
     currentTab='eng_produtos';
+  } else if(id==='setores_geral'){
+    currentSetor='setores_geral';
+    sessionStorage.setItem('jm_setor','setores_geral');
+    currentTab='setores_resumo';
   } else {
     currentSetor=null;
     sessionStorage.removeItem('jm_setor');
@@ -979,7 +987,7 @@ window._voltarFabrica=()=>{
 window._voltarSetores=()=>{
   pararListenersSetor();
   // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
-  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'||currentFabrica==='manutencao'||currentFabrica==='engenharia'){
+  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'||currentFabrica==='manutencao'||currentFabrica==='engenharia'||currentFabrica==='setores_geral'){
     currentFabrica=null;
     currentSetor=null;
     sessionStorage.removeItem('jm_fabrica');
@@ -1020,6 +1028,9 @@ function renderApp(){
     const pgEng=currentUserData?.perfil;
     if(['admin','proprietario'].includes(pgEng)) tabs.push('eng_config');
     if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_produtos';
+  } else if(currentSetor==='setores_geral'){
+    tabs.push('setores_resumo');
+    currentTab='setores_resumo';
   } else if(currentSetor==='caminhoes'){
     tabs.push('cam_rotas','cam_abastecimento','cam_manutencao','cam_veiculos','cam_motoristas','cam_relatorio');
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
@@ -1140,6 +1151,7 @@ function renderApp(){
               currentSetor==='financeiro_geral'?'Financeiro':
               currentSetor==='manutencao'?'Manutenção':
               currentSetor==='engenharia'?'Engenharia':
+              currentSetor==='setores_geral'?'Resumo dos Setores':
               currentSetor==='almoxarifado'?'Almoxarifado':
               currentSetor==='caminhoes'?'Caminhões':
               (currentFabrica==='cadeiras'?'Fábrica de Cadeiras':
@@ -1201,6 +1213,7 @@ function renderTab(tab){
   ativarListenersSetor(currentSetor);
   if(tab==='auditoria') return renderAuditoria();
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
+  if(currentSetor==='setores_geral') return renderTabSetoresGeral(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
   if(currentSetor==='espuma') return renderTabEspuma(tab);
@@ -17223,6 +17236,161 @@ function pendentes_tipo(f,tipoId){
   return Math.max(0,somaEntr(f,tipoId)-somaRecol(f,tipoId));
 }
 
+// ── Setores — Resumo Mensal Comparativo (visão de fábrica) ───────
+function renderTabSetoresGeral(tab){
+  return renderSetoresResumoMensal();
+}
+function pecasPeriodoTerc(inicio,fim){
+  let tot=0;
+  fichas.forEach(f=>{ (f.recolhimentos||[]).forEach(r=>{
+    if(!r.data||r.data<inicio||r.data>fim||r.administrativo) return;
+    tot+=Object.values(r.tipos||{}).reduce((s,v)=>s+(parseInt(v)||0),0);
+  }); });
+  return tot;
+}
+function pecasPeriodoMetal(inicio,fim){
+  return apontamentosMetal.filter(a=>a.data&&a.data>=inicio&&a.data<=fim)
+    .reduce((s,a)=>s+Object.values(a.pecas||{}).reduce((ss,v)=>ss+(parseInt(v)||0),0),0);
+}
+function pecasPeriodoGrad(inicio,fim){
+  let tot=0; const ativas=getPecasGradAtivas();
+  fichasGrad.forEach(f=>{ (f.apontamentos||[]).forEach(a=>{
+    if(!a.data||a.data<inicio||a.data>fim) return;
+    ativas.forEach(p=>{ tot+=parseInt((a.pecas||{})[p.id])||0; });
+  }); });
+  return tot;
+}
+function pecasPeriodoTap(inicio,fim){
+  let tot=0; const ativas=getPecasTapAtivas();
+  fichasTap.forEach(f=>{ (f.apontamentos||[]).forEach(a=>{
+    if(!a.data||a.data<inicio||a.data>fim) return;
+    ativas.forEach(p=>{ tot+=parseInt((a.pecas||{})[p.id])||0; });
+  }); });
+  return tot;
+}
+function pecasPeriodoInt(inicio,fim){
+  let tot=0; const tipos=getTiposInt();
+  fichasInt.forEach(f=>{ (f.apontamentos||[]).forEach(a=>{
+    if(!a.data||a.data<inicio||a.data>fim) return;
+    tipos.forEach(t=>{ tot+=parseInt((a.tipos||{})[t.id])||0; });
+  }); });
+  return tot;
+}
+function pecasPeriodoEspuma(inicio,fim){
+  return espumaProducao.filter(p=>p.data&&p.data>=inicio&&p.data<=fim)
+    .reduce((s,p)=>s+(parseInt(p.blocos)||0),0);
+}
+function pecasPeriodoFitas(inicio,fim){
+  return producaoFitas.filter(p=>p.data&&p.data>=inicio&&p.data<=fim)
+    .reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
+}
+
+function calcResumoMensalComparativo(){
+  const pad=n=>String(n).padStart(2,'0');
+  const hoje=new Date();
+  const ano=hoje.getFullYear(), mes=hoje.getMonth(), dia=hoje.getDate();
+  const inicioAtual=ano+'-'+pad(mes+1)+'-01';
+  const fimAtual=ano+'-'+pad(mes+1)+'-'+pad(dia);
+
+  const refPassado=new Date(ano,mes-1,1);
+  const anoP=refPassado.getFullYear(), mesP=refPassado.getMonth();
+  const ultimoDiaP=new Date(anoP,mesP+1,0).getDate();
+  const diaComparavel=Math.min(dia,ultimoDiaP);
+  const inicioPassado=anoP+'-'+pad(mesP+1)+'-01';
+  const fimPassadoComparavel=anoP+'-'+pad(mesP+1)+'-'+pad(diaComparavel);
+  const fimPassadoCompleto=anoP+'-'+pad(mesP+1)+'-'+pad(ultimoDiaP);
+
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const setoresBase=[
+    {id:'enrolamento_terc',nome:'Enrolamento Terceirizado',fn:pecasPeriodoTerc},
+    {id:'metalurgica',nome:'Metalúrgica',fn:pecasPeriodoMetal},
+    {id:'grades',nome:'Grades',fn:pecasPeriodoGrad},
+    {id:'tapecamento',nome:'Tapeçamento',fn:pecasPeriodoTap},
+    {id:'enrolamento_int',nome:'Enrolamento Interno',fn:pecasPeriodoInt},
+    {id:'espuma',nome:'Blocos de Espuma',fn:pecasPeriodoEspuma},
+    {id:'fitas',nome:'Fitas',fn:pecasPeriodoFitas},
+  ];
+
+  const setores=setoresBase.map(s=>{
+    const atual=s.fn(inicioAtual,fimAtual);
+    const passadoComp=s.fn(inicioPassado,fimPassadoComparavel);
+    const passadoCompleto=s.fn(inicioPassado,fimPassadoCompleto);
+    let variacao=0, isNovo=false;
+    if(passadoComp>0) variacao=(atual-passadoComp)/passadoComp*100;
+    else if(atual>0){ variacao=100; isNovo=true; }
+    return {id:s.id,nome:s.nome,atual,passadoComp,passadoCompleto,variacao,isNovo};
+  });
+
+  const totalAtual=setores.reduce((s,x)=>s+x.atual,0);
+  const totalPassadoComp=setores.reduce((s,x)=>s+x.passadoComp,0);
+  const totalPassadoCompleto=setores.reduce((s,x)=>s+x.passadoCompleto,0);
+  let totalVariacao=0, totalIsNovo=false;
+  if(totalPassadoComp>0) totalVariacao=(totalAtual-totalPassadoComp)/totalPassadoComp*100;
+  else if(totalAtual>0){ totalVariacao=100; totalIsNovo=true; }
+
+  return {
+    setores,
+    totalAtual,totalPassadoComp,totalPassadoCompleto,totalVariacao,totalIsNovo,
+    labelAtual:MESES[mes]+' (1–'+dia+')',
+    labelPassado:MESES[mesP]+' (1–'+diaComparavel+')',
+  };
+}
+
+function corVariacao(v){
+  if(v>=0) return {cor:'#059669',bg:'#d1fae5',emoji:'🟢'};
+  if(v>-10) return {cor:'#b45309',bg:'#fef3c7',emoji:'🟡'};
+  return {cor:'#dc2626',bg:'#fee2e2',emoji:'🔴'};
+}
+
+function renderSetoresResumoMensal(){
+  const d=calcResumoMensalComparativo();
+  const fmtNum=n=>Math.round(n).toLocaleString('pt-BR');
+  const fmtVar=(v,isNovo)=>isNovo?'novo':((v>0?'+':'')+v.toFixed(1)+'%');
+
+  let html='<div style="margin-bottom:18px">'
+    +'<div style="font-size:20px;font-weight:800;color:#1e293b">📊 Resumo Mensal Comparativo</div>'
+    +'<div style="font-size:13px;color:#94a3b8">'+d.labelAtual+' vs '+d.labelPassado+'</div>'
+    +'</div>';
+
+  html+='<div class="card" style="padding:0;overflow:hidden">'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:640px">'
+    +'<thead><tr style="background:#f8fafc">'
+    +'<th style="padding:10px 14px;font-size:11px;font-weight:700;color:#64748b;text-align:left">Setor</th>'
+    +'<th style="padding:10px 14px;font-size:11px;font-weight:700;color:#64748b;text-align:right">'+d.labelAtual+'</th>'
+    +'<th style="padding:10px 14px;font-size:11px;font-weight:700;color:#64748b;text-align:right">'+d.labelPassado+'</th>'
+    +'<th style="padding:10px 14px;font-size:11px;font-weight:700;color:#64748b;text-align:right">Variação</th>'
+    +'</tr></thead><tbody>';
+
+  d.setores.forEach(s=>{
+    const c=corVariacao(s.variacao);
+    html+='<tr style="border-top:1px solid #f1f5f9;background:'+c.bg+'33">'
+      +'<td style="padding:10px 14px;font-size:13px;font-weight:700;color:#1e293b">'+c.emoji+' '+s.nome+'</td>'
+      +'<td style="padding:10px 14px;text-align:right">'
+        +'<div style="font-size:14px;font-weight:800;color:#1e293b">'+fmtNum(s.atual)+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">mês passado fechou em '+fmtNum(s.passadoCompleto)+'</div>'
+      +'</td>'
+      +'<td style="padding:10px 14px;text-align:right;font-size:13px;color:#64748b">'+fmtNum(s.passadoComp)+'</td>'
+      +'<td style="padding:10px 14px;text-align:right;font-size:13px;font-weight:800;color:'+c.cor+'">'+fmtVar(s.variacao,s.isNovo)+'</td>'
+      +'</tr>';
+  });
+
+  const cTotal=corVariacao(d.totalVariacao);
+  html+='<tr style="border-top:2px solid #e2e8f0;background:#f8fafc">'
+    +'<td style="padding:12px 14px;font-size:13px;font-weight:900;color:#1e293b">Total geral</td>'
+    +'<td style="padding:12px 14px;text-align:right;font-size:15px;font-weight:900;color:#1e293b">'+fmtNum(d.totalAtual)+'</td>'
+    +'<td style="padding:12px 14px;text-align:right;font-size:13px;font-weight:700;color:#64748b">'+fmtNum(d.totalPassadoComp)+'</td>'
+    +'<td style="padding:12px 14px;text-align:right;font-size:15px;font-weight:900;color:'+cTotal.cor+'">'+fmtVar(d.totalVariacao,d.totalIsNovo)+'</td>'
+    +'</tr>';
+
+  html+='</tbody></table></div></div>';
+
+  html+='<div style="font-size:11px;color:#94a3b8;margin-top:10px;text-align:center">'
+    +'🟢 estável ou em alta · 🟡 queda de até 10% · 🔴 queda maior que 10%</div>';
+
+  return html;
+}
+
 // ── Firebase listeners em tempo real ────────────────────────────
 // ── Notificações de pagamento ────────────────────────────────────
 function renderNotifPagamento(){
@@ -17653,6 +17821,44 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(collection(db,'entregas_fitas'),snap=>{
       entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  setores_geral: [
+    ()=>onSnapshot(collection(db,'apontamentos_metal'),snap=>{
+      apontamentosMetal=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_grad'),snap=>{
+      fichasGrad=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_grad','geral'),snap=>{
+      if(snap.exists()) configGrad={valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_tap'),snap=>{
+      fichasTap=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_tap','geral'),snap=>{
+      if(snap.exists()) configTap={pecasExcluidas:[],pecasCustom:[],valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fichas_int'),snap=>{
+      fichasInt=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_int','geral'),snap=>{
+      if(snap.exists()) configInt={tipos:[],valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'esp_producao'),snap=>{
+      espumaProducao=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'producao_fitas'),snap=>{
+      producaoFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
   ],
