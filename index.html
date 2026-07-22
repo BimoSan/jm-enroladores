@@ -844,10 +844,14 @@ function renderSelecionarFabrica(){
 
   const podeGerenciarUsuarios=currentUserData?.perfil==='admin';
   const btnUsuarios=podeGerenciarUsuarios?`
-    <div style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:16px">
+    <div style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:16px;display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="window._abrirUsuariosGlobais()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         Usuários Globais
+      </button>
+      <button class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" onclick="window._abrirAuditoriaGlobal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Auditoria
       </button>
     </div>`:'';
 
@@ -1087,7 +1091,6 @@ function renderApp(){
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   }
-  if(can('gerenciarUsuarios'))tabs.push('auditoria');
   if(!tabs.includes(currentTab))currentTab=tabs.length?tabs[0]:null;
 
   const perfisFixos=['soldador','enrolador','entregador',
@@ -1211,7 +1214,6 @@ window._switchTab=tab=>{
 };
 function renderTab(tab){
   ativarListenersSetor(currentSetor);
-  if(tab==='auditoria') return renderAuditoria();
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='setores_geral') return renderTabSetoresGeral(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
@@ -3495,6 +3497,17 @@ window._abrirUsuariosGlobais=()=>{
   );
 };
 
+// Abre modal de auditoria (tela de fábrica) — atualiza no lugar se já estiver aberto
+window._abrirAuditoriaGlobal=function(){
+  const html='<div id="auditoria-modal-marker">'+renderAuditoria()+'</div>';
+  const modalBody=document.getElementById('modal-body');
+  if(modalBody && document.getElementById('auditoria-modal-marker')){ modalBody.innerHTML=html; return; }
+  showModal('📋 Log de Auditoria', html,
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Fechar</button>',
+    true // wide
+  );
+};
+
 // Abre modal de usuários da fábrica (tela de setores)
 window._abrirUsuariosFabrica=(fab)=>{
   const nome=fab==='cadeiras'?'Fábrica de Cadeiras':'Fábrica de Estofados';
@@ -3666,12 +3679,12 @@ window._carregarAuditoria=async function(){
   }
   auditLogLoaded=true;
   auditLogCarregando=false;
-  if(currentTab==='auditoria') reloadTab();
+  if(document.getElementById('auditoria-modal-marker')) window._abrirAuditoriaGlobal();
 };
 
 window._auditFiltrar=function(v){
   auditFiltroTexto=v;
-  reloadTab();
+  if(document.getElementById('auditoria-modal-marker')) window._abrirAuditoriaGlobal();
 };
 
 window._migrarUsuarioLegado=function(docIdAntigo){
@@ -17285,7 +17298,74 @@ function pecasPeriodoFitas(inicio,fim){
     .reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
 }
 
-function calcResumoMensalComparativo(){
+// ── Por tipo de peça (para o detalhe de cada setor) ──────────────
+function pecasPeriodoTercPorTipo(inicio,fim){
+  const tot={};
+  fichas.forEach(f=>{ (f.recolhimentos||[]).forEach(r=>{
+    if(!r.data||r.data<inicio||r.data>fim||r.administrativo) return;
+    TIPOS.forEach(t=>{ const v=parseInt((r.tipos||{})[t.id])||0; if(v) tot[t.id]=(tot[t.id]||0)+v; });
+  }); });
+  return tot;
+}
+function pecasPeriodoMetalPorTipo(inicio,fim){
+  const tot={};
+  apontamentosMetal.filter(a=>a.data&&a.data>=inicio&&a.data<=fim).forEach(a=>{
+    Object.entries(a.pecas||{}).forEach(([id,v])=>{ const n=parseInt(v)||0; if(n) tot[id]=(tot[id]||0)+n; });
+  });
+  return tot;
+}
+function pecasPeriodoGradPorTipo(inicio,fim){
+  const tot={};
+  fichasGrad.forEach(f=>{ (f.apontamentos||[]).forEach(a=>{
+    if(!a.data||a.data<inicio||a.data>fim) return;
+    getPecasGradAtivas().forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v) tot[p.id]=(tot[p.id]||0)+v; });
+  }); });
+  return tot;
+}
+function pecasPeriodoTapPorTipo(inicio,fim){
+  const tot={};
+  fichasTap.forEach(f=>{ (f.apontamentos||[]).forEach(a=>{
+    if(!a.data||a.data<inicio||a.data>fim) return;
+    getPecasTapAtivas().forEach(p=>{ const v=parseInt((a.pecas||{})[p.id])||0; if(v) tot[p.id]=(tot[p.id]||0)+v; });
+  }); });
+  return tot;
+}
+function pecasPeriodoIntPorTipo(inicio,fim){
+  const tot={};
+  fichasInt.forEach(f=>{ (f.apontamentos||[]).forEach(a=>{
+    if(!a.data||a.data<inicio||a.data>fim) return;
+    getTiposInt().forEach(t=>{ const v=parseInt((a.tipos||{})[t.id])||0; if(v) tot[t.id]=(tot[t.id]||0)+v; });
+  }); });
+  return tot;
+}
+function pecasPeriodoEspumaPorTipo(inicio,fim){
+  const v=pecasPeriodoEspuma(inicio,fim);
+  return v>0?{blocos:v}:{};
+}
+function pecasPeriodoFitasPorTipo(inicio,fim){
+  const tot={};
+  producaoFitas.filter(p=>p.data&&p.data>=inicio&&p.data<=fim).forEach(p=>{
+    const key=p.tipo==='fio'?'fio':('fita_'+(p.cor||'—'));
+    const v=parseInt(p.rolos)||0; if(v) tot[key]=(tot[key]||0)+v;
+  });
+  return tot;
+}
+
+const SETOR_NOMES={
+  enrolamento_terc:'Enrolamento Terceirizado', metalurgica:'Metalúrgica', grades:'Grades',
+  tapecamento:'Tapeçamento', enrolamento_int:'Enrolamento Interno', espuma:'Blocos de Espuma', fitas:'Fitas',
+};
+const SETOR_DETALHE_CONFIG={
+  enrolamento_terc:{ fn:pecasPeriodoTercPorTipo, label:id=>TIPOS.find(t=>t.id===id)?.label||id },
+  metalurgica:{ fn:pecasPeriodoMetalPorTipo, label:id=>PECAS_METAL_FULL.find(p=>p.id===id)?.label||id },
+  grades:{ fn:pecasPeriodoGradPorTipo, label:id=>getPecasGradAtivas().find(p=>p.id===id)?.label||id },
+  tapecamento:{ fn:pecasPeriodoTapPorTipo, label:id=>getPecasTapAtivas().find(p=>p.id===id)?.label||id },
+  enrolamento_int:{ fn:pecasPeriodoIntPorTipo, label:id=>getTiposInt().find(t=>t.id===id)?.label||id },
+  espuma:{ fn:pecasPeriodoEspumaPorTipo, label:()=>'Blocos de Espuma' },
+  fitas:{ fn:pecasPeriodoFitasPorTipo, label:id=>id==='fio'?'Fio':('Fita '+id.replace('fita_','')) },
+};
+
+function calcPeriodosComparativos(){
   const pad=n=>String(n).padStart(2,'0');
   const hoje=new Date();
   const ano=hoje.getFullYear(), mes=hoje.getMonth(), dia=hoje.getDate();
@@ -17302,14 +17382,74 @@ function calcResumoMensalComparativo(){
 
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+  return {
+    inicioAtual,fimAtual,inicioPassado,fimPassadoComparavel,fimPassadoCompleto,
+    labelAtual:MESES[mes]+' (1–'+dia+')',
+    labelPassado:MESES[mesP]+' (1–'+diaComparavel+')',
+  };
+}
+
+function calcDetalheSetorPorTipo(setorId){
+  const cfg=SETOR_DETALHE_CONFIG[setorId];
+  if(!cfg) return null;
+  const per=calcPeriodosComparativos();
+  const atualMap=cfg.fn(per.inicioAtual,per.fimAtual);
+  const passadoMap=cfg.fn(per.inicioPassado,per.fimPassadoComparavel);
+  const ids=new Set([...Object.keys(atualMap),...Object.keys(passadoMap)]);
+  const linhas=[...ids].map(id=>{
+    const atual=atualMap[id]||0, passadoComp=passadoMap[id]||0;
+    let variacao=0, isNovo=false;
+    if(passadoComp>0) variacao=(atual-passadoComp)/passadoComp*100;
+    else if(atual>0){ variacao=100; isNovo=true; }
+    return {id,label:cfg.label(id),atual,passadoComp,variacao,isNovo};
+  }).filter(l=>l.atual>0||l.passadoComp>0).sort((a,b)=>b.atual-a.atual);
+  return {linhas,labelAtual:per.labelAtual,labelPassado:per.labelPassado};
+}
+
+function renderDetalheSetorPorTipo(setorId){
+  const d=calcDetalheSetorPorTipo(setorId);
+  const fmtNum=n=>Math.round(n).toLocaleString('pt-BR');
+  const fmtVar=(v,isNovo)=>isNovo?'novo':((v>0?'+':'')+v.toFixed(1)+'%');
+  if(!d||!d.linhas.length){
+    return '<div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px">Sem produção registrada por tipo neste período.</div>';
+  }
+  let html='<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">'+d.labelAtual+' vs '+d.labelPassado+'</div>';
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:#f8fafc">'
+    +'<th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-align:left">Tipo de peça</th>'
+    +'<th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-align:right">'+d.labelAtual+'</th>'
+    +'<th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-align:right">'+d.labelPassado+'</th>'
+    +'<th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-align:right">Variação</th>'
+    +'</tr></thead><tbody>';
+  d.linhas.forEach(l=>{
+    const c=corVariacao(l.variacao);
+    html+='<tr style="border-top:1px solid #f1f5f9">'
+      +'<td style="padding:8px 10px;font-size:12px;font-weight:600;color:#1e293b">'+c.emoji+' '+l.label+'</td>'
+      +'<td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:800;color:#1e293b">'+fmtNum(l.atual)+'</td>'
+      +'<td style="padding:8px 10px;text-align:right;font-size:12px;color:#64748b">'+fmtNum(l.passadoComp)+'</td>'
+      +'<td style="padding:8px 10px;text-align:right;font-size:12px;font-weight:800;color:'+c.cor+'">'+fmtVar(l.variacao,l.isNovo)+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+window._abrirDetalheSetor=function(setorId){
+  showModal('📊 '+(SETOR_NOMES[setorId]||setorId)+' — por tipo de peça', renderDetalheSetorPorTipo(setorId),
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Fechar</button>', true);
+};
+
+function calcResumoMensalComparativo(){
+  const per=calcPeriodosComparativos();
+  const {inicioAtual,fimAtual,inicioPassado,fimPassadoComparavel,fimPassadoCompleto,labelAtual,labelPassado}=per;
+
   const setoresBase=[
-    {id:'enrolamento_terc',nome:'Enrolamento Terceirizado',fn:pecasPeriodoTerc},
-    {id:'metalurgica',nome:'Metalúrgica',fn:pecasPeriodoMetal},
-    {id:'grades',nome:'Grades',fn:pecasPeriodoGrad},
-    {id:'tapecamento',nome:'Tapeçamento',fn:pecasPeriodoTap},
-    {id:'enrolamento_int',nome:'Enrolamento Interno',fn:pecasPeriodoInt},
-    {id:'espuma',nome:'Blocos de Espuma',fn:pecasPeriodoEspuma},
-    {id:'fitas',nome:'Fitas',fn:pecasPeriodoFitas},
+    {id:'enrolamento_terc',fn:pecasPeriodoTerc},
+    {id:'metalurgica',fn:pecasPeriodoMetal},
+    {id:'grades',fn:pecasPeriodoGrad},
+    {id:'tapecamento',fn:pecasPeriodoTap},
+    {id:'enrolamento_int',fn:pecasPeriodoInt},
+    {id:'espuma',fn:pecasPeriodoEspuma},
+    {id:'fitas',fn:pecasPeriodoFitas},
   ];
 
   const setores=setoresBase.map(s=>{
@@ -17319,7 +17459,7 @@ function calcResumoMensalComparativo(){
     let variacao=0, isNovo=false;
     if(passadoComp>0) variacao=(atual-passadoComp)/passadoComp*100;
     else if(atual>0){ variacao=100; isNovo=true; }
-    return {id:s.id,nome:s.nome,atual,passadoComp,passadoCompleto,variacao,isNovo};
+    return {id:s.id,nome:SETOR_NOMES[s.id]||s.id,atual,passadoComp,passadoCompleto,variacao,isNovo};
   });
 
   const totalAtual=setores.reduce((s,x)=>s+x.atual,0);
@@ -17332,8 +17472,7 @@ function calcResumoMensalComparativo(){
   return {
     setores,
     totalAtual,totalPassadoComp,totalPassadoCompleto,totalVariacao,totalIsNovo,
-    labelAtual:MESES[mes]+' (1–'+dia+')',
-    labelPassado:MESES[mesP]+' (1–'+diaComparavel+')',
+    labelAtual,labelPassado,
   };
 }
 
@@ -17364,7 +17503,7 @@ function renderSetoresResumoMensal(){
 
   d.setores.forEach(s=>{
     const c=corVariacao(s.variacao);
-    html+='<tr style="border-top:1px solid #f1f5f9;background:'+c.bg+'33">'
+    html+='<tr style="border-top:1px solid #f1f5f9;background:'+c.bg+'33;cursor:pointer" onclick="window._abrirDetalheSetor(\''+s.id+'\')" title="Ver por tipo de peça">'
       +'<td style="padding:10px 14px;font-size:13px;font-weight:700;color:#1e293b">'+c.emoji+' '+s.nome+'</td>'
       +'<td style="padding:10px 14px;text-align:right">'
         +'<div style="font-size:14px;font-weight:800;color:#1e293b">'+fmtNum(s.atual)+'</div>'
@@ -17386,7 +17525,7 @@ function renderSetoresResumoMensal(){
   html+='</tbody></table></div></div>';
 
   html+='<div style="font-size:11px;color:#94a3b8;margin-top:10px;text-align:center">'
-    +'🟢 estável ou em alta · 🟡 queda de até 10% · 🔴 queda maior que 10%</div>';
+    +'🟢 estável ou em alta · 🟡 queda de até 10% · 🔴 queda maior que 10% · toque numa linha para ver por tipo de peça</div>';
 
   return html;
 }
