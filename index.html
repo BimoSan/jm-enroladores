@@ -5901,9 +5901,9 @@ function renderCamAbastecimento(){
     </div>
   </div>`;
 
-  if(camPodeEditar()) html+='<div style="text-align:right;margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="window._abrirGerenciarPostos()">⚙️ Gerenciar postos</button></div>';
-
-  if(!abs.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum abastecimento em '+mesNome+'.</div></div>';
+  if(!abs.length) return html
+    +(camPodeEditar()?'<div style="text-align:right;margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="window._abrirGerenciarPostos()">⚙️ Gerenciar postos</button></div>':'')
+    +'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum abastecimento em '+mesNome+'.</div></div>';
 
   // Resumo por posto
   html+='<div class="card" style="margin-bottom:14px">'
