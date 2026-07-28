@@ -5901,11 +5901,16 @@ function renderCamAbastecimento(){
     </div>
   </div>`;
 
+  if(camPodeEditar()) html+='<div style="text-align:right;margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="window._abrirGerenciarPostos()">⚙️ Gerenciar postos</button></div>';
+
   if(!abs.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum abastecimento em '+mesNome+'.</div></div>';
 
   // Resumo por posto
   html+='<div class="card" style="margin-bottom:14px">'
-    +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">⛽ Resumo por posto</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:700">⛽ Resumo por posto</div>'
+    +(camPodeEditar()?'<button class="btn btn-ghost btn-sm" onclick="window._abrirGerenciarPostos()">⚙️ Gerenciar postos</button>':'')
+    +'</div>'
     +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
     +'<thead><tr style="background:#f1f5f9"><th style="padding:7px 10px;text-align:left">Posto</th><th style="padding:7px 10px;text-align:center">Abast.</th><th style="padding:7px 10px;text-align:right">Litros</th><th style="padding:7px 10px;text-align:right">Total R$</th></tr></thead><tbody>'
     +Object.entries(porPosto).sort((a,b)=>b[1].total-a[1].total).map(([p,v],i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
@@ -6150,6 +6155,51 @@ window._excluirVeiculo=async function(id,fromModal){
   if(!confirm('Excluir veículo?'))return;
   if(fromModal)closeModal();
   await deleteDoc(doc(db,'cam_veiculos',id));showToast('Veículo excluído.');
+};
+
+// ── Postos de combustível ──────────────────────────────────────────
+function renderGerenciarPostos(){
+  const lista=camPostos.length?camPostos.map(p=>'<div class="card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;padding:10px 12px">'
+    +'<div style="font-size:13px;font-weight:600">'+p.nome+'</div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<button class="btn btn-sm btn-ghost" onclick="window._editarPosto(&quot;'+p.id+'&quot;)">✏️</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._excluirPosto(&quot;'+p.id+'&quot;)">Excluir</button>'
+    +'</div></div>').join('')
+    : '<div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Nenhum posto cadastrado.</div>';
+  return '<div id="gerenciar-postos-marker">'+lista
+    +'<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="window._abrirNovoPosto()">+ Novo posto</button>'
+    +'</div>';
+}
+window._abrirGerenciarPostos=function(){
+  showModal('⛽ Gerenciar Postos', renderGerenciarPostos(),
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Fechar</button>', true);
+};
+window._abrirNovoPosto=function(p){
+  const edit=p&&p.id;
+  const r=p||{};
+  showModal((edit?'Editar':'Novo')+' posto',
+    '<div class="form-group"><label>Nome do posto</label><input id="p-nome" value="'+(r.nome||'')+'" placeholder="ex: Posto Jati Rede Mais" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._abrirGerenciarPostos()">Cancelar</button>'
+    +(edit?'<button class="btn btn-danger btn-sm" onclick="window._excluirPosto(\''+r.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarPosto(\''+(r.id||'')+'\')">Salvar</button>');
+};
+window._salvarPosto=async function(id){
+  const nome=document.getElementById('p-nome')?.value.trim();
+  if(!nome){showToast('Informe o nome do posto.');return;}
+  if(id){await updateDoc(doc(db,'cam_postos',id),{nome});}
+  else{await addDoc(collection(db,'cam_postos'),{nome});}
+  showToast('Posto salvo!');
+  window._abrirGerenciarPostos();
+};
+window._editarPosto=function(id){
+  const p=camPostos.find(x=>x.id===id);
+  if(p) window._abrirNovoPosto(p);
+};
+window._excluirPosto=async function(id){
+  if(!confirm('Excluir este posto?')) return;
+  await deleteDoc(doc(db,'cam_postos',id));
+  showToast('Posto excluído.');
+  window._abrirGerenciarPostos();
 };
 
 // ── Motoristas ─────────────────────────────────────────────────────
@@ -17677,6 +17727,7 @@ const LISTENERS_POR_SETOR={
     ()=>onSnapshot(collection(db,'cam_postos'),snap=>{
       camPostos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
       if(currentUserData)reloadTab();
+      if(document.getElementById('gerenciar-postos-marker')) window._abrirGerenciarPostos();
     }),
   ],
   almoxarifado: [
