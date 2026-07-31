@@ -14579,6 +14579,17 @@ function renderTabFinanceiro(tab){
 }
 
 // ── helpers financeiros ──────────────────────────────────────────
+// Os setores guardam a data de formas diferentes: AAAA-MM-DD (maioria),
+// AAAA-MM-Qn (quinzena da Metalúrgica/Grades/Tapeçamento) ou DD/MM/AAAA
+// (Espuma, já formatada pra exibição). Essa função entende os três.
+function finExtrairAnoMesRef(str){
+  if(!str) return null;
+  const mBarra=String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(mBarra) return mBarra[3]+'-'+mBarra[2];
+  const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
+  if(mTraco) return mTraco[1]+'-'+mTraco[2];
+  return null;
+}
 function finPagamentosTodos(){
   // Recolhe todas as fichas fechadas/canceladas pagas ou a pagar de todos os setores
   const lista=[];
@@ -14953,7 +14964,7 @@ function renderFinDashboard(){
   const totalPendente=pendentes.reduce((s,p)=>s+p.valor,0);
 
   // Apenas mês atual
-  const pagasDoMes=pagamentos.filter(p=>p.pago&&(p.dataPagamento||p.dataRef||'').startsWith(mesAtualFin));
+  const pagasDoMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mesAtualFin);
   const totalPagoMes=pagasDoMes.reduce((s,p)=>s+p.valor,0);
 
   const comprasDoMes=finComprasTodos().filter(c=>(c.data||'').startsWith(mesAtualFin));
@@ -14991,7 +15002,7 @@ function renderFinDashboard(){
   // Meses com gastos (pagamentos pagos + compras + indiretos)
   const porMes={};
   pagamentos.filter(p=>p.pago).forEach(p=>{
-    const m=(p.dataPagamento||p.dataRef||'').slice(0,7);
+    const m=finExtrairAnoMesRef(p.dataPagamento||p.dataRef);
     if(!m) return;
     if(!porMes[m]) porMes[m]=0;
     porMes[m]+=p.valor;
@@ -15151,18 +15162,7 @@ function renderFinPagamentos(){
   }
 
   const pagamentos=finPagamentosTodos();
-
-  // Os setores guardam a data de formas diferentes: AAAA-MM-DD (maioria),
-  // AAAA-MM-Qn (quinzena da Metalúrgica/Grades/Tapeçamento) ou DD/MM/AAAA
-  // (Espuma, já formatada pra exibição). Essa função entende os três.
-  const extrairAnoMesRef=str=>{
-    if(!str) return null;
-    const mBarra=String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if(mBarra) return mBarra[3]+'-'+mBarra[2];
-    const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
-    if(mTraco) return mTraco[1]+'-'+mTraco[2];
-    return null;
-  };
+  const extrairAnoMesRef=finExtrairAnoMesRef;
   const mesAtualPag=today().slice(0,7);
 
   const filtrados=pagamentos.filter(p=>{
@@ -15366,17 +15366,7 @@ function renderFinPagamentos(){
 function renderFinRelPagamentos(){
   const pagamentos=finPagamentosTodos().filter(p=>p.pago);
   const MESES_NOME=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-
-  // Os setores guardam a data de formas diferentes: AAAA-MM-DD (maioria),
-  // AAAA-MM-Qn (quinzena) ou DD/MM/AAAA (Espuma, já formatada). Entende os três.
-  const extrairAnoMesRef=str=>{
-    if(!str) return null;
-    const mBarra=String(str).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if(mBarra) return mBarra[3]+'-'+mBarra[2];
-    const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
-    if(mTraco) return mTraco[1]+'-'+mTraco[2];
-    return null;
-  };
+  const extrairAnoMesRef=finExtrairAnoMesRef;
 
   // Agrupar por mês — só mão de obra
   const porMes={};
@@ -15830,7 +15820,7 @@ function renderFinRelatorio(){
   const MESES_N3=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   const anosDisp=[...new Set([
-    ...pagamentos.map(p=>(p.dataPagamento||p.dataRef||'').slice(0,4)),
+    ...pagamentos.map(p=>(finExtrairAnoMesRef(p.dataPagamento||p.dataRef)||'').slice(0,4)),
     ...compras.map(c=>(c.data||'').slice(0,4)),
   ].filter(Boolean))].sort().reverse();
 
@@ -15841,7 +15831,7 @@ function renderFinRelatorio(){
   // Dados mensais do ano
   const mesesData=Array.from({length:12},(_,i)=>{
     const mes=ano+'-'+String(i+1).padStart(2,'0');
-    const pagsMes=pagamentos.filter(p=>!!(p.dataPagamento||p.dataRef||'').startsWith(mes)&&p.pago);
+    const pagsMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes);
     const comprasMes=compras.filter(c=>(c.data||'').startsWith(mes));
     const indiretMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
     const matDiretosMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
@@ -15923,7 +15913,7 @@ function renderFinRelatorio(){
 
   // Ranking de gastos por pessoa (mão de obra)
   const porPessoa={};
-  pagamentos.filter(p=>p.pago&&(p.dataPagamento||p.dataRef||'').startsWith(ano)).forEach(p=>{
+  pagamentos.filter(p=>p.pago&&(finExtrairAnoMesRef(p.dataPagamento||p.dataRef)||'').startsWith(ano)).forEach(p=>{
     if(!porPessoa[p.pessoa]) porPessoa[p.pessoa]={nome:p.pessoa,setor:p.setor,valor:0,qtd:0};
     porPessoa[p.pessoa].valor+=p.valor;
     porPessoa[p.pessoa].qtd++;
