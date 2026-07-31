@@ -15843,7 +15843,10 @@ function renderFinRelatorio(){
     const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
     const viagVal=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r)+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
-    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,total:pagVal+compVal+indVal+matVal+quimVal+viagVal};
+    const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
+    const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+    const total=pagVal+compVal+indVal+matVal+quimVal+viagVal;
+    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,vendVal,total,resultado:vendVal-total};
   });
 
   const maxVal=Math.max(...mesesData.map(m=>m.total),1);
@@ -15854,10 +15857,28 @@ function renderFinRelatorio(){
   const totalAnoQuim=mesesData.reduce((s,m)=>s+m.quimVal,0);
   const totalAnoViag=mesesData.reduce((s,m)=>s+m.viagVal,0);
   const totalAno=totalAnoPag+totalAnoComp+totalAnoInd+totalAnoMat+totalAnoQuim+totalAnoViag;
+  const totalAnoVend=mesesData.reduce((s,m)=>s+m.vendVal,0);
+  const resultadoAno=totalAnoVend-totalAno;
 
   let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
     ${anoSelect}
-    <div style="font-size:12px;color:#64748b">Total ${ano}: <strong style="color:#1e40af;font-size:16px">${fmtMoeda(totalAno)}</strong></div>
+    <div style="font-size:12px;color:#64748b">Saídas ${ano}: <strong style="color:#1e40af;font-size:16px">${fmtMoeda(totalAno)}</strong></div>
+  </div>`;
+
+  // Balanço do ano (entradas x saídas)
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+    <div class="card" style="border-left:4px solid #059669;background:#f0fdf4;padding:16px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:#059669;margin-bottom:4px">ENTRADAS ${ano}</div>
+      <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalAnoVend)}</div>
+    </div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:16px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:#dc2626;margin-bottom:4px">SAÍDAS ${ano}</div>
+      <div style="font-size:22px;font-weight:900;color:#dc2626">${fmtMoeda(totalAno)}</div>
+    </div>
+    <div class="card" style="border-left:4px solid ${resultadoAno>=0?'#059669':'#dc2626'};background:${resultadoAno>=0?'#f0fdf4':'#fef2f2'};padding:16px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:${resultadoAno>=0?'#059669':'#dc2626'};margin-bottom:4px">RESULTADO ${ano}</div>
+      <div style="font-size:22px;font-weight:900;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</div>
+    </div>
   </div>`;
 
   // Gráfico anual
@@ -15895,11 +15916,12 @@ function renderFinRelatorio(){
   html+='</div>';
 
   // Tabela mensal detalhada
-  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Detalhamento mensal</div>';
+  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Balanço mensal (entradas x saídas)</div>';
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Total</th></tr></thead><tbody>';
-  html+=mesesData.filter(m=>m.total>0).map((m,i)=>`<tr style="${i%2?'background:#f8fafc':''}">
+  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th></tr></thead><tbody>';
+  html+=mesesData.filter(m=>m.total>0||m.vendVal>0).map((m,i)=>`<tr style="${i%2?'background:#f8fafc':''}">
     <td style="padding:8px 10px;font-weight:600">${MESES_N3[parseInt(m.mes.slice(5))-1]}</td>
+    <td style="padding:8px 10px;text-align:right;color:#059669">${m.vendVal>0?fmtMoeda(m.vendVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#3b82f6">${m.pagVal>0?fmtMoeda(m.pagVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#f59e0b">${m.compVal>0?fmtMoeda(m.compVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#7c3aed">${m.indVal>0?fmtMoeda(m.indVal):'—'}</td>
@@ -15907,8 +15929,9 @@ function renderFinRelatorio(){
     <td style="padding:8px 10px;text-align:right;color:#0e7490">${m.quimVal>0?fmtMoeda(m.quimVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#374151">${m.viagVal>0?fmtMoeda(m.viagVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1e40af">${fmtMoeda(m.total)}</td>
+    <td style="padding:8px 10px;text-align:right;font-weight:800;color:${m.resultado>=0?'#059669':'#dc2626'}">${m.resultado>=0?'+':''}${fmtMoeda(m.resultado)}</td>
   </tr>`).join('');
-  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td></tr>`;
+  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#059669">${fmtMoeda(totalAnoVend)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td><td style="padding:8px 10px;text-align:right;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</td></tr>`;
   html+='</tbody></table></div></div>';
 
   // Ranking de gastos por pessoa (mão de obra)
