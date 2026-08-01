@@ -15918,9 +15918,11 @@ function renderFinRelatorio(){
   // Tabela mensal detalhada
   html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Balanço mensal (entradas x saídas)</div>';
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th></tr></thead><tbody>';
-  html+=mesesData.filter(m=>m.total>0||m.vendVal>0).map((m,i)=>`<tr style="${i%2?'background:#f8fafc':''}">
-    <td style="padding:8px 10px;font-weight:600">${MESES_N3[parseInt(m.mes.slice(5))-1]}</td>
+  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th><th style="padding:8px 10px;text-align:center">PDF</th></tr></thead><tbody>';
+  html+=mesesData.filter(m=>m.total>0||m.vendVal>0).map((m,i)=>{
+    const nomeMes=MESES_N3[parseInt(m.mes.slice(5))-1];
+    return `<tr style="${i%2?'background:#f8fafc':''}">
+    <td style="padding:8px 10px;font-weight:600">${nomeMes}</td>
     <td style="padding:8px 10px;text-align:right;color:#059669">${m.vendVal>0?fmtMoeda(m.vendVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#3b82f6">${m.pagVal>0?fmtMoeda(m.pagVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#f59e0b">${m.compVal>0?fmtMoeda(m.compVal):'—'}</td>
@@ -15930,8 +15932,9 @@ function renderFinRelatorio(){
     <td style="padding:8px 10px;text-align:right;color:#374151">${m.viagVal>0?fmtMoeda(m.viagVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1e40af">${fmtMoeda(m.total)}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:${m.resultado>=0?'#059669':'#dc2626'}">${m.resultado>=0?'+':''}${fmtMoeda(m.resultado)}</td>
-  </tr>`).join('');
-  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#059669">${fmtMoeda(totalAnoVend)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td><td style="padding:8px 10px;text-align:right;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</td></tr>`;
+    <td style="padding:8px 10px;text-align:center"><button class="btn btn-sm btn-ghost" style="padding:3px 8px" title="Gerar PDF do balanço de ${nomeMes}" onclick="window._exportarBalancoPDF('${m.mes}','${nomeMes} de ${ano}')">📄</button></td>
+  </tr>`;}).join('');
+  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#059669">${fmtMoeda(totalAnoVend)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td><td style="padding:8px 10px;text-align:right;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</td><td></td></tr>`;
   html+='</tbody></table></div></div>';
 
   // Ranking de gastos por pessoa (mão de obra)
@@ -15959,6 +15962,155 @@ function renderFinRelatorio(){
 
   return html;
 }
+
+window._exportarBalancoPDF=function(mes, mesNome){
+  const pagamentos=finPagamentosTodos();
+  const compras=finComprasTodos();
+  const pagsMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes);
+  const comprasMes=compras.filter(c=>(c.data||'').startsWith(mes));
+  const indiretMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
+  const matDiretosMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
+  const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
+  const rotasMes=camRotas.filter(r=>(r.data||'').startsWith(mes));
+  const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
+
+  const pagVal=pagsMes.reduce((s,p)=>s+p.valor,0);
+  const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+  const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
+  const viagVal=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r)+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
+  const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  const totalSaidas=pagVal+compVal+indVal+matVal+quimVal+viagVal;
+  const resultado=vendVal-totalSaidas;
+
+  const categorias=[
+    {nome:'Mão de obra',valor:pagVal,cor:'#3b82f6'},
+    {nome:'Almoxarifado (materiais)',valor:compVal,cor:'#f59e0b'},
+    {nome:'Custos indiretos',valor:indVal,cor:'#7c3aed'},
+    {nome:'Materiais diretos',valor:matVal,cor:'#0d9488'},
+    {nome:'Materiais químicos',valor:quimVal,cor:'#0e7490'},
+    {nome:'Viagens/combustível',valor:viagVal,cor:'#374151'},
+  ].filter(c=>c.valor>0).sort((a,b)=>b.valor-a.valor);
+
+  const maxCat=Math.max(...categorias.map(c=>c.valor),1);
+  const barsHtml=categorias.map(c=>`<div class="cat-bar">
+    <div class="cat-label"><span>${c.nome}</span><span style="color:${c.cor};font-weight:700">R$ ${c.valor.toFixed(2).replace('.',',')}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(c.valor/maxCat*100)}%;background:${c.cor}"></div></div>
+  </div>`).join('');
+
+  // Pizza SVG por categoria (sobre o total de saídas)
+  let pizzaSlices='';
+  let ang=0;
+  categorias.forEach(c=>{
+    const pct=totalSaidas>0?c.valor/totalSaidas:0;
+    const a=pct*2*Math.PI;
+    const x1=50+45*Math.sin(ang), y1=50-45*Math.cos(ang);
+    const x2=50+45*Math.sin(ang+a), y2=50-45*Math.cos(ang+a);
+    const large=a>Math.PI?1:0;
+    pizzaSlices+=`<path d="M50,50 L${x1.toFixed(1)},${y1.toFixed(1)} A45,45 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${c.cor}" stroke="#fff" stroke-width="1.5"/>`;
+    ang+=a;
+  });
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Balanço Financeiro — ${mesNome}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, ${resultado>=0?'#065f46,#10b981':'#7f1d1d,#dc2626'}); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+  .card-mini { border-radius: 10px; padding: 14px; text-align: center; border: 1px solid #e2e8f0; }
+  .card-mini .lbl { font-size: 10px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing:.4px; }
+  .card-mini .val { font-size: 20px; font-weight: 900; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .card { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; }
+  .card h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .cat-bar { margin-bottom: 10px; }
+  .cat-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .cat-label span:first-child { font-weight: 600; }
+  .bar-bg { background: #e2e8f0; border-radius: 99px; height: 8px; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #1e40af; color: #fff; }
+  thead th { padding: 8px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+  tbody td { padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
+  tfoot tr { background: #dbeafe; }
+  tfoot td { padding: 8px 10px; font-weight: 800; color: #1e40af; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril</div>
+    <h1>Balanço Financeiro</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">${mesNome}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">RESULTADO DO MÊS</div>
+    <div class="total-val">${resultado>=0?'+':''}R$ ${resultado.toFixed(2).replace('.',',')}</div>
+    <div class="total-label">${resultado>=0?'✓ positivo':'⚠ negativo'}</div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card-mini" style="background:#f0fdf4;border-color:#a7f3d0"><div class="lbl" style="color:#059669">Entradas</div><div class="val" style="color:#059669">R$ ${vendVal.toFixed(2).replace('.',',')}</div></div>
+  <div class="card-mini" style="background:#fef2f2;border-color:#fecaca"><div class="lbl" style="color:#dc2626">Saídas</div><div class="val" style="color:#dc2626">R$ ${totalSaidas.toFixed(2).replace('.',',')}</div></div>
+  <div class="card-mini" style="background:${resultado>=0?'#f0fdf4':'#fef2f2'};border-color:${resultado>=0?'#a7f3d0':'#fecaca'}"><div class="lbl" style="color:${resultado>=0?'#059669':'#dc2626'}">Resultado</div><div class="val" style="color:${resultado>=0?'#059669':'#dc2626'}">${resultado>=0?'+':''}R$ ${resultado.toFixed(2).replace('.',',')}</div></div>
+</div>
+
+${categorias.length?`<div class="grid2">
+  <div class="card">
+    <h3>Saídas por categoria</h3>
+    ${barsHtml}
+  </div>
+  <div class="card">
+    <h3>Distribuição das saídas</h3>
+    <div style="display:flex;justify-content:center;margin-bottom:12px">
+      <svg width="160" height="160" viewBox="0 0 100 100">${pizzaSlices}</svg>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px">
+      ${categorias.map(c=>`<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#475569"><div style="width:10px;height:10px;border-radius:50%;background:${c.cor};flex-shrink:0"></div><span><strong>${c.nome}</strong></span></div>`).join('')}
+    </div>
+  </div>
+</div>` : '<div class="card" style="margin-bottom:20px;text-align:center;color:#94a3b8">Nenhuma saída registrada neste mês.</div>'}
+
+<table>
+  <thead><tr>
+    <th>Categoria</th>
+    <th style="text-align:right">Valor</th>
+    <th style="text-align:right">% das saídas</th>
+  </tr></thead>
+  <tbody>
+    <tr><td style="font-weight:700;color:#059669">Entradas (vendas)</td><td style="text-align:right;font-weight:700;color:#059669">R$ ${vendVal.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#94a3b8">—</td></tr>
+    ${categorias.map(c=>`<tr><td>${c.nome}</td><td style="text-align:right;color:#dc2626">R$ ${c.valor.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#64748b">${totalSaidas>0?Math.round(c.valor/totalSaidas*100):0}%</td></tr>`).join('')}
+  </tbody>
+  <tfoot>
+    <tr><td>Total de saídas</td><td style="text-align:right">R$ ${totalSaidas.toFixed(2).replace('.',',')}</td><td style="text-align:right">100%</td></tr>
+    <tr><td>Resultado (entradas − saídas)</td><td style="text-align:right;color:${resultado>=0?'#059669':'#dc2626'}">${resultado>=0?'+':''}R$ ${resultado.toFixed(2).replace('.',',')}</td><td></td></tr>
+  </tfoot>
+</table>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
 
 function renderTabAlmox(tab){
   try {
