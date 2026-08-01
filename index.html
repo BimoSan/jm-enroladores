@@ -14305,13 +14305,7 @@ window._setCustoMes=function(mes){ window._custoMes=mes; window._custoFiltroCat=
 
 window._exportarCustosPDF=function(mes, mesNome){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const doMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
-  const totalMes=doMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-
-  // Por categoria
-  const porCat={};
-  doMes.forEach(c=>{ if(!porCat[c.categoria]) porCat[c.categoria]=0; porCat[c.categoria]+=parseFloat(c.valor)||0; });
-  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const {itens:doMes,total:totalMes,catsOrd:cats}=finCustosIndiretosDetalhe(mes);
   const maxCat=cats[0]?.[1]||1;
 
   // Por dia agrupado
@@ -14589,6 +14583,57 @@ function finExtrairAnoMesRef(str){
   const mTraco=String(str).match(/^(\d{4})-(\d{2})/);
   if(mTraco) return mTraco[1]+'-'+mTraco[2];
   return null;
+}
+// Barras horizontais coloridas por categoria/item — usado em todos os PDFs financeiros
+function finBarsHtml(entries, paleta){
+  const max=Math.max(...entries.map(([,v])=>v),1);
+  return entries.map(([nome,val],i)=>`<div class="cat-bar">
+    <div class="cat-label"><span>${nome}</span><span style="color:${paleta[i%paleta.length]};font-weight:700">R$ ${val.toFixed(2).replace('.',',')}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(val/max*100)}%;background:${paleta[i%paleta.length]}"></div></div>
+  </div>`).join('');
+}
+// Detalhe de mão de obra (pagamentos) de um mês — reaproveitado no PDF de Mão de Obra e no Balanço
+function finPagamentosDetalhe(mes){
+  const pagamentos=finPagamentosTodos().filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes);
+  const total=pagamentos.reduce((s,p)=>s+p.valor,0);
+  const porSetor={};
+  pagamentos.forEach(p=>{ if(!porSetor[p.setor]) porSetor[p.setor]=0; porSetor[p.setor]+=p.valor; });
+  return {pagamentos,total,porSetorOrd:Object.entries(porSetor).sort((a,b)=>b[1]-a[1])};
+}
+// Detalhe de materiais diretos de um mês — reaproveitado no PDF de Mat. Diretos e no Balanço
+function finMatDiretosDetalhe(mes){
+  const itens=matDiretos.filter(m=>(m.data||'').startsWith(mes));
+  const total=itens.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const porCat={};
+  itens.forEach(m=>{ const c=m.categoria||'Outros'; if(!porCat[c]) porCat[c]=0; porCat[c]+=parseFloat(m.valor)||0; });
+  return {itens,total,porCatOrd:Object.entries(porCat).sort((a,b)=>b[1]-a[1])};
+}
+// Detalhe de compras/almoxarifado de um mês — reaproveitado no PDF de Almoxarifado e no Balanço
+function finComprasDetalhe(mes){
+  const itens=finComprasTodos().filter(c=>(c.data||'').startsWith(mes));
+  const total=itens.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+  const porItem={};
+  itens.forEach(c=>{
+    if(!porItem[c.itemId]) porItem[c.itemId]={desc:c.itemDesc,unidade:c.itemUnidade,qtd:0,custo:0};
+    porItem[c.itemId].qtd+=(parseInt(c.quantidade)||0);
+    porItem[c.itemId].custo+=(parseFloat(c.custoTotal)||0);
+  });
+  return {itens,total,itensOrd:Object.values(porItem).sort((a,b)=>b.custo-a.custo)};
+}
+// Detalhe de custos indiretos de um mês — reaproveitado no PDF de Custos Indiretos e no Balanço
+function finCustosIndiretosDetalhe(mes){
+  const itens=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
+  const total=itens.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const porCat={};
+  itens.forEach(c=>{ if(!porCat[c.categoria]) porCat[c.categoria]=0; porCat[c.categoria]+=parseFloat(c.valor)||0; });
+  return {itens,total,catsOrd:Object.entries(porCat).sort((a,b)=>b[1]-a[1])};
+}
+// Detalhe de viagens de um mês — reaproveitado no PDF de Viagens e no Balanço
+function finViagensDetalhe(mes){
+  const rotas=camRotas.filter(r=>(r.data||'').startsWith(mes));
+  const totalComb=rotas.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
+  const totalMot=rotas.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
+  return {rotas,totalComb,totalMot,total:totalComb+totalMot};
 }
 function finPagamentosTodos(){
   // Recolhe todas as fichas fechadas/canceladas pagas ou a pagar de todos os setores
@@ -15423,6 +15468,7 @@ function renderFinRelPagamentos(){
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
+          <button onclick="event.stopPropagation();window._exportarPagamentosPDF('${mes}','${label}')" title="Gerar PDF de ${label}" style="background:${aberto?'rgba(255,255,255,.15)':'#f1f5f9'};border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:13px">📄</button>
           <div style="font-size:18px;font-weight:900;color:${aberto?'#fff':'#059669'}">${fmtMoeda(total)}</div>
           <span style="font-size:14px;color:${aberto?'#fff':'#94a3b8'}">${aberto?'▲':'▼'}</span>
         </div>
@@ -15476,6 +15522,97 @@ function renderFinRelPagamentos(){
   return html;
 }
 
+window._exportarPagamentosPDF=function(mes, label){
+  const {pagamentos,total:totalMes,porSetorOrd:setoresOrd}=finPagamentosDetalhe(mes);
+  const PALETA=['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4'];
+  const barsHtml=finBarsHtml(setoresOrd,PALETA);
+
+  const rows=pagamentos.sort((a,b)=>(b.dataPagamento||'')>(a.dataPagamento||'')?1:-1).map(p=>{
+    const dataRef=p.tipo==='quinzena'?p.dataRef:(p.dataRef?p.dataRef.split('-').reverse().join('/'):'—');
+    const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
+    return `<tr>
+      <td style="padding:5px 10px;font-weight:600">${p.pessoa}</td>
+      <td style="padding:5px 10px;color:#64748b">${p.setor}</td>
+      <td style="padding:5px 10px;color:#64748b;font-size:11px">${p.tipo==='quinzena'?'Quinzena: '+dataRef:'Ref: '+dataRef}</td>
+      <td style="padding:5px 10px;color:#64748b">${dataPag}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#059669">R$ ${p.valor.toFixed(2).replace('.',',')}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mão de Obra — ${label}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, #065f46, #10b981); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .card { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+  .card h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .cat-bar { margin-bottom: 10px; }
+  .cat-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .cat-label span:first-child { font-weight: 600; }
+  .bar-bg { background: #e2e8f0; border-radius: 99px; height: 8px; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #059669; color: #fff; }
+  thead th { padding: 8px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+  tbody td { border-bottom: 1px solid #f1f5f9; }
+  tfoot tr { background: #d1fae5; }
+  tfoot td { padding: 8px 10px; font-weight: 800; color: #065f46; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril</div>
+    <h1>Mão de Obra</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">${label}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">TOTAL PAGO NO MÊS</div>
+    <div class="total-val">R$ ${totalMes.toFixed(2).replace('.',',')}</div>
+    <div class="total-label">${pagamentos.length} pagamento${pagamentos.length!==1?'s':''}</div>
+  </div>
+</div>
+
+${setoresOrd.length?`<div class="card"><h3>Por setor</h3>${barsHtml}</div>`:''}
+
+<table>
+  <thead><tr>
+    <th>Pessoa</th>
+    <th>Setor</th>
+    <th>Referência</th>
+    <th>Pago em</th>
+    <th style="text-align:right">Valor</th>
+  </tr></thead>
+  <tbody>${rows||'<tr><td colspan="5" style="padding:12px;text-align:center;color:#94a3b8">Nenhum pagamento neste mês.</td></tr>'}</tbody>
+  <tfoot><tr>
+    <td colspan="4">Total — ${label}</td>
+    <td style="text-align:right">R$ ${totalMes.toFixed(2).replace('.',',')}</td>
+  </tr></tfoot>
+</table>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
+
 // ── Compras ─────────────────────────────────────────────────────
 function renderFinMatDiretos(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -15501,6 +15638,7 @@ function renderFinMatDiretos(){
       <div style="font-size:22px;font-weight:900;color:#1d4ed8">${fmtMoeda(totalMes)}</div>
     </div>
     <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="window._exportarMatDiretosPDF('${mes}','${mesLabel(mes)}')">📄 PDF</button>
       <button class="btn btn-ghost btn-sm" style="border:1.5px solid #64748b;color:#64748b" onclick="window._matDiretosGerirCats()">⚙️ Categorias</button>
       <button class="btn btn-primary btn-sm" onclick="window._matDiretosNovo()">+ Lançamento</button>
     </div>
@@ -15561,6 +15699,97 @@ function renderFinMatDiretos(){
 }
 
 window._matDiretosSetMes=function(m){ window._matDiretosMes=m; reloadTab(); };
+
+window._exportarMatDiretosPDF=function(mes, mesNome){
+  const {itens:doMes,total:totalMes,porCatOrd:cats}=finMatDiretosDetalhe(mes);
+  const PALETA=['#1d4ed8','#3b82f6','#0d9488','#f59e0b','#8b5cf6','#06b6d4','#ef4444','#ec4899'];
+  const barsHtml=finBarsHtml(cats,PALETA);
+
+  const porDia={};
+  doMes.forEach(m=>{ const d=m.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(m); });
+  const dias=Object.keys(porDia).sort();
+  const rows=dias.map(d=>{
+    const [ano,mo,dd]=d.split('-');
+    return porDia[d].map(it=>`<tr>
+      <td style="padding:5px 10px;white-space:nowrap">${dd}/${mo}/${ano}</td>
+      <td style="padding:5px 10px;color:#64748b">${it.categoria||'Outros'}</td>
+      <td style="padding:5px 10px;text-align:center;color:#64748b">${it.qtd?it.qtd+' '+(it.unidade||'un'):'—'}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#1d4ed8">R$ ${(parseFloat(it.valor)||0).toFixed(2).replace('.',',')}</td>
+    </tr>`).join('');
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Materiais Diretos — ${mesNome}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .card { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+  .card h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .cat-bar { margin-bottom: 10px; }
+  .cat-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .cat-label span:first-child { font-weight: 600; }
+  .bar-bg { background: #e2e8f0; border-radius: 99px; height: 8px; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #1d4ed8; color: #fff; }
+  thead th { padding: 8px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+  tbody td { border-bottom: 1px solid #f1f5f9; }
+  tfoot tr { background: #dbeafe; }
+  tfoot td { padding: 8px 10px; font-weight: 800; color: #1e40af; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril</div>
+    <h1>Materiais Diretos</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">${mesNome}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">TOTAL DO MÊS</div>
+    <div class="total-val">R$ ${totalMes.toFixed(2).replace('.',',')}</div>
+    <div class="total-label">${doMes.length} lançamentos</div>
+  </div>
+</div>
+
+${cats.length?`<div class="card"><h3>Por categoria</h3>${barsHtml}</div>`:''}
+
+<table>
+  <thead><tr>
+    <th>Data</th>
+    <th>Categoria</th>
+    <th style="text-align:center">Qtd.</th>
+    <th style="text-align:right">Valor</th>
+  </tr></thead>
+  <tbody>${rows||'<tr><td colspan="4" style="padding:12px;text-align:center;color:#94a3b8">Nenhum lançamento neste mês.</td></tr>'}</tbody>
+  <tfoot><tr>
+    <td colspan="3">Total — ${mesNome}</td>
+    <td style="text-align:right">R$ ${totalMes.toFixed(2).replace('.',',')}</td>
+  </tr></tfoot>
+</table>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
 
 window._matDiretosNovo=function(){
   const cats=matDiretosConfig.categorias||[];
@@ -15700,6 +15929,7 @@ function renderFinCompras(){
       <div style="font-size:10px;color:#64748b">${window._finComprasMes?mesLabel2(window._finComprasMes):'Total geral'}</div>
       <div style="font-size:22px;font-weight:900;color:#b45309">${fmtMoeda(totalMes)}</div>
     </div>
+    ${window._finComprasMes?`<button class="btn btn-ghost btn-sm" onclick="window._exportarComprasPDF('${window._finComprasMes}','${mesLabel2(window._finComprasMes)}')">📄 PDF</button>`:''}
   </div>`;
 
   // Transações individuais
@@ -15744,6 +15974,100 @@ function renderFinCompras(){
   return html;
 }
 
+window._exportarComprasPDF=function(mes, mesNome){
+  const {itens:compras,total:totalMes,itensOrd}=finComprasDetalhe(mes);
+  const PALETA=['#b45309','#f59e0b','#d97706','#0d9488','#3b82f6','#8b5cf6','#ef4444'];
+  const barsHtml=finBarsHtml(itensOrd.map(v=>[v.desc,v.custo]),PALETA);
+
+  const rows=compras.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(c=>{
+    const d=(c.data||'').split('-').reverse().join('/');
+    const unit=c.custoUnitario?'R$ '+parseFloat(c.custoUnitario).toFixed(2).replace('.',','):'—';
+    return `<tr>
+      <td style="padding:5px 10px;white-space:nowrap">${d}</td>
+      <td style="padding:5px 10px;font-weight:600">${c.itemDesc}</td>
+      <td style="padding:5px 10px;text-align:center;color:#64748b">${c.quantidade} ${c.itemUnidade}</td>
+      <td style="padding:5px 10px;text-align:right;color:#64748b">${unit}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#b45309">R$ ${(parseFloat(c.custoTotal)||0).toFixed(2).replace('.',',')}</td>
+      <td style="padding:5px 10px;color:#64748b;font-size:11px">${c.fornecedor||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Almoxarifado — ${mesNome}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, #92400e, #f59e0b); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .card { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+  .card h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .cat-bar { margin-bottom: 10px; }
+  .cat-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .cat-label span:first-child { font-weight: 600; }
+  .bar-bg { background: #e2e8f0; border-radius: 99px; height: 8px; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #b45309; color: #fff; }
+  thead th { padding: 8px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+  tbody td { border-bottom: 1px solid #f1f5f9; }
+  tfoot tr { background: #fef3c7; }
+  tfoot td { padding: 8px 10px; font-weight: 800; color: #92400e; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril</div>
+    <h1>Almoxarifado</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">${mesNome}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">TOTAL DO MÊS</div>
+    <div class="total-val">R$ ${totalMes.toFixed(2).replace('.',',')}</div>
+    <div class="total-label">${compras.length} entradas</div>
+  </div>
+</div>
+
+${itensOrd.length?`<div class="card"><h3>Por item</h3>${barsHtml}</div>`:''}
+
+<table>
+  <thead><tr>
+    <th>Data</th>
+    <th>Item</th>
+    <th style="text-align:center">Qtd.</th>
+    <th style="text-align:right">Unitário</th>
+    <th style="text-align:right">Total</th>
+    <th>Fornecedor</th>
+  </tr></thead>
+  <tbody>${rows||'<tr><td colspan="6" style="padding:12px;text-align:center;color:#94a3b8">Nenhuma compra neste mês.</td></tr>'}</tbody>
+  <tfoot><tr>
+    <td colspan="4">Total — ${mesNome}</td>
+    <td style="text-align:right">R$ ${totalMes.toFixed(2).replace('.',',')}</td>
+    <td></td>
+  </tr></tfoot>
+</table>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
+
 // ── Relatório ───────────────────────────────────────────────────
 function renderFinViagens(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -15766,6 +16090,7 @@ function renderFinViagens(){
       <div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
       <div style="font-size:22px;font-weight:900;color:#374151">${fmtMoeda(totalGeral)}</div>
     </div>
+    <button class="btn btn-ghost btn-sm" onclick="window._exportarViagensPDF('${mes}','${mesLabel(mes)}')">📄 PDF</button>
   </div>`;
 
   // Resumo
@@ -15810,6 +16135,104 @@ function renderFinViagens(){
   return html;
 }
 window._finViagensSetMes=function(m){ window._finViagensMes=m; reloadTab(); };
+
+window._exportarViagensPDF=function(mes, mesNome){
+  const {rotas:rotasDoMes,totalComb,totalMot:totalGastMot,total:totalGeral}=finViagensDetalhe(mes);
+
+  const rows=rotasDoMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map(r=>{
+    const v=camVeiculos.find(x=>x.id===r.veiculoId);
+    const m=camMotoristas.find(x=>x.id===r.motoristId);
+    const comb=rotaTotalCombustivel(r);
+    const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+    const total=comb+mot;
+    return `<tr>
+      <td style="padding:5px 8px;white-space:nowrap">${fmtDate(r.data)}</td>
+      <td style="padding:5px 8px;font-weight:600">${v?v.modelo+' '+v.placa:'—'}</td>
+      <td style="padding:5px 8px;color:#64748b">${m?m.nome:'—'}</td>
+      <td style="padding:5px 8px;color:#64748b;font-size:11px">${r.origem||''} → ${r.destino||''}</td>
+      <td style="padding:5px 8px;text-align:right;color:#d97706">${comb>0?'R$ '+comb.toFixed(2).replace('.',','):'—'}</td>
+      <td style="padding:5px 8px;text-align:right;color:#3b82f6">${mot>0?'R$ '+mot.toFixed(2).replace('.',','):'—'}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700">R$ ${total.toFixed(2).replace('.',',')}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Viagens — ${mesNome}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, #1e3a5f, #374151); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .card-mini { border-radius: 10px; padding: 14px; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; }
+  .card-mini .lbl { font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing:.4px; }
+  .card-mini .val { font-size: 20px; font-weight: 900; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead tr { background: #374151; color: #fff; }
+  thead th { padding: 8px 8px; font-size: 11px; font-weight: 700; text-align: left; }
+  tbody td { border-bottom: 1px solid #f1f5f9; }
+  tfoot tr { background: #f1f5f9; }
+  tfoot td { padding: 8px 8px; font-weight: 800; color: #1e293b; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril</div>
+    <h1>Viagens</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">${mesNome}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">TOTAL DO MÊS</div>
+    <div class="total-val">R$ ${totalGeral.toFixed(2).replace('.',',')}</div>
+    <div class="total-label">${rotasDoMes.length} rota${rotasDoMes.length!==1?'s':''}</div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card-mini"><div class="lbl" style="color:#d97706">Combustível</div><div class="val" style="color:#d97706">R$ ${totalComb.toFixed(2).replace('.',',')}</div></div>
+  <div class="card-mini"><div class="lbl" style="color:#3b82f6">Gastos motoristas</div><div class="val" style="color:#3b82f6">R$ ${totalGastMot.toFixed(2).replace('.',',')}</div></div>
+</div>
+
+<table>
+  <thead><tr>
+    <th>Data</th>
+    <th>Veículo</th>
+    <th>Motorista</th>
+    <th>Rota</th>
+    <th style="text-align:right">Combustível</th>
+    <th style="text-align:right">Motorista</th>
+    <th style="text-align:right">Total</th>
+  </tr></thead>
+  <tbody>${rows||'<tr><td colspan="7" style="padding:12px;text-align:center;color:#94a3b8">Nenhuma rota neste mês.</td></tr>'}</tbody>
+  <tfoot><tr>
+    <td colspan="4">Total — ${mesNome}</td>
+    <td style="text-align:right">R$ ${totalComb.toFixed(2).replace('.',',')}</td>
+    <td style="text-align:right">R$ ${totalGastMot.toFixed(2).replace('.',',')}</td>
+    <td style="text-align:right">R$ ${totalGeral.toFixed(2).replace('.',',')}</td>
+  </tr></tfoot>
+</table>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
 
 function renderFinRelatorio(){
   if(!window._finRelAno) window._finRelAno=today().slice(0,4);
@@ -15964,25 +16387,85 @@ function renderFinRelatorio(){
 }
 
 window._exportarBalancoPDF=function(mes, mesNome){
-  const pagamentos=finPagamentosTodos();
-  const compras=finComprasTodos();
-  const pagsMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes);
-  const comprasMes=compras.filter(c=>(c.data||'').startsWith(mes));
-  const indiretMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
-  const matDiretosMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
+  const {pagamentos:pagsMes,total:pagVal,porSetorOrd:setoresOrd}=finPagamentosDetalhe(mes);
+  const {itens:matDiretosMes,total:matVal,porCatOrd:catsMatDiretos}=finMatDiretosDetalhe(mes);
+  const {itens:comprasMes,total:compVal,itensOrd:itensCompras}=finComprasDetalhe(mes);
+  const {rotas:rotasMes,totalComb,totalMot:totalGastMot,total:viagVal}=finViagensDetalhe(mes);
+  const {itens:indiretMes,total:indVal,catsOrd:catsIndiretos}=finCustosIndiretosDetalhe(mes);
   const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
-  const rotasMes=camRotas.filter(r=>(r.data||'').startsWith(mes));
   const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
 
-  const pagVal=pagsMes.reduce((s,p)=>s+p.valor,0);
-  const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
-  const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
   const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
-  const viagVal=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r)+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
   const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
   const totalSaidas=pagVal+compVal+indVal+matVal+quimVal+viagVal;
   const resultado=vendVal-totalSaidas;
+
+  // Barras de cada seção detalhada (mesma lógica dos PDFs individuais)
+  const PALETA_MO=['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4'];
+  const barsMaoObra=finBarsHtml(setoresOrd,PALETA_MO);
+  const PALETA_MAT=['#1d4ed8','#3b82f6','#0d9488','#f59e0b','#8b5cf6','#06b6d4','#ef4444','#ec4899'];
+  const barsMatDiretos=finBarsHtml(catsMatDiretos,PALETA_MAT);
+  const PALETA_ALM=['#b45309','#f59e0b','#d97706','#0d9488','#3b82f6','#8b5cf6','#ef4444'];
+  const barsAlmox=finBarsHtml(itensCompras.map(v=>[v.desc,v.custo]),PALETA_ALM);
+  const PALETA_IND=['#7c3aed','#8b5cf6','#a78bfa','#3b82f6','#f59e0b','#10b981','#ef4444','#06b6d4'];
+  const barsIndiretos=finBarsHtml(catsIndiretos,PALETA_IND);
+
+  const rowsMaoObra=pagsMes.sort((a,b)=>(b.dataPagamento||'')>(a.dataPagamento||'')?1:-1).map(p=>{
+    const dataRef=p.tipo==='quinzena'?p.dataRef:(p.dataRef?p.dataRef.split('-').reverse().join('/'):'—');
+    const dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
+    return `<tr>
+      <td style="padding:5px 10px;font-weight:600">${p.pessoa}</td>
+      <td style="padding:5px 10px;color:#64748b">${p.setor}</td>
+      <td style="padding:5px 10px;color:#64748b;font-size:11px">${p.tipo==='quinzena'?'Quinzena: '+dataRef:'Ref: '+dataRef}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#059669">R$ ${p.valor.toFixed(2).replace('.',',')}</td>
+    </tr>`;
+  }).join('');
+
+  const rowsMatDiretos=matDiretosMes.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(m=>{
+    const d=(m.data||'').split('-').reverse().join('/');
+    return `<tr>
+      <td style="padding:5px 10px;white-space:nowrap">${d}</td>
+      <td style="padding:5px 10px;color:#64748b">${m.categoria||'Outros'}</td>
+      <td style="padding:5px 10px;text-align:center;color:#64748b">${m.qtd?m.qtd+' '+(m.unidade||'un'):'—'}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#1d4ed8">R$ ${(parseFloat(m.valor)||0).toFixed(2).replace('.',',')}</td>
+    </tr>`;
+  }).join('');
+
+  const rowsAlmox=comprasMes.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(c=>{
+    const d=(c.data||'').split('-').reverse().join('/');
+    return `<tr>
+      <td style="padding:5px 10px;white-space:nowrap">${d}</td>
+      <td style="padding:5px 10px;font-weight:600">${c.itemDesc}</td>
+      <td style="padding:5px 10px;text-align:center;color:#64748b">${c.quantidade} ${c.itemUnidade}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#b45309">R$ ${(parseFloat(c.custoTotal)||0).toFixed(2).replace('.',',')}</td>
+      <td style="padding:5px 10px;color:#64748b;font-size:11px">${c.fornecedor||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const rowsViagens=rotasMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map(r=>{
+    const v=camVeiculos.find(x=>x.id===r.veiculoId);
+    const m=camMotoristas.find(x=>x.id===r.motoristId);
+    const comb=rotaTotalCombustivel(r);
+    const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+    return `<tr>
+      <td style="padding:5px 8px;white-space:nowrap">${fmtDate(r.data)}</td>
+      <td style="padding:5px 8px;font-weight:600">${v?v.modelo+' '+v.placa:'—'}</td>
+      <td style="padding:5px 8px;color:#64748b">${m?m.nome:'—'}</td>
+      <td style="padding:5px 8px;text-align:right;color:#d97706">${comb>0?'R$ '+comb.toFixed(2).replace('.',','):'—'}</td>
+      <td style="padding:5px 8px;text-align:right;color:#3b82f6">${mot>0?'R$ '+mot.toFixed(2).replace('.',','):'—'}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700">R$ ${(comb+mot).toFixed(2).replace('.',',')}</td>
+    </tr>`;
+  }).join('');
+
+  const rowsIndiretos=indiretMes.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(c=>{
+    const d=(c.data||'').split('-').reverse().join('/');
+    return `<tr>
+      <td style="padding:5px 10px;white-space:nowrap">${d}</td>
+      <td style="padding:5px 10px;color:#64748b">${c.categoria}</td>
+      <td style="padding:5px 10px;color:#64748b;font-size:11px">${c.descricao||'—'}</td>
+      <td style="padding:5px 10px;text-align:right;font-weight:700;color:#7c3aed">R$ ${(parseFloat(c.valor)||0).toFixed(2).replace('.',',')}</td>
+    </tr>`;
+  }).join('');
 
   const categorias=[
     {nome:'Mão de obra',valor:pagVal,cor:'#3b82f6'},
@@ -16044,6 +16527,7 @@ window._exportarBalancoPDF=function(mes, mesNome){
   tbody td { padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
   tfoot tr { background: #dbeafe; }
   tfoot td { padding: 8px 10px; font-weight: 800; color: #1e40af; }
+  .secao-header { color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 15px; font-weight: 800; margin-bottom: 14px; }
   .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
@@ -16100,6 +16584,59 @@ ${categorias.length?`<div class="grid2">
     <tr><td>Resultado (entradas − saídas)</td><td style="text-align:right;color:${resultado>=0?'#059669':'#dc2626'}">${resultado>=0?'+':''}R$ ${resultado.toFixed(2).replace('.',',')}</td><td></td></tr>
   </tfoot>
 </table>
+
+${pagVal>0?`<div class="secao" style="page-break-before:always">
+  <div class="secao-header" style="background:linear-gradient(135deg,#065f46,#10b981)">👷 Mão de Obra — R$ ${pagVal.toFixed(2).replace('.',',')}</div>
+  ${setoresOrd.length?`<div class="card"><h3>Por setor</h3>${barsMaoObra}</div>`:''}
+  <table>
+    <thead><tr><th>Pessoa</th><th>Setor</th><th>Referência</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody>${rowsMaoObra}</tbody>
+    <tfoot><tr><td colspan="3">Total — Mão de Obra</td><td style="text-align:right">R$ ${pagVal.toFixed(2).replace('.',',')}</td></tr></tfoot>
+  </table>
+</div>`:''}
+
+${matVal>0?`<div class="secao" style="page-break-before:always">
+  <div class="secao-header" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8)">📦 Materiais Diretos — R$ ${matVal.toFixed(2).replace('.',',')}</div>
+  ${catsMatDiretos.length?`<div class="card"><h3>Por categoria</h3>${barsMatDiretos}</div>`:''}
+  <table>
+    <thead><tr><th>Data</th><th>Categoria</th><th style="text-align:center">Qtd.</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody>${rowsMatDiretos}</tbody>
+    <tfoot><tr><td colspan="3">Total — Materiais Diretos</td><td style="text-align:right">R$ ${matVal.toFixed(2).replace('.',',')}</td></tr></tfoot>
+  </table>
+</div>`:''}
+
+${compVal>0?`<div class="secao" style="page-break-before:always">
+  <div class="secao-header" style="background:linear-gradient(135deg,#92400e,#f59e0b)">📤 Almoxarifado — R$ ${compVal.toFixed(2).replace('.',',')}</div>
+  ${itensCompras.length?`<div class="card"><h3>Por item</h3>${barsAlmox}</div>`:''}
+  <table>
+    <thead><tr><th>Data</th><th>Item</th><th style="text-align:center">Qtd.</th><th style="text-align:right">Total</th><th>Fornecedor</th></tr></thead>
+    <tbody>${rowsAlmox}</tbody>
+    <tfoot><tr><td colspan="3">Total — Almoxarifado</td><td style="text-align:right">R$ ${compVal.toFixed(2).replace('.',',')}</td><td></td></tr></tfoot>
+  </table>
+</div>`:''}
+
+${viagVal>0?`<div class="secao" style="page-break-before:always">
+  <div class="secao-header" style="background:linear-gradient(135deg,#1e3a5f,#374151)">🚛 Viagens — R$ ${viagVal.toFixed(2).replace('.',',')}</div>
+  <div class="cards" style="grid-template-columns:1fr 1fr">
+    <div class="card-mini"><div class="lbl" style="color:#d97706">Combustível</div><div class="val" style="color:#d97706">R$ ${totalComb.toFixed(2).replace('.',',')}</div></div>
+    <div class="card-mini"><div class="lbl" style="color:#3b82f6">Gastos motoristas</div><div class="val" style="color:#3b82f6">R$ ${totalGastMot.toFixed(2).replace('.',',')}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Data</th><th>Veículo</th><th>Motorista</th><th style="text-align:right">Combustível</th><th style="text-align:right">Motorista</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>${rowsViagens}</tbody>
+    <tfoot><tr><td colspan="3">Total — Viagens</td><td style="text-align:right">R$ ${totalComb.toFixed(2).replace('.',',')}</td><td style="text-align:right">R$ ${totalGastMot.toFixed(2).replace('.',',')}</td><td style="text-align:right">R$ ${viagVal.toFixed(2).replace('.',',')}</td></tr></tfoot>
+  </table>
+</div>`:''}
+
+${indVal>0?`<div class="secao" style="page-break-before:always">
+  <div class="secao-header" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)">💜 Custos Indiretos — R$ ${indVal.toFixed(2).replace('.',',')}</div>
+  ${catsIndiretos.length?`<div class="card"><h3>Por categoria</h3>${barsIndiretos}</div>`:''}
+  <table>
+    <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody>${rowsIndiretos}</tbody>
+    <tfoot><tr><td colspan="3">Total — Custos Indiretos</td><td style="text-align:right">R$ ${indVal.toFixed(2).replace('.',',')}</td></tr></tfoot>
+  </table>
+</div>`:''}
 
 <div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
 
