@@ -3407,6 +3407,48 @@ window._desmarcarPagoAction=async()=>{
   reloadTab();
 };
 
+// Corrige a data de pagamento de um lançamento já pago — importante pra o
+// relatório financeiro contar o custo no mês em que foi de fato pago, não
+// no mês de abertura/referência da ficha (que pode ser bem anterior).
+window._editarDataPagamento=(id,setorKey,tipo,dataAtual)=>{
+  window._pendingEditDataPagId=id;
+  window._pendingEditDataPagSetorKey=setorKey;
+  window._pendingEditDataPagTipo=tipo;
+  showModal('Corrigir data de pagamento',
+    '<div style="font-size:12px;color:#64748b;margin-bottom:10px;line-height:1.5">Ajuste a data em que o pagamento foi realmente feito. Isso corrige em qual mês esse valor entra no relatório financeiro.</div>'
+    +'<div class="form-group"><label>Data do pagamento</label><input type="date" id="edp-data" value="'+(dataAtual||today())+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._salvarDataPagamento()">Salvar</button>');
+};
+window._salvarDataPagamento=async()=>{
+  const id=window._pendingEditDataPagId;if(!id)return;
+  const setorKey=window._pendingEditDataPagSetorKey;
+  const tipo=window._pendingEditDataPagTipo;
+  const novaData=document.getElementById('edp-data')?.value;
+  if(!novaData){showToast('Informe a data.');return;}
+  closeModal();
+  const colecoes={
+    enrolamento_terc:'fichas', metalurgica:'fichas_metal', grades:'fichas_grad',
+    tapecamento:'fichas_tap', enrolamento_int:'fichas_int',
+  };
+  if(tipo==='manual'){
+    await updateDoc(doc(db,'pag_manuais',id),{dataPagamento:novaData});
+  } else if(setorKey==='espuma'){
+    const fObj=finPagamentosTodos().find(p=>p.id===id)?.fichaObj;
+    const ids=fObj?.ids||[];
+    for(const prodId of ids){
+      await updateDoc(doc(db,'esp_producao',prodId),{dataPagamento:novaData});
+    }
+  } else {
+    const col=colecoes[setorKey];
+    if(!col){showToast('Não é possível editar a data desse tipo de pagamento.');return;}
+    await updateDoc(doc(db,col,id),{dataPagamento:novaData});
+  }
+  window._pendingEditDataPagId=null;
+  showToast('Data de pagamento corrigida!');
+  reloadTab();
+};
+
 window._desmarcarPagoBonus=(enroladorId,anoMes)=>{
   window._pendingDesmarcarBonusEnr=enroladorId;
   window._pendingDesmarcarBonusMes=anoMes;
@@ -5543,6 +5585,23 @@ function rotaTotalCombustivel(r){
   return rotaAbs+inicialAbs;
 }
 
+// Cada abastecimento tem sua própria data (quando o motorista abastece no
+// retorno, já em outro mês, esse abastecimento não pode contar no mês em que
+// a rota começou). Registros antigos sem data própria usam a data da rota
+// como fallback. NÃO inclui o abastecimento inicial (não entra na média/mês).
+function todosAbastecimentos(){
+  const lista=[];
+  camRotas.forEach(r=>{
+    (r.abastecimentos||[]).forEach(a=>{
+      lista.push({...a, data:a.data||r.data, rota:r});
+    });
+  });
+  return lista;
+}
+function abastecimentosDoMes(mes){
+  return todosAbastecimentos().filter(a=>(a.data||'').startsWith(mes));
+}
+
 function renderTabCaminhoes(tab){
   try{
     if(tab==='cam_rotas')         return renderCamRotas();
@@ -5590,7 +5649,9 @@ function renderCamRotas(){
 
   const rotasMes=camRotas.filter(r=>(r.data||'').slice(0,7)===mes);
   const totalKm=rotasMes.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
-  const totalGasto=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
+  // Gasto combustível é pela data de cada abastecimento (não pela saída da
+  // rota) — pode ter sido pago já no mês seguinte, na volta da viagem.
+  const totalGasto=abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
 
 
   // Navegação de mês
@@ -5609,7 +5670,7 @@ function renderCamRotas(){
     +'</div>';
 
   // Stat cards
-  const totalGastoMot=rotasMes.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
+  const totalGastoMot=abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
   html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Viagens no mês</div><div class="stat-value">'+rotasMes.length+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
@@ -5691,7 +5752,9 @@ window._abrirNovaRota=function(rota){
   function rowAbs(a,i){
     const postos=camPostos.length?camPostos:[{id:'_p1',nome:'Posto Jati Rede Mais'},{id:'_p2',nome:'Auto Posto Nordeste'},{id:'_p3',nome:'Araújo Petróleo'}];
     const optsP=postos.map(p=>'<option value="'+p.nome+'"'+(a.posto===p.nome?' selected':'')+'>'+p.nome+'</option>').join('');
+    const dataDefault=a.data||document.getElementById('rota-data')?.value||r.data||today();
     return '<tr id="abs-row-'+i+'">'
+      +'<td style="padding:4px"><input id="abs-data-'+i+'" type="date" value="'+dataDefault+'" title="Data em que esse abastecimento foi feito" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"></td>'
       +'<td style="padding:4px"><select id="abs-posto-'+i+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"><option value="">— Posto —</option>'+optsP+'</select></td>'
       +'<td style="padding:4px"><select id="abs-comb-'+i+'" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"><option value="Diesel"'+(a.combustivel==='Diesel'?' selected':'')+'>Diesel</option><option value="Gasolina"'+(a.combustivel==='Gasolina'?' selected':'')+'>Gasolina</option><option value="GNV"'+(a.combustivel==='GNV'?' selected':'')+'>GNV</option><option value="Etanol"'+(a.combustivel==='Etanol'?' selected':'')+'>Etanol</option></select></td>'
       +'<td style="padding:4px"><input id="abs-valunit-'+i+'" type="number" step="0.01" placeholder="R$/L" value="'+(a.valUnit||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%" oninput="window._camCalcTotal('+i+')"></td>'
@@ -5738,8 +5801,10 @@ window._abrirNovaRota=function(rota){
     +'<input type="number" id="absinicial-total" step="0.01" placeholder="0.00" value="'+(r.absInicial?.totalPago||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:5px;width:100%"></div>'
     +'</div></div>'
     +'<div style="font-size:12px;font-weight:700;color:#1e3a5f;margin:10px 0 6px">⛽ Abastecimentos durante a rota</div>'
-    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:600px;font-size:12px">'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:6px">Se o motorista abasteceu no retorno, já em outro mês, ajuste a data desse abastecimento — ela é o que conta pros relatórios financeiros.</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:680px;font-size:12px">'
     +'<thead><tr style="background:#f1f5f9">'
+    +'<th style="padding:6px 8px;text-align:left">Data</th>'
     +'<th style="padding:6px 8px;text-align:left">Posto</th>'
     +'<th style="padding:6px 8px;text-align:left">Combust.</th>'
     +'<th style="padding:6px 8px">R$/L</th>'
@@ -5803,13 +5868,14 @@ window._salvarRota=async function(rotaId){
   for(let i=0;i<window._absCount;i++){
     const row=document.getElementById('abs-row-'+i);
     if(!row) continue;
+    const dataAbs=document.getElementById('abs-data-'+i)?.value||data;
     const posto=document.getElementById('abs-posto-'+i)?.value||'';
     const combustivel=document.getElementById('abs-comb-'+i)?.value||'Diesel';
     const valUnit=parseFloat(document.getElementById('abs-valunit-'+i)?.value)||0;
     const litros=parseFloat(document.getElementById('abs-litros-'+i)?.value)||0;
     const totalPago=parseFloat(document.getElementById('abs-total-'+i)?.value)||0;
     const gastoMot=parseFloat(document.getElementById('abs-gastoMot-'+i)?.value)||0;
-    if(posto||litros||totalPago) abastecimentos.push({posto,combustivel,valUnit,litros,totalPago,gastoMot});
+    if(posto||litros||totalPago) abastecimentos.push({data:dataAbs,posto,combustivel,valUnit,litros,totalPago,gastoMot});
   }
 
   // Abastecimento inicial (não entra na média)
@@ -5857,13 +5923,10 @@ function renderCamAbastecimento(){
   const mesAnt=new Date(parseInt(ano),parseInt(m)-2,1);
   const mesProx=new Date(parseInt(ano),parseInt(m),1);
 
-  // Consolidar abastecimentos de todas as rotas do mês
-  const abs=[];
-  camRotas.filter(r=>(r.data||'').slice(0,7)===mes).forEach(r=>{
-    (r.abastecimentos||[]).forEach(a=>{
-      abs.push({...a, data:r.data, veiculo:camGetVeiculo(r.veiculoId), motorista:camGetMotorista(r.motoristId), rotaId:r.id});
-    });
-  });
+  // Consolidar abastecimentos do mês — pela data em que cada abastecimento
+  // foi feito (não pela data de saída da rota, que pode ser de outro mês).
+  const abs=abastecimentosDoMes(mes).map(a=>({...a,
+    veiculo:camGetVeiculo(a.rota.veiculoId), motorista:camGetMotorista(a.rota.motoristId), rotaId:a.rota.id}));
 
   const totalLitros=abs.reduce((s,a)=>s+(parseFloat(a.litros)||0),0);
   const totalGasto=abs.reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
@@ -6268,9 +6331,12 @@ function renderCamRelatorio(){
     const mesStr=ano+'-'+String(mi+1).padStart(2,'0');
     const rotas=camRotas.filter(r=>(r.data||'').slice(0,7)===mesStr);
     const kmTotal=rotas.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
-    const combTotal=rotas.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
+    // Combustível/gasto motorista pela data de cada abastecimento, não pela
+    // data de saída da rota (pode ter sido abastecido só na volta, no mês seguinte).
+    const absMes=abastecimentosDoMes(mesStr);
+    const combTotal=absMes.reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
     const manTotal=camManutencoes.filter(m=>(m.data||'').slice(0,7)===mesStr).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    const motTotal=rotas.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
+    const motTotal=absMes.reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
     return {mes:MESES[mi],kmTotal,combTotal,manTotal,motTotal,viagens:rotas.length};
   });
 
@@ -14630,10 +14696,13 @@ function finCustosIndiretosDetalhe(mes){
 }
 // Detalhe de viagens de um mês — reaproveitado no PDF de Viagens e no Balanço
 function finViagensDetalhe(mes){
-  const rotas=camRotas.filter(r=>(r.data||'').startsWith(mes));
-  const totalComb=rotas.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
-  const totalMot=rotas.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
-  return {rotas,totalComb,totalMot,total:totalComb+totalMot};
+  // Cada abastecimento conta no mês em que foi feito, não no mês em que a
+  // rota começou — um motorista pode sair no fim do mês e abastecer só na
+  // volta, já no mês seguinte.
+  const abastecimentos=abastecimentosDoMes(mes);
+  const totalComb=abastecimentos.reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+  const totalMot=abastecimentos.reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+  return {abastecimentos,totalComb,totalMot,total:totalComb+totalMot};
 }
 function finPagamentosTodos(){
   // Recolhe todas as fichas fechadas/canceladas pagas ou a pagar de todos os setores
@@ -15027,11 +15096,9 @@ function renderFinDashboard(){
     return s+(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   },0);
 
-  // Viagens do mês: combustível + gastos com motoristas
-  const rotasDoMes=camRotas.filter(r=>(r.data||'').startsWith(mesAtualFin));
-  const totalCombMes=rotasDoMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
-  const totalGastoMotMes=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
-  const totalViagensMes=totalCombMes+totalGastoMotMes;
+  // Viagens do mês: combustível + gastos com motoristas — pela data de cada
+  // abastecimento, não pela data de saída da rota
+  const totalViagensMes=finViagensDetalhe(mesAtualFin).total;
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const totalVendasMes=vendasDoMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
@@ -15077,12 +15144,11 @@ function renderFinDashboard(){
     const custoPorKg=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
     porMes[mes_]+=(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   });
-  camRotas.forEach(r=>{
-    const mes_=(r.data||'').slice(0,7);
+  todosAbastecimentos().forEach(a=>{
+    const mes_=(a.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    porMes[mes_]+=rotaTotalCombustivel(r);
-    porMes[mes_]+=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+    porMes[mes_]+=(parseFloat(a.totalPago)||0)+(parseFloat(a.gastoMot)||0);
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
@@ -15293,6 +15359,7 @@ function renderFinPagamentos(){
           ?'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPagoBonus(\''+p.bonusEnroladorId+'\',\''+p.bonusAnoMes+'\')">Desmarcar</button>'
           :'<button class="btn btn-sm btn-ghost" style="font-size:11px;color:#dc2626" onclick="window._desmarcarPago(\''+p.id+'\',\''+p.setorKey+'\')">Desmarcar</button>')
           :''}
+        ${(p.pago&&p.tipo!=='bonus'&&can('marcarPago'))?'<button class="btn btn-sm btn-ghost" style="font-size:11px" title="Corrigir data de pagamento" onclick="window._editarDataPagamento(\''+(p.tipo==='manual'?p._manualId:p.id)+'\',\''+p.setorKey+'\',\''+p.tipo+'\',\''+(p.dataPagamento||'')+'\')">📅</button>':''}
         ${p.tipo==='manual'?'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._finExcluirManual(\''+p._manualId+'\')">✕</button>':''}
       </div>
     </div>`;
@@ -16076,10 +16143,7 @@ function renderFinViagens(){
   const mes=mesesDisp.includes(window._finViagensMes)?window._finViagensMes:mesesDisp[0]||today().slice(0,7);
   const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
 
-  const rotasDoMes=camRotas.filter(r=>(r.data||'').startsWith(mes));
-  const totalComb=rotasDoMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
-  const totalGastMot=rotasDoMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
-  const totalGeral=totalComb+totalGastMot;
+  const {abastecimentos:absDoMes,totalComb,totalMot:totalGastMot,total:totalGeral}=finViagensDetalhe(mes);
 
   const mesSelect='<select onchange="window._finViagensSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
     +mesesDisp.map(m=>`<option value="${m}"${m===mes?' selected':''}>${mesLabel(m)}</option>`).join('')+'</select>';
@@ -16105,24 +16169,25 @@ function renderFinViagens(){
     </div>
   </div>`;
 
-  // Por rota
-  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🚛 Rotas — '+mesLabel(mes)+'</div>';
-  if(!rotasDoMes.length){
-    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma rota neste mês.</div>';
+  // Por abastecimento — cada um pela data em que foi feito (não pela data
+  // de saída da rota, que pode ser de outro mês se o motorista abasteceu no retorno)
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⛽ Abastecimentos — '+mesLabel(mes)+'</div>';
+  if(!absDoMes.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhum abastecimento neste mês.</div>';
   } else {
     html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
     html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 8px;text-align:left">Data</th><th style="padding:7px 8px;text-align:left">Veículo</th><th style="padding:7px 8px;text-align:left">Motorista</th><th style="padding:7px 8px;text-align:left">Rota</th><th style="padding:7px 8px;text-align:right;color:#d97706">Combustível</th><th style="padding:7px 8px;text-align:right;color:#3b82f6">Motorista</th><th style="padding:7px 8px;text-align:right;font-weight:700">Total</th></tr></thead><tbody>';
-    html+=rotasDoMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map((r,i)=>{
-      const v=camVeiculos.find(x=>x.id===r.veiculoId);
-      const m=camMotoristas.find(x=>x.id===r.motoristId);
-      const comb=rotaTotalCombustivel(r);
-      const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+    html+=absDoMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map((a,i)=>{
+      const v=camVeiculos.find(x=>x.id===a.rota.veiculoId);
+      const m=camMotoristas.find(x=>x.id===a.rota.motoristId);
+      const comb=parseFloat(a.totalPago)||0;
+      const mot=parseFloat(a.gastoMot)||0;
       const total=comb+mot;
       return `<tr style="${i%2?'background:#f8fafc':''}">
-        <td style="padding:7px 8px;white-space:nowrap">${fmtDate(r.data)}</td>
+        <td style="padding:7px 8px;white-space:nowrap">${fmtDate(a.data)}</td>
         <td style="padding:7px 8px;font-weight:600">${v?v.modelo+' '+v.placa:'—'}</td>
         <td style="padding:7px 8px">${m?m.nome:'—'}</td>
-        <td style="padding:7px 8px;color:#64748b">${r.origem||''} → ${r.destino||''}</td>
+        <td style="padding:7px 8px;color:#64748b">${a.rota.origem||''} → ${a.rota.destino||''}</td>
         <td style="padding:7px 8px;text-align:right;color:#d97706">${comb>0?fmtMoeda(comb):'—'}</td>
         <td style="padding:7px 8px;text-align:right;color:#3b82f6">${mot>0?fmtMoeda(mot):'—'}</td>
         <td style="padding:7px 8px;text-align:right;font-weight:700">${fmtMoeda(total)}</td>
@@ -16137,19 +16202,19 @@ function renderFinViagens(){
 window._finViagensSetMes=function(m){ window._finViagensMes=m; reloadTab(); };
 
 window._exportarViagensPDF=function(mes, mesNome){
-  const {rotas:rotasDoMes,totalComb,totalMot:totalGastMot,total:totalGeral}=finViagensDetalhe(mes);
+  const {abastecimentos:absDoMes,totalComb,totalMot:totalGastMot,total:totalGeral}=finViagensDetalhe(mes);
 
-  const rows=rotasDoMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map(r=>{
-    const v=camVeiculos.find(x=>x.id===r.veiculoId);
-    const m=camMotoristas.find(x=>x.id===r.motoristId);
-    const comb=rotaTotalCombustivel(r);
-    const mot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
+  const rows=absDoMes.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map(a=>{
+    const v=camVeiculos.find(x=>x.id===a.rota.veiculoId);
+    const m=camMotoristas.find(x=>x.id===a.rota.motoristId);
+    const comb=parseFloat(a.totalPago)||0;
+    const mot=parseFloat(a.gastoMot)||0;
     const total=comb+mot;
     return `<tr>
-      <td style="padding:5px 8px;white-space:nowrap">${fmtDate(r.data)}</td>
+      <td style="padding:5px 8px;white-space:nowrap">${fmtDate(a.data)}</td>
       <td style="padding:5px 8px;font-weight:600">${v?v.modelo+' '+v.placa:'—'}</td>
       <td style="padding:5px 8px;color:#64748b">${m?m.nome:'—'}</td>
-      <td style="padding:5px 8px;color:#64748b;font-size:11px">${r.origem||''} → ${r.destino||''}</td>
+      <td style="padding:5px 8px;color:#64748b;font-size:11px">${a.rota.origem||''} → ${a.rota.destino||''}</td>
       <td style="padding:5px 8px;text-align:right;color:#d97706">${comb>0?'R$ '+comb.toFixed(2).replace('.',','):'—'}</td>
       <td style="padding:5px 8px;text-align:right;color:#3b82f6">${mot>0?'R$ '+mot.toFixed(2).replace('.',','):'—'}</td>
       <td style="padding:5px 8px;text-align:right;font-weight:700">R$ ${total.toFixed(2).replace('.',',')}</td>
@@ -16195,7 +16260,7 @@ window._exportarViagensPDF=function(mes, mesNome){
   <div class="total">
     <div class="total-label">TOTAL DO MÊS</div>
     <div class="total-val">R$ ${totalGeral.toFixed(2).replace('.',',')}</div>
-    <div class="total-label">${rotasDoMes.length} rota${rotasDoMes.length!==1?'s':''}</div>
+    <div class="total-label">${absDoMes.length} abastecimento${absDoMes.length!==1?'s':''}</div>
   </div>
 </div>
 
@@ -16214,7 +16279,7 @@ window._exportarViagensPDF=function(mes, mesNome){
     <th style="text-align:right">Motorista</th>
     <th style="text-align:right">Total</th>
   </tr></thead>
-  <tbody>${rows||'<tr><td colspan="7" style="padding:12px;text-align:center;color:#94a3b8">Nenhuma rota neste mês.</td></tr>'}</tbody>
+  <tbody>${rows||'<tr><td colspan="7" style="padding:12px;text-align:center;color:#94a3b8">Nenhum abastecimento neste mês.</td></tr>'}</tbody>
   <tfoot><tr>
     <td colspan="4">Total — ${mesNome}</td>
     <td style="text-align:right">R$ ${totalComb.toFixed(2).replace('.',',')}</td>
@@ -16259,13 +16324,12 @@ function renderFinRelatorio(){
     const indiretMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
     const matDiretosMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
     const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
-    const rotasMes=camRotas.filter(r=>(r.data||'').startsWith(mes));
     const pagVal=pagsMes.reduce((s,p)=>s+p.valor,0);
     const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
     const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
     const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
-    const viagVal=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r)+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
+    const viagVal=finViagensDetalhe(mes).total;
     const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
     const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
     const total=pagVal+compVal+indVal+matVal+quimVal+viagVal;
@@ -16390,7 +16454,7 @@ window._exportarBalancoPDF=function(mes, mesNome){
   const {pagamentos:pagsMes,total:pagVal,porSetorOrd:setoresOrd}=finPagamentosDetalhe(mes);
   const {itens:matDiretosMes,total:matVal,porCatOrd:catsMatDiretos}=finMatDiretosDetalhe(mes);
   const {itens:comprasMes,total:compVal,itensOrd:itensCompras}=finComprasDetalhe(mes);
-  const {rotas:rotasMes,totalComb,totalMot:totalGastMot,total:viagVal}=finViagensDetalhe(mes);
+  const {totalComb,totalMot:totalGastMot,total:viagVal}=finViagensDetalhe(mes);
   const {itens:indiretMes,total:indVal,catsOrd:catsIndiretos}=finCustosIndiretosDetalhe(mes);
   const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
   const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
