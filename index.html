@@ -5589,10 +5589,14 @@ function rotaTotalCombustivel(r){
 // Cada abastecimento tem sua própria data (quando o motorista abastece no
 // retorno, já em outro mês, esse abastecimento não pode contar no mês em que
 // a rota começou). Registros antigos sem data própria usam a data da rota
-// como fallback. NÃO inclui o abastecimento inicial (não entra na média/mês).
+// como fallback. Inclui o abastecimento inicial (ele entra nos relatórios
+// financeiros normalmente — só não entra no cálculo de média km/L da rota).
 function todosAbastecimentos(){
   const lista=[];
   camRotas.forEach(r=>{
+    if(r.absInicial&&((parseFloat(r.absInicial.totalPago)||0)>0||(parseFloat(r.absInicial.litros)||0)>0)){
+      lista.push({...r.absInicial, data:r.data, rota:r, inicial:true});
+    }
     (r.abastecimentos||[]).forEach(a=>{
       lista.push({...a, data:a.data||r.data, rota:r});
     });
