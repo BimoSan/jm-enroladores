@@ -4995,6 +4995,7 @@ function renderPontoMetal(){
         const prev=new Date(dt+'T12:00:00');
         prev.setDate(prev.getDate()-i);
         const prevDt=prev.toISOString().slice(0,10);
+        if(prevDt.slice(0,7)!==mes) continue; // falta de outro mês não conta pro domingo deste mês
         const reg=getRegistro(funcId,prevDt);
         if(reg?.status==='F'){temFalta=true;break;}
       }
