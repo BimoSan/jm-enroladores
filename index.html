@@ -16732,7 +16732,6 @@ function renderAlmMovimento(tipo){
   const optsItens=itens.sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'))
     .map(i=>'<option value="'+i.id+'">'+i.descricao+'</option>').join('');
   const optsTipos=tiposMov.map(t=>'<option>'+t+'</option>').join('');
-  const optsPessoas=almPessoas().map(p=>'<option>'+p+'</option>').join('');
   const optsSetores=almSetores().map(s=>'<option>'+s+'</option>').join('');
 
   return '<div class="card" style="margin-bottom:14px">'
@@ -16761,8 +16760,6 @@ function renderAlmMovimento(tipo){
     +' style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%"></div>'
     +'</div>'
     +(!isEnt?'<div class="form-row">'
-    +'<div class="form-group"><label>Pessoa</label>'
-    +'<select id="alm-pessoa" onchange="window._almAutoSetor()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsPessoas+'</select></div>'
     +'<div class="form-group"><label>Setor</label>'
     +'<select id="alm-setor" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;width:100%">'+optsSetores+'</select></div>'
     +'</div></div>':'')
