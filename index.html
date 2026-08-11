@@ -546,7 +546,7 @@ let camManutencoes=[];
 let camPostos=[];
 let almMovimentos=[];
 let almConfig={
-  pessoas:[...['Neneca','Gordo','Alan','Antônio','Luan','Inácio','Elton','João Victor','Mozart','Zé Wilson','Cliente','Netin','Marisa','Raimundinho','Tento']],
+  pessoas:[...['Neneca','Gordo','Alan','Antônio','Luan','Breno','Elton','João Victor','Mozart','Zé Wilson','Cliente','Netin','Marisa','Raimundinho','Tento']],
   setores:[...['Estofados','Cadeiras','Metalúrgica','Pintura','Oficina','Almoxarifado','Madeira','Engenharia','Proprietário','Fita','Externo','Administração','Limpeza','Caminhões','Apontador']],
   unidades:[...['UND','CX','KG','ROLO','METRO','LT','PAR','SACO','BALDE']],
   classificacoes:[...['MATERIA PRIMA','EPI','MATERIAL DE USO E CONSUMO','FERRAMENTAS','PEÇAS PARA MAQUINÁRIOS','MAQUINÁRIO','EMBALAGEM','PRODUTO ACABADO']],
@@ -1088,6 +1088,7 @@ function renderApp(){
     if(can('verRelatorio'))tabs.push('relatorio');
     if(can('verRanking'))tabs.push('ranking');
     if(can('verPainel')&&currentUserData?.perfil!=='enrolador')tabs.push('historico');
+    if(can('verValores'))tabs.push('valores');
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
   }
@@ -1234,6 +1235,7 @@ function renderTab(tab){
   if(tab==='historico')return renderHistoricoSemanal();
   if(tab==='relatorio'){try{return renderRelatorio();}catch(e){console.error('renderRelatorio ERRO:',e.message,e.stack);return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';}}
   if(tab==='ranking')return renderRanking();
+  if(tab==='valores')return renderValores();
   if(tab==='enroladores')return renderEnroladores();
   if(tab==='usuarios')return renderUsuarios();
   return '';
@@ -1280,7 +1282,7 @@ function gerarResumoMovimento(){
   }
 
   const filtroHtml='<div style="display:flex;gap:8px;margin-bottom:14px">'
-    +btn('apontador1','Inácio',cor1)
+    +btn('apontador1','Breno',cor1)
     +btn('apontador2','Mirandinha',cor2)
     +'</div>';
 
@@ -1453,7 +1455,7 @@ function renderPainelBonus(){
     +'<div style="font-size:13px;font-weight:700;color:#92400e">🌟 Bônus por volume — '+mesNome+'</div>'
     +'<div style="font-size:16px;font-weight:800;color:#92400e">'+fmtMoeda(totalBonus)+'</div>'
     +'</div>'+rows
-    +'<div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Inácio que atingiram '+configBonus.meta+'+ Varandas Sofia no mês.</div>'
+    +'<div style="font-size:11px;color:#b45309;margin-top:8px">Casas do Breno que atingiram '+configBonus.meta+'+ Varandas Sofia no mês.</div>'
     +'</div>';
 }
 
@@ -1810,7 +1812,7 @@ function renderFichas(){
       </select>
       <select id="f-apontador" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos apontadores</option>
-        <option value="apontador1" style="color:#0f766e;font-weight:700">Inácio</option>
+        <option value="apontador1" style="color:#0f766e;font-weight:700">Breno</option>
         <option value="apontador2" style="color:#b45309;font-weight:700">Mirandinha</option>
       </select>
       <select id="f-enr" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
@@ -2138,7 +2140,7 @@ function renderHistoricoSemanal(){
   }
   const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +btnApt('all','Todos','#475569')
-    +btnApt('apontador1','Inácio','#0f766e')
+    +btnApt('apontador1','Breno','#0f766e')
     +btnApt('apontador2','Mirandinha','#b45309')
     +'</div>';
 
@@ -2310,7 +2312,7 @@ function renderRelatorio(){
   const btnStyle=(v)=>`style="padding:7px 18px;border-radius:99px;font-size:13px;font-weight:700;border:2px solid ${apSel===v?'#3266ad':'#e2e8f0'};background:${apSel===v?'#3266ad':'#fff'};color:${apSel===v?'#fff':'#64748b'};cursor:pointer"`;
   let html=`
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-    <button onclick="window._setRelAp('apontador1')" ${btnStyle('apontador1')}>Inácio</button>
+    <button onclick="window._setRelAp('apontador1')" ${btnStyle('apontador1')}>Breno</button>
     <button onclick="window._setRelAp('apontador2')" ${btnStyle('apontador2')}>Mirandinha</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
@@ -2380,7 +2382,7 @@ function renderRelatorio(){
 
   // ── Resumo mensal: entregues e recolhidas por casa ──
   const TIPOS_PRINCIPAIS=TIPOS.filter(t=>t.principal||['varanda_nova','centro_novo','varanda_luxo','banqueta','mesa_bistro','cadeira_mesa','namoradeira','centro_sofia'].includes(t.id));
-  const CASAS=[{ap:'apontador1',label:'🏠 Inácio'},{ap:'apontador2',label:'🏠 Mirandinha'}];
+  const CASAS=[{ap:'apontador1',label:'🏠 Breno'},{ap:'apontador2',label:'🏠 Mirandinha'}];
   const mesesComMov=[...new Set([
     ...fichas.flatMap(f=>[...(f.entregas||[]).map(e=>e.data||''),...(f.recolhimentos||[]).map(r=>r.data||'')].filter(Boolean).map(d=>d.slice(0,7)))
   ])].sort().reverse();
@@ -2491,7 +2493,7 @@ function renderValores(){
     // Config bônus
   html+=`<div class="card" style="margin-bottom:14px;border-left:4px solid #fde047">
     <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">🌟 Configuração de Bônus por Volume</div>
-    <div style="font-size:11px;color:#b45309;margin-bottom:12px">Quando uma casa do Inácio atingir a meta mensal de Varandas Sofia, receberá um bônus por peça.</div>
+    <div style="font-size:11px;color:#b45309;margin-bottom:12px">Quando uma casa do Breno atingir a meta mensal de Varandas Sofia, receberá um bônus por peça.</div>
     <div class="form-row">
       <div class="form-group"><label>Meta mensal (V.Sofia)</label>
         <input type="number" id="bonus-meta" min="0" step="1" value="${configBonus.meta||300}"
@@ -2531,7 +2533,7 @@ function renderValores(){
         <button class="btn btn-primary" onclick="window._salvarValores('${ap}')">Salvar valores do ${label}</button>
       </div>
     </div>`;
-    html+=tabelaAp('apontador1','Inácio','#0f766e');
+    html+=tabelaAp('apontador1','Breno','#0f766e');
     html+=tabelaAp('apontador2','Mirandinha','#b45309');
   }
 
@@ -2632,7 +2634,7 @@ window._salvarValores=async(ap)=>{
     valores[t.id]=parseFloat(document.getElementById(`vp-${ap}-${t.id}`)?.value)||0;
   });
   await setDoc(doc(db,'configuracoes',`valores_${ap}`),valores);
-  showToast('Valores do '+(ap==='apontador1'?'Inácio':'Mirandinha')+' salvos!');
+  showToast('Valores do '+(ap==='apontador1'?'Breno':'Mirandinha')+' salvos!');
 };
 
 // ── Ranking ──────────────────────────────────────────────────
@@ -2732,7 +2734,7 @@ function renderRanking(){
   }
   const filtroAptHtml='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     
-    +btnRankApt('apontador1','Inácio','#0f766e')
+    +btnRankApt('apontador1','Breno','#0f766e')
     +btnRankApt('apontador2','Mirandinha','#b45309')
     +'</div>';
 
@@ -3114,7 +3116,7 @@ function renderEnroladores(){
       <div class="form-group"><label>Telefone</label><input type="text" id="en-tel" placeholder="(88) 99999-0000"></div>
       <div class="form-group"><label>Apontador responsável</label>
         <select id="en-apontador">
-          <option value="apontador1">Inácio</option>
+          <option value="apontador1">Breno</option>
           <option value="apontador2">Mirandinha</option>
         </select>
       </div>
@@ -3171,7 +3173,7 @@ window._editarEnrolador=id=>{
     }).join('');
   var apontSelect='<div class="form-group"><label>Apontador responsável</label>'
     +'<select id="ee-enr-apontador" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
-    +'<option value="apontador1"'+(e.apontadorPerfil==='apontador1'?' selected':'')+'>Inácio</option>'
+    +'<option value="apontador1"'+(e.apontadorPerfil==='apontador1'?' selected':'')+'>Breno</option>'
     +'<option value="apontador2"'+(e.apontadorPerfil==='apontador2'?' selected':'')+'>Mirandinha</option>'
     +'</select></div>';
   var userSelect='<div class="form-group"><label>Usuário vinculado (login do enrolador)</label>'
@@ -3758,7 +3760,7 @@ const ALM_TIPOS_SAIDA_BASE=['USO INTERNO','VENDA','PERDA','DOAÇÃO','RECOLHIMEN
 const ALM_CLASSIFICACOES_BASE=['MATERIA PRIMA','EPI','MATERIAL DE USO E CONSUMO','FERRAMENTAS','PEÇAS PARA MAQUINÁRIOS','MAQUINÁRIO','EMBALAGEM','PRODUTO ACABADO'];
 const ALM_UNIDADES_BASE=['UND','CX','KG','ROLO','METRO','LT','PAR','SACO','BALDE'];
 const ALM_SETORES_BASE=['Estofados','Cadeiras','Metalúrgica','Pintura','Oficina','Almoxarifado','Madeira','Engenharia','Proprietário','Fita','Externo','Administração','Limpeza','Caminhões','Apontador'];
-const ALM_PESSOAS_BASE=['Neneca','Gordo','Alan','Antônio','Luan','Inácio','Elton','João Victor','Mozart','Zé Wilson','Cliente','Netin','Marisa','Raimundinho','Tento'];
+const ALM_PESSOAS_BASE=['Neneca','Gordo','Alan','Antônio','Luan','Breno','Elton','João Victor','Mozart','Zé Wilson','Cliente','Netin','Marisa','Raimundinho','Tento'];
 const ALM_ITENS_BASE=[
   {codigo:"PA32",descricao:"GRAMPO GALVANIZADO 26/6",unidade:"CX",estoqueMin:10,estoqueMax:5000,classificacao:"MATERIA PRIMA",estoqueAtual:108,observacoes:""},
   {codigo:"CA2",descricao:"VARANDA NOVA",unidade:"UND",estoqueMin:0,estoqueMax:50000,classificacao:"PRODUTO ACABADO",estoqueAtual:63,observacoes:""},
@@ -10476,7 +10478,7 @@ window._fitasModalDevolucao=function(cor){
   const isFio=cor==='fio';
   const itemLabel=isFio?'Fio':'Fita '+cor;
   const quemOpcoes=[
-    {v:'inacio',l:'Inácio'},
+    {v:'inacio',l:'Breno'},
     {v:'mirandinha',l:'Mirandinha'},
     {v:'interno',l:'Setor Interno'},
     {v:'outro',l:'Outro'},
@@ -10517,7 +10519,7 @@ window._fitasSalvarDevolucao=async function(cor){
   const obs=document.getElementById('fm-devol-obs')?.value.trim()||'';
   if(!quem){showToast('Selecione quem devolveu.');return;}
   if(!rolos){showToast('Informe a quantidade de rolos.');return;}
-  const labels={inacio:'Inácio',mirandinha:'Mirandinha',interno:'Setor Interno',outro:'Outro'};
+  const labels={inacio:'Breno',mirandinha:'Mirandinha',interno:'Setor Interno',outro:'Outro'};
   closeModal();
   await addDoc(collection(db,'saidas_fitas'),{
     tipo:isFio?'fio':'fita', cor:isFio?null:cor,
@@ -10586,7 +10588,7 @@ window._fitasModalAcao=function(acao, cor, extrusora){
   if(acao==='saida'){
     const destinos=[
       {v:'interno',l:'Setor Interno'},
-      {v:'inacio',l:'Inácio'},
+      {v:'inacio',l:'Breno'},
       {v:'mirandinha',l:'Mirandinha'},
       {v:'venda',l:'Venda'},
       {v:'perda',l:'Perda'},
@@ -10642,7 +10644,7 @@ window._fitasSalvarAcao=async function(acao, cor){
       showToast('Estoque insuficiente — só tem '+estoqueAtual+' rolo'+(estoqueAtual!==1?'s':'')+' disponíve'+(estoqueAtual!==1?'is':'l')+'.');
       return;
     }
-    const labels={interno:'Setor Interno',inacio:'Inácio',mirandinha:'Mirandinha',venda:'Venda',perda:'Perda'};
+    const labels={interno:'Setor Interno',inacio:'Breno',mirandinha:'Mirandinha',venda:'Venda',perda:'Perda'};
     closeModal();
     await addDoc(collection(db,'saidas_fitas'),{
       tipo:isFio?'fio':'fita', cor:isFio?null:cor,
@@ -10688,11 +10690,11 @@ function renderSaidasFitas(){
   const hoje=today();
   const saidHoje=saidasFitas.filter(s=>s.data===hoje);
   const optsEnrInt=enroladoresInt.filter(e=>e.ativo!==false).map(e=>'<option value="enr_int:'+e.id+'">Enrolador Interno — '+e.nome+'</option>').join('');
-  // Apontadores do terceirizado (Inácio e Mirandinha)
-  const apontadores=enroladores.filter(e=>e.nome&&(e.nome.toLowerCase().includes('inácio')||e.nome.toLowerCase().includes('inacio')||e.nome.toLowerCase().includes('mirandinha')));
+  // Apontadores do terceirizado (Breno e Mirandinha)
+  const apontadores=enroladores.filter(e=>e.nome&&(e.nome.toLowerCase().includes('breno')||e.nome.toLowerCase().includes('inácio')||e.nome.toLowerCase().includes('inacio')||e.nome.toLowerCase().includes('mirandinha')));
   // Fallback: buscar pelos perfis apontador1 e apontador2
   const optsApt=['apontador1','apontador2'].map(p=>{
-    const nomes={'apontador1':'Inácio','apontador2':'Mirandinha'};
+    const nomes={'apontador1':'Breno','apontador2':'Mirandinha'};
     return '<option value="apt:'+p+'">Terceirizado — '+nomes[p]+'</option>';
   }).join('');
   const optsCores=cores.map(c=>'<option value="'+c.nome+'">'+c.nome+'</option>').join('');
@@ -10871,7 +10873,7 @@ window._registrarSaidaFita=async function(){
     enroladorIntId=destino.split(':')[1];
     destinoNome='Enrolador Interno — '+(enroladoresInt.find(e=>e.id===enroladorIntId)?.nome||'');
   } else if(destino.startsWith('apt:')){
-    const nomes={'apontador1':'Inácio','apontador2':'Mirandinha'};
+    const nomes={'apontador1':'Breno','apontador2':'Mirandinha'};
     destinoNome='Terceirizado — '+(nomes[destino.split(':')[1]]||destino);
   } else {
     const labels={venda:'Venda',doacao:'Doação',outro:'Outro'};
@@ -15463,7 +15465,7 @@ function renderFinPagamentos(){
     const pendentesSetor=itens.filter(p=>!p.pago).length;
     const cfg=setoresConfig[setor]||{icon:'💼',cor:'#475569'};
 
-    // Enrolamento Terc. → dividir por apontador (Inácio / Mirandinha)
+    // Enrolamento Terc. → dividir por apontador (Breno / Mirandinha)
     if(setor==='Enrolamento Terc.'){
       const getAp=p=>{
         const enrObj=getEnr(p.fichaObj?.enroladorId);
@@ -15489,10 +15491,10 @@ function renderFinPagamentos(){
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr;gap:0">
-          <!-- Inácio -->
+          <!-- Breno -->
           <div style="border-bottom:2px solid #e2e8f0">
             <div style="padding:8px 12px 4px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#f8fafc">
-              <span style="font-size:12px;font-weight:700;color:#0f766e">Inácio</span>
+              <span style="font-size:12px;font-weight:700;color:#0f766e">Breno</span>
               <div style="text-align:right">
                 ${pendInacio>0?`<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:99px;font-weight:700">${pendInacio} pend.</span>`:''}
                 <div style="font-size:13px;font-weight:800;color:#0f766e">${fmtMoeda(totalInacio)}</div>
