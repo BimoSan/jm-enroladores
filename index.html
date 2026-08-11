@@ -2517,6 +2517,15 @@ function renderValores(){
     <button class="btn btn-primary btn-sm" onclick="window._salvarConfigBonus()">Salvar configuração</button>
   </div>`;
 
+  const fichasSemTravar=fichas.filter(f=>(f.status==='fechada'||f.status==='cancelada')&&f.valorFechamento==null).length;
+  if(fichasSemTravar>0){
+    html+=`<div class="card" style="margin-bottom:14px;border-left:4px solid #dc2626;background:#fef2f2">
+      <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:4px">⚠️ ${fichasSemTravar} ficha${fichasSemTravar!==1?'s':''} fechada${fichasSemTravar!==1?'s':''}/cancelada${fichasSemTravar!==1?'s':''} sem valor travado</div>
+      <div style="font-size:11px;color:#991b1b;margin-bottom:10px">Essas fichas ainda recalculam o valor pago toda vez que os preços por peça mudam — inclusive as que já foram pagas no passado. Clique para travar o valor de cada uma no preço de hoje, parando essa oscilação daqui pra frente. Isso não recupera valores que já mudaram antes de hoje.</div>
+      <button class="btn btn-danger btn-sm" onclick="window._travarValoresFichas()">🔒 Travar valores agora</button>
+    </div>`;
+  }
+
   const tabelaAp=(ap,label,cor)=>`<div class="card" style="margin-bottom:12px;border-left:4px solid ${cor}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-size:12px;font-weight:700;color:${cor};background:${cor}22;padding:2px 10px;border-radius:99px">${label}</span>
@@ -2641,6 +2650,26 @@ window._salvarValores=async(ap)=>{
   });
   await setDoc(doc(db,'configuracoes',`valores_${ap}`),valores);
   showToast('Valores do '+(ap==='apontador1'?'Breno':'Mirandinha')+' salvos!');
+};
+
+// Trava, em cada ficha fechada/cancelada que ainda não tem valorFechamento,
+// o valor calculado com os preços de hoje — a partir daí ela para de mudar
+// quando os preços por peça forem editados. Correção pontual para fichas
+// fechadas antes do sistema passar a travar o valor automaticamente.
+window._travarValoresFichas=async()=>{
+  const pendentes=fichas.filter(f=>(f.status==='fechada'||f.status==='cancelada')&&f.valorFechamento==null);
+  if(!pendentes.length){showToast('Nenhuma ficha pendente de travamento.');return;}
+  if(!confirm(`Travar o valor de ${pendentes.length} ficha(s) no preço de hoje? Isso não recupera valores que já mudaram antes de hoje, só impede novas mudanças.`)) return;
+  let ok=0;
+  for(const f of pendentes){
+    const isCancelada=f.status==='cancelada';
+    const valorFechamento=isCancelada?calcularPagamentoCancelada(f):calcularPagamento(f);
+    try{
+      await updateDoc(doc(db,'fichas',f.id),{valorFechamento});
+      ok++;
+    }catch(e){console.error('Erro ao travar ficha',f.id,e);}
+  }
+  showToast(`${ok} ficha(s) travada(s)!`);
 };
 
 // ── Ranking ──────────────────────────────────────────────────
