@@ -12161,7 +12161,8 @@ function getEngCategorias(){
 
 function renderEngProdutos(){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
-  let html='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px">'
+  let html='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +(engProdutos.length?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #0e7490;color:#0e7490" onclick="window._engImprimirResumoProdutos()">🖨️ Imprimir resumo</button>':'')
     +(podeEditar?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #7c3aed;color:#7c3aed" onclick="window._engNovoJogo()">+ Novo Jogo</button>':'')
     +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._engNovoProduto()">+ Novo produto</button>':'')
     +'</div>';
@@ -12221,6 +12222,68 @@ function renderEngProdutos(){
   });
   return html;
 }
+
+window._engImprimirResumoProdutos=function(){
+  if(!engProdutos.length) return;
+
+  const porCat={};
+  engProdutos.forEach(p=>{
+    const catKey=p.categoria||'_sem';
+    if(!porCat[catKey]) porCat[catKey]=[];
+    porCat[catKey].push(p);
+  });
+  const ordemCats=[...getEngCategorias().map(c=>c.id),'_jogo','_sem'];
+  const catsOrdenadas=Object.keys(porCat).sort((a,b)=>{
+    const ia=ordemCats.indexOf(a)<0?99:ordemCats.indexOf(a);
+    const ib=ordemCats.indexOf(b)<0?99:ordemCats.indexOf(b);
+    return ia-ib;
+  });
+
+  let totalCusto=0, totalVenda=0, totalProdutos=0;
+  const secoesHtml=catsOrdenadas.map(catKey=>{
+    const prods=porCat[catKey];
+    const catLabel=getEngCategorias().find(x=>x.id===catKey)?.label||(catKey==='_sem'?'Sem categoria':'Outros');
+    const linhas=prods.map(p=>{
+      const c=calcCustoProduto(p,'normal');
+      const isJogo=p.tipo==='jogo';
+      const numComp=isJogo?(p.itensJogo||[]).length:(p.componentes||[]).length;
+      totalCusto+=c.total; totalVenda+=c.venda; totalProdutos++;
+      return '<tr>'
+        +'<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">'+(isJogo?'🛋️ ':'')+p.nome+'</td>'
+        +'<td style="padding:5px 10px;text-align:center;border-bottom:1px solid #f1f5f9;color:#64748b">'+(isJogo?'Jogo':numComp+' comp.')+'</td>'
+        +'<td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700;color:#dc2626">'+fmtMoeda(c.total)+'</td>'
+        +'<td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700;color:#059669">'+fmtMoeda(c.venda)+'</td>'
+        +'</tr>';
+    }).join('');
+    return '<div style="margin-bottom:18px">'
+      +'<div style="font-size:13px;font-weight:800;color:#1e293b;background:#f1f5f9;padding:6px 10px;border-radius:6px 6px 0 0">'+catLabel+' <span style="font-weight:400;color:#64748b;font-size:11px">('+prods.length+' produto'+(prods.length!==1?'s':'')+')</span></div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f8fafc"><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Produto</th><th style="padding:5px 10px;text-align:center;border-bottom:1px solid #e2e8f0">Componentes</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Custo</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Venda</th></tr></thead>'
+      +'<tbody>'+linhas+'</tbody></table></div>';
+  }).join('');
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Resumo de Produtos — Engenharia</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;margin:24px;color:#1e293b;font-size:13px}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:#64748b;font-size:13px;margin-bottom:18px}
+  @media print{@page{size:A4;margin:14mm}}
+</style></head><body>
+  <h1>Resumo de Produtos</h1>
+  <div class="sub">Engenharia · ${totalProdutos} produto${totalProdutos!==1?'s':''} cadastrado${totalProdutos!==1?'s':''}</div>
+  ${secoesHtml}
+  <div class="secao" style="background:#f0fdf4;border-radius:10px;padding:14px;margin-top:8px">
+    <div style="display:flex;justify-content:space-between;font-weight:800;color:#dc2626"><span>Custo total (soma de todos os produtos)</span><span>${fmtMoeda(totalCusto)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin-top:4px;color:#059669"><span>Venda total (soma de todos os produtos)</span><span>${fmtMoeda(totalVenda)}</span></div>
+  </div>
+  <div style="font-size:10px;color:#94a3b8;margin-top:20px">Gerado em ${new Date().toLocaleString('pt-BR')} · JM Gestão Fabril</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),600);
+};
 
 window._engNovoProduto=function(produto={}){
   window._engComponentesTemp=produto.componentes?JSON.parse(JSON.stringify(produto.componentes)):[];
