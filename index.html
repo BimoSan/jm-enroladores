@@ -2464,7 +2464,12 @@ function renderRelatorio(){
 }
 
 // ── Valores e pagamento ──────────────────────────────────────
+// Uma vez fechada/cancelada, a ficha grava o valor calculado em f.valorFechamento —
+// esse valor "trava" e passa a ser usado sempre, mesmo que os preços por peça
+// (valoresPecas) sejam alterados depois. Sem isso, editar um preço mudaria
+// retroativamente pagamentos que já foram feitos no passado.
 function calcularPagamento(f){
+  if(f.valorFechamento!=null) return parseFloat(f.valorFechamento)||0;
   const vals=getValoresPorFicha(f);
   return TIPOS.reduce((total,t)=>{
     const qtd=somaRecolPago(f,t.id); // exclui recolhimentos administrativos (cancelamentos/retiradas)
@@ -2473,6 +2478,7 @@ function calcularPagamento(f){
   },0);
 }
 function calcularPagamentoCancelada(f){
+  if(f.valorFechamento!=null) return parseFloat(f.valorFechamento)||0;
   const vals=getValoresPorFicha(f);
   return TIPOS.reduce((total,t)=>{
     const qtd=somaRecolPago(f,t.id);
@@ -3093,12 +3099,13 @@ window._fecharFichaDirecto=async id=>{
   closeModal();
   const f=getFicha(id);
   const enr=getEnr(f?.enroladorId);
-  await updateDoc(doc(db,'fichas',id),{status:'fechada',dataFechamento:today()});
+  const valorFechamento=calcularPagamento({...f,status:'fechada'});
+  await updateDoc(doc(db,'fichas',id),{status:'fechada',dataFechamento:today(),valorFechamento});
   await addDoc(collection(db,'notificacoes'),{
     tipo:'ficha_fechada',
     fichaId:id,
     enroladorNome:enr?.nome||'',
-    total:calcularPagamento({...f,status:'fechada'}),
+    total:valorFechamento,
     data:today(),
     lida:false,
     criadaEm:new Date().toISOString(),
@@ -3244,13 +3251,14 @@ window._confirmarFecharFicha=async()=>{
   closeModal();
   const f=getFicha(id);
   const enr=getEnr(f?.enroladorId);
-  await updateDoc(doc(db,'fichas',id),{status:'fechada',dataFechamento:today()});
+  const valorFechamento=calcularPagamento({...f,status:'fechada'});
+  await updateDoc(doc(db,'fichas',id),{status:'fechada',dataFechamento:today(),valorFechamento});
   // Notificar financeiro
   await addDoc(collection(db,'notificacoes'),{
     tipo:'ficha_fechada',
     fichaId:id,
     enroladorNome:enr?.nome||'',
-    total:calcularPagamento({...f,status:'fechada'}),
+    total:valorFechamento,
     data:today(),
     lida:false,
     criadaEm:new Date().toISOString(),
@@ -4675,7 +4683,7 @@ window._reabrirFicha=function(id){
 };
 window._reabrirFichaConfirmar=async function(id){
   closeModal();
-  await updateDoc(doc(db,'fichas',id),{status:'aberta',dataCancelamento:null,justificativaCancelamento:null});
+  await updateDoc(doc(db,'fichas',id),{status:'aberta',dataCancelamento:null,justificativaCancelamento:null,valorFechamento:null});
   showToast('Ficha reaberta com sucesso!');
 };
 
@@ -18037,6 +18045,7 @@ window._confirmarRetiradaAdmin=async fichaId=>{
     updateData.dataCancelamento=today();
     updateData.canceladoPor=currentUserData?.nome||'';
     updateData.justificativaCancelamento=justificativa;
+    updateData.valorFechamento=calcularPagamentoCancelada(fichaAtualizada);
   }
 
   await updateDoc(doc(db,'fichas',fichaId),updateData);
