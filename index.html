@@ -14906,19 +14906,24 @@ window._cpSalvarNovo=async function(){
   }
   closeModal();
   const grupoId='g'+Date.now();
-  for(let i=0;i<parcelas.length;i++){
-    await addDoc(collection(db,'contas_pagar'),{
-      fornecedor,
-      valor:parcelas[i].valor,
-      vencimento:parcelas[i].vencimento,
-      parcela:qtd>1?(i+1)+'/'+qtd:'',
-      grupoId,
-      pago:false,
-      criadoPor:currentUserData?.nome||'',
-      criadoEm:new Date().toISOString(),
-    });
+  try{
+    for(let i=0;i<parcelas.length;i++){
+      await addDoc(collection(db,'contas_pagar'),{
+        fornecedor,
+        valor:parcelas[i].valor,
+        vencimento:parcelas[i].vencimento,
+        parcela:qtd>1?(i+1)+'/'+qtd:'',
+        grupoId,
+        pago:false,
+        criadoPor:currentUserData?.nome||'',
+        criadoEm:new Date().toISOString(),
+      });
+    }
+    showToast(qtd>1?qtd+' parcelas lançadas!':'Duplicata salva!');
+  }catch(e){
+    console.error('Erro ao salvar contas_pagar:',e);
+    showToast('Erro ao salvar: '+e.message);
   }
-  showToast(qtd>1?qtd+' parcelas lançadas!':'Duplicata salva!');
 };
 
 // Edição de UMA parcela/duplicata já existente (não mexe nas irmãs do grupo)
@@ -14949,17 +14954,32 @@ window._cpSalvarEdicao=async function(id){
   if(!fornecedor){showToast('Digite o nome do fornecedor.');return;}
   if(!valor){showToast('Informe o valor.');return;}
   closeModal();
-  await updateDoc(doc(db,'contas_pagar',id),{fornecedor,valor,vencimento,parcela});
-  showToast('Duplicata atualizada!');
+  try{
+    await updateDoc(doc(db,'contas_pagar',id),{fornecedor,valor,vencimento,parcela});
+    showToast('Duplicata atualizada!');
+  }catch(e){
+    console.error('Erro ao atualizar contas_pagar:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
 };
 
 window._cpMarcarPago=async function(id){
-  await updateDoc(doc(db,'contas_pagar',id),{pago:true,dataPagamento:today()});
-  showToast('Marcada como paga!');
+  try{
+    await updateDoc(doc(db,'contas_pagar',id),{pago:true,dataPagamento:today()});
+    showToast('Marcada como paga!');
+  }catch(e){
+    console.error('Erro ao marcar como paga:',e);
+    showToast('Erro: '+e.message);
+  }
 };
 window._cpDesmarcarPago=async function(id){
-  await updateDoc(doc(db,'contas_pagar',id),{pago:false,dataPagamento:null});
-  showToast('Marcação de pago desfeita.');
+  try{
+    await updateDoc(doc(db,'contas_pagar',id),{pago:false,dataPagamento:null});
+    showToast('Marcação de pago desfeita.');
+  }catch(e){
+    console.error('Erro ao desmarcar pago:',e);
+    showToast('Erro: '+e.message);
+  }
 };
 
 window._cpExcluirConta=function(id){
@@ -14972,8 +14992,13 @@ window._cpExcluirConta=function(id){
 window._cpConfirmarExcluir=async function(){
   const id=window._pendingCpId; if(!id) return;
   closeModal();
-  await deleteDoc(doc(db,'contas_pagar',id));
-  showToast('Duplicata excluída!');
+  try{
+    await deleteDoc(doc(db,'contas_pagar',id));
+    showToast('Duplicata excluída!');
+  }catch(e){
+    console.error('Erro ao excluir contas_pagar:',e);
+    showToast('Erro ao excluir: '+e.message);
+  }
 };
 
 function renderTabFinanceiro(tab){
