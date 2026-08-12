@@ -538,6 +538,7 @@ let operFitas=[];
 let entregasFitas=[];
 let producaoFitas=[];
 let saidasFitas=[];
+let tracosFitas=[]; // fórmulas de traço (custo da fibra sintética)
 let configFitas={cores:[],tiposFio:['Fio Padrão'],extrusoras:[]};
 // Caminhões
 let camVeiculos=[];
@@ -725,6 +726,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'producao_fitas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   'saidas_fitas':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   'relatorio_fitas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'traco_fitas':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
   'config_fitas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   'man_painel':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'man_maquinas':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
@@ -812,6 +814,7 @@ const TAB_LABELS={
   'enroladores_int':'Enroladores','config_int':'Configurações','minha_prod_int':'Minha Produção','ranking_int':'Ranking',
   // Fitas
   'estoque_fitas':'Estoque','producao_fitas':'Produção','saidas_fitas':'Saídas',
+  'traco_fitas':'Traço da Fibra',
   'relatorio_fitas':'Relatórios','config_fitas':'Configurações','usuarios_fitas':'Usuários',
   'setores_resumo':'Resumo Mensal',
 };
@@ -1104,7 +1107,7 @@ function renderApp(){
       tabs.push('painel_int','ranking_int');
     }
   } else if(currentSetor==='fitas'){
-    tabs.push('estoque_fitas','relatorio_fitas');
+    tabs.push('estoque_fitas','traco_fitas','relatorio_fitas');
     if(currentUserData?.perfil==='admin') tabs.push('config_fitas','usuarios_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
@@ -10203,6 +10206,7 @@ function renderTabFitas(tab){
     if(tab==='estoque_fitas')   return renderEstoqueFitas();
     if(tab==='producao_fitas')  return renderProducaoFitas();
     if(tab==='saidas_fitas')    return renderSaidasFitas();
+    if(tab==='traco_fitas')     return renderTracoFitas();
     if(tab==='relatorio_fitas') return renderRelatorioFitas();
     if(tab==='config_fitas')    return renderConfigFitas();
     if(tab==='usuarios_fitas')  return renderUsuariosContexto('setor','cadeiras','fitas','Setor de Fitas');
@@ -10291,6 +10295,195 @@ function estoqueFio(){
   const devol=saidasFitas.filter(s=>s.tipo==='fio'&&s.isDevolucao).reduce((s,p)=>s+(parseInt(p.rolos)||0),0);
   return prod-said+devol;
 }
+
+// ════════════════════════════════════════════════════════════════
+// TRAÇO DA FIBRA SINTÉTICA — fórmula de custo (componentes + rolos)
+// ════════════════════════════════════════════════════════════════
+// Calcula, a partir dos componentes (kg + R$/kg de cada um) e da
+// quantidade de rolos que o traço rendeu: kg total, custo total,
+// custo por rolo e custo por kg. Nada disso é salvo pré-calculado —
+// sempre recalculado na hora, pra nunca divergir se algo for editado.
+function calcTraco(traco){
+  const comps=traco.componentes||[];
+  const totalKg=comps.reduce((s,c)=>s+(parseFloat(c.kg)||0),0);
+  const totalCusto=comps.reduce((s,c)=>s+(parseFloat(c.kg)||0)*(parseFloat(c.precoKg)||0),0);
+  const rolos=parseFloat(traco.rolos)||0;
+  return {
+    totalKg,
+    totalCusto,
+    custoRolo: rolos>0?totalCusto/rolos:0,
+    custoKg: totalKg>0?totalCusto/totalKg:0,
+  };
+}
+
+function renderTracoFitas(){
+  const podeEditar=podeFitas();
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._tracoNovo()">+ Novo traço</button>':'')
+    +'</div>';
+
+  if(!tracosFitas.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum traço cadastrado ainda.</div>';
+    return html;
+  }
+
+  tracosFitas.forEach(t=>{
+    const c=calcTraco(t);
+    const comps=t.componentes||[];
+    const linhasComp=comps.map(comp=>{
+      const sub=(parseFloat(comp.kg)||0)*(parseFloat(comp.precoKg)||0);
+      return '<tr>'
+        +'<td style="padding:5px 8px;color:#1d4ed8;font-weight:600">'+(comp.nome||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right">'+(parseFloat(comp.kg)||0)+'</td>'
+        +'<td style="padding:5px 8px;text-align:right">'+fmtMoeda(parseFloat(comp.precoKg)||0)+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;font-weight:700">'+fmtMoeda(sub)+'</td>'
+        +'</tr>';
+    }).join('');
+
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-size:15px;font-weight:800">'+(t.nome||'Traço')+'</div>'
+      +(podeEditar?'<div style="display:flex;gap:4px">'
+        +'<button onclick="window._tracoEditar(\''+t.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer">✎</button>'
+        +'<button onclick="window._tracoExcluir(\''+t.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer">✕</button>'
+        +'</div>':'')
+      +'</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">'
+      +'<thead><tr style="background:#f8fafc">'
+      +'<th style="padding:5px 8px;text-align:left">Componentes</th>'
+      +'<th style="padding:5px 8px;text-align:right">kg</th>'
+      +'<th style="padding:5px 8px;text-align:right">R$/kg</th>'
+      +'<th style="padding:5px 8px;text-align:right">Total</th>'
+      +'</tr></thead><tbody>'+linhasComp+'</tbody></table></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:12px;padding-top:10px;border-top:1.5px solid #f1f5f9">'
+      +'<div><div style="font-size:10px;color:#94a3b8">KG</div><div style="font-size:14px;font-weight:800">'+c.totalKg.toFixed(2)+'</div></div>'
+      +'<div><div style="font-size:10px;color:#94a3b8">ROLOS</div><div style="font-size:14px;font-weight:800">'+(parseFloat(t.rolos)||0)+'</div></div>'
+      +'<div><div style="font-size:10px;color:#94a3b8">R$ TOTAL</div><div style="font-size:14px;font-weight:800">'+fmtMoeda(c.totalCusto)+'</div></div>'
+      +'<div><div style="font-size:10px;color:#94a3b8">R$/ROLO</div><div style="font-size:14px;font-weight:800;color:#d97706">'+fmtMoeda(c.custoRolo)+'</div></div>'
+      +'<div><div style="font-size:10px;color:#94a3b8">R$/KG</div><div style="font-size:14px;font-weight:800;color:#059669">'+fmtMoeda(c.custoKg)+'</div></div>'
+      +'</div>'
+      +'</div>';
+  });
+  return html;
+}
+
+window._tracoNovo=function(traco={}){
+  window._tracoComponentesTemp=traco.componentes?JSON.parse(JSON.stringify(traco.componentes)):[{nome:'',kg:'',precoKg:''}];
+  const isEdit=!!traco.id;
+  showModal(isEdit?'Editar traço':'+ Novo traço',
+    '<div class="form-group"><label>Nome</label>'
+    +'<input id="tr-nome" value="'+(traco.nome||'').replace(/"/g,'&quot;')+'" placeholder="Ex: Fibra Sintética" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Rolos produzidos</label>'
+    +'<input type="number" id="tr-rolos" min="0" step="1" value="'+(traco.rolos||'')+'" placeholder="0" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:140px"></div>'
+    +'<div style="font-size:11px;font-weight:700;color:#475569;margin:12px 0 8px">Componentes</div>'
+    +'<div id="tr-componentes-list"></div>'
+    +'<button type="button" onclick="window._tracoAddComponente()" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer">+ Adicionar componente</button>'
+    +'<div id="tr-resumo" style="margin-top:14px;background:#f0fdfa;border-radius:10px;padding:10px"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._tracoExcluir(\''+traco.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-sm btn-primary" onclick="window._tracoSalvar(\''+(traco.id||'')+'\')">Salvar</button>');
+  window._tracoRenderComponentes();
+};
+
+window._tracoEditar=function(id){
+  const t=tracosFitas.find(x=>x.id===id);
+  if(!t) return;
+  window._tracoNovo(t);
+};
+
+window._tracoRenderComponentes=function(){
+  const el=document.getElementById('tr-componentes-list');
+  if(!el) return;
+  const lista=window._tracoComponentesTemp||[];
+  el.innerHTML=lista.map((c,i)=>
+    '<div class="form-row" style="align-items:flex-end;margin-bottom:6px">'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">Componente</label>'
+    +'<input id="tr-c-nome-'+i+'" value="'+(c.nome||'').replace(/"/g,'&quot;')+'" oninput="window._tracoAtualizarResumo()" placeholder="Ex: linear" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">kg</label>'
+    +'<input type="number" id="tr-c-kg-'+i+'" min="0" step="0.01" value="'+(c.kg||'')+'" oninput="window._tracoAtualizarResumo()" placeholder="0" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<div class="form-group" style="margin:0"><label style="font-size:11px">R$/kg</label>'
+    +'<input type="number" id="tr-c-preco-'+i+'" min="0" step="0.01" value="'+(c.precoKg||'')+'" oninput="window._tracoAtualizarResumo()" placeholder="0,00" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<button type="button" onclick="window._tracoRemoverComponente('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:30px;height:30px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>'
+    +'</div>'
+  ).join('');
+  window._tracoAtualizarResumo();
+};
+
+window._tracoAddComponente=function(){
+  window._tracoComponentesTemp=window._tracoComponentesTemp||[];
+  window._tracoComponentesTemp.push({nome:'',kg:'',precoKg:''});
+  window._tracoRenderComponentes();
+};
+window._tracoRemoverComponente=function(i){
+  window._tracoComponentesTemp.splice(i,1);
+  window._tracoRenderComponentes();
+};
+
+window._tracoAtualizarResumo=function(){
+  const lista=window._tracoComponentesTemp||[];
+  let totalKg=0,totalCusto=0;
+  lista.forEach((c,i)=>{
+    const kg=parseFloat(document.getElementById('tr-c-kg-'+i)?.value)||0;
+    const preco=parseFloat(document.getElementById('tr-c-preco-'+i)?.value)||0;
+    totalKg+=kg; totalCusto+=kg*preco;
+  });
+  const rolos=parseFloat(document.getElementById('tr-rolos')?.value)||0;
+  const custoRolo=rolos>0?totalCusto/rolos:0;
+  const custoKg=totalKg>0?totalCusto/totalKg:0;
+  const el=document.getElementById('tr-resumo');
+  if(!el) return;
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px">'
+    +'<div><div style="font-size:10px;color:#64748b">KG</div><div style="font-size:14px;font-weight:800">'+totalKg.toFixed(2)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#64748b">R$ TOTAL</div><div style="font-size:14px;font-weight:800">'+fmtMoeda(totalCusto)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#64748b">R$/ROLO</div><div style="font-size:14px;font-weight:800;color:#d97706">'+fmtMoeda(custoRolo)+'</div></div>'
+    +'<div><div style="font-size:10px;color:#64748b">R$/KG</div><div style="font-size:14px;font-weight:800;color:#059669">'+fmtMoeda(custoKg)+'</div></div>'
+    +'</div>';
+};
+
+window._tracoSalvar=async function(id){
+  const nome=document.getElementById('tr-nome')?.value.trim();
+  const rolos=parseFloat(document.getElementById('tr-rolos')?.value)||0;
+  const lista=window._tracoComponentesTemp||[];
+  const componentes=lista.map((c,i)=>({
+    nome:(document.getElementById('tr-c-nome-'+i)?.value||'').trim(),
+    kg:parseFloat(document.getElementById('tr-c-kg-'+i)?.value)||0,
+    precoKg:parseFloat(document.getElementById('tr-c-preco-'+i)?.value)||0,
+  })).filter(c=>c.nome);
+  if(!nome){showToast('Digite o nome do traço.');return;}
+  if(!componentes.length){showToast('Adicione pelo menos um componente.');return;}
+  closeModal();
+  try{
+    const dados={nome,rolos,componentes};
+    if(id){
+      await updateDoc(doc(db,'tracos_fitas',id),dados);
+    } else {
+      await addDoc(collection(db,'tracos_fitas'),{...dados,criadoEm:new Date().toISOString()});
+    }
+    showToast('Traço salvo!');
+  }catch(e){
+    console.error('Erro ao salvar traço:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
+window._tracoExcluir=function(id){
+  window._pendingTracoId=id;
+  closeModal();
+  showModal('Excluir traço','<div style="font-size:13px">Deseja excluir este traço?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._tracoConfirmarExcluir()">Excluir</button>');
+};
+window._tracoConfirmarExcluir=async function(){
+  const id=window._pendingTracoId; if(!id) return;
+  closeModal();
+  try{
+    await deleteDoc(doc(db,'tracos_fitas',id));
+    showToast('Traço excluído!');
+  }catch(e){
+    console.error('Erro ao excluir traço:',e);
+    showToast('Erro ao excluir: '+e.message);
+  }
+};
 
 // ── Estoque ───────────────────────────────────────────────────────
 function renderEstoqueFitas(){
@@ -19121,6 +19314,10 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(collection(db,'entregas_fitas'),snap=>{
       entregasFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'tracos_fitas'),snap=>{
+      tracosFitas=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
   ],
