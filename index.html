@@ -14786,6 +14786,13 @@ function podeEditarContasPagar(){
 function renderContasPagar(){
   const podeEditar=podeEditarContasPagar();
   const hoje=today();
+  const mesAtual=hoje.slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabel=(anoMes)=>{
+    if(!anoMes) return 'Sem data';
+    const[y,m]=anoMes.split('-');
+    return MESES[parseInt(m)-1]+' '+y;
+  };
 
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
     +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._cpAbrirNovo()">+ Nova duplicata</button>':'')
@@ -14798,6 +14805,18 @@ function renderContasPagar(){
 
   const pendentes=contasPagar.filter(c=>!c.pago).sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
   const pagas=contasPagar.filter(c=>c.pago).sort((a,b)=>(b.dataPagamento||b.vencimento||'')<(a.dataPagamento||a.vencimento||'')?-1:1);
+
+  // ── Cards de resumo ────────────────────────────────────────────
+  const somaValor=(lista)=>lista.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const aPagarMes=somaValor(pendentes.filter(c=>(c.vencimento||'').slice(0,7)===mesAtual));
+  const pagoMes=somaValor(pagas.filter(c=>(c.dataPagamento||'').slice(0,7)===mesAtual));
+  const totalPendenteGeral=somaValor(pendentes);
+
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff"><div><div class="stat-label">A pagar este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(aPagarMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff"><div><div class="stat-label">Pago este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(pagoMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff"><div><div class="stat-label">Pendente no geral</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(totalPendenteGeral)+'</div></div></div>'
+    +'</div>';
 
   const linha=(c)=>{
     const venc=c.vencimento||'';
@@ -14824,12 +14843,34 @@ function renderContasPagar(){
       +'</div></div></div>';
   };
 
+  // Agrupa uma lista (já ordenada) por mês de vencimento, preservando a ordem
+  const agruparPorMes=(lista)=>{
+    const grupos=[];
+    lista.forEach(c=>{
+      const chave=(c.vencimento||'').slice(0,7);
+      let g=grupos.find(x=>x.chave===chave);
+      if(!g){g={chave,itens:[]};grupos.push(g);}
+      g.itens.push(c);
+    });
+    return grupos;
+  };
+
   html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A pagar ('+pendentes.length+')</div>';
-  html+=pendentes.length?pendentes.map(linha).join(''):'<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma duplicata pendente 🎉</div>';
+  if(!pendentes.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma duplicata pendente 🎉</div>';
+  } else {
+    agruparPorMes(pendentes).forEach(g=>{
+      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
+      html+=g.itens.map(linha).join('');
+    });
+  }
 
   if(pagas.length){
     html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Pagas ('+pagas.length+')</div>';
-    html+=pagas.map(linha).join('');
+    agruparPorMes(pagas).forEach(g=>{
+      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
+      html+=g.itens.map(linha).join('');
+    });
   }
 
   return html;
