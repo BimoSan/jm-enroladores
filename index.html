@@ -501,6 +501,8 @@ let espumaProducao=[];
 let espumaSaidas=[];
 let espumaEstoque=[];
 let espumaOperadores=[];
+// Contas a Pagar (duplicatas)
+let contasPagar=[];
 // Custos Indiretos
 let custosIndiretos=[];
 let matDiretos=[];
@@ -670,7 +672,7 @@ function render(){
   }else if(!currentFabrica){
     document.getElementById('root').innerHTML=renderSelecionarFabrica();
   }else if(!currentSetor){
-    document.getElementById('root').innerHTML=renderSelecionarSetor();
+    document.getElementById('root').innerHTML=currentFabrica==='financeiro'?renderSelecionarFinanceiro():renderSelecionarSetor();
   }else{
     document.getElementById('root').innerHTML=renderApp();
   }
@@ -782,6 +784,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'ranking_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'hist_prod_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
   'setores_resumo': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'cp_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
@@ -791,6 +794,7 @@ const TAB_LABELS={
   'soldadores_metal':'Soldadores','ponto_metal':'Folha de Ponto','config_metal':'Configurações',
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking','hist_prod_metal':'Histórico Mensal',
   // Caminhões
+  'cp_lista':'Contas a Pagar',
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
@@ -878,10 +882,6 @@ window._selecionarFabrica=id=>{
     currentSetor='almoxarifado';
     sessionStorage.setItem('jm_setor','almoxarifado');
     currentTab='alm_painel';
-  } else if(id==='financeiro'){
-    currentSetor='financeiro_geral';
-    sessionStorage.setItem('jm_setor','financeiro_geral');
-    currentTab='fin_dashboard';
   } else if(id==='manutencao'){
     currentSetor='manutencao';
     sessionStorage.setItem('jm_setor','manutencao');
@@ -952,6 +952,38 @@ function renderSelecionarSetor(){
   </div></div>`;
 }
 
+// ── Seleção dentro de Financeiro (Contas a Pagar / Financeiro) ────
+function renderSelecionarFinanceiro(){
+  const opcoes=[
+    {id:'contas_pagar',    nome:'Contas a Pagar',  icon:'🧾', desc:'Duplicatas e boletos por vencimento'},
+    {id:'financeiro_geral',nome:'Financeiro',      icon:'💰', desc:'Pagamentos, compras e relatórios financeiros'},
+  ];
+  const cards=opcoes.map(o=>`
+    <div class="setor-card" onclick="window._selecionarSubFinanceiro('${o.id}')">
+      <div class="setor-icon">${o.icon}</div>
+      <div>
+        <div class="setor-nome">${o.nome}</div>
+        <div class="setor-desc">${o.desc}</div>
+      </div>
+    </div>`).join('');
+
+  return `<div class="sel-wrap-setor"><div class="sel-box">
+    <button class="back-btn" onclick="window._voltarFabrica()">← Voltar</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:28px">💰</span>
+      <div class="sel-title" style="color:#065f46">Financeiro</div>
+    </div>
+    <div class="sel-sub">Selecione o que deseja acessar.</div>
+    <div class="setor-grid">${cards}</div>
+  </div></div>`;
+}
+window._selecionarSubFinanceiro=id=>{
+  currentSetor=id;
+  sessionStorage.setItem('jm_setor',id);
+  currentTab=id==='contas_pagar'?'cp_lista':'fin_dashboard';
+  render();
+};
+
 window._selecionarSetor=id=>{
   currentSetor=id;
   sessionStorage.setItem('jm_setor',id);
@@ -991,7 +1023,7 @@ window._voltarFabrica=()=>{
 window._voltarSetores=()=>{
   pararListenersSetor();
   // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
-  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='financeiro'||currentFabrica==='manutencao'||currentFabrica==='engenharia'||currentFabrica==='setores_geral'){
+  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='manutencao'||currentFabrica==='engenharia'||currentFabrica==='setores_geral'){
     currentFabrica=null;
     currentSetor=null;
     sessionStorage.removeItem('jm_fabrica');
@@ -1024,6 +1056,9 @@ function renderApp(){
   } else if(currentSetor==='financeiro_geral'){
     tabs.push('fin_dashboard','fin_vendas','fin_pagamentos','fin_compras','fin_matdiretos','fin_matquimicos','fin_custos','fin_viagens','fin_relatorio');
     if(!currentTab||!currentTab.startsWith('fin_')) currentTab='fin_dashboard';
+  } else if(currentSetor==='contas_pagar'){
+    tabs.push('cp_lista');
+    currentTab='cp_lista';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
@@ -1153,6 +1188,7 @@ function renderApp(){
               currentSetor==='tapecamento'?'Tapeçamento':
               currentSetor==='espuma'?'Blocos de Espuma':
               currentSetor==='financeiro_geral'?'Financeiro':
+              currentSetor==='contas_pagar'?'Contas a Pagar':
               currentSetor==='manutencao'?'Manutenção':
               currentSetor==='engenharia'?'Engenharia':
               currentSetor==='setores_geral'?'Resumo dos Setores':
@@ -1216,6 +1252,7 @@ window._switchTab=tab=>{
 function renderTab(tab){
   ativarListenersSetor(currentSetor);
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
+  if(currentSetor==='contas_pagar') return renderContasPagar();
   if(currentSetor==='setores_geral') return renderTabSetoresGeral(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
@@ -3562,6 +3599,8 @@ function renderUsuariosContexto(contexto, fabrica, setor, titulo){
     +'<div class="form-row"><div class="form-group"><label>E-mail (login)</label><input type="email" id="nu-email" placeholder="email@empresa.com"></div>'
     +'<div class="form-group"><label>UID (Firebase Console → Authentication)</label><input type="text" id="nu-uid" placeholder="cole aqui o UID do login"></div></div>'
     +'<div style="font-size:11px;color:#64748b;margin:-4px 0 10px 2px;line-height:1.5">1) Crie o login em Firebase Console → Authentication → Add user (defina e-mail e senha lá). 2) Copie o UID gerado e cole acima.</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;cursor:pointer;margin-bottom:12px">'
+    +'<input type="checkbox" id="nu-cp" style="width:15px;height:15px">Pode lançar em Contas a Pagar (exceção — só faz efeito pra perfil Proprietário)</label>'
     +'<button class="btn btn-primary" onclick="window._cadastrarUsuario()">Cadastrar</button>'
     +'</div>'
     +'<div class="section-label">usuários cadastrados</div>'
@@ -3641,12 +3680,13 @@ window._cadastrarUsuario=async()=>{
   const perfil=document.getElementById('nu-perfil').value;
   const email=document.getElementById('nu-email').value.trim();
   const uid=document.getElementById('nu-uid').value.trim();
+  const podeLancarContasPagar=document.getElementById('nu-cp')?.checked||false;
   if(!nome||!email||!uid){showToast('Preencha nome, e-mail e UID.');return;}
   if(uid.length<10){showToast('UID inválido — copie exatamente o valor do Firebase Console.');return;}
   try{
     const jaExiste=await getDoc(doc(db,'usuarios',uid));
     if(jaExiste.exists()){showToast('Já existe um usuário cadastrado com esse UID.');return;}
-    await setDoc(doc(db,'usuarios',uid),{nome,perfil,email});
+    await setDoc(doc(db,'usuarios',uid),{nome,perfil,email,podeLancarContasPagar});
     showToast('Usuário cadastrado com sucesso!');
     reloadTab();
   }catch(e){showToast('Erro: '+e.message);}
@@ -3665,7 +3705,9 @@ window._editarUsuario=id=>{
   showModal('Editar — '+u.nome,
     inp('eu-nome','Nome completo',u.nome)
     +'<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsHtml+'</select></div>'
-    +inp('eu-email','E-mail',u.email,'email'),
+    +inp('eu-email','E-mail',u.email,'email')
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;cursor:pointer;margin-top:4px">'
+    +'<input type="checkbox" id="eu-cp" '+(u.podeLancarContasPagar?'checked':'')+' style="width:15px;height:15px">Pode lançar em Contas a Pagar (exceção — só faz efeito pra perfil Proprietário)</label>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarUsuario(&quot;'+id+'&quot;)">Salvar</button>');
 };
@@ -3674,8 +3716,9 @@ window._salvarUsuario=async id=>{
   const nome=document.getElementById('eu-nome').value.trim();
   const perfil=document.getElementById('eu-perfil').value;
   const email=document.getElementById('eu-email').value.trim();
+  const podeLancarContasPagar=document.getElementById('eu-cp')?.checked||false;
   if(!nome||!email){showToast('Nome e e-mail são obrigatórios.');return;}
-  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email});
+  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email,podeLancarContasPagar});
   closeModal();showToast('Usuário atualizado!');
 };
 
@@ -14727,6 +14770,135 @@ window._custoConfirmarExcluir=async function(){
   showToast('Lançamento excluído!');
 };
 
+// ════════════════════════════════════════════════════════════════
+// CONTAS A PAGAR — duplicatas/boletos por vencimento
+// ════════════════════════════════════════════════════════════════
+// Edição liberada pro financeiro sempre, e pro proprietário só se a conta
+// tiver o sinalizador podeLancarContasPagar — exceção pontual (ex: dona da
+// fábrica que lança os próprios boletos), sem abrir edição pra todo proprietário.
+function podeEditarContasPagar(){
+  const perfil=currentUserData?.perfil;
+  if(perfil==='financeiro') return true;
+  if(perfil==='proprietario') return !!currentUserData?.podeLancarContasPagar;
+  return false;
+}
+
+function renderContasPagar(){
+  const podeEditar=podeEditarContasPagar();
+  const hoje=today();
+
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._cpNovaConta()">+ Nova duplicata</button>':'')
+    +'</div>';
+
+  if(!contasPagar.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma duplicata cadastrada ainda.</div>';
+    return html;
+  }
+
+  const pendentes=contasPagar.filter(c=>!c.pago).sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
+  const pagas=contasPagar.filter(c=>c.pago).sort((a,b)=>(b.dataPagamento||b.vencimento||'')<(a.dataPagamento||a.vencimento||'')?-1:1);
+
+  const linha=(c)=>{
+    const venc=c.vencimento||'';
+    const vencida=!c.pago&&venc&&venc<hoje;
+    const venceHoje=!c.pago&&venc===hoje;
+    const cor=c.pago?'#059669':vencida?'#dc2626':venceHoje?'#d97706':'#1e293b';
+    const bg=c.pago?'#f0fdf4':vencida?'#fef2f2':venceHoje?'#fffbeb':'#fff';
+    const border=c.pago?'#bbf7d0':vencida?'#fca5a5':venceHoje?'#fde68a':'#e2e8f0';
+    const statusLabel=c.pago?'✓ Pago'+(c.dataPagamento?' em '+fmtDate(c.dataPagamento):''):vencida?'Vencida':venceHoje?'Vence hoje':'A vencer';
+    return '<div class="card" style="margin-bottom:8px;background:'+bg+';border:1.5px solid '+border+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(venc)+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:17px;font-weight:800;color:'+cor+'">'+fmtMoeda(parseFloat(c.valor)||0)+'</div>'
+      +(podeEditar?'<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end">'
+        +(c.pago?'<button onclick="window._cpDesmarcarPago(\''+c.id+'\')" class="btn btn-sm btn-ghost" style="font-size:11px">Desmarcar</button>'
+                :'<button onclick="window._cpMarcarPago(\''+c.id+'\')" class="btn btn-sm" style="font-size:11px;background:#d1fae5;color:#065f46;border:none">Marcar pago</button>')
+        +'<button onclick="window._cpEditarConta(\''+c.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✎</button>'
+        +'<button onclick="window._cpExcluirConta(\''+c.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
+        +'</div>':'')
+      +'</div></div></div>';
+  };
+
+  html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A pagar ('+pendentes.length+')</div>';
+  html+=pendentes.length?pendentes.map(linha).join(''):'<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma duplicata pendente 🎉</div>';
+
+  if(pagas.length){
+    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Pagas ('+pagas.length+')</div>';
+    html+=pagas.map(linha).join('');
+  }
+
+  return html;
+}
+
+window._cpNovaConta=function(conta={}){
+  const isEdit=!!conta.id;
+  showModal(isEdit?'Editar duplicata':'+ Nova duplicata',
+    '<div class="form-group"><label>Nome do fornecedor</label>'
+    +'<input id="cp-fornecedor" value="'+(conta.fornecedor||'').replace(/"/g,'&quot;')+'" placeholder="Ex: Tecidos Silva" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<input type="number" id="cp-valor" min="0" step="0.01" value="'+(conta.valor||'')+'" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Vencimento</label>'
+    +'<input type="date" id="cp-vencimento" value="'+(conta.vencimento||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Parcela (opcional)</label>'
+    +'<input id="cp-parcela" value="'+(conta.parcela||'').replace(/"/g,'&quot;')+'" placeholder="Ex: 1/3" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(isEdit?'<button class="btn btn-sm btn-danger" onclick="window._cpExcluirConta(\''+conta.id+'\')">Excluir</button>':'')
+    +'<button class="btn btn-sm btn-primary" onclick="window._cpSalvarConta(\''+(conta.id||'')+'\')">Salvar</button>');
+};
+
+window._cpEditarConta=function(id){
+  const c=contasPagar.find(x=>x.id===id);
+  if(!c) return;
+  window._cpNovaConta(c);
+};
+
+window._cpSalvarConta=async function(id){
+  const fornecedor=document.getElementById('cp-fornecedor')?.value.trim();
+  const valor=parseFloat(document.getElementById('cp-valor')?.value)||0;
+  const vencimento=document.getElementById('cp-vencimento')?.value||today();
+  const parcela=document.getElementById('cp-parcela')?.value.trim()||'';
+  if(!fornecedor){showToast('Digite o nome do fornecedor.');return;}
+  if(!valor){showToast('Informe o valor.');return;}
+  closeModal();
+  const dados={fornecedor,valor,vencimento,parcela};
+  if(id){
+    await updateDoc(doc(db,'contas_pagar',id),dados);
+  } else {
+    await addDoc(collection(db,'contas_pagar'),{...dados,pago:false,criadoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()});
+  }
+  showToast('Duplicata salva!');
+};
+
+window._cpMarcarPago=async function(id){
+  await updateDoc(doc(db,'contas_pagar',id),{pago:true,dataPagamento:today()});
+  showToast('Marcada como paga!');
+};
+window._cpDesmarcarPago=async function(id){
+  await updateDoc(doc(db,'contas_pagar',id),{pago:false,dataPagamento:null});
+  showToast('Marcação de pago desfeita.');
+};
+
+window._cpExcluirConta=function(id){
+  window._pendingCpId=id;
+  closeModal();
+  showModal('Excluir duplicata','<div style="font-size:13px">Deseja excluir esta duplicata?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._cpConfirmarExcluir()">Excluir</button>');
+};
+window._cpConfirmarExcluir=async function(){
+  const id=window._pendingCpId; if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'contas_pagar',id));
+  showToast('Duplicata excluída!');
+};
+
 function renderTabFinanceiro(tab){
   try{
     if(tab==='fin_dashboard') return renderFinDashboard();
@@ -18578,6 +18750,12 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(doc(db,'config_espuma','geral'),snap=>{
       if(snap.exists()) configEspuma={...configEspuma,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  contas_pagar: [
+    ()=>onSnapshot(collection(db,'contas_pagar'),snap=>{
+      contasPagar=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
   ],
