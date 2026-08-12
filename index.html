@@ -10409,12 +10409,29 @@ window._tracoRenderComponentes=function(){
   window._tracoAtualizarResumo();
 };
 
+// Lê o que está nos campos do modal de volta pro array antes de qualquer
+// re-render — senão adicionar/remover uma linha redesenha tudo a partir do
+// array desatualizado e apaga o que já foi digitado nas outras linhas.
+window._tracoCapturarValores=function(){
+  const lista=window._tracoComponentesTemp||[];
+  lista.forEach((c,i)=>{
+    const nome=document.getElementById('tr-c-nome-'+i)?.value;
+    const kg=document.getElementById('tr-c-kg-'+i)?.value;
+    const preco=document.getElementById('tr-c-preco-'+i)?.value;
+    if(nome!=null) c.nome=nome;
+    if(kg!=null) c.kg=kg;
+    if(preco!=null) c.precoKg=preco;
+  });
+};
+
 window._tracoAddComponente=function(){
+  window._tracoCapturarValores();
   window._tracoComponentesTemp=window._tracoComponentesTemp||[];
   window._tracoComponentesTemp.push({nome:'',kg:'',precoKg:''});
   window._tracoRenderComponentes();
 };
 window._tracoRemoverComponente=function(i){
+  window._tracoCapturarValores();
   window._tracoComponentesTemp.splice(i,1);
   window._tracoRenderComponentes();
 };
