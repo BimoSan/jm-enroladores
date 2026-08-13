@@ -12451,28 +12451,20 @@ function getEngCategorias(){
   return (configEng.categorias||[{id:'estofado',label:'Estofado'}]);
 }
 
-function renderEngProdutos(){
-  const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
-  let html='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
-    +(engProdutos.length?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #0e7490;color:#0e7490" onclick="window._engImprimirResumoProdutos()">🖨️ Imprimir resumo</button>':'')
-    +(podeEditar?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #7c3aed;color:#7c3aed" onclick="window._engNovoJogo()">+ Novo Jogo</button>':'')
-    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._engNovoProduto()">+ Novo produto</button>':'')
-    +'</div>';
+const ENG_FABRICAS=[
+  {id:'cadeiras',   label:'Fábrica de Cadeiras',   icon:'🪑'},
+  {id:'estofados',  label:'Fábrica de Estofados',  icon:'🛋️'},
+];
 
-  if(!engProdutos.length){
-    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum produto cadastrado ainda.</div>';
-    return html;
-  }
-
-  // Agrupa por categoria
+// Agrupa uma lista de produtos por categoria e devolve o HTML das seções —
+// reaproveitado dentro de cada bloco de fábrica na lista e na impressão.
+function engRenderPorCategoria(prods,podeEditar){
   const porCat={};
-  engProdutos.forEach(p=>{
+  prods.forEach(p=>{
     const catKey=p.categoria||'_sem';
     if(!porCat[catKey]) porCat[catKey]=[];
     porCat[catKey].push(p);
   });
-
-  // Ordena categorias na mesma ordem de getEngCategorias(), jogos no final
   const ordemCats=[...getEngCategorias().map(c=>c.id),'_jogo','_sem'];
   const catsOrdenadas=Object.keys(porCat).sort((a,b)=>{
     const ia=ordemCats.indexOf(a)<0?99:ordemCats.indexOf(a);
@@ -12480,20 +12472,18 @@ function renderEngProdutos(){
     return ia-ib;
   });
 
+  let html='';
   catsOrdenadas.forEach(catKey=>{
-    const prods=porCat[catKey];
+    const ps=porCat[catKey];
     const catLabel=getEngCategorias().find(x=>x.id===catKey)?.label||(catKey==='_sem'?'Sem categoria':'Outros');
-    const temJogos=prods.some(p=>p.tipo==='jogo');
-    const temProd=prods.some(p=>p.tipo!=='jogo');
 
-    // Cabeçalho da categoria
-    html+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 8px">'
+    html+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">'
       +'<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em">'+catLabel+'</div>'
       +'<div style="flex:1;height:1px;background:#e2e8f0"></div>'
-      +'<span style="font-size:10px;color:#94a3b8">'+prods.length+' produto'+(prods.length!==1?'s':'')+'</span>'
+      +'<span style="font-size:10px;color:#94a3b8">'+ps.length+' produto'+(ps.length!==1?'s':'')+'</span>'
       +'</div>';
 
-    prods.forEach(p=>{
+    ps.forEach(p=>{
       const c=calcCustoProduto(p,'normal');
       const isJogo=p.tipo==='jogo';
       const numComp=isJogo?(p.itensJogo||[]).length:(p.componentes||[]).length;
@@ -12515,11 +12505,49 @@ function renderEngProdutos(){
   return html;
 }
 
-window._engImprimirResumoProdutos=function(){
-  if(!engProdutos.length) return;
+function renderEngProdutos(){
+  const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
+  let html='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +(engProdutos.length?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #0e7490;color:#0e7490" onclick="window._engImprimirResumoProdutos()">🖨️ Imprimir resumo</button>':'')
+    +(podeEditar?'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #7c3aed;color:#7c3aed" onclick="window._engNovoJogo()">+ Novo Jogo</button>':'')
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._engNovoProduto()">+ Novo produto</button>':'')
+    +'</div>';
 
+  if(!engProdutos.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum produto cadastrado ainda.</div>';
+    return html;
+  }
+
+  // Agrupa por fábrica primeiro, depois por categoria dentro de cada uma
+  ENG_FABRICAS.forEach(fab=>{
+    const prods=engProdutos.filter(p=>p.fabrica===fab.id);
+    if(!prods.length) return;
+    html+='<div style="display:flex;align-items:center;gap:8px;margin:22px 0 4px;padding-bottom:8px;border-bottom:2px solid '+(fab.id==='cadeiras'?'#1e40af':'#7c3aed')+'">'
+      +'<span style="font-size:18px">'+fab.icon+'</span>'
+      +'<span style="font-size:14px;font-weight:800;color:'+(fab.id==='cadeiras'?'#1e40af':'#7c3aed')+'">'+fab.label+'</span>'
+      +'<span style="font-size:11px;color:#94a3b8">('+prods.length+')</span>'
+      +'</div>';
+    html+=engRenderPorCategoria(prods,podeEditar);
+  });
+
+  const semFabrica=engProdutos.filter(p=>!p.fabrica);
+  if(semFabrica.length){
+    html+='<div style="display:flex;align-items:center;gap:8px;margin:22px 0 4px;padding-bottom:8px;border-bottom:2px solid #94a3b8">'
+      +'<span style="font-size:14px;font-weight:800;color:#64748b">Sem fábrica definida</span>'
+      +'<span style="font-size:11px;color:#94a3b8">('+semFabrica.length+')</span>'
+      +'</div>';
+    html+=engRenderPorCategoria(semFabrica,podeEditar);
+  }
+
+  return html;
+}
+
+// Monta as seções de tabela (por categoria) de uma lista de produtos pra
+// impressão, e vai somando nos acumuladores totalCusto/totalVenda/totalProdutos
+// passados por referência (objeto acc).
+function engResumoSecoesHtml(prods,acc){
   const porCat={};
-  engProdutos.forEach(p=>{
+  prods.forEach(p=>{
     const catKey=p.categoria||'_sem';
     if(!porCat[catKey]) porCat[catKey]=[];
     porCat[catKey].push(p);
@@ -12531,15 +12559,14 @@ window._engImprimirResumoProdutos=function(){
     return ia-ib;
   });
 
-  let totalCusto=0, totalVenda=0, totalProdutos=0;
-  const secoesHtml=catsOrdenadas.map(catKey=>{
-    const prods=porCat[catKey];
+  return catsOrdenadas.map(catKey=>{
+    const ps=porCat[catKey];
     const catLabel=getEngCategorias().find(x=>x.id===catKey)?.label||(catKey==='_sem'?'Sem categoria':'Outros');
-    const linhas=prods.map(p=>{
+    const linhas=ps.map(p=>{
       const c=calcCustoProduto(p,'normal');
       const isJogo=p.tipo==='jogo';
       const numComp=isJogo?(p.itensJogo||[]).length:(p.componentes||[]).length;
-      totalCusto+=c.total; totalVenda+=c.venda; totalProdutos++;
+      acc.totalCusto+=c.total; acc.totalVenda+=c.venda; acc.totalProdutos++;
       return '<tr>'
         +'<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">'+(isJogo?'🛋️ ':'')+p.nome+'</td>'
         +'<td style="padding:5px 10px;text-align:center;border-bottom:1px solid #f1f5f9;color:#64748b">'+(isJogo?'Jogo':numComp+' comp.')+'</td>'
@@ -12548,11 +12575,30 @@ window._engImprimirResumoProdutos=function(){
         +'</tr>';
     }).join('');
     return '<div style="margin-bottom:18px">'
-      +'<div style="font-size:13px;font-weight:800;color:#1e293b;background:#f1f5f9;padding:6px 10px;border-radius:6px 6px 0 0">'+catLabel+' <span style="font-weight:400;color:#64748b;font-size:11px">('+prods.length+' produto'+(prods.length!==1?'s':'')+')</span></div>'
+      +'<div style="font-size:13px;font-weight:800;color:#1e293b;background:#f1f5f9;padding:6px 10px;border-radius:6px 6px 0 0">'+catLabel+' <span style="font-weight:400;color:#64748b;font-size:11px">('+ps.length+' produto'+(ps.length!==1?'s':'')+')</span></div>'
       +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f8fafc"><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Produto</th><th style="padding:5px 10px;text-align:center;border-bottom:1px solid #e2e8f0">Componentes</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Custo</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Venda</th></tr></thead>'
       +'<tbody>'+linhas+'</tbody></table></div>';
   }).join('');
+}
+
+window._engImprimirResumoProdutos=function(){
+  if(!engProdutos.length) return;
+
+  const acc={totalCusto:0,totalVenda:0,totalProdutos:0};
+  let secoesHtml='';
+  ENG_FABRICAS.forEach(fab=>{
+    const prods=engProdutos.filter(p=>p.fabrica===fab.id);
+    if(!prods.length) return;
+    secoesHtml+='<h2 style="font-size:16px;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #1e293b">'+fab.icon+' '+fab.label+'</h2>'
+      +engResumoSecoesHtml(prods,acc);
+  });
+  const semFabrica=engProdutos.filter(p=>!p.fabrica);
+  if(semFabrica.length){
+    secoesHtml+='<h2 style="font-size:16px;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #94a3b8;color:#64748b">Sem fábrica definida</h2>'
+      +engResumoSecoesHtml(semFabrica,acc);
+  }
+  const {totalCusto,totalVenda,totalProdutos}=acc;
 
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -12602,10 +12648,13 @@ window._engNovoProduto=function(produto={}){
   }
   const isEdit=!!produto.id;
   const catOpts=getEngCategorias().map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
+  const fabOpts='<option value="">— Selecione —</option>'+ENG_FABRICAS.map(f=>'<option value="'+f.id+'"'+(produto.fabrica===f.id?' selected':'')+'>'+f.icon+' '+f.label+'</option>').join('');
 
   showModal(isEdit?'Editar produto':'+ Novo produto',
     '<div class="form-group"><label>Nome do produto</label>'
     +'<input id="ep-nome" value="'+(produto.nome||'')+'" placeholder="Ex: Balanço" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Fábrica</label>'
+    +'<select id="ep-fabrica" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+fabOpts+'</select></div>'
     +'<div class="form-group"><label>Categoria (define o custo indireto)</label>'
     +'<select id="ep-categoria" onchange="window._engAtualizarResumoCusto()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+catOpts+'</select></div>'
     +'<div class="form-group"><label>% do custo indireto aplicado neste produto</label>'
@@ -12658,6 +12707,7 @@ window._engNovoJogo=function(produto={}){
   window._engItensJogoTemp=produto.itensJogo?JSON.parse(JSON.stringify(produto.itensJogo)):[];
   const isEdit=!!produto.id;
   const catOpts=getEngCategorias().map(c=>'<option value="'+c.id+'"'+(produto.categoria===c.id?' selected':'')+'>'+c.label+'</option>').join('');
+  const fabOpts='<option value="">— Selecione —</option>'+ENG_FABRICAS.map(f=>'<option value="'+f.id+'"'+(produto.fabrica===f.id?' selected':'')+'>'+f.icon+' '+f.label+'</option>').join('');
 
   showModal(isEdit?'Editar jogo':'🛋️ + Novo Jogo',
     '<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px;margin-bottom:14px;font-size:11px;color:#5b21b6">'
@@ -12665,6 +12715,8 @@ window._engNovoJogo=function(produto={}){
     +'</div>'
     +'<div class="form-group"><label>Nome do jogo</label>'
     +'<input id="ej-nome" value="'+(produto.nome||'')+'" placeholder="Ex: Jogo de Sofá" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Fábrica</label>'
+    +'<select id="ej-fabrica" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+fabOpts+'</select></div>'
     +'<div class="form-group"><label>Categoria (define o custo indireto do jogo)</label>'
     +'<select id="ej-categoria" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+catOpts+'</select></div>'
     +'<div class="form-group"><label>Margem de venda (%) — opcional, vazio usa a padrão</label>'
@@ -12760,6 +12812,7 @@ window._engAtualizarResumoJogo=function(){
 
 window._engSalvarJogo=async function(id){
   const nome=document.getElementById('ej-nome')?.value.trim();
+  const fabrica=document.getElementById('ej-fabrica')?.value||'';
   const categoria=document.getElementById('ej-categoria')?.value;
   const margemVal=document.getElementById('ej-margem')?.value;
   const margem=margemVal?parseFloat(margemVal):null;
@@ -12767,7 +12820,7 @@ window._engSalvarJogo=async function(id){
   const itensJogo=(window._engItensJogoTemp||[]).filter(it=>it.produtoId);
   if(!itensJogo.length){showToast('Adicione pelo menos um produto ao jogo.');return;}
   closeModal();
-  const dados={nome,categoria,margem,tipo:'jogo',itensJogo};
+  const dados={nome,fabrica,categoria,margem,tipo:'jogo',itensJogo};
   if(id){
     await updateDoc(doc(db,'eng_produtos',id),dados);
   } else {
@@ -13279,6 +13332,7 @@ window._engRenderComponentes=function(){
 
 window._engSalvarProduto=async function(id){
   const nome=document.getElementById('ep-nome')?.value.trim();
+  const fabrica=document.getElementById('ep-fabrica')?.value||'';
   const categoria=document.getElementById('ep-categoria')?.value;
   const margemVal=document.getElementById('ep-margem')?.value;
   const margem=margemVal?parseFloat(margemVal):null;
@@ -13293,7 +13347,7 @@ window._engSalvarProduto=async function(id){
   const maoObraReforma=maoObraReformaEtapas.reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
   closeModal();
   const reformas=(window._engReformasTemp||[]).filter(r=>r.nome.trim());
-  const dados={nome,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma,reformas,
+  const dados={nome,fabrica,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma,reformas,
     imagemUrl:window._engImagemTemp||'',medidas:window._engMedidasTemp||[]};
   if(id){
     await updateDoc(doc(db,'eng_produtos',id),dados);
