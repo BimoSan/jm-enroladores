@@ -8011,6 +8011,27 @@ function renderGradApontar(){
   });
   html+='</div>';
 
+  // ── Tapeceiro visitante (foi ajudar nas grades) ───────────────
+  const tapeceirosVisita=tapecadores.filter(t=>t.ativo!==false&&!gradistas.some(g=>g.origemTapId===t.id));
+  html+='<div style="margin-top:18px">'
+    +'<button onclick="window._gradToggleVisitantes()" style="width:100%;text-align:left;padding:10px 14px;border-radius:10px;border:1.5px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+    +'<span>🔁 Um tapeceiro veio ajudar aqui hoje?</span><span>'+(window._gradMostrarVisitantes?'▲':'▼')+'</span>'
+    +'</button>';
+  if(window._gradMostrarVisitantes){
+    html+='<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    if(!tapeceirosVisita.length){
+      html+='<div style="grid-column:1/-1;font-size:12px;color:#94a3b8;text-align:center;padding:10px">Todos os tapeceiros já têm registro aqui.</div>';
+    }
+    tapeceirosVisita.forEach(t=>{
+      html+='<div onclick="window._gradRegistrarVisitante(\''+t.id+'\')" style="background:#eff6ff;border:2px dashed #93c5fd;border-radius:16px;padding:16px;text-align:center;cursor:pointer">'
+        +'<div style="font-size:13px;font-weight:700;color:#1e40af">'+t.nome+'</div>'
+        +'<div style="font-size:10px;color:#1d4ed8;margin-top:4px">Tapeceiro · toque para apontar aqui</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+
   // Histórico do dia por gradista
   const [hAno,hMes,hDia]=hoje.split('-');
   const temHistorico=ativos.some(g=>{
@@ -8087,6 +8108,23 @@ window._gradAbrirModalApontar=function(gradId){
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._gradRegistrarModal(\''+gradId+'\')">✓ Registrar</button>'
   );
+};
+
+window._gradToggleVisitantes=function(){ window._gradMostrarVisitantes=!window._gradMostrarVisitantes; reloadTab(); };
+
+// Tapeceiro que foi ajudar nas grades: cria (uma única vez) um cadastro
+// leve de gradista vinculado a ele (origemTapId), e abre o mesmo
+// apontamento normal — assim a produção conta certinho no ganho/ranking/
+// pagamento de Grades, sem duplicar nenhuma lógica de cálculo.
+window._gradRegistrarVisitante=async function(tapId){
+  const t=tapecadores.find(x=>x.id===tapId); if(!t) return;
+  let g=gradistas.find(x=>x.origemTapId===tapId);
+  if(!g){
+    const ref=await addDoc(collection(db,'gradistas'),{nome:t.nome,ativo:true,visitante:true,origemTapId:tapId});
+    g={id:ref.id,nome:t.nome,ativo:true,visitante:true,origemTapId:tapId};
+    gradistas.push(g); // otimista — o listener reconcilia em seguida
+  }
+  window._gradAbrirModalApontar(g.id);
 };
 
 window._gradIncM=function(pecaId){
@@ -8556,7 +8594,7 @@ function renderGradGradistas(){
   html+='<thead><tr style="background:#1d4ed8;color:#fff"><th style="padding:10px 14px;text-align:left;font-size:12px">Nome</th><th style="padding:10px 14px;text-align:center;font-size:12px">Status</th><th style="padding:10px 14px;text-align:center;font-size:12px">Ações</th></tr></thead><tbody>';
   gradistas.forEach((g,i)=>{
     html+=`<tr style="${i%2?'background:#f8fafc':''}">
-      <td style="padding:10px 14px;font-size:13px;font-weight:600">${g.nome}</td>
+      <td style="padding:10px 14px;font-size:13px;font-weight:600">${g.nome}${g.visitante?' <span style="font-size:10px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 8px;border-radius:99px">🔁 De Tapeçamento</span>':''}</td>
       <td style="padding:10px 14px;text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:99px;background:${g.ativo!==false?'#d1fae5':'#f1f5f9'};color:${g.ativo!==false?'#065f46':'#94a3b8'};font-weight:700">${g.ativo!==false?'Ativo':'Inativo'}</span></td>
       <td style="padding:10px 14px;text-align:center"><button class="btn btn-sm btn-warn" onclick="window._gradEditarGradista('${g.id}')">✏️</button></td>
     </tr>`;
@@ -9702,6 +9740,27 @@ function renderTapApontar(){
   });
   html+='</div>';
 
+  // ── Gradista visitante (foi ajudar no tapeçamento) ────────────
+  const gradistasVisita=gradistas.filter(g=>g.ativo!==false&&!tapecadores.some(t=>t.origemGradistaId===g.id));
+  html+='<div style="margin-top:18px">'
+    +'<button onclick="window._tapToggleVisitantes()" style="width:100%;text-align:left;padding:10px 14px;border-radius:10px;border:1.5px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+    +'<span>🔁 Um gradista veio ajudar aqui hoje?</span><span>'+(window._tapMostrarVisitantes?'▲':'▼')+'</span>'
+    +'</button>';
+  if(window._tapMostrarVisitantes){
+    html+='<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    if(!gradistasVisita.length){
+      html+='<div style="grid-column:1/-1;font-size:12px;color:#94a3b8;text-align:center;padding:10px">Todos os gradistas já têm registro aqui.</div>';
+    }
+    gradistasVisita.forEach(g=>{
+      html+='<div onclick="window._tapRegistrarVisitante(\''+g.id+'\')" style="background:#f5f3ff;border:2px dashed #c4b5fd;border-radius:16px;padding:16px;text-align:center;cursor:pointer">'
+        +'<div style="font-size:13px;font-weight:700;color:#5b21b6">'+g.nome+'</div>'
+        +'<div style="font-size:10px;color:#7c3aed;margin-top:4px">Gradista · toque para apontar aqui</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+
   // Histórico do dia por tapeceiro
   const hoje=today();
   const [hAno,hMes,hDia]=hoje.split('-');
@@ -9765,6 +9824,23 @@ window._tapAbrirModalApontar=function(tapId){
     +'<button class="btn btn-sm btn-primary" onclick="window._tapRegistrarModal(\''+tapId+'\')">✓ Registrar</button>'
   );
   window._tapApontTapId=tapId;
+};
+
+window._tapToggleVisitantes=function(){ window._tapMostrarVisitantes=!window._tapMostrarVisitantes; reloadTab(); };
+
+// Gradista que foi ajudar no tapeçamento: cria (uma única vez) um cadastro
+// leve de tapecador vinculado a ele (origemGradistaId), e abre o mesmo
+// apontamento normal — assim a produção conta certinho no ganho/ranking/
+// pagamento de Tapeçamento, sem duplicar nenhuma lógica de cálculo.
+window._tapRegistrarVisitante=async function(gradistaId){
+  const g=gradistas.find(x=>x.id===gradistaId); if(!g) return;
+  let t=tapecadores.find(x=>x.origemGradistaId===gradistaId);
+  if(!t){
+    const ref=await addDoc(collection(db,'tapecadores'),{nome:g.nome,ativo:true,visitante:true,origemGradistaId:gradistaId});
+    t={id:ref.id,nome:g.nome,ativo:true,visitante:true,origemGradistaId:gradistaId};
+    tapecadores.push(t); // otimista — o listener reconcilia em seguida
+  }
+  window._tapAbrirModalApontar(t.id);
 };
 
 window._tapInc=function(pecaId){
@@ -10073,7 +10149,7 @@ function renderTapTapecadores(){
   html+='<div class="card"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f8fafc"><th style="padding:7px 8px;text-align:left">Nome</th><th style="padding:7px 8px;text-align:center">Status</th><th style="padding:7px 8px"></th></tr></thead><tbody>';
   tapecadores.forEach((t,i)=>{
     html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
-      +'<td style="padding:7px 8px;font-weight:600">'+t.nome+'</td>'
+      +'<td style="padding:7px 8px;font-weight:600">'+t.nome+(t.visitante?' <span style="font-size:10px;font-weight:700;color:#1d4ed8;background:#dbeafe;padding:2px 8px;border-radius:99px">🔁 De Grades</span>':'')+'</td>'
       +'<td style="padding:7px 8px;text-align:center"><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+(t.ativo!==false?'#d1fae5':'#fee2e2')+';color:'+(t.ativo!==false?'#065f46':'#dc2626')+'">'+(t.ativo!==false?'Ativo':'Inativo')+'</span></td>'
       +'<td style="padding:7px 8px;text-align:right"><button onclick="window._tapEditarTapecador(\''+t.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:28px;height:28px;font-size:14px;cursor:pointer">✎</button></td></tr>';
   });
