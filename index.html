@@ -7991,8 +7991,11 @@ function renderGradPainel(){
 
 // ── Apontamento ──────────────────────────────────────────────────
 function renderGradApontar(){
-  const ativos=gradistas.filter(g=>g.ativo!==false);
-  if(!ativos.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum gradista cadastrado.</div>';
+  // Tapeceiros visitantes ficam fora da grade principal de propósito — só
+  // aparecem no botão "tapeceiro veio ajudar", pra não se misturar com o
+  // quadro fixo de gradistas.
+  const ativos=gradistas.filter(g=>g.ativo!==false&&!g.visitante);
+  if(!ativos.length&&!tapecadores.some(t=>t.ativo!==false)) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum gradista cadastrado.</div>';
   const q=getQuinzenaAtualGrad();
   const hoje=today();
 
@@ -8012,7 +8015,10 @@ function renderGradApontar(){
   html+='</div>';
 
   // ── Tapeceiro visitante (foi ajudar nas grades) ───────────────
-  const tapeceirosVisita=tapecadores.filter(t=>t.ativo!==false&&!gradistas.some(g=>g.origemTapId===t.id));
+  // Fica sempre acessível por aqui — nunca migra pra grade principal acima,
+  // mesmo depois de já ter apontado antes, pra não misturar com o quadro
+  // fixo de gradistas.
+  const tapeceirosVisita=tapecadores.filter(t=>t.ativo!==false);
   html+='<div style="margin-top:18px">'
     +'<button onclick="window._gradToggleVisitantes()" style="width:100%;text-align:left;padding:10px 14px;border-radius:10px;border:1.5px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
     +'<span>🔁 Um tapeceiro veio ajudar aqui hoje?</span><span>'+(window._gradMostrarVisitantes?'▲':'▼')+'</span>'
@@ -8020,12 +8026,16 @@ function renderGradApontar(){
   if(window._gradMostrarVisitantes){
     html+='<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     if(!tapeceirosVisita.length){
-      html+='<div style="grid-column:1/-1;font-size:12px;color:#94a3b8;text-align:center;padding:10px">Todos os tapeceiros já têm registro aqui.</div>';
+      html+='<div style="grid-column:1/-1;font-size:12px;color:#94a3b8;text-align:center;padding:10px">Nenhum tapeceiro cadastrado.</div>';
     }
+    const hojeV=today();
     tapeceirosVisita.forEach(t=>{
+      const gVinc=gradistas.find(g=>g.origemTapId===t.id);
+      const fichaV=gVinc?(fichasGrad.find(f=>f.gradId===gVinc.id&&f.status==='aberta'&&f.quinzena===getQuinzenaAtualGrad())||fichasGrad.find(f=>f.gradId===gVinc.id&&f.status==='aberta')):null;
+      const totalHojeV=totalPecasGrad((fichaV?.apontamentos||[]).filter(a=>a.data===hojeV));
       html+='<div onclick="window._gradRegistrarVisitante(\''+t.id+'\')" style="background:#eff6ff;border:2px dashed #93c5fd;border-radius:16px;padding:16px;text-align:center;cursor:pointer">'
         +'<div style="font-size:13px;font-weight:700;color:#1e40af">'+t.nome+'</div>'
-        +'<div style="font-size:10px;color:#1d4ed8;margin-top:4px">Tapeceiro · toque para apontar aqui</div>'
+        +'<div style="font-size:10px;color:#1d4ed8;margin-top:4px">'+(totalHojeV>0?totalHojeV+' peças hoje':'Tapeceiro · toque para apontar aqui')+'</div>'
         +'</div>';
     });
     html+='</div>';
@@ -9720,8 +9730,11 @@ function renderTapPainel(){
 function renderTapApontar(){
   const pecas=getPecasTapAtivas();
   if(!pecas.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre peças nas Configurações para começar a apontar.</div>';
-  const ativos=tapecadores.filter(t=>t.ativo!==false);
-  if(!ativos.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum tapecador cadastrado.</div>';
+  // Gradistas visitantes ficam fora da grade principal de propósito — só
+  // aparecem no botão "gradista veio ajudar", pra não se misturar com o
+  // quadro fixo de tapeceiros.
+  const ativos=tapecadores.filter(t=>t.ativo!==false&&!t.visitante);
+  if(!ativos.length&&!gradistas.some(g=>g.ativo!==false)) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum tapecador cadastrado.</div>';
 
   let html='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">Selecione o tapeceiro:</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
@@ -9741,7 +9754,10 @@ function renderTapApontar(){
   html+='</div>';
 
   // ── Gradista visitante (foi ajudar no tapeçamento) ────────────
-  const gradistasVisita=gradistas.filter(g=>g.ativo!==false&&!tapecadores.some(t=>t.origemGradistaId===g.id));
+  // Fica sempre acessível por aqui — nunca migra pra grade principal acima,
+  // mesmo depois de já ter apontado antes, pra não misturar com o quadro
+  // fixo de tapeceiros.
+  const gradistasVisita=gradistas.filter(g=>g.ativo!==false);
   html+='<div style="margin-top:18px">'
     +'<button onclick="window._tapToggleVisitantes()" style="width:100%;text-align:left;padding:10px 14px;border-radius:10px;border:1.5px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
     +'<span>🔁 Um gradista veio ajudar aqui hoje?</span><span>'+(window._tapMostrarVisitantes?'▲':'▼')+'</span>'
@@ -9749,12 +9765,16 @@ function renderTapApontar(){
   if(window._tapMostrarVisitantes){
     html+='<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     if(!gradistasVisita.length){
-      html+='<div style="grid-column:1/-1;font-size:12px;color:#94a3b8;text-align:center;padding:10px">Todos os gradistas já têm registro aqui.</div>';
+      html+='<div style="grid-column:1/-1;font-size:12px;color:#94a3b8;text-align:center;padding:10px">Nenhum gradista cadastrado.</div>';
     }
+    const hojeV=today();
     gradistasVisita.forEach(g=>{
+      const tVinc=tapecadores.find(t=>t.origemGradistaId===g.id);
+      const fichaV=tVinc?fichasTapAtiva(tVinc.id,getQuinzenaAtualTap()):null;
+      const totalHojeV=totalPecasTap((fichaV?.apontamentos||[]).filter(a=>a.data===hojeV));
       html+='<div onclick="window._tapRegistrarVisitante(\''+g.id+'\')" style="background:#f5f3ff;border:2px dashed #c4b5fd;border-radius:16px;padding:16px;text-align:center;cursor:pointer">'
         +'<div style="font-size:13px;font-weight:700;color:#5b21b6">'+g.nome+'</div>'
-        +'<div style="font-size:10px;color:#7c3aed;margin-top:4px">Gradista · toque para apontar aqui</div>'
+        +'<div style="font-size:10px;color:#7c3aed;margin-top:4px">'+(totalHojeV>0?totalHojeV+' peças hoje':'Gradista · toque para apontar aqui')+'</div>'
         +'</div>';
     });
     html+='</div>';
