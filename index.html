@@ -19395,6 +19395,12 @@ const LISTENERS_POR_SETOR={
       if(snap.exists()) configTap={pecasExcluidas:[],pecasCustom:[],valores:{},...snap.data()};
       if(currentUserData)reloadTab();
     }),
+    // Precisa dos gradistas carregados aqui também — o botão "gradista
+    // visitante" no apontamento verifica quem já tem vínculo com Tapeçamento.
+    ()=>onSnapshot(collection(db,'gradistas'),snap=>{
+      gradistas=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
   ],
   manutencao: [
     ()=>onSnapshot(collection(db,'manut_maquinas'),snap=>{
@@ -19421,6 +19427,12 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(doc(db,'config_grad','geral'),snap=>{
       if(snap.exists()) configGrad={valores:{},...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    // Precisa dos tapeceiros carregados aqui também — o botão "tapeceiro
+    // visitante" no apontamento verifica quem já tem vínculo com Grades.
+    ()=>onSnapshot(collection(db,'tapecadores'),snap=>{
+      tapecadores=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
       if(currentUserData)reloadTab();
     }),
   ],
