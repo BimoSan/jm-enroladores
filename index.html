@@ -6543,13 +6543,13 @@ function renderCamRelatorio(){
     const gMot=rotasM.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
     const viagens=rotasM.length;
     const total=comb+gMot;
-    return {m,km,comb,gMot,viagens,total,indice:viagens?total/viagens:0};
+    return {m,km,comb,gMot,viagens,total,indice:viagens?gMot/viagens:0};
   }).filter(x=>x.viagens>0).sort((a,b)=>a.indice-b.indice);
 
   if(porMotorista.length){
     html+='<div class="card" style="margin-top:14px">'
       +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Por motorista</div>'
-      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por gasto/viagem — do que gasta menos pro que gasta mais.</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Gasto Mot./viagem (sem combustível) — do que gasta menos pro que gasta mais.</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f1f5f9">'
       +'<th style="padding:7px 10px;text-align:left">Motorista</th>'
@@ -6558,7 +6558,7 @@ function renderCamRelatorio(){
       +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
       +'<th style="padding:7px 10px;text-align:right">Gasto Mot.</th>'
       +'<th style="padding:7px 10px;text-align:right">Total</th>'
-      +'<th style="padding:7px 10px;text-align:right">Gasto/Viagem</th>'
+      +'<th style="padding:7px 10px;text-align:right">Gasto Mot./Viagem</th>'
       +'</tr></thead><tbody>'
       +porMotorista.map(({m,km,comb,gMot,viagens,total,indice},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
         +'<td style="padding:7px 10px;font-weight:700">'+m.nome+'</td>'
