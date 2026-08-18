@@ -9627,7 +9627,13 @@ window._salvarConfigInt=async function(){
 
 // ── Minha Produção (enrolador) ────────────────────────────────────
 function renderMinhaProdInt(){
-  const enrId=currentUserData?.uid;
+  // O uid do Auth não é o id do enrolador — precisa achar o cadastro em
+  // enroladoresInt vinculado a esse login (por usuarioUid, com fallback por
+  // nome) e usar o ID DELE pra filtrar as fichas, não o uid direto.
+  const uid=currentUser?.uid||'';
+  const nome=currentUserData?.nome||'';
+  const meuEnr=enroladoresInt.find(e=>e.usuarioUid===uid)||enroladoresInt.find(e=>e.nome?.toLowerCase()===nome.toLowerCase());
+  const enrId=meuEnr?.id;
   const minhasFichas=fichasInt.filter(f=>f.enroladorId===enrId);
   const ficha=minhasFichas.find(f=>f.status==='aberta');
 
@@ -9636,7 +9642,7 @@ function renderMinhaProdInt(){
     html+='<div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha aberta no momento.</div>';
   } else {
     const ganho=somaProducaoFicha(ficha);
-    const totPecas=totalPecasFicha(ficha);
+    const totPecas=totalPecasFichaInt(ficha);
     const rolos=totalRolosFicha(ficha);
     html+='<div style="margin-bottom:12px">'
       +'<div style="font-size:13px;font-weight:700">Ficha atual</div>'
