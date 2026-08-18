@@ -9078,11 +9078,13 @@ function renderPainelInt(){
   const totalHoje=Object.values(totHojeGeral).reduce((s,v)=>s+v,0);
   const totalMes=Object.values(totMesGeral).reduce((s,v)=>s+v,0);
   const tiposAtivos=getTiposInt().filter(t=>(totHojeGeral[t.id]||0)>0||(totMesGeral[t.id]||0)>0);
+  const aPagar=abertas.reduce((s,f)=>s+somaProducaoFicha(f),0);
 
   // Cards de resumo
   let html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Fichas abertas</div><div class="stat-value">'+abertas.length+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><div><div class="stat-label">Enroladores</div><div class="stat-value">'+enroladoresInt.length+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#b45309,#f59e0b)"><div><div class="stat-label">A pagar</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(aPagar)+'</div></div></div>'
     +'</div>';
 
   // Cards de peças por tipo
@@ -9647,27 +9649,11 @@ function renderRankingInt(){
     +'</div>'
   ).join('');
 
-  // Ranking geral (todas as peças somadas)
-  const totais=enroladoresInt.filter(e=>e.ativo!==false).map(e=>{
-    let total=0;
-    fichasInt.filter(f=>f.enroladorId===e.id).forEach(f=>{
-      (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).forEach(a=>{
-        total+=Object.values(a.tipos||{}).reduce((s,v)=>s+(parseInt(v)||0),0);
-      });
-    });
-    return {nome:e.nome,total};
-  }).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
-
   let html='<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">'
-    +'<div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking — Enrolamento Interno</div>'
+    +'<div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking por peça — Enrolamento Interno</div>'
     +'<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">'+mesNome+'</div>'
-    +'</div>'
-    +'<div class="card" style="padding:4px 4px;margin-bottom:18px">'
-    +(linhasDe(totais)||'<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada esse mês ainda.</div>')
     +'</div>';
-
-  // Ranking por peça — quem mais produziu cada tipo específico no mês
-  html+='<div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Ranking por peça</div>';
+  let temAlgumaProducao=false;
   getTiposInt().forEach(t=>{
     const totaisTipo=enroladoresInt.filter(e=>e.ativo!==false).map(e=>{
       let total=0;
@@ -9679,9 +9665,13 @@ function renderRankingInt(){
       return {nome:e.nome,total};
     }).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
     if(!totaisTipo.length) return;
+    temAlgumaProducao=true;
     html+='<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">'+t.label+'</div>'
       +'<div class="card" style="padding:4px 4px;margin-bottom:10px">'+linhasDe(totaisTipo)+'</div>';
   });
+  if(!temAlgumaProducao){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada esse mês ainda.</div>';
+  }
 
   return html;
 }
