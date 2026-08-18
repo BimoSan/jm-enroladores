@@ -1106,7 +1106,7 @@ function renderApp(){
   } else if(currentSetor==='enrolamento_int'){
     const pInt=currentUserData?.perfil;
     if(['admin','encarregado_cad','apontador_int'].includes(pInt)){
-      tabs.push('painel_int','apontar_int','fichas_int','enroladores_int','config_int');
+      tabs.push('painel_int','apontar_int','fichas_int','ranking_int','enroladores_int','config_int');
     } else if(pInt==='enrolador_int'){
       tabs.push('minha_prod_int');
     } else {
@@ -9109,10 +9109,23 @@ function renderPainelInt(){
     html+='</div>';
   }
 
-  if(!enroladoresInt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum enrolador cadastrado ainda.</div></div>';
+  // Fichas em andamento — mesmo espírito do painel do Enrolamento Terceirizado
+  html+='<div class="section-label">fichas em andamento</div>';
+  const abertasOrdenadas=[...abertas].sort((a,b)=>b.dataAbertura>a.dataAbertura?1:-1);
+  if(!abertasOrdenadas.length){
+    html+='<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
+  } else {
+    html+=abertasOrdenadas.map(f=>renderFichaIntCard(f)).join('');
+  }
+  return html;
+}
 
-  // Cards por enrolador
-  html+='<div style="display:flex;flex-direction:column;gap:10px">';
+// Cards por enrolador — clique abre o lançamento rápido de produção
+function renderEnroladoresCardsInt(){
+  const hoje=today();
+  if(!enroladoresInt.length) return '<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhum enrolador cadastrado ainda.</div></div>';
+
+  let html='<div style="display:flex;flex-direction:column;gap:10px">';
   enroladoresInt.forEach(enr=>{
     const ficha=fichaIntAtiva(enr.id);
     const pecasHoje=fichasInt.reduce((s,f)=>f.enroladorId!==enr.id?s:
@@ -9188,9 +9201,10 @@ function renderPainelInt(){
 
 // ── Apontamento ───────────────────────────────────────────────────
 function renderApontarInt(){
-  return '<div class="card">'
+  return '<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">Toque no nome do enrolador para lançar produção:</div>'
+    +renderEnroladoresCardsInt()
+    +'<div class="card" style="margin-top:16px">'
     +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">📋 Histórico de apontamentos — hoje</div>'
-    +'<div style="font-size:12px;color:#94a3b8;margin-bottom:14px">O lançamento de produção agora é feito direto na tela inicial (Painel) — toque no nome do enrolador lá.</div>'
     +historicoApontInt()
     +'</div>';
 }
@@ -9379,6 +9393,78 @@ window._confirmarExcluirFichaInt=async()=>{
   showToast('Ficha excluída.');
 };
 
+// Card de uma ficha — usado tanto na aba Fichas quanto no Painel (fichas em andamento)
+function renderFichaIntCard(f){
+  const enr=getEnrInt(f.enroladorId);
+  const totPecas=totalPecasFichaInt(f);
+  const ganho=somaProducaoFicha(f);
+  const rolos=totalRolosFicha(f);
+  const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
+  const podeFechar=f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
+
+  // Histórico por dia — cada apontamento listado individualmente (permite editar/excluir)
+  const isAdminInt=['admin','encarregado_cad'].includes(currentUserData?.perfil);
+  const apontsComIndice=(f.apontamentos||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.data);
+  apontsComIndice.sort((a,b)=>b.data>a.data?1:(b.data<a.data?-1:0));
+
+  const historicoHtml=apontsComIndice.length?`
+    <div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:10px">
+      <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Histórico por dia</div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#f8fafc">
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8;font-weight:700">Data</th>
+          <th style="padding:6px 10px;text-align:center;color:#94a3b8;font-weight:700">Total</th>
+          <th style="padding:6px 10px;text-align:left;color:#94a3b8;font-weight:700">Detalhes</th>
+          ${isAdminInt?'<th style="padding:6px 10px;width:110px"></th>':''}
+        </tr></thead>
+        <tbody>
+          ${apontsComIndice.map((a,i)=>{
+            const tots=a.tipos||{};
+            const totalDia=Object.values(tots).reduce((s,v)=>s+(parseInt(v)||0),0);
+            const det=getTiposInt().filter(t=>tots[t.id]>0).map(t=>`<span style="font-size:10px;color:#64748b">${t.label}: <strong>${tots[t.id]}</strong></span>`).join(' · ');
+            const [y,m,d]=a.data.split('-');
+            return `<tr style="${i%2?'background:#f8fafc':''}">
+              <td style="padding:6px 10px;font-weight:600;white-space:nowrap">${d}/${m}/${y}</td>
+              <td style="padding:6px 10px;text-align:center;font-weight:800;color:#1e40af">${totalDia}</td>
+              <td style="padding:6px 10px">${det||'—'}</td>
+              ${isAdminInt?`<td style="padding:6px 10px;white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarApontamentoInt('${f.id}',${a._idx})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px;margin-left:4px" onclick="window._excluirApontamentoInt('${f.id}',${a._idx})">Excluir</button></td>`:''}
+            </tr>`;
+          }).join('')}
+          <tr style="background:#dbeafe;font-weight:800">
+            <td style="padding:6px 10px;color:#1e40af">Total</td>
+            <td style="padding:6px 10px;text-align:center;color:#1e40af">${totalPecasN}</td>
+            <td></td>
+            ${isAdminInt?'<td></td>':''}
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>`:'';
+
+  return `<div class="card" style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-weight:700;font-size:14px">${enr.nome||'⚠️ Enrolador removido'}</div>
+        <div style="font-size:11px;color:#64748b">Aberta: ${fmtDate(f.dataAbertura)}${f.dataFechamento?' · Fechada: '+fmtDate(f.dataFechamento):''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:800;color:#065f46">${fmtMoeda(ganho)}</div>
+          <div style="font-size:11px;color:#64748b">${totalPecasN} peças · ${rolos} rolos</div>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${f.status==='aberta'?'#d1fae5':'#f1f5f9'};color:${f.status==='aberta'?'#065f46':'#64748b'}">${f.status}</span>
+        </div>
+        ${podeFechar?`<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt('${f.id}')">Fechar ficha</button>`:''}
+        ${isAdminInt?`<button class="btn btn-sm btn-danger" onclick="window._excluirFichaInt('${f.id}')">Excluir ficha</button>`:''}
+      </div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+      ${getTiposInt().map(t=>totPecas[t.id]>0?`<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">${totPecas[t.id]}</span> ${t.label}</div>`:'').join('')}
+    </div>
+    ${historicoHtml}
+  </div>`;
+}
+
 function renderFichasInt(){
   if(!window._fichasIntFiltro) window._fichasIntFiltro='abertas';
   const filtro=window._fichasIntFiltro;
@@ -9392,76 +9478,7 @@ function renderFichasInt(){
 
   if(!fichasFilt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha '+filtro+'.</div></div>';
 
-  html+=fichasFilt.map(f=>{
-    const enr=getEnrInt(f.enroladorId);
-    const totPecas=totalPecasFichaInt(f);
-    const ganho=somaProducaoFicha(f);
-    const rolos=totalRolosFicha(f);
-    const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
-    const podeFechar=f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
-
-    // Histórico por dia — cada apontamento listado individualmente (permite editar/excluir)
-    const isAdminInt=['admin','encarregado_cad'].includes(currentUserData?.perfil);
-    const apontsComIndice=(f.apontamentos||[]).map((a,idx)=>({...a,_idx:idx})).filter(a=>a.data);
-    apontsComIndice.sort((a,b)=>b.data>a.data?1:(b.data<a.data?-1:0));
-
-    const historicoHtml=apontsComIndice.length?`
-      <div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:10px">
-        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Histórico por dia</div>
-        <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr style="background:#f8fafc">
-            <th style="padding:6px 10px;text-align:left;color:#94a3b8;font-weight:700">Data</th>
-            <th style="padding:6px 10px;text-align:center;color:#94a3b8;font-weight:700">Total</th>
-            <th style="padding:6px 10px;text-align:left;color:#94a3b8;font-weight:700">Detalhes</th>
-            ${isAdminInt?'<th style="padding:6px 10px;width:110px"></th>':''}
-          </tr></thead>
-          <tbody>
-            ${apontsComIndice.map((a,i)=>{
-              const tots=a.tipos||{};
-              const totalDia=Object.values(tots).reduce((s,v)=>s+(parseInt(v)||0),0);
-              const det=getTiposInt().filter(t=>tots[t.id]>0).map(t=>`<span style="font-size:10px;color:#64748b">${t.label}: <strong>${tots[t.id]}</strong></span>`).join(' · ');
-              const [y,m,d]=a.data.split('-');
-              return `<tr style="${i%2?'background:#f8fafc':''}">
-                <td style="padding:6px 10px;font-weight:600;white-space:nowrap">${d}/${m}/${y}</td>
-                <td style="padding:6px 10px;text-align:center;font-weight:800;color:#1e40af">${totalDia}</td>
-                <td style="padding:6px 10px">${det||'—'}</td>
-                ${isAdminInt?`<td style="padding:6px 10px;white-space:nowrap"><button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._editarApontamentoInt('${f.id}',${a._idx})">Editar</button> <button class="btn btn-sm btn-danger" style="font-size:10px;margin-left:4px" onclick="window._excluirApontamentoInt('${f.id}',${a._idx})">Excluir</button></td>`:''}
-              </tr>`;
-            }).join('')}
-            <tr style="background:#dbeafe;font-weight:800">
-              <td style="padding:6px 10px;color:#1e40af">Total</td>
-              <td style="padding:6px 10px;text-align:center;color:#1e40af">${totalPecasN}</td>
-              <td></td>
-              ${isAdminInt?'<td></td>':''}
-            </tr>
-          </tbody>
-        </table>
-        </div>
-      </div>`:'';
-
-    return `<div class="card" style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="font-weight:700;font-size:14px">${enr.nome||'⚠️ Enrolador removido'}</div>
-          <div style="font-size:11px;color:#64748b">Aberta: ${fmtDate(f.dataAbertura)}${f.dataFechamento?' · Fechada: '+fmtDate(f.dataFechamento):''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-          <div style="text-align:right">
-            <div style="font-size:18px;font-weight:800;color:#065f46">${fmtMoeda(ganho)}</div>
-            <div style="font-size:11px;color:#64748b">${totalPecasN} peças · ${rolos} rolos</div>
-            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${f.status==='aberta'?'#d1fae5':'#f1f5f9'};color:${f.status==='aberta'?'#065f46':'#64748b'}">${f.status}</span>
-          </div>
-          ${podeFechar?`<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt('${f.id}')">Fechar ficha</button>`:''}
-          ${isAdminInt?`<button class="btn btn-sm btn-danger" onclick="window._excluirFichaInt('${f.id}')">Excluir ficha</button>`:''}
-        </div>
-      </div>
-      <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
-        ${getTiposInt().map(t=>totPecas[t.id]>0?`<div style="font-size:11px"><span style="font-weight:700;color:#1e40af">${totPecas[t.id]}</span> ${t.label}</div>`:'').join('')}
-      </div>
-      ${historicoHtml}
-    </div>`;
-  }).join('');
+  html+=fichasFilt.map(f=>renderFichaIntCard(f)).join('');
 
   return html;
 }
@@ -9619,7 +9636,18 @@ function renderRankingInt(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesAtual=today().slice(0,7);
   const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+  const medalhas=['🥇','🥈','🥉'];
+  const linhasDe=(lista)=>lista.map((e,i)=>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<span style="font-size:16px;width:26px;text-align:center">'+(medalhas[i]||(i+1)+'º')+'</span>'
+    +'<span style="font-size:13px;font-weight:700">'+e.nome+'</span>'
+    +'</div>'
+    +'<span style="font-size:16px;font-weight:800;color:#065f46">'+e.total+' <span style="font-size:10px;font-weight:600;color:#94a3b8">peças</span></span>'
+    +'</div>'
+  ).join('');
 
+  // Ranking geral (todas as peças somadas)
   const totais=enroladoresInt.filter(e=>e.ativo!==false).map(e=>{
     let total=0;
     fichasInt.filter(f=>f.enroladorId===e.id).forEach(f=>{
@@ -9630,24 +9658,32 @@ function renderRankingInt(){
     return {nome:e.nome,total};
   }).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
 
-  const medalhas=['🥇','🥈','🥉'];
-  const linhas=totais.map((e,i)=>
-    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-    +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<span style="font-size:16px;width:26px;text-align:center">'+(medalhas[i]||(i+1)+'º')+'</span>'
-    +'<span style="font-size:13px;font-weight:700">'+e.nome+'</span>'
-    +'</div>'
-    +'<span style="font-size:16px;font-weight:800;color:#065f46">'+e.total+' <span style="font-size:10px;font-weight:600;color:#94a3b8">peças</span></span>'
-    +'</div>'
-  ).join('');
-
-  return '<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">'
+  let html='<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">'
     +'<div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking — Enrolamento Interno</div>'
     +'<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">'+mesNome+'</div>'
     +'</div>'
-    +'<div class="card" style="padding:4px 4px">'
-    +(linhas||'<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada esse mês ainda.</div>')
+    +'<div class="card" style="padding:4px 4px;margin-bottom:18px">'
+    +(linhasDe(totais)||'<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada esse mês ainda.</div>')
     +'</div>';
+
+  // Ranking por peça — quem mais produziu cada tipo específico no mês
+  html+='<div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Ranking por peça</div>';
+  getTiposInt().forEach(t=>{
+    const totaisTipo=enroladoresInt.filter(e=>e.ativo!==false).map(e=>{
+      let total=0;
+      fichasInt.filter(f=>f.enroladorId===e.id).forEach(f=>{
+        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).forEach(a=>{
+          total+=parseInt((a.tipos||{})[t.id])||0;
+        });
+      });
+      return {nome:e.nome,total};
+    }).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
+    if(!totaisTipo.length) return;
+    html+='<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">'+t.label+'</div>'
+      +'<div class="card" style="padding:4px 4px;margin-bottom:10px">'+linhasDe(totaisTipo)+'</div>';
+  });
+
+  return html;
 }
 
 
