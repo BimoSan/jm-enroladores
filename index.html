@@ -9117,7 +9117,7 @@ function renderPainelInt(){
   if(!abertasOrdenadas.length){
     html+='<div class="card"><div style="color:#666;font-size:13px;text-align:center;padding:20px">Nenhuma ficha aberta.</div></div>';
   } else {
-    html+=abertasOrdenadas.map(f=>renderFichaIntCard(f)).join('');
+    html+=abertasOrdenadas.map(f=>renderFichaIntCard(f,{resumo:true})).join('');
   }
   return html;
 }
@@ -9396,13 +9396,32 @@ window._confirmarExcluirFichaInt=async()=>{
 };
 
 // Card de uma ficha — usado tanto na aba Fichas quanto no Painel (fichas em andamento)
-function renderFichaIntCard(f){
+function renderFichaIntCard(f,opts){
+  const resumo=opts&&opts.resumo;
   const enr=getEnrInt(f.enroladorId);
   const totPecas=totalPecasFichaInt(f);
   const ganho=somaProducaoFicha(f);
   const rolos=totalRolosFicha(f);
   const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
   const podeFechar=f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
+
+  if(resumo){
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <div style="font-weight:700;font-size:14px">${enr.nome||'⚠️ Enrolador removido'}</div>
+          <div style="font-size:11px;color:#64748b">Aberta: ${fmtDate(f.dataAbertura)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:800;color:#065f46">${fmtMoeda(ganho)}</div>
+            <div style="font-size:11px;color:#64748b">${totalPecasN} peças</div>
+          </div>
+          ${podeFechar?`<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt('${f.id}')">Fechar ficha</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
 
   // Histórico por dia — cada apontamento listado individualmente (permite editar/excluir)
   const isAdminInt=['admin','encarregado_cad'].includes(currentUserData?.perfil);
