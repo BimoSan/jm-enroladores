@@ -9633,31 +9633,92 @@ function renderMinhaProdInt(){
   const uid=currentUser?.uid||'';
   const nome=currentUserData?.nome||'';
   const meuEnr=enroladoresInt.find(e=>e.usuarioUid===uid)||enroladoresInt.find(e=>e.nome?.toLowerCase()===nome.toLowerCase());
-  const enrId=meuEnr?.id;
-  const minhasFichas=fichasInt.filter(f=>f.enroladorId===enrId);
-  const ficha=minhasFichas.find(f=>f.status==='aberta');
+  if(!meuEnr) return '<div class="card" style="text-align:center;padding:30px">'
+    +'<div style="font-size:40px;margin-bottom:12px">👤</div>'
+    +'<div style="font-weight:700;font-size:15px;margin-bottom:6px">Usuário não vinculado</div>'
+    +'<div style="font-size:12px;color:#94a3b8">Fale com o apontador para vincular seu usuário.</div></div>';
 
-  let html='<div class="card">';
-  if(!ficha){
-    html+='<div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha aberta no momento.</div>';
-  } else {
-    const ganho=somaProducaoFicha(ficha);
-    const totPecas=totalPecasFichaInt(ficha);
-    const rolos=totalRolosFicha(ficha);
-    html+='<div style="margin-bottom:12px">'
-      +'<div style="font-size:13px;font-weight:700">Ficha atual</div>'
-      +'<div style="font-size:11px;color:#64748b">Aberta em '+fmtDate(ficha.dataAbertura)+'</div>'
+  const fichasEnr=fichasInt.filter(f=>f.enroladorId===meuEnr.id);
+  const fichaAberta=fichasEnr.find(f=>f.status==='aberta');
+  const fichasFechadas=fichasEnr.filter(f=>f.status==='fechada').sort((a,b)=>b.dataAbertura>a.dataAbertura?1:-1);
+
+  const ganhoAberta=fichaAberta?somaProducaoFicha(fichaAberta):0;
+  const totPecas=fichaAberta?totalPecasFichaInt(fichaAberta):{};
+  const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
+  const rolos=fichaAberta?totalRolosFicha(fichaAberta):0;
+
+  let html='';
+
+  // Card principal — valor a receber
+  html+='<div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;color:#fff">'
+    +'<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:8px">💰 Valor a receber na ficha atual</div>'
+    +(fichaAberta
+      ?'<div style="font-size:42px;font-weight:900;letter-spacing:-1px">'+fmtMoeda(ganhoAberta)+'</div>'
+        +'<div style="font-size:12px;opacity:.7;margin-top:6px">Ficha aberta desde '+fmtDate(fichaAberta.dataAbertura)+'</div>'
+      :'<div style="font-size:20px;font-weight:700;opacity:.7">Sem ficha aberta</div>')
+    +'</div>';
+
+  if(fichaAberta){
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+      +'<div class="card" style="text-align:center;padding:14px">'
+        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">PEÇAS NA FICHA</div>'
+        +'<div style="font-size:24px;font-weight:800;color:#1e40af">'+totalPecasN+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">peças</div>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">'
-      +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Ganho</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(ganho)+'</div></div></div>'
-      +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Peças</div><div class="stat-value">'+Object.values(totPecas).reduce((s,v)=>s+v,0)+'</div></div></div>'
-      +'<div class="stat-card" style="background:linear-gradient(135deg,#9333ea,#a78bfa)"><div><div class="stat-label">Rolos recebidos</div><div class="stat-value">'+rolos+'</div></div></div>'
+      +'<div class="card" style="text-align:center;padding:14px">'
+        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">ROLOS RECEBIDOS</div>'
+        +'<div style="font-size:24px;font-weight:800;color:#059669">'+rolos+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
       +'</div>'
-      +'<div style="display:flex;gap:16px;flex-wrap:wrap">'
-      +getTiposInt().map(t=>totPecas[t.id]>0?'<div style="font-size:12px"><span style="font-weight:700;color:#1e40af">'+totPecas[t.id]+'</span> '+t.label+'</div>':'').join('')
+      +'<div class="card" style="text-align:center;padding:14px">'
+        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">HOJE</div>'
+        +'<div style="font-size:24px;font-weight:800;color:#d97706">'+(fichaAberta.apontamentos||[]).filter(a=>a.data===today()).reduce((s,a)=>s+Object.values(a.tipos||{}).reduce((ss,v)=>ss+(parseInt(v)||0),0),0)+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">peças</div>'
+      +'</div>'
+    +'</div>';
+
+    // Últimos apontamentos
+    const apontsOrdenados=[...(fichaAberta.apontamentos||[])].filter(a=>a.data).sort((a,b)=>b.data>a.data?1:(b.data<a.data?-1:0));
+    if(apontsOrdenados.length){
+      html+='<div class="card">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📋 Produção da ficha</div>'
+        +apontsOrdenados.map((a,i)=>{
+          const det=getTiposInt().filter(t=>(a.tipos||{})[t.id]>0).map(t=>a.tipos[t.id]+' '+t.label).join(', ');
+          const valorApont=getTiposInt().reduce((s,t)=>{
+            const qtd=parseInt((a.tipos||{})[t.id])||0;
+            const valorUnit=(a.valores||{})[t.id]!=null?parseFloat(a.valores[t.id]):getValorInt(t.id);
+            return s+qtd*valorUnit;
+          },0);
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+            +'<div>'
+            +'<div style="font-size:11px;color:#94a3b8">'+fmtDate(a.data)+'</div>'
+            +'<div style="font-size:13px;font-weight:600;color:#1e40af">📦 '+(det||'—')+'</div>'
+            +'</div>'
+            +'<div style="font-weight:800;color:#059669">'+fmtMoeda(valorApont)+'</div>'
+            +'</div>';
+        }).join('')
+        +'</div>';
+    }
+  }
+
+  // Histórico de fichas anteriores
+  if(fichasFechadas.length){
+    html+='<div class="card" style="margin-top:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📁 Fichas anteriores</div>'
+      +fichasFechadas.slice(0,5).map((f,i)=>{
+        const ganho=somaProducaoFicha(f);
+        const tot=totalPecasFichaInt(f);
+        const totN=Object.values(tot).reduce((s,v)=>s+v,0);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
+          +'<div>'
+            +'<div style="font-size:12px;font-weight:600">'+fmtDate(f.dataAbertura)+' → '+fmtDate(f.dataFechamento)+'</div>'
+            +'<div style="font-size:10px;color:#64748b">'+totN+' peças produzidas</div>'
+          +'</div>'
+          +'<div style="font-weight:800;color:#065f46">'+fmtMoeda(ganho)+'</div>'
+          +'</div>';
+      }).join('')
       +'</div>';
   }
-  html+='</div>';
   return html;
 }
 
