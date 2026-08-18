@@ -9026,7 +9026,13 @@ function fichaIntAtiva(enrId){
 
 function somaProducaoFicha(ficha){
   return (ficha.apontamentos||[]).reduce((s,a)=>{
-    getTiposInt().forEach(t=>{ s+=(parseInt((a.tipos||{})[t.id])||0)*getValorInt(t.id); });
+    getTiposInt().forEach(t=>{
+      const qtd=parseInt((a.tipos||{})[t.id])||0;
+      // Usa o valor travado no apontamento (o enrolador pode ter cobrado
+      // diferente do padrão naquele dia); sem isso, cai no valor padrão atual.
+      const valorUnit=(a.valores||{})[t.id]!=null?parseFloat(a.valores[t.id]):getValorInt(t.id);
+      s+=qtd*valorUnit;
+    });
     return s;
   },0);
 }
@@ -9284,6 +9290,8 @@ window._aiAbrirTipo=function(enrId,tipoId){
   showModal('📦 '+(tipo?.label||'')+' — quantidade',
     '<div class="form-group"><label>Quantidade</label>'
     +'<input type="number" id="ait-qtd" min="1" step="1" placeholder="0" onfocus="this.select()" style="font-size:24px;font-weight:800;border:2px solid #e2e8f0;border-radius:10px;padding:12px;width:100%;text-align:center"></div>'
+    +'<div class="form-group" style="margin-top:10px"><label>Valor por peça (R$)</label>'
+    +'<input type="number" id="ait-valor" min="0" step="0.01" value="'+getValorInt(tipoId)+'" onfocus="this.select()" style="font-size:16px;font-weight:700;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group" style="margin-top:10px"><label>Data</label>'
     +'<input type="date" id="ait-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
@@ -9293,6 +9301,7 @@ window._aiAbrirTipo=function(enrId,tipoId){
 window._aiConfirmarApontRapido=async function(enrId,tipoId){
   if(!['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil)){showToast('Você não tem permissão para registrar produção.');return;}
   const qtd=parseInt(document.getElementById('ait-qtd')?.value)||0;
+  const valorUnit=parseFloat(document.getElementById('ait-valor')?.value);
   const data=document.getElementById('ait-data')?.value||today();
   if(!qtd){showToast('Informe a quantidade.');return;}
   closeModal();
@@ -9302,7 +9311,8 @@ window._aiConfirmarApontRapido=async function(enrId,tipoId){
     ficha={id:ref.id,enroladorId:enrId,dataAbertura:data,status:'aberta',apontamentos:[]};
   }
   const apontamentos=[...(ficha.apontamentos||[]),{
-    id:Date.now().toString(),data,tipos:{[tipoId]:qtd},criadoEm:new Date().toISOString(),
+    id:Date.now().toString(),data,tipos:{[tipoId]:qtd},valores:{[tipoId]:!isNaN(valorUnit)?valorUnit:getValorInt(tipoId)},
+    criadoEm:new Date().toISOString(),
     apontadorId:currentUserData?.uid||'',apontadorNome:currentUserData?.nome||''
   }];
   await updateDoc(doc(db,'fichas_int',ficha.id),{apontamentos});
