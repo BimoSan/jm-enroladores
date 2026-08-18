@@ -715,6 +715,8 @@ window._doLogin=async function(){
 const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>', 'fichas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', 'entregar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', 'recolher': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 12 6.81 16.5 4.21"/><polyline points="7.5 19.79 7.5 14.6 3 12"/><polyline points="21 12 16.5 14.6 16.5 19.79"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', 'relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', 'ranking': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 'valores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 'enroladores': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', 'usuarios': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   'usuarios_fitas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   'usuarios_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  'meu_rendimento_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'minhas_fichas_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'auditoria': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   'cam_rotas':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',
   'cam_abastecimento':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/></svg>',
@@ -818,7 +820,7 @@ const TAB_LABELS={
   'alm_itens':'Itens','alm_relatorio':'Relatórios','alm_config':'Configurações',
   // Enrolamento Interno
   'painel_int':'Painel','apontar_int':'Apontamento','fichas_int':'Fichas',
-  'enroladores_int':'Enroladores','config_int':'Configurações','minha_prod_int':'Minha Produção','ranking_int':'Ranking','usuarios_int':'Usuários',
+  'enroladores_int':'Enroladores','config_int':'Configurações','minha_prod_int':'Minha Produção','minhas_fichas_int':'Minhas Fichas','meu_rendimento_int':'Meu Rendimento','ranking_int':'Ranking','usuarios_int':'Usuários',
   // Fitas
   'estoque_fitas':'Estoque','producao_fitas':'Produção','saidas_fitas':'Saídas',
   'traco_fitas':'Traço da Fibra',
@@ -1110,7 +1112,7 @@ function renderApp(){
       tabs.push('painel_int','apontar_int','fichas_int','ranking_int','enroladores_int','config_int');
       if(pInt==='admin') tabs.push('usuarios_int');
     } else if(pInt==='enrolador_int'){
-      tabs.push('minha_prod_int');
+      tabs.push('minha_prod_int','minhas_fichas_int','meu_rendimento_int','ranking_int');
     } else {
       tabs.push('painel_int','ranking_int');
     }
@@ -9007,6 +9009,8 @@ function renderTabInt(tab){
     if(tab==='enroladores_int') return renderEnroladoresInt();
     if(tab==='config_int')      return renderConfigInt();
     if(tab==='minha_prod_int')  return renderMinhaProdInt();
+    if(tab==='minhas_fichas_int') return renderMinhasFichasInt();
+    if(tab==='meu_rendimento_int') return renderMeuRendimentoInt();
     if(tab==='ranking_int')     return renderRankingInt();
     if(tab==='usuarios_int')    return renderUsuariosContexto('setor','cadeiras','enrolamento_int','Enrolamento Interno');
     return renderPainelInt();
@@ -9645,7 +9649,6 @@ function renderMinhaProdInt(){
   const ganhoAberta=fichaAberta?somaProducaoFicha(fichaAberta):0;
   const totPecas=fichaAberta?totalPecasFichaInt(fichaAberta):{};
   const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
-  const rolos=fichaAberta?totalRolosFicha(fichaAberta):0;
 
   let html='';
 
@@ -9659,16 +9662,11 @@ function renderMinhaProdInt(){
     +'</div>';
 
   if(fichaAberta){
-    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+    html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">'
       +'<div class="card" style="text-align:center;padding:14px">'
         +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">PEÇAS NA FICHA</div>'
         +'<div style="font-size:24px;font-weight:800;color:#1e40af">'+totalPecasN+'</div>'
         +'<div style="font-size:10px;color:#94a3b8">peças</div>'
-      +'</div>'
-      +'<div class="card" style="text-align:center;padding:14px">'
-        +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">ROLOS RECEBIDOS</div>'
-        +'<div style="font-size:24px;font-weight:800;color:#059669">'+rolos+'</div>'
-        +'<div style="font-size:10px;color:#94a3b8">rolos</div>'
       +'</div>'
       +'<div class="card" style="text-align:center;padding:14px">'
         +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">HOJE</div>'
@@ -9719,6 +9717,91 @@ function renderMinhaProdInt(){
       }).join('')
       +'</div>';
   }
+  return html;
+}
+
+// ── Minhas Fichas (Enrolamento Interno) — histórico de fichas fechadas por mês ──
+function renderMinhasFichasInt(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const uid=currentUser?.uid||'';
+  const nome=currentUserData?.nome||'';
+  const meuEnr=enroladoresInt.find(e=>e.usuarioUid===uid)||enroladoresInt.find(e=>e.nome?.toLowerCase()===nome.toLowerCase());
+  if(!meuEnr) return '<div class="card" style="text-align:center;padding:30px">'
+    +'<div style="font-size:40px;margin-bottom:12px">👤</div>'
+    +'<div style="font-weight:700;font-size:15px;margin-bottom:6px">Usuário não vinculado</div>'
+    +'<div style="font-size:12px;color:#94a3b8">Fale com o apontador para vincular seu usuário.</div></div>';
+
+  const fechadas=fichasInt.filter(f=>f.enroladorId===meuEnr.id&&f.status==='fechada');
+  if(!fechadas.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma ficha fechada ainda.</div>';
+
+  const porMes={};
+  fechadas.forEach(f=>{
+    const mes=(f.dataFechamento||f.dataAbertura||'').slice(0,7);
+    if(!porMes[mes]) porMes[mes]=[];
+    porMes[mes].push(f);
+  });
+  const mesesOrdenados=Object.keys(porMes).sort().reverse();
+
+  return mesesOrdenados.map(mes=>{
+    const fichasMes=porMes[mes].sort((a,b)=>(b.dataFechamento||'')>(a.dataFechamento||'')?1:-1);
+    const nomeMes=mes?MESES[parseInt(mes.slice(5,7))-1]+' '+mes.slice(0,4):'Sem data';
+    const totalMes=fichasMes.reduce((s,f)=>s+somaProducaoFicha(f),0);
+    return '<div style="display:flex;align-items:center;gap:8px;margin:16px 0 8px">'
+      +'<div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em">'+nomeMes+'</div>'
+      +'<div style="flex:1;height:1px;background:#e2e8f0"></div>'
+      +'<span style="font-size:11px;font-weight:700;color:#065f46">'+fmtMoeda(totalMes)+'</span>'
+      +'</div>'
+      +fichasMes.map(f=>renderFichaIntCard(f,{resumo:true})).join('');
+  }).join('');
+}
+
+// ── Meu Rendimento (Enrolamento Interno) — peças por tipo, por mês ──
+function renderMeuRendimentoInt(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const uid=currentUser?.uid||'';
+  const nome=currentUserData?.nome||'';
+  const meuEnr=enroladoresInt.find(e=>e.usuarioUid===uid)||enroladoresInt.find(e=>e.nome?.toLowerCase()===nome.toLowerCase());
+  if(!meuEnr) return '<div class="card" style="text-align:center;padding:30px">'
+    +'<div style="font-size:40px;margin-bottom:12px">👤</div>'
+    +'<div style="font-weight:700;font-size:15px;margin-bottom:6px">Usuário não vinculado</div>'
+    +'<div style="font-size:12px;color:#94a3b8">Fale com o apontador para vincular seu usuário.</div></div>';
+
+  const tipos=getTiposInt();
+  // Agrupa por mês (AAAA-MM) a quantidade de cada tipo
+  const porMes={};
+  fichasInt.filter(f=>f.enroladorId===meuEnr.id).forEach(f=>{
+    (f.apontamentos||[]).forEach(a=>{
+      const mes=(a.data||'').slice(0,7);
+      if(!mes) return;
+      if(!porMes[mes]) porMes[mes]={};
+      tipos.forEach(t=>{
+        const v=parseInt((a.tipos||{})[t.id])||0;
+        if(v) porMes[mes][t.id]=(porMes[mes][t.id]||0)+v;
+      });
+    });
+  });
+  const mesesOrdenados=Object.keys(porMes).sort().reverse();
+
+  if(!mesesOrdenados.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma produção registrada ainda.</div>';
+
+  let html='<div class="card"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">'
+    +'<thead><tr style="background:#f1f5f9">'
+    +'<th style="padding:7px 10px;text-align:left">Mês</th>'
+    +tipos.map(t=>'<th style="padding:7px 10px;text-align:right">'+t.label+'</th>').join('')
+    +'<th style="padding:7px 10px;text-align:right;font-weight:800">Total</th>'
+    +'</tr></thead><tbody>'
+    +mesesOrdenados.map((mes,i)=>{
+      const dados=porMes[mes];
+      const totalMes=Object.values(dados).reduce((s,v)=>s+v,0);
+      const nomeMes=MESES[parseInt(mes.slice(5,7))-1]+' '+mes.slice(0,4);
+      return '<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+        +'<td style="padding:7px 10px;font-weight:700">'+nomeMes+'</td>'
+        +tipos.map(t=>'<td style="padding:7px 10px;text-align:right;'+(dados[t.id]?'font-weight:700;color:#1e40af':'color:#cbd5e1')+'">'+(dados[t.id]||'—')+'</td>').join('')
+        +'<td style="padding:7px 10px;text-align:right;font-weight:800;color:#065f46">'+totalMes+'</td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div></div>';
+
   return html;
 }
 
