@@ -457,12 +457,23 @@ const TIPO_CORES={
   balanco:       {bg:'#f1f8e9', border:'#c5e1a5', color:'#558b2f'},
 };
 
+// Nome/cor de cada "casa" de apontador do Enrolamento Terceirizado — fonte
+// única usada em vários lugares (badges, dropdowns, etc.) pra não espalhar
+// esse mapeamento em ternários repetidos pelo arquivo inteiro.
+const APT_CASA={
+  apontador1:{nome:'Breno',cor:'#0f766e',bg:'#ccfbf1'},
+  apontador2:{nome:'Mirandinha',cor:'#b45309',bg:'#fef3c7'},
+  apontador3:{nome:'Gordo',cor:'#0e7490',bg:'#cffafe'},
+  apontador4:{nome:'Alan',cor:'#7c2d12',bg:'#ffedd5'},
+};
+
 // Valores unitários por peça (editáveis pelo admin no Firestore)
 const _valoresDefault = {varanda_sofia:0,centro_luxo:0,varanda_luxo:0,varanda_nova:0,centro_novo:0,banqueta:0,mesa_bistro:0,cadeira_mesa:0,namoradeira:0,centro_sofia:0,balanco:0};
 let valoresPecas = {
   apontador1: {..._valoresDefault},
   apontador2: {..._valoresDefault},
   apontador3: {..._valoresDefault},
+  apontador4: {..._valoresDefault},
 };
 
 // Retorna os valores do apontador da ficha (ou do perfil atual)
@@ -474,6 +485,7 @@ function getValoresPorFicha(f){
 function getValoresPorPerfil(perfil){
   if(perfil==='apontador2') return valoresPecas.apontador2;
   if(perfil==='apontador3') return valoresPecas.apontador3;
+  if(perfil==='apontador4') return valoresPecas.apontador4;
   return valoresPecas.apontador1;
 }
 
@@ -492,6 +504,7 @@ const PERFIS={
   // Fábrica de Cadeiras — Enrolamento Terceirizado
   apontador1:       {label:'Apontador 1',          color:'#0f766e',bg:'#ccfbf1', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:'#0f766e'},
   apontador2:       {label:'Apontador 2',          color:'#b45309',bg:'#fef3c7', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:'#b45309'},
+  apontador4:       {label:'Apontador 4',          color:'#7c2d12',bg:'#ffedd5', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:'#7c2d12'},
   apontador3:       {label:'Apontador 3',          color:'#0e7490',bg:'#cffafe', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:'#0e7490'},
   entregador:       {label:'Entregador',           color:'#BA7517',bg:'#fef3e2', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:null},
   enrolador:        {label:'Enrolador',            color:'#7c3aed',bg:'#ede9fe', fabricas:['cadeiras'],            setor:'enrolamento_terc', fichaColor:null},
@@ -640,36 +653,47 @@ function can(p){
   if(!currentUserData)return false;
   const perfil=currentUserData.perfil;
   const rules={
-    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
-    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','entregador','geral','mecanico','administracao'],
+    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
+    verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','geral','mecanico','administracao'],
     verFichasEntregador: ['entregador'],
     verFichasEnrolador:  ['enrolador'],
-    registrar:       ['admin','apontador1','apontador2','apontador3'],
-    fecharFicha:     ['admin','apontador1','apontador2','apontador3'],
+    registrar:       ['admin','apontador1','apontador2','apontador3','apontador4'],
+    fecharFicha:     ['admin','apontador1','apontador2','apontador3','apontador4'],
     marcarPago:      ['admin','financeiro'],
     cadastrarEnrolador:  ['admin'],
     gerenciarUsuarios:   ['admin'],
     verRelatorio:    ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','mecanico','administracao'],
-    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
+    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
     verValores:      ['admin','proprietario','financeiro'],
     editar:          ['admin'],
-    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','apontador3','entregador','enrolador','geral','mecanico','administracao'],
+    verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','mecanico','administracao'],
     sinalizarProntos:['enrolador'],
   };
-  return(rules[p]||[]).includes(perfil);
+  const perfilExtra=currentUserData.perfilExtra;
+  return(rules[p]||[]).includes(perfil)||(!!perfilExtra&&(rules[p]||[]).includes(perfilExtra));
+}
+
+// Perfil "efetivo" de apontador do usuário atual — o principal, ou o
+// perfilExtra (contas que acumulam papel de apontador em outro setor,
+// ex: o apontador da Metalúrgica que também é apontador do terceirizado).
+function meuApontadorPerfil(){
+  const perfil=currentUserData?.perfil;
+  if(['apontador1','apontador2','apontador3','apontador4'].includes(perfil)) return perfil;
+  const extra=currentUserData?.perfilExtra;
+  if(['apontador1','apontador2','apontador3','apontador4'].includes(extra)) return extra;
+  return null;
 }
 
 // Retorna o apontador vinculado ao usuário atual (para filtrar fichas)
 function getMeuApontadorId(){
-  const perfil=currentUserData?.perfil;
-  if(perfil==='apontador1'||perfil==='apontador2'||perfil==='apontador3') return currentUserData.uid||currentUserData.id;
+  if(meuApontadorPerfil()) return currentUserData.uid||currentUserData.id;
   return null;
 }
 
 // Verifica se a ficha pertence ao apontador atual
 function fichaDoMeuApontador(ficha){
-  const perfil=currentUserData?.perfil;
-  if(perfil==='apontador1'||perfil==='apontador2'||perfil==='apontador3'){
+  const perfil=meuApontadorPerfil();
+  if(perfil){
     // Verifica pelo enrolador da ficha — enrolador tem apontadorId
     const enr=getEnr(ficha.enroladorId);
     return enr&&enr.apontadorPerfil===perfil;
@@ -684,6 +708,7 @@ function corFicha(ficha){
   if(enr.apontadorPerfil==='apontador1') return '#0f766e';
   if(enr.apontadorPerfil==='apontador2') return '#b45309';
   if(enr.apontadorPerfil==='apontador3') return '#0e7490';
+  if(enr.apontadorPerfil==='apontador4') return '#7c2d12';
   return '#e2e8f0';
 }
 
@@ -1364,7 +1389,7 @@ function gerarResumoMovimento(){
   }
 
   // Botões de seleção
-  const cor1='#0f766e'; const cor2='#b45309'; const cor3='#0e7490';
+  const cor1='#0f766e'; const cor2='#b45309'; const cor3='#0e7490'; const cor4='#7c2d12';
   function btn(v,l,cor){
     const ativo=apt===v;
     return '<button class="btn btn-sm '+(ativo?'btn-primary':'btn-ghost')+'"'
@@ -1376,6 +1401,7 @@ function gerarResumoMovimento(){
     +btn('apontador1','Breno',cor1)
     +btn('apontador2','Mirandinha',cor2)
     +btn('apontador3','Gordo',cor3)
+    +btn('apontador4','Alan',cor4)
     +'</div>';
 
   const cor=apt==='apontador1'?cor1:cor2;
@@ -1770,6 +1796,7 @@ function renderPainel(){
     apontador1: ['varanda_nova','centro_novo','varanda_luxo','banqueta','cadeira_mesa'],
     apontador2: ['varanda_nova','centro_novo','varanda_luxo','banqueta','cadeira_mesa'],
     apontador3: ['varanda_nova','centro_novo','varanda_luxo','balanco'],
+    apontador4: ['varanda_nova','centro_novo','varanda_luxo','banqueta','cadeira_mesa'],
   };
   const smallIds=SMALL_CARDS_POR_APT[apt]||SMALL_CARDS_POR_APT.apontador1;
   let smallCardsHtml='';
@@ -1909,6 +1936,7 @@ function renderFichas(){
         <option value="apontador1" style="color:#0f766e;font-weight:700">Breno</option>
         <option value="apontador2" style="color:#b45309;font-weight:700">Mirandinha</option>
         <option value="apontador3" style="color:#0e7490;font-weight:700">Gordo</option>
+        <option value="apontador4" style="color:#7c2d12;font-weight:700">Alan</option>
       </select>
       <select id="f-enr" onchange="window._refreshFichas()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:5px 8px;background:#fff">
         <option value="all">Todos enroladores</option>${[...enroladores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
@@ -1929,8 +1957,9 @@ function renderFichas(){
       e.usuarioUid===idUsuario
     ).map(e=>e.id);
     lista=fichas.filter(f=>minhasEnr.includes(f.enroladorId));
-  }else if(perfil==='apontador1'||perfil==='apontador2'||perfil==='apontador3'){
-    const meusEnr=enroladores.filter(e=>e.apontadorPerfil===perfil).map(e=>e.id);
+  }else if(meuApontadorPerfil()){
+    const meuApt=meuApontadorPerfil();
+    const meusEnr=enroladores.filter(e=>e.apontadorPerfil===meuApt).map(e=>e.id);
     lista=fichas.filter(f=>meusEnr.includes(f.enroladorId));
   }else{
     lista=[...fichas];
@@ -1962,9 +1991,9 @@ window._refreshFichas=()=>{
   const apt=document.getElementById('f-apontador')?.value||'all';
   let lista=[...fichas];
   // Filtrar por perfil do apontador logado
-  const perfil=currentUserData?.perfil;
-  if(perfil==='apontador1'||perfil==='apontador2'||perfil==='apontador3'){
-    const meusEnr=enroladores.filter(e=>e.apontadorPerfil===perfil).map(e=>e.id);
+  const meuApt=meuApontadorPerfil();
+  if(meuApt){
+    const meusEnr=enroladores.filter(e=>e.apontadorPerfil===meuApt).map(e=>e.id);
     lista=lista.filter(f=>meusEnr.includes(f.enroladorId));
   }
   if(st!=='all')lista=lista.filter(f=>f.status===st);
@@ -2010,7 +2039,7 @@ function fichasInner(lista,isEntregador){
     const st2=f.status==='cancelada'?'cancelada':f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aguardando';
     const borderCls2=f.status==='cancelada'?'cancelada':f.status==='fechada'?'fechada':pend===0?'pronto':rec>0?'retornando':'aberta';
     const enrFicha=getEnr(f.enroladorId);
-    const apontCorBorda=enrFicha?.apontadorPerfil==='apontador1'?'#0f766e':enrFicha?.apontadorPerfil==='apontador2'?'#b45309':enrFicha?.apontadorPerfil==='apontador3'?'#0e7490':'#e2e8f0';
+    const apontCorBorda=enrFicha?.apontadorPerfil==='apontador1'?'#0f766e':enrFicha?.apontadorPerfil==='apontador2'?'#b45309':enrFicha?.apontadorPerfil==='apontador3'?'#0e7490':enrFicha?.apontadorPerfil==='apontador4'?'#7c2d12':'#e2e8f0';
     return `<div class="ficha-card ${borderCls2}" style="border-left-color:${apontCorBorda}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
@@ -2235,6 +2264,7 @@ function renderHistoricoSemanal(){
     +btnApt('apontador1','Breno','#0f766e')
     +btnApt('apontador2','Mirandinha','#b45309')
     +btnApt('apontador3','Gordo','#0e7490')
+    +btnApt('apontador4','Alan','#7c2d12')
     +'</div>';
 
   // Resumo por dia (total geral)
@@ -2318,12 +2348,13 @@ function renderHistoricoSemanal(){
       const ap1=calcDia(r.data,t.id,'apontador1');
       const ap2=calcDia(r.data,t.id,'apontador2');
       const ap3=calcDia(r.data,t.id,'apontador3');
-      const tot=aptFiltro==='all'?calcDia(r.data,t.id,null):aptFiltro==='apontador1'?ap1:aptFiltro==='apontador2'?ap2:ap3;
+      const ap4=calcDia(r.data,t.id,'apontador4');
+      const tot=aptFiltro==='all'?calcDia(r.data,t.id,null):aptFiltro==='apontador1'?ap1:aptFiltro==='apontador2'?ap2:aptFiltro==='apontador3'?ap3:ap4;
       if(!tot.ent&&!tot.rec) return '';
       if(aptFiltro==='all'){
         return '<div style="background:#f8fafc;border-radius:8px;padding:8px;margin-bottom:6px">'
           +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">'+t.label+'</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
           +'<div style="background:#f0fdf4;border-radius:6px;padding:6px">'
           +'<div style="font-size:9px;font-weight:700;color:#0f766e;margin-bottom:3px">AP1</div>'
           +'<div style="display:flex;gap:10px">'
@@ -2341,6 +2372,12 @@ function renderHistoricoSemanal(){
           +'<div style="display:flex;gap:10px">'
           +'<span style="font-size:11px;color:#3b82f6">↓ '+ap3.ent+'</span>'
           +'<span style="font-size:11px;color:#10b981">↑ '+ap3.rec+'</span>'
+          +'</div></div>'
+          +'<div style="background:#fef2ee;border-radius:6px;padding:6px">'
+          +'<div style="font-size:9px;font-weight:700;color:#7c2d12;margin-bottom:3px">AP4</div>'
+          +'<div style="display:flex;gap:10px">'
+          +'<span style="font-size:11px;color:#3b82f6">↓ '+ap4.ent+'</span>'
+          +'<span style="font-size:11px;color:#10b981">↑ '+ap4.rec+'</span>'
           +'</div></div>'
           +'</div></div>';
       } else {
@@ -2415,6 +2452,7 @@ function renderRelatorio(){
     <button onclick="window._setRelAp('apontador1')" ${btnStyle('apontador1')}>Breno</button>
     <button onclick="window._setRelAp('apontador2')" ${btnStyle('apontador2')}>Mirandinha</button>
     <button onclick="window._setRelAp('apontador3')" ${btnStyle('apontador3')}>Gordo</button>
+    <button onclick="window._setRelAp('apontador4')" ${btnStyle('apontador4')}>Alan</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
     <div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
@@ -2483,7 +2521,7 @@ function renderRelatorio(){
 
   // ── Resumo mensal: entregues e recolhidas por casa ──
   const TIPOS_PRINCIPAIS=TIPOS.filter(t=>t.principal||['varanda_nova','centro_novo','varanda_luxo','banqueta','mesa_bistro','cadeira_mesa','namoradeira','centro_sofia','balanco'].includes(t.id));
-  const CASAS=[{ap:'apontador1',label:'🏠 Breno'},{ap:'apontador2',label:'🏠 Mirandinha'},{ap:'apontador3',label:'🏠 Gordo'}];
+  const CASAS=[{ap:'apontador1',label:'🏠 Breno'},{ap:'apontador2',label:'🏠 Mirandinha'},{ap:'apontador3',label:'🏠 Gordo'},{ap:'apontador4',label:'🏠 Alan'}];
   const mesesComMov=[...new Set([
     ...fichas.flatMap(f=>[...(f.entregas||[]).map(e=>e.data||''),...(f.recolhimentos||[]).map(r=>r.data||'')].filter(Boolean).map(d=>d.slice(0,7)))
   ])].sort().reverse();
@@ -2652,6 +2690,7 @@ function renderValores(){
     html+=tabelaAp('apontador1','Breno','#0f766e');
     html+=tabelaAp('apontador2','Mirandinha','#b45309');
     html+=tabelaAp('apontador3','Gordo','#0e7490');
+    html+=tabelaAp('apontador4','Alan','#7c2d12');
   }
 
   // Lista de fichas fechadas + canceladas com recolhimentos reais a pagar
@@ -2751,7 +2790,7 @@ window._salvarValores=async(ap)=>{
     valores[t.id]=parseFloat(document.getElementById(`vp-${ap}-${t.id}`)?.value)||0;
   });
   await setDoc(doc(db,'configuracoes',`valores_${ap}`),valores);
-  const nomeAp=ap==='apontador1'?'Breno':ap==='apontador2'?'Mirandinha':'Gordo';
+  const nomeAp=APT_CASA[ap]?.nome||'Breno';
   showToast('Valores do '+nomeAp+' salvos!');
 };
 
@@ -2875,6 +2914,7 @@ function renderRanking(){
     +btnRankApt('apontador1','Breno','#0f766e')
     +btnRankApt('apontador2','Mirandinha','#b45309')
     +btnRankApt('apontador3','Gordo','#0e7490')
+    +btnRankApt('apontador4','Alan','#7c2d12')
     +'</div>';
 
   let html = (isEnrolador?'':(filtroAptHtml))+(isEnrolador?'':` 
@@ -2970,7 +3010,7 @@ function renderEntrega(){
   setTimeout(()=>buildTiposInputs('e-tipos'),0);
   return `<div class="card">
     <div style="font-size:13px;font-weight:600;margin-bottom:12px">Registrar material entregue</div>
-    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].filter(e=>e.ativo!==false).filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2'||p==='apontador3')return e.apontadorPerfil===p;return true;}).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label>Enrolador</label><select id="e-enr" onchange="window._atualizarFichasEntrega()"><option value="">Selecione...</option>${[...enroladores].filter(e=>e.ativo!==false).filter(e=>{const p=meuApontadorPerfil();if(p)return e.apontadorPerfil===p;return true;}).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}</select></div>
     <div class="form-group"><label>Entregador</label><input type="text" id="e-entregador" placeholder="Nome de quem entregou"></div></div>
     <div id="e-ficha-opcao" style="display:none;margin-bottom:10px"></div>
     <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="e-data" value="${today()}"></div>
@@ -3018,12 +3058,12 @@ window._atualizarSelectRecolhimento=()=>{
   const sel=document.getElementById('r-ficha');
   if(!sel)return;
   const valorAtual=sel.value;
-  const perfil=currentUserData?.perfil;
+  const meuApt=meuApontadorPerfil();
   const abertas=fichas.filter(f=>{
     if(f.status!=='aberta')return false;
-    if(perfil==='apontador1'||perfil==='apontador2'||perfil==='apontador3'){
+    if(meuApt){
       const enr=getEnr(f.enroladorId);
-      return enr&&enr.apontadorPerfil===perfil;
+      return enr&&enr.apontadorPerfil===meuApt;
     }
     return true;
   });
@@ -3047,7 +3087,7 @@ window._atualizarFichasEntrega=()=>{
   const div=document.getElementById('e-ficha-opcao');
   window._eFichaDestSelecionada='nova';
   if(!enrId){div.style.display='none';div.innerHTML='';return;}
-  const meusEnrIds=enroladores.filter(e=>{const p=currentUserData?.perfil;if(p==='apontador1'||p==='apontador2'||p==='apontador3')return e.apontadorPerfil===p;return true;}).map(e=>e.id);
+  const meusEnrIds=enroladores.filter(e=>{const p=meuApontadorPerfil();if(p)return e.apontadorPerfil===p;return true;}).map(e=>e.id);
   if(!meusEnrIds.includes(enrId)){div.style.display='none';div.innerHTML='';return;}
   const abertas=fichas.filter(f=>f.enroladorId===enrId&&f.status==='aberta');
   if(abertas.length===0){
@@ -3093,10 +3133,10 @@ window._selecionarDestinoEntrega=(valor)=>{
 };
 
 function renderRecolhimento(){
-  const pfRecol=currentUserData?.perfil;
+  const pfRecol=meuApontadorPerfil();
   const abertas=fichas.filter(f=>{
     if(f.status!=='aberta')return false;
-    if(pfRecol==='apontador1'||pfRecol==='apontador2'||pfRecol==='apontador3'){
+    if(pfRecol){
       const enr=getEnr(f.enroladorId);
       return enr&&enr.apontadorPerfil===pfRecol;
     }
@@ -3259,6 +3299,7 @@ function renderEnroladores(){
           <option value="apontador1">Breno</option>
           <option value="apontador2">Mirandinha</option>
           <option value="apontador3">Gordo</option>
+          <option value="apontador4">Alan</option>
         </select>
       </div>
     </div>
@@ -3279,7 +3320,7 @@ function renderEnroladores(){
       <div style="text-align:right;margin-right:8px;flex-shrink:0">
         <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Env./Recol.</div>
         <div style="font-size:16px;font-weight:800;color:#1e293b">${env} / ${rec}</div>
-        <div style="font-size:10px;margin-top:4px;padding:2px 8px;border-radius:99px;font-weight:600;background:${e.apontadorPerfil==='apontador1'?'#ccfbf1':e.apontadorPerfil==='apontador2'?'#fef3c7':'#cffafe'};color:${e.apontadorPerfil==='apontador1'?'#0f766e':e.apontadorPerfil==='apontador2'?'#b45309':'#0e7490'}">${e.apontadorPerfil==='apontador2'?'Mirandinha':e.apontadorPerfil==='apontador3'?'Gordo':'Breno'}</div>
+        <div style="font-size:10px;margin-top:4px;padding:2px 8px;border-radius:99px;font-weight:600;background:${APT_CASA[e.apontadorPerfil]?.bg||'#ccfbf1'};color:${APT_CASA[e.apontadorPerfil]?.cor||'#0f766e'}">${APT_CASA[e.apontadorPerfil]?.nome||'Breno'}</div>
       </div>
       <button class="btn btn-sm btn-warn" onclick="window._editarEnrolador('${e.id}')">Editar</button>
       ${inativo?`<button class="btn btn-sm" onclick="window._reativarEnrolador('${e.id}')">Reativar</button>`:''}
@@ -3317,6 +3358,7 @@ window._editarEnrolador=id=>{
     +'<option value="apontador1"'+(e.apontadorPerfil==='apontador1'?' selected':'')+'>Breno</option>'
     +'<option value="apontador2"'+(e.apontadorPerfil==='apontador2'?' selected':'')+'>Mirandinha</option>'
     +'<option value="apontador3"'+(e.apontadorPerfil==='apontador3'?' selected':'')+'>Gordo</option>'
+    +'<option value="apontador4"'+(e.apontadorPerfil==='apontador4'?' selected':'')+'>Alan</option>'
     +'</select></div>';
   var userSelect='<div class="form-group"><label>Usuário vinculado (login do enrolador)</label>'
     +'<select id="ee-enr-usuario" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'
@@ -3491,14 +3533,14 @@ window._confirmarPagoAction=async(formaPagamento)=>{
 
   // Salva notificação para os apontadores do setor
   const perfisApontador={
-    'enrolamento_terc': ['apontador1','apontador2','apontador3'],
+    'enrolamento_terc': ['apontador1','apontador2','apontador3','apontador4'],
     'metalurgica':      ['apontador_metal'],
     'grades':           ['apontador_gra'],
     'enrolamento_int':  ['apontador_int'],
     'espuma':           ['encarregado_esp','apontador_esp'],
     'tapecamento':      ['apontador_tap'],
   }[setorKey]||[];
-  const apontadoresSetor=usuarios.filter(u=>perfisApontador.includes(u.perfil)&&u.uid);
+  const apontadoresSetor=usuarios.filter(u=>(perfisApontador.includes(u.perfil)||perfisApontador.includes(u.perfilExtra))&&u.uid);
   for(const apont of apontadoresSetor){
     await addDoc(collection(db,'notif_pagamento'),{
       uid:apont.uid,
@@ -3764,17 +3806,29 @@ window._cadastrarUsuario=async()=>{
 window._editarUsuario=id=>{
   const u=usuarios.find(function(x){return x.id===id;});if(!u)return;
   const perfisDisp=getPerfisContexto('setor',currentFabrica,currentSetor);
-  const optsHtml=perfisDisp.map(function(e){
-    return '<option value="'+e[0]+'"'+(u.perfil===e[0]?' selected':'')+'>'+e[1].label+'</option>';
-  }).join('');
+  // Garante que o perfil atual do usuário sempre apareça como opção, mesmo
+  // que essa tela esteja filtrando por outro setor — senão salvar sem trocar
+  // nada troca o perfil principal dele sem querer (ex: editar o apontador da
+  // Metalúrgica pela tela de Usuários do Enrolamento Terceirizado).
+  const perfilAtualFalta=u.perfil&&!perfisDisp.some(function(e){return e[0]===u.perfil;});
+  const optsHtml=(perfilAtualFalta?('<option value="'+u.perfil+'" selected>'+(PERFIS[u.perfil]?.label||u.perfil)+' (perfil atual)</option>'):'')
+    +perfisDisp.map(function(e){
+      return '<option value="'+e[0]+'"'+(u.perfil===e[0]?' selected':'')+'>'+e[1].label+'</option>';
+    }).join('');
   const inp=function(eid,label,val,type){
     type=type||'text';
     return '<div class="form-group"><label>'+label+'</label><input id="'+eid+'" type="'+type+'" value="'+(val||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>';
   };
+  const optsExtraHtml=['','apontador1','apontador2','apontador3','apontador4'].map(function(v){
+    const label=v?('Apontador Enrolamento Terc. — '+APT_CASA[v].nome):'Nenhum';
+    return '<option value="'+v+'"'+(u.perfilExtra===v?' selected':'')+'>'+label+'</option>';
+  }).join('');
   showModal('Editar — '+u.nome,
     inp('eu-nome','Nome completo',u.nome)
     +'<div class="form-group"><label>Perfil</label><select id="eu-perfil" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsHtml+'</select></div>'
     +inp('eu-email','E-mail',u.email,'email')
+    +'<div class="form-group"><label>Perfil extra (opcional)</label><select id="eu-perfil-extra" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%">'+optsExtraHtml+'</select>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-top:4px">Pra contas que acumulam um segundo papel — ex: apontador da Metalúrgica que também aponta no Enrolamento Terceirizado. Não muda o perfil principal.</div></div>'
     +'<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;cursor:pointer;margin-top:4px">'
     +'<input type="checkbox" id="eu-cp" '+(u.podeLancarContasPagar?'checked':'')+' style="width:15px;height:15px">Pode lançar em Contas a Pagar (exceção — só faz efeito pra perfil Proprietário)</label>',
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
@@ -3785,9 +3839,10 @@ window._salvarUsuario=async id=>{
   const nome=document.getElementById('eu-nome').value.trim();
   const perfil=document.getElementById('eu-perfil').value;
   const email=document.getElementById('eu-email').value.trim();
+  const perfilExtra=document.getElementById('eu-perfil-extra')?.value||null;
   const podeLancarContasPagar=document.getElementById('eu-cp')?.checked||false;
   if(!nome||!email){showToast('Nome e e-mail são obrigatórios.');return;}
-  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email,podeLancarContasPagar});
+  await updateDoc(doc(db,'usuarios',id),{nome,perfil,email,podeLancarContasPagar,perfilExtra});
   closeModal();showToast('Usuário atualizado!');
 };
 
@@ -11351,12 +11406,11 @@ function renderSaidasFitas(){
   const hoje=today();
   const saidHoje=saidasFitas.filter(s=>s.data===hoje);
   const optsEnrInt=enroladoresInt.filter(e=>e.ativo!==false).map(e=>'<option value="enr_int:'+e.id+'">Enrolador Interno — '+e.nome+'</option>').join('');
-  // Apontadores do terceirizado (Breno, Mirandinha e Gordo)
-  const apontadores=enroladores.filter(e=>e.nome&&(e.nome.toLowerCase().includes('breno')||e.nome.toLowerCase().includes('inácio')||e.nome.toLowerCase().includes('inacio')||e.nome.toLowerCase().includes('mirandinha')||e.nome.toLowerCase().includes('gordo')));
-  // Fallback: buscar pelos perfis apontador1, apontador2 e apontador3
-  const optsApt=['apontador1','apontador2','apontador3'].map(p=>{
-    const nomes={'apontador1':'Breno','apontador2':'Mirandinha','apontador3':'Gordo'};
-    return '<option value="apt:'+p+'">Terceirizado — '+nomes[p]+'</option>';
+  // Apontadores do terceirizado (Breno, Mirandinha, Gordo e Alan)
+  const apontadores=enroladores.filter(e=>e.nome&&(e.nome.toLowerCase().includes('breno')||e.nome.toLowerCase().includes('inácio')||e.nome.toLowerCase().includes('inacio')||e.nome.toLowerCase().includes('mirandinha')||e.nome.toLowerCase().includes('gordo')||e.nome.toLowerCase().includes('alan')));
+  // Fallback: buscar pelos perfis apontador1, apontador2, apontador3 e apontador4
+  const optsApt=['apontador1','apontador2','apontador3','apontador4'].map(p=>{
+    return '<option value="apt:'+p+'">Terceirizado — '+APT_CASA[p].nome+'</option>';
   }).join('');
   const optsCores=cores.map(c=>'<option value="'+c.nome+'">'+c.nome+'</option>').join('');
 
@@ -11534,8 +11588,7 @@ window._registrarSaidaFita=async function(){
     enroladorIntId=destino.split(':')[1];
     destinoNome='Enrolador Interno — '+(enroladoresInt.find(e=>e.id===enroladorIntId)?.nome||'');
   } else if(destino.startsWith('apt:')){
-    const nomes={'apontador1':'Breno','apontador2':'Mirandinha','apontador3':'Gordo'};
-    destinoNome='Terceirizado — '+(nomes[destino.split(':')[1]]||destino);
+    destinoNome='Terceirizado — '+(APT_CASA[destino.split(':')[1]]?.nome||destino);
   } else {
     const labels={venda:'Venda',doacao:'Doação',outro:'Outro'};
     destinoNome=labels[destino]||destino;
@@ -16461,12 +16514,15 @@ function renderFinPagamentos(){
       const itensInacio=itens.filter(p=>getAp(p)==='apontador1');
       const itensMirandinha=itens.filter(p=>getAp(p)==='apontador2');
       const itensGordo=itens.filter(p=>getAp(p)==='apontador3');
+      const itensAlan=itens.filter(p=>getAp(p)==='apontador4');
       const totalInacio=itensInacio.reduce((s,p)=>s+p.valor,0);
       const totalMirandinha=itensMirandinha.reduce((s,p)=>s+p.valor,0);
       const totalGordo=itensGordo.reduce((s,p)=>s+p.valor,0);
+      const totalAlan=itensAlan.reduce((s,p)=>s+p.valor,0);
       const pendInacio=itensInacio.filter(p=>!p.pago).length;
       const pendMirandinha=itensMirandinha.filter(p=>!p.pago).length;
       const pendGordo=itensGordo.filter(p=>!p.pago).length;
+      const pendAlan=itensAlan.filter(p=>!p.pago).length;
 
       html+=`<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
         <div style="background:#1e40af;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
@@ -16518,6 +16574,19 @@ function renderFinPagamentos(){
             </div>
             <div style="padding:4px 12px">
               ${itensGordo.length?renderItensSetor(itensGordo):'<div style="padding:12px 4px;font-size:12px;color:#94a3b8;text-align:center">Nenhum</div>'}
+            </div>
+          </div>
+          <!-- Alan -->
+          <div>
+            <div style="padding:8px 12px 4px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#f8fafc">
+              <span style="font-size:12px;font-weight:700;color:#7c2d12">Alan</span>
+              <div style="text-align:right">
+                ${pendAlan>0?`<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:99px;font-weight:700">${pendAlan} pend.</span>`:''}
+                <div style="font-size:13px;font-weight:800;color:#7c2d12">${fmtMoeda(totalAlan)}</div>
+              </div>
+            </div>
+            <div style="padding:4px 12px">
+              ${itensAlan.length?renderItensSetor(itensAlan):'<div style="padding:12px 4px;font-size:12px;color:#94a3b8;text-align:center">Nenhum</div>'}
             </div>
           </div>
         </div>
@@ -19424,6 +19493,9 @@ function iniciarListeners(){
   }));
   unsubsGlobaisExtra.push(onSnapshot(doc(db,'configuracoes','valores_apontador3'),snap=>{
     if(snap.exists()){valoresPecas.apontador3={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
+  }));
+  unsubsGlobaisExtra.push(onSnapshot(doc(db,'configuracoes','valores_apontador4'),snap=>{
+    if(snap.exists()){valoresPecas.apontador4={..._valoresDefault,...snap.data()};if(currentUserData)reloadTab();}
   }));
 
   // Config bônus
