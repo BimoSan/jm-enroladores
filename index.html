@@ -6752,6 +6752,17 @@ function estoqueAtualMp(mpId){
   return Math.max(0,entradas-saidas);
 }
 
+// Custo médio ponderado de uma MP, a partir do preço travado em cada entrada
+// (kg de cada compra × preço pago nela). Entradas sem preço travado não
+// entram na conta; se nenhuma tiver preço, cai no preço padrão da MP.
+function custoMedioMp(mpId){
+  const entradasComPreco=espumaEstoque.filter(e=>e.mpId===mpId&&!e._saida&&(parseFloat(e.custoPorKg)||0)>0);
+  const somaKg=entradasComPreco.reduce((s,e)=>s+(parseFloat(e.kg)||0),0);
+  if(somaKg<=0) return parseFloat(getMpById(mpId)?.custoPorKg)||0;
+  const somaValor=entradasComPreco.reduce((s,e)=>s+(parseFloat(e.kg)||0)*(parseFloat(e.custoPorKg)||0),0);
+  return somaValor/somaKg;
+}
+
 function blocosDisponiveis(){
   return Math.min(...FORMULA_BLOCO.map(mp=>{
     const est=estoqueAtualMp(mp.id);
@@ -7324,10 +7335,11 @@ function renderEspRelatorio(){
   const selectAno='<select onchange="window._espRelSetAno(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px">'
     +anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+'</select>';
 
-  // Valor em estoque — total e por matéria-prima
+  // Valor em estoque — total e por matéria-prima, pelo custo médio ponderado
+  // (preço travado em cada entrada × kg dela), não um preço padrão fixo.
   const estoquePorMp=(configEspuma.materiasPrimas||[]).map(mp=>{
     const kg=estoqueAtualMp(mp.id);
-    const valor=kg*(mp.custoPorKg||0);
+    const valor=kg*custoMedioMp(mp.id);
     return {mp,kg,valor};
   }).filter(x=>x.kg>0).sort((a,b)=>b.valor-a.valor);
   const valorEstoque=estoquePorMp.reduce((s,x)=>s+x.valor,0);
