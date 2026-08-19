@@ -1156,6 +1156,7 @@ function renderApp(){
     if(['admin','proprietario','encarregado_est','encarregado_esp'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_relatorio','esp_config');
     else if(pg==='operador_esp') tabs.push('esp_painel','esp_fichas');
     else if(pg==='administracao') tabs.push('esp_painel','esp_apontar');
+    else if(pg==='financeiro') tabs.push('esp_painel','esp_relatorio');
     else tabs.push('esp_painel');
     if(!currentTab||!currentTab.startsWith('esp_')) currentTab='esp_painel';
   } else if(currentSetor==='grades'){
@@ -7320,11 +7321,14 @@ function renderEspRelatorio(){
   const selectAno='<select onchange="window._espRelSetAno(this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px">'
     +anos.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+'</select>';
 
-  // Valor em estoque
-  const valorEstoque=(configEspuma.materiasPrimas||[]).reduce((s,mp)=>{
-    const est=estoqueAtualMp(mp.id);
-    return s+est*(mp.custoPorKg||0);
-  },0);
+  // Valor em estoque — total e por matéria-prima
+  const estoquePorMp=(configEspuma.materiasPrimas||[]).map(mp=>{
+    const kg=estoqueAtualMp(mp.id);
+    const valor=kg*(mp.custoPorKg||0);
+    return {mp,kg,valor};
+  }).filter(x=>x.kg>0).sort((a,b)=>b.valor-a.valor);
+  const valorEstoque=estoquePorMp.reduce((s,x)=>s+x.valor,0);
+  const maxValorEstoque=Math.max(...estoquePorMp.map(x=>x.valor),1);
 
   let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
     +'<div style="font-size:15px;font-weight:800;color:#1e293b">📊 Relatórios</div>'+selectAno+'</div>';
@@ -7335,6 +7339,24 @@ function renderEspRelatorio(){
     +'<div style="font-size:32px;font-weight:900">'+(valorEstoque>0?fmtMoeda(valorEstoque):'—')+'</div>'
     +(valorEstoque===0?'<div style="font-size:11px;opacity:.7">Cadastre o custo por kg nas configurações das MPs</div>':'<div style="font-size:11px;opacity:.7">Baseado no estoque atual e custo/kg cadastrado</div>')
     +'</div>';
+
+  // Resumo de R$ em estoque por matéria-prima
+  if(estoquePorMp.length){
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📦 R$ em estoque por matéria-prima</div>';
+    estoquePorMp.forEach(({mp,kg,valor})=>{
+      const pct=Math.round(valor/maxValorEstoque*100);
+      html+='<div style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+        +'<span style="font-size:12px;font-weight:600">'+mp.nome+' <span style="font-size:10px;color:#94a3b8">'+kg.toLocaleString('pt-BR',{maximumFractionDigits:1})+'kg</span></span>'
+        +'<span style="font-size:12px;font-weight:700;color:#4f46e5">'+fmtMoeda(valor)+'</span>'
+        +'</div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:99px"></div>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  }
 
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Blocos produzidos</div><div class="stat-value">'+totalBlocos+'</div><div style="font-size:10px;opacity:.8">em '+ano+'</div></div></div>'
