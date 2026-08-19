@@ -11196,6 +11196,8 @@ window._fitasModalDevolucao=function(cor){
   const quemOpcoes=[
     {v:'inacio',l:'Breno'},
     {v:'mirandinha',l:'Mirandinha'},
+    {v:'gordo',l:'Gordo'},
+    {v:'alan',l:'Alan'},
     {v:'interno',l:'Setor Interno'},
     {v:'outro',l:'Outro'},
   ];
@@ -11235,7 +11237,7 @@ window._fitasSalvarDevolucao=async function(cor){
   const obs=document.getElementById('fm-devol-obs')?.value.trim()||'';
   if(!quem){showToast('Selecione quem devolveu.');return;}
   if(!rolos){showToast('Informe a quantidade de rolos.');return;}
-  const labels={inacio:'Breno',mirandinha:'Mirandinha',interno:'Setor Interno',outro:'Outro'};
+  const labels={inacio:'Breno',mirandinha:'Mirandinha',gordo:'Gordo',alan:'Alan',interno:'Setor Interno',outro:'Outro'};
   closeModal();
   await addDoc(collection(db,'saidas_fitas'),{
     tipo:isFio?'fio':'fita', cor:isFio?null:cor,
@@ -11306,6 +11308,8 @@ window._fitasModalAcao=function(acao, cor, extrusora){
       {v:'interno',l:'Setor Interno'},
       {v:'inacio',l:'Breno'},
       {v:'mirandinha',l:'Mirandinha'},
+      {v:'gordo',l:'Gordo'},
+      {v:'alan',l:'Alan'},
       {v:'venda',l:'Venda'},
       {v:'perda',l:'Perda'},
     ];
@@ -11360,7 +11364,7 @@ window._fitasSalvarAcao=async function(acao, cor){
       showToast('Estoque insuficiente — só tem '+estoqueAtual+' rolo'+(estoqueAtual!==1?'s':'')+' disponíve'+(estoqueAtual!==1?'is':'l')+'.');
       return;
     }
-    const labels={interno:'Setor Interno',inacio:'Breno',mirandinha:'Mirandinha',venda:'Venda',perda:'Perda'};
+    const labels={interno:'Setor Interno',inacio:'Breno',mirandinha:'Mirandinha',gordo:'Gordo',alan:'Alan',venda:'Venda',perda:'Perda'};
     closeModal();
     await addDoc(collection(db,'saidas_fitas'),{
       tipo:isFio?'fio':'fita', cor:isFio?null:cor,
