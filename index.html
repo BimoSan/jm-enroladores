@@ -37,7 +37,8 @@
     const manifest={
       name:'JM — Gestão Fabril',
       short_name:'JM Fábrica',
-      start_url:location.href,
+      start_url:location.origin+location.pathname,
+      scope:location.origin+location.pathname,
       display:'standalone',
       background_color:'#1d4ed8',
       theme_color:'#dedcd4',
@@ -48,10 +49,12 @@
         {src:pngs[1],sizes:'512x512',type:'image/png',purpose:'maskable'},
       ]
     };
-    const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
-    const url=URL.createObjectURL(blob);
+    // data: em vez de blob: — alguns navegadores/Android (Samsung Internet
+    // principalmente) não reconhecem bem manifestos servidos por blob URL
+    // na hora de decidir se libera "Adicionar à tela inicial".
+    const manifestUrl='data:application/manifest+json;base64,'+btoa(unescape(encodeURIComponent(JSON.stringify(manifest))));
     const link=document.createElement('link');
-    link.rel='manifest'; link.href=url;
+    link.rel='manifest'; link.href=manifestUrl;
     document.head.appendChild(link);
   });
 })();
