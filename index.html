@@ -12703,6 +12703,16 @@ function calcCustoJogo(produto, versao){
 
 const ENG_UNIDADES=['kg','g','m','m²','m³','l','ml','un','pç','folha','cm','caixa','saco'];
 
+// Custo por unidade de uma MP (com embalagem convertida e desperdício aplicado)
+// — fonte única usada tanto pra exibir quanto pra comparar no histórico.
+function custoUnitMp(m){
+  const custoBase=m.qtdEmbalagem&&m.precoEmbalagem
+    ?(parseFloat(m.precoEmbalagem)/parseFloat(m.qtdEmbalagem))
+    :(parseFloat(m.custo)||0);
+  const perdaPerc=parseFloat(m.desperdicio)||0;
+  return custoBase*(1+perdaPerc/100);
+}
+
 function renderEngMp(){
   const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
@@ -12715,12 +12725,8 @@ function renderEngMp(){
   }
 
   engMaterias.forEach((m,i)=>{
-    // Custo por unidade: se tem embalagem, calcula; senão usa custo direto
-    const custoBase=m.qtdEmbalagem&&m.precoEmbalagem
-      ?(parseFloat(m.precoEmbalagem)/parseFloat(m.qtdEmbalagem))
-      :(parseFloat(m.custo)||0);
+    const custoUnit=custoUnitMp(m);
     const perdaPerc=parseFloat(m.desperdicio)||0;
-    const custoUnit=custoBase*(1+perdaPerc/100);
     const embalagemInfo=m.qtdEmbalagem&&m.unidadeEmbalagem
       ?m.qtdEmbalagem+' '+m.unidadeEmbalagem+(m.precoEmbalagem?' · '+fmtMoeda(m.precoEmbalagem):'')
       :null;
@@ -12745,10 +12751,26 @@ function renderEngMp(){
       +'<span style="font-size:17px;font-weight:800;color:#0e7490">'+fmtMoeda(custoUnit)+'</span>'
       +'</div>'
       +(m.observacao?'<div style="font-size:11px;color:#94a3b8;margin-top:6px;font-style:italic">"'+m.observacao+'"</div>':'')
+      +((m.historico&&m.historico.length)?'<div style="margin-top:8px">'
+        +'<button type="button" onclick="window._engToggleHistMp(\''+m.id+'\')" style="width:100%;text-align:left;background:none;border:none;padding:4px 0;font-size:11px;color:#0e7490;font-weight:700;cursor:pointer">📈 Histórico de custo ('+m.historico.length+') '+(window._engHistMpAberto===m.id?'▲':'▼')+'</button>'
+        +(window._engHistMpAberto===m.id?'<div style="background:#f8fafc;border-radius:8px;padding:8px 10px">'
+          +[...m.historico].reverse().map(function(h){
+            const subiu=h.custoNovo>h.custoAnterior;
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;border-bottom:1px solid #e2e8f0">'
+              +'<span style="color:#64748b">'+new Date(h.data).toLocaleDateString('pt-BR')+(h.usuario?' · '+h.usuario:'')+'</span>'
+              +'<span style="font-weight:700;color:'+(subiu?'#dc2626':'#059669')+'">'+fmtMoeda(h.custoAnterior)+' → '+fmtMoeda(h.custoNovo)+'</span>'
+              +'</div>';
+          }).join('')
+          +'</div>':'')
+        +'</div>':'')
       +'</div>';
   });
   return html;
 }
+window._engToggleHistMp=function(id){
+  window._engHistMpAberto=window._engHistMpAberto===id?null:id;
+  reloadTab();
+};
 
 window._engEditarMp=function(id){
   const mp=engMaterias.find(x=>x.id===id);
@@ -12853,6 +12875,22 @@ window._engSalvarMp=async function(id){
     ...(precoEmbalagem?{precoEmbalagem}:{}),
     ...(qtdEmbalagem?{qtdEmbalagem}:{})};
   if(id){
+    // Histórico de custo — grava um snapshot só quando o custo por unidade
+    // realmente muda, pra depois dar pra ver a evolução do preço da MP.
+    const anterior=engMaterias.find(m=>m.id===id);
+    if(anterior){
+      const custoUnitAntigo=custoUnitMp(anterior);
+      const custoUnitNovo=custoUnitMp(dados);
+      if(Math.abs(custoUnitNovo-custoUnitAntigo)>0.0001){
+        const historico=[...(anterior.historico||[]),{
+          data:new Date().toISOString(),
+          custoAnterior:custoUnitAntigo,
+          custoNovo:custoUnitNovo,
+          usuario:currentUserData?.nome||'',
+        }].slice(-50);
+        dados.historico=historico;
+      }
+    }
     await updateDoc(doc(db,'eng_materias',id),dados);
   } else {
     await addDoc(collection(db,'eng_materias'),{...dados,criadoEm:new Date().toISOString()});
@@ -13250,6 +13288,22 @@ window._engSalvarJogo=async function(id){
   closeModal();
   const dados={nome,fabrica,categoria,margem,tipo:'jogo',itensJogo};
   if(id){
+    const anterior=engProdutos.find(x=>x.id===id);
+    if(anterior){
+      const cAntes=calcCustoProduto(anterior,'normal');
+      const cDepois=calcCustoProduto({...anterior,...dados},'normal');
+      if(Math.abs(cDepois.total-cAntes.total)>0.005||Math.abs(cDepois.venda-cAntes.venda)>0.005){
+        const historicoCusto=[...(anterior.historicoCusto||[]),{
+          data:new Date().toISOString(),
+          custoAnterior:cAntes.total,
+          custoNovo:cDepois.total,
+          vendaAnterior:cAntes.venda,
+          vendaNovo:cDepois.venda,
+          usuario:currentUserData?.nome||'',
+        }].slice(-50);
+        dados.historicoCusto=historicoCusto;
+      }
+    }
     await updateDoc(doc(db,'eng_produtos',id),dados);
   } else {
     await addDoc(collection(db,'eng_produtos'),{...dados,criadoEm:new Date().toISOString()});
@@ -13340,11 +13394,31 @@ window._engVerJogo=function(id, aba){
     conteudo=renderNormal();
   }
 
+  const historicoCustoJogo=p.historicoCusto||[];
+  const historicoHtmlJogo=historicoCustoJogo.length?('<div style="margin-top:14px">'
+    +'<button type="button" onclick="window._engToggleHistJogo(\''+id+'\')" style="width:100%;text-align:left;background:none;border:none;padding:4px 0;font-size:11px;color:#7c3aed;font-weight:700;cursor:pointer">📈 Histórico de custo ('+historicoCustoJogo.length+') '+(window._engHistJogoAberto===id?'▲':'▼')+'</button>'
+    +(window._engHistJogoAberto===id?'<div style="background:#faf5ff;border-radius:8px;padding:8px 10px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap">'
+      +'<thead><tr style="color:#94a3b8"><th style="text-align:left;padding:3px 6px">Data</th><th style="text-align:right;padding:3px 6px">Custo</th><th style="text-align:right;padding:3px 6px">Venda</th></tr></thead><tbody>'
+      +[...historicoCustoJogo].reverse().map(function(h){
+        const subiu=h.custoNovo>h.custoAnterior;
+        return '<tr style="border-top:1px solid #e9d5ff">'
+          +'<td style="padding:4px 6px;color:#64748b">'+new Date(h.data).toLocaleDateString('pt-BR')+(h.usuario?' · '+h.usuario:'')+'</td>'
+          +'<td style="padding:4px 6px;text-align:right;font-weight:700;color:'+(subiu?'#dc2626':'#059669')+'">'+fmtMoeda(h.custoAnterior)+' → '+fmtMoeda(h.custoNovo)+'</td>'
+          +'<td style="padding:4px 6px;text-align:right;color:#64748b">'+fmtMoeda(h.vendaAnterior)+' → '+fmtMoeda(h.vendaNovo)+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div>':'')
+    +'</div>'):'';
+
   showModal('🛋️ '+p.nome,
     '<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+' · Jogo com '+(p.itensJogo||[]).length+' item'+((p.itensJogo||[]).length!==1?'s':'')+'</div>'
-    +tabs+conteudo,
+    +tabs+conteudo+historicoHtmlJogo,
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
     +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\',true)">✏️ Editar</button>':''));
+};
+window._engToggleHistJogo=function(id){
+  window._engHistJogoAberto=window._engHistJogoAberto===id?null:id;
+  window._engVerJogo(id);
 };
 
 window._engSetAba=function(aba){
@@ -13778,6 +13852,24 @@ window._engSalvarProduto=async function(id){
   const dados={nome,fabrica,categoria,margem,indiretoPct,maoObra,maoObraReforma,maoObraEtapas,maoObraReformaEtapas,componentes,componentesReforma,reformas,
     imagemUrl:window._engImagemTemp||'',medidas:window._engMedidasTemp||[]};
   if(id){
+    // Histórico de custo — snapshot só quando o custo total ou a venda
+    // calculados realmente mudam (matéria-prima, mão de obra, margem, etc).
+    const anterior=engProdutos.find(x=>x.id===id);
+    if(anterior){
+      const cAntes=calcCustoProduto(anterior,'normal');
+      const cDepois=calcCustoProduto({...anterior,...dados},'normal');
+      if(Math.abs(cDepois.total-cAntes.total)>0.005||Math.abs(cDepois.venda-cAntes.venda)>0.005){
+        const historicoCusto=[...(anterior.historicoCusto||[]),{
+          data:new Date().toISOString(),
+          custoAnterior:cAntes.total,
+          custoNovo:cDepois.total,
+          vendaAnterior:cAntes.venda,
+          vendaNovo:cDepois.venda,
+          usuario:currentUserData?.nome||'',
+        }].slice(-50);
+        dados.historicoCusto=historicoCusto;
+      }
+    }
     await updateDoc(doc(db,'eng_produtos',id),dados);
   } else {
     await addDoc(collection(db,'eng_produtos'),{...dados,criadoEm:new Date().toISOString()});
@@ -13865,15 +13957,37 @@ window._engVerProduto=function(id, aba){
     conteudo=resumoCard(cNorm,'normal');
   }
 
+  const historicoCusto=p.historicoCusto||[];
+  const historicoHtml=historicoCusto.length?('<div style="margin-top:14px">'
+    +'<button type="button" onclick="window._engToggleHistProduto(\''+id+'\')" style="width:100%;text-align:left;background:none;border:none;padding:4px 0;font-size:11px;color:#0e7490;font-weight:700;cursor:pointer">📈 Histórico de custo ('+historicoCusto.length+') '+(window._engHistProdutoAberto===id?'▲':'▼')+'</button>'
+    +(window._engHistProdutoAberto===id?'<div style="background:#f8fafc;border-radius:8px;padding:8px 10px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap">'
+      +'<thead><tr style="color:#94a3b8"><th style="text-align:left;padding:3px 6px">Data</th><th style="text-align:right;padding:3px 6px">Custo</th><th style="text-align:right;padding:3px 6px">Venda</th></tr></thead><tbody>'
+      +[...historicoCusto].reverse().map(function(h){
+        const subiu=h.custoNovo>h.custoAnterior;
+        return '<tr style="border-top:1px solid #e2e8f0">'
+          +'<td style="padding:4px 6px;color:#64748b">'+new Date(h.data).toLocaleDateString('pt-BR')+(h.usuario?' · '+h.usuario:'')+'</td>'
+          +'<td style="padding:4px 6px;text-align:right;font-weight:700;color:'+(subiu?'#dc2626':'#059669')+'">'+fmtMoeda(h.custoAnterior)+' → '+fmtMoeda(h.custoNovo)+'</td>'
+          +'<td style="padding:4px 6px;text-align:right;color:#64748b">'+fmtMoeda(h.vendaAnterior)+' → '+fmtMoeda(h.vendaNovo)+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div>':'')
+    +'</div>'):'';
+
   showModal(p.nome,
     (p.imagemUrl?'<img src="'+p.imagemUrl+'" style="max-width:100%;max-height:220px;border-radius:10px;margin-bottom:12px;display:block">':'')
     +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">'+catLabel+'</div>'
     +tabs
-    +conteudo,
+    +conteudo
+    +historicoHtml,
     '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
     +'<button class="btn btn-sm" style="border:1.5px solid #0e7490;color:#0e7490" onclick="window._engImprimirFichaTecnica(\''+id+'\')">📋 Ficha Técnica</button>'
     +(podeEditar?'<button class="btn btn-sm btn-danger" onclick="window._engExcluirProduto(\''+id+'\')">Excluir</button>':'')
     +(podeEditar?'<button class="btn btn-sm btn-primary" onclick="window._engEditarProdutoById(\''+id+'\')">✏️ Editar</button>':''));
+};
+
+window._engToggleHistProduto=function(id){
+  window._engHistProdutoAberto=window._engHistProdutoAberto===id?null:id;
+  window._engVerProduto(id);
 };
 
 window._engEditarProdutoById=function(id,isJogo){
