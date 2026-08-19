@@ -7870,6 +7870,7 @@ window._espSalvarMovMp=async function(tipo, mpId){
   const kg=parseFloat(document.getElementById('emp-kg')?.value)||0;
   const data=document.getElementById('emp-data')?.value;
   const obs=document.getElementById('emp-obs')?.value.trim()||'';
+  const custoPorKgVal=parseFloat(document.getElementById('emp-custo-kg')?.value)||0;
   if(!kg){showToast('Informe a quantidade em kg.');return;}
   if(tipo==='saida'){
     const estoqueAtual=estoqueAtualMp(mpId);
@@ -7881,7 +7882,7 @@ window._espSalvarMovMp=async function(tipo, mpId){
   closeModal();
   const dados={mpId,tambores,kg:tipo==='saida'?-kg:kg,data,obs,_saida:tipo==='saida',criadoEm:new Date().toISOString()};
   if(tipo==='entrada'){
-    const custoPorKg=parseFloat(document.getElementById('emp-custo-kg')?.value)||0;
+    const custoPorKg=custoPorKgVal;
     if(custoPorKg>0){
       dados.custoPorKg=custoPorKg;
       // O preço oscila — travar o valor pago nessa entrada (acima) e, se
@@ -7964,12 +7965,12 @@ window._espSalvarEdicaoEntrada=async function(id){
   const kg=parseFloat(document.getElementById('eme-kg')?.value)||0;
   const data=document.getElementById('eme-data')?.value;
   const obs=document.getElementById('eme-obs')?.value.trim()||'';
+  const custoPorKgVal=parseFloat(document.getElementById('eme-custo-kg')?.value)||0;
   if(!kg){showToast('Informe a quantidade em kg.');return;}
   closeModal();
   const dados={tambores,kg:isEntrada?kg:-kg,data,obs};
   if(isEntrada){
-    const custoPorKg=parseFloat(document.getElementById('eme-custo-kg')?.value)||0;
-    dados.custoPorKg=custoPorKg>0?custoPorKg:null;
+    dados.custoPorKg=custoPorKgVal>0?custoPorKgVal:null;
   }
   await updateDoc(doc(db,'esp_estoque',id),dados);
   showToast('Lançamento atualizado!');
