@@ -59,6 +59,37 @@ if('serviceWorker' in navigator){
   // Desregistra service workers antigos que possam estar causando problemas de cache
   navigator.serviceWorker.getRegistrations().then(regs=>{ regs.forEach(r=>r.unregister()); });
 }
+
+// ── Aviso de nova versão disponível ──────────────────────────────
+// Como o app não usa service worker (foi desativado de propósito acima),
+// quem já tem a página aberta ou instalada pode ficar preso numa versão
+// antiga em cache. Aqui a gente busca o próprio arquivo publicado de tempos
+// em tempos (sem cache) e compara com o que está rodando; se mudou, mostra
+// um aviso fixo oferecendo recarregar.
+(function(){
+  let baseline=null;
+  function checarAtualizacao(){
+    fetch(location.href,{cache:'no-store'}).then(function(r){ return r.text(); }).then(function(texto){
+      if(baseline===null){ baseline=texto; return; }
+      if(texto!==baseline) mostrarAvisoAtualizacao();
+    }).catch(function(){});
+  }
+  function mostrarAvisoAtualizacao(){
+    if(document.getElementById('update-banner')) return;
+    const banner=document.createElement('div');
+    banner.id='update-banner';
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#1d4ed8;color:#fff;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;font-family:Nunito,Arial,sans-serif;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.25)';
+    banner.innerHTML='<span>🔄 Nova versão do sistema disponível.</span>'
+      +'<button id="update-banner-btn" style="background:#fff;color:#1d4ed8;border:none;border-radius:8px;padding:6px 16px;font-weight:800;cursor:pointer;font-size:13px;font-family:inherit">Atualizar agora</button>';
+    document.body.appendChild(banner);
+    document.getElementById('update-banner-btn').onclick=function(){ location.reload(); };
+  }
+  checarAtualizacao(); // define a versão atual como referência
+  setInterval(checarAtualizacao, 5*60*1000); // confere de novo a cada 5 min
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') checarAtualizacao();
+  });
+})();
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
