@@ -7158,10 +7158,13 @@ function renderEspEstoque(){
       +'<div style="font-size:10px;color:#94a3b8;text-align:right">toque para lançar ›</div>'
       +(entradas.length?'<div style="border-top:1px solid #f1f5f9;padding-top:8px;margin-top:6px" onclick="event.stopPropagation()">'
         +'<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:4px">Movimentos recentes</div>'
-        +entradas.slice(0,3).map(e=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0">'
+        +entradas.slice(0,3).map(e=>'<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#64748b;padding:2px 0">'
           +'<span style="color:'+(e._saida?'#dc2626':'#059669')+';font-weight:600">'+(e._saida?'↓ Saída':'↑ Entrada')+'</span>'
-          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' '+(e.tambores===1?unidSing:unidPlural)+' · '+Math.abs(e.kg)+'kg</span>'
+          +'<span>'+fmtDate(e.data)+' · '+(e.tambores||1)+' '+(e.tambores===1?unidSing:unidPlural)+' · '+Math.abs(e.kg)+'kg'+(e.custoPorKg?' · '+fmtMoeda(e.custoPorKg)+'/kg':'')+'</span>'
+          +'<span style="display:flex;gap:3px;flex-shrink:0">'
+          +'<button class="btn btn-sm" style="font-size:9px;padding:1px 6px;background:#dbeafe;color:#1d4ed8;border:none" onclick="window._espEditarEntrada(\''+e.id+'\')">✎</button>'
           +'<button class="btn btn-sm btn-danger" style="font-size:9px;padding:1px 6px" onclick="window._espExcluirEntrada(\''+e.id+'\')">✕</button>'
+          +'</span>'
           +'</div>').join('')
         +'</div>':'')
       +'</div>';
@@ -7838,6 +7841,8 @@ window._espLancarMp=function(tipo, mpId){
     +'<input type="number" id="emp-kg" min="0" step="0.1" placeholder="0" oninput="window._espCalcTamboresMp(\''+mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
     +'</div>'
     +(mp?.kgTambor?'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px;text-align:center">1 '+unidSing+' = '+mp.kgTambor+'kg</div>':'')
+    +(isEntrada?'<div class="form-group"><label>Custo por kg (R$) — o preço dessa compra</label>'
+      +'<input type="number" id="emp-custo-kg" min="0" step="0.01" value="'+(mp?.custoPorKg||'')+'" placeholder="Ex: 5,50" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>':'')
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="emp-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Obs. (opcional)</label>'
@@ -7874,7 +7879,24 @@ window._espSalvarMovMp=async function(tipo, mpId){
     }
   }
   closeModal();
-  await addDoc(collection(db,'esp_estoque'),{mpId,tambores,kg:tipo==='saida'?-kg:kg,data,obs,_saida:tipo==='saida',criadoEm:new Date().toISOString()});
+  const dados={mpId,tambores,kg:tipo==='saida'?-kg:kg,data,obs,_saida:tipo==='saida',criadoEm:new Date().toISOString()};
+  if(tipo==='entrada'){
+    const custoPorKg=parseFloat(document.getElementById('emp-custo-kg')?.value)||0;
+    if(custoPorKg>0){
+      dados.custoPorKg=custoPorKg;
+      // O preço oscila — travar o valor pago nessa entrada (acima) e, se
+      // mudou desde a última vez, atualizar o preço padrão da MP também,
+      // pra próximos lançamentos e relatórios já saírem com o preço atual.
+      const mps=[...(configEspuma.materiasPrimas||[])];
+      const i=mps.findIndex(m=>m.id===mpId);
+      if(i>=0&&mps[i].custoPorKg!==custoPorKg){
+        mps[i]={...mps[i],custoPorKg};
+        configEspuma={...configEspuma,materiasPrimas:mps};
+        await _saveConfigEspuma();
+      }
+    }
+  }
+  await addDoc(collection(db,'esp_estoque'),dados);
   showToast(tipo==='entrada'?'Entrada registrada!':'Saída registrada!');
 };
 
@@ -7891,6 +7913,65 @@ window._espConfirmarExcluirEnt=async function(){
   closeModal();
   await deleteDoc(doc(db,'esp_estoque',id));
   showToast('Entrada excluída!');
+};
+
+window._espEditarEntrada=function(id){
+  const e=espumaEstoque.find(x=>x.id===id);
+  if(!e) return;
+  const mp=getMpById(e.mpId)||FORMULA_BLOCO.find(f=>f.id===e.mpId);
+  const isEntrada=!e._saida;
+  const unidEmb=mp?.unidadeEmbalagem||'tambor';
+  const unidLabel=(UNIDADE_EMB_PLURAL[unidEmb]||'tambores').charAt(0).toUpperCase()+(UNIDADE_EMB_PLURAL[unidEmb]||'tambores').slice(1);
+  const unidSing=unidEmb;
+  showModal((isEntrada?'✎ Editar entrada — ':'✎ Editar saída — ')+(mp?.label||''),
+    '<div style="font-size:11px;color:#64748b;margin-bottom:10px">Preencha '+unidLabel.toLowerCase()+' <strong>ou</strong> kg — o outro campo é calculado automaticamente.</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+    +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">'+unidLabel+'</label>'
+    +'<input type="number" id="eme-tambores" min="0" step="0.5" value="'+(e.tambores||'')+'" oninput="window._espCalcKgMpEdit(\''+e.mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
+    +'<div><label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Quilos (kg)</label>'
+    +'<input type="number" id="eme-kg" min="0" step="0.1" value="'+Math.abs(e.kg||0)+'" oninput="window._espCalcTamboresMpEdit(\''+e.mpId+'\')" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;text-align:center"></div>'
+    +'</div>'
+    +(mp?.kgTambor?'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px;text-align:center">1 '+unidSing+' = '+mp.kgTambor+'kg</div>':'')
+    +(isEntrada?'<div class="form-group"><label>Custo por kg (R$) — o preço dessa compra</label>'
+      +'<input type="number" id="eme-custo-kg" min="0" step="0.01" value="'+(e.custoPorKg||'')+'" placeholder="Ex: 5,50" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>':'')
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="eme-data" value="'+(e.data||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Obs. (opcional)</label>'
+    +'<input id="eme-obs" value="'+(e.obs||'').replace(/"/g,'&quot;')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._espSalvarEdicaoEntrada(\''+id+'\')">Salvar</button>');
+};
+window._espCalcKgMpEdit=function(mpId){
+  const mp=getMpById(mpId)||FORMULA_BLOCO.find(f=>f.id===mpId);
+  if(!mp) return;
+  const t=parseFloat(document.getElementById('eme-tambores')?.value)||0;
+  const kgEl=document.getElementById('eme-kg');
+  if(t>0&&kgEl) kgEl.value=(mp.kgTambor*t).toFixed(1);
+};
+window._espCalcTamboresMpEdit=function(mpId){
+  const mp=getMpById(mpId)||FORMULA_BLOCO.find(f=>f.id===mpId);
+  if(!mp||!mp.kgTambor) return;
+  const kg=parseFloat(document.getElementById('eme-kg')?.value)||0;
+  const tEl=document.getElementById('eme-tambores');
+  if(kg>0&&tEl) tEl.value=(kg/mp.kgTambor).toFixed(2);
+};
+window._espSalvarEdicaoEntrada=async function(id){
+  const e=espumaEstoque.find(x=>x.id===id);
+  if(!e) return;
+  const isEntrada=!e._saida;
+  const tambores=parseFloat(document.getElementById('eme-tambores')?.value)||0;
+  const kg=parseFloat(document.getElementById('eme-kg')?.value)||0;
+  const data=document.getElementById('eme-data')?.value;
+  const obs=document.getElementById('eme-obs')?.value.trim()||'';
+  if(!kg){showToast('Informe a quantidade em kg.');return;}
+  closeModal();
+  const dados={tambores,kg:isEntrada?kg:-kg,data,obs};
+  if(isEntrada){
+    const custoPorKg=parseFloat(document.getElementById('eme-custo-kg')?.value)||0;
+    dados.custoPorKg=custoPorKg>0?custoPorKg:null;
+  }
+  await updateDoc(doc(db,'esp_estoque',id),dados);
+  showToast('Lançamento atualizado!');
 };
 window._espSetFiltro=v=>{ window._espFichaFiltro=v; reloadTab(); };
 window._espFecharFicha=async function(opId){
@@ -16243,11 +16324,12 @@ function renderFinMatQuimicos(){
 
   const filtradas=entradas.filter(e=>(e.data||'').startsWith(window._finQuimicosMes));
 
-  // Valor total: custoPorKg × kg, se disponível; senão custo salvo
+  // Valor total: usa o preço travado na própria entrada (o que foi pago de
+  // verdade naquela compra); senão cai pro custo padrão atual da MP.
   const getMpLabel=mpId=>getMpById(mpId)?.label||mpId;
   const getMpCusto=mpId=>parseFloat(getMpById(mpId)?.custoPorKg)||0;
   const calcValor=e=>{
-    const custoPorKg=getMpCusto(e.mpId);
+    const custoPorKg=parseFloat(e.custoPorKg)||getMpCusto(e.mpId);
     const kg=parseFloat(e.kg)||0;
     return custoPorKg>0?(custoPorKg*kg):(parseFloat(e.custo)||0);
   };
@@ -16342,7 +16424,7 @@ function renderFinDashboard(){
 
   const matQuimicosDoMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mesAtualFin));
   const totalMatQuimicosMes=matQuimicosDoMes.reduce((s,e)=>{
-    const custoPorKg=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
+    const custoPorKg=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
     return s+(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   },0);
 
@@ -16391,7 +16473,7 @@ function renderFinDashboard(){
     const mes_=(e.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    const custoPorKg=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
+    const custoPorKg=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
     porMes[mes_]+=(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
   });
   todosAbastecimentos().forEach(a=>{
@@ -17610,7 +17692,7 @@ function renderFinRelatorio(){
     const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
     const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
     const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
+    const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
     const viagVal=finViagensDetalhe(mes).total;
     const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
     const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
@@ -17741,7 +17823,7 @@ window._exportarBalancoPDF=function(mes, mesNome){
   const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
   const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
 
-  const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
+  const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
   const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
   const totalSaidas=pagVal+compVal+indVal+matVal+quimVal+viagVal;
   const resultado=vendVal-totalSaidas;
