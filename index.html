@@ -7348,7 +7348,7 @@ function renderEspRelatorio(){
       const pct=Math.round(valor/maxValorEstoque*100);
       html+='<div style="margin-bottom:10px">'
         +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
-        +'<span style="font-size:12px;font-weight:600">'+mp.nome+' <span style="font-size:10px;color:#94a3b8">'+kg.toLocaleString('pt-BR',{maximumFractionDigits:1})+'kg</span></span>'
+        +'<span style="font-size:12px;font-weight:600">'+mp.label+' <span style="font-size:10px;color:#94a3b8">'+kg.toLocaleString('pt-BR',{maximumFractionDigits:1})+'kg</span></span>'
         +'<span style="font-size:12px;font-weight:700;color:#4f46e5">'+fmtMoeda(valor)+'</span>'
         +'</div>'
         +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
