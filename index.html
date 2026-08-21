@@ -562,6 +562,8 @@ let espumaEstoque=[];
 let espumaOperadores=[];
 // Contas a Pagar (duplicatas)
 let contasPagar=[];
+// Contas a Receber (parcelas de clientes)
+let contasReceber=[];
 // Custos Indiretos
 let custosIndiretos=[];
 let matDiretos=[];
@@ -862,6 +864,8 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'hist_prod_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
   'setores_resumo': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'cp_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  'cr_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  'cr_clientes': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
@@ -872,6 +876,7 @@ const TAB_LABELS={
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking','hist_prod_metal':'Histórico Mensal',
   // Caminhões
   'cp_lista':'Contas a Pagar',
+  'cr_lista':'A Receber','cr_clientes':'Por Cliente',
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
@@ -1034,6 +1039,7 @@ function renderSelecionarSetor(){
 function renderSelecionarFinanceiro(){
   const opcoes=[
     {id:'contas_pagar',    nome:'Contas a Pagar',  icon:'🧾', desc:'Duplicatas e boletos por vencimento'},
+    {id:'contas_receber',  nome:'Contas a Receber',icon:'📥', desc:'Prazos dos clientes e recebimentos'},
     {id:'financeiro_geral',nome:'Financeiro',      icon:'💰', desc:'Pagamentos, compras e relatórios financeiros'},
   ];
   const cards=opcoes.map(o=>`
@@ -1058,7 +1064,7 @@ function renderSelecionarFinanceiro(){
 window._selecionarSubFinanceiro=id=>{
   currentSetor=id;
   sessionStorage.setItem('jm_setor',id);
-  currentTab=id==='contas_pagar'?'cp_lista':'fin_dashboard';
+  currentTab=id==='contas_pagar'?'cp_lista':id==='contas_receber'?'cr_lista':'fin_dashboard';
   render();
 };
 
@@ -1137,6 +1143,9 @@ function renderApp(){
   } else if(currentSetor==='contas_pagar'){
     tabs.push('cp_lista');
     currentTab='cp_lista';
+  } else if(currentSetor==='contas_receber'){
+    tabs.push('cr_lista','cr_clientes');
+    if(!currentTab||!currentTab.startsWith('cr_')) currentTab='cr_lista';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
@@ -1269,6 +1278,7 @@ function renderApp(){
               currentSetor==='espuma'?'Blocos de Espuma':
               currentSetor==='financeiro_geral'?'Financeiro':
               currentSetor==='contas_pagar'?'Contas a Pagar':
+              currentSetor==='contas_receber'?'Contas a Receber':
               currentSetor==='manutencao'?'Manutenção':
               currentSetor==='engenharia'?'Engenharia':
               currentSetor==='setores_geral'?'Resumo dos Setores':
@@ -1333,6 +1343,7 @@ function renderTab(tab){
   ativarListenersSetor(currentSetor);
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='contas_pagar') return renderContasPagar();
+  if(currentSetor==='contas_receber') return currentTab==='cr_clientes'?renderContasReceberClientes():renderContasReceber();
   if(currentSetor==='setores_geral') return renderTabSetoresGeral(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
@@ -15965,6 +15976,379 @@ window._cpConfirmarExcluir=async function(){
   }
 };
 
+// ════════════════════════════════════════════════════════════════
+// CONTAS A RECEBER — prazos dos clientes e baixa de recebimentos
+// ════════════════════════════════════════════════════════════════
+// Mesma regra do Contas a Pagar: financeiro lança e dá baixa; admin e
+// proprietário só visualizam (proprietário com o sinalizador também edita).
+function podeEditarContasReceber(){
+  const perfil=currentUserData?.perfil;
+  if(perfil==='financeiro') return true;
+  if(perfil==='proprietario') return !!currentUserData?.podeLancarContasPagar;
+  return false;
+}
+
+function crNomeCliente(c){
+  if(c.clienteId){
+    const cli=clientes.find(x=>x.id===c.clienteId);
+    if(cli) return cli.nome;
+  }
+  return c.clienteNome||'—';
+}
+
+// Situação de uma parcela em relação ao prazo — usada nos cards e na lista.
+function crSituacao(c){
+  const hoje=today();
+  const venc=c.vencimento||'';
+  if(c.recebido) return {chave:'recebido',label:'✓ Recebido'+(c.dataRecebimento?' em '+fmtDate(c.dataRecebimento):''),cor:'#059669',bg:'#f0fdf4',border:'#bbf7d0'};
+  if(!venc) return {chave:'futuro',label:'Sem data',cor:'#64748b',bg:'#fff',border:'#e2e8f0'};
+  if(venc<hoje){
+    const dias=Math.round((new Date(hoje+'T12:00:00')-new Date(venc+'T12:00:00'))/86400000);
+    return {chave:'atrasado',label:'Atrasado há '+dias+' dia'+(dias!==1?'s':''),cor:'#dc2626',bg:'#fef2f2',border:'#fca5a5'};
+  }
+  if(venc===hoje) return {chave:'hoje',label:'Vence hoje',cor:'#d97706',bg:'#fffbeb',border:'#fde68a'};
+  const diasFalta=Math.round((new Date(venc+'T12:00:00')-new Date(hoje+'T12:00:00'))/86400000);
+  if(diasFalta<=7) return {chave:'perto',label:'Vence em '+diasFalta+' dia'+(diasFalta!==1?'s':''),cor:'#d97706',bg:'#fffbeb',border:'#fde68a'};
+  return {chave:'futuro',label:'A vencer',cor:'#1e293b',bg:'#fff',border:'#e2e8f0'};
+}
+
+function renderContasReceber(){
+  const podeEditar=podeEditarContasReceber();
+  const hoje=today();
+  const mesAtual=hoje.slice(0,7);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabel=(anoMes)=>{
+    if(!anoMes) return 'Sem data';
+    const[y,m]=anoMes.split('-');
+    return MESES[parseInt(m)-1]+' '+y;
+  };
+
+  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._crAbrirNovo()">+ Nova venda a prazo</button>':'')
+    +'</div>';
+
+  if(!contasReceber.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma venda a prazo cadastrada ainda.</div>';
+    return html;
+  }
+
+  const pendentes=contasReceber.filter(c=>!c.recebido).sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
+  const recebidas=contasReceber.filter(c=>c.recebido).sort((a,b)=>(b.dataRecebimento||b.vencimento||'')<(a.dataRecebimento||a.vencimento||'')?-1:1);
+  const somaValor=(lista)=>lista.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+
+  const atrasadas=pendentes.filter(c=>(c.vencimento||'')&&(c.vencimento<hoje));
+  const aReceberMes=somaValor(pendentes.filter(c=>(c.vencimento||'').slice(0,7)===mesAtual));
+  const recebidoMes=somaValor(recebidas.filter(c=>(c.dataRecebimento||'').slice(0,7)===mesAtual));
+  const totalPendente=somaValor(pendentes);
+
+  // Cards de resumo
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff"><div><div class="stat-label">Atrasado</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(somaValor(atrasadas))+'</div><div style="font-size:10px;opacity:.85">'+atrasadas.length+' parcela'+(atrasadas.length!==1?'s':'')+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff"><div><div class="stat-label">A receber este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(aReceberMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff"><div><div class="stat-label">Recebido este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(recebidoMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff"><div><div class="stat-label">Total a receber</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(totalPendente)+'</div></div></div>'
+    +'</div>';
+
+  // Previsão de entrada por mês — o que o chefe quer ver: quanto entra em cada mês
+  const previsao={};
+  pendentes.forEach(c=>{
+    const m=(c.vencimento||'').slice(0,7);
+    if(!m) return;
+    previsao[m]=(previsao[m]||0)+(parseFloat(c.valor)||0);
+  });
+  const mesesPrev=Object.keys(previsao).sort();
+  if(mesesPrev.length){
+    const maxPrev=Math.max(...Object.values(previsao),1);
+    html+='<div class="card" style="margin-bottom:18px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📅 Previsão de entrada por mês</div>';
+    mesesPrev.forEach(m=>{
+      const v=previsao[m];
+      const pct=Math.round(v/maxPrev*100);
+      const atrasadoMes=m<mesAtual;
+      html+='<div style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+        +'<span style="font-size:12px;font-weight:600">'+mesLabel(m)+(atrasadoMes?' <span style="font-size:10px;color:#dc2626;font-weight:700">em atraso</span>':'')+'</span>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(atrasadoMes?'#dc2626':'#059669')+'">'+fmtMoeda(v)+'</span>'
+        +'</div>'
+        +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+(atrasadoMes?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#059669,#34d399)')+';border-radius:99px"></div>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  }
+
+  const linha=(c)=>{
+    const sit=crSituacao(c);
+    return '<div class="card" style="margin-bottom:8px;background:'+sit.bg+';border:1.5px solid '+sit.border+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+crNomeCliente(c)+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:'+sit.cor+';font-weight:700;margin-top:2px">'+sit.label+' · vence '+fmtDate(c.vencimento||'')+'</div>'
+      +(c.descricao?'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+c.descricao+'</div>':'')
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:17px;font-weight:800;color:'+sit.cor+'">'+fmtMoeda(parseFloat(c.valor)||0)+'</div>'
+      +(podeEditar?'<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end">'
+        +(c.recebido?'<button onclick="window._crDesmarcarRecebido(\''+c.id+'\')" class="btn btn-sm btn-ghost" style="font-size:11px">Desmarcar</button>'
+                    :'<button onclick="window._crMarcarRecebido(\''+c.id+'\')" class="btn btn-sm" style="font-size:11px;background:#d1fae5;color:#065f46;border:none">Dar baixa</button>')
+        +'<button onclick="window._crEditarConta(\''+c.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✎</button>'
+        +'<button onclick="window._crExcluirConta(\''+c.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
+        +'</div>':'')
+      +'</div></div></div>';
+  };
+
+  const agruparPorMes=(lista)=>{
+    const grupos=[];
+    lista.forEach(c=>{
+      const chave=(c.vencimento||'').slice(0,7);
+      let g=grupos.find(x=>x.chave===chave);
+      if(!g){g={chave,itens:[]};grupos.push(g);}
+      g.itens.push(c);
+    });
+    return grupos;
+  };
+
+  html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A receber ('+pendentes.length+')</div>';
+  if(!pendentes.length){
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma parcela pendente 🎉</div>';
+  } else {
+    agruparPorMes(pendentes).forEach(g=>{
+      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
+      html+=g.itens.map(linha).join('');
+    });
+  }
+
+  if(recebidas.length){
+    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Recebidas ('+recebidas.length+')</div>';
+    agruparPorMes(recebidas).forEach(g=>{
+      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
+      html+=g.itens.map(linha).join('');
+    });
+  }
+
+  return html;
+}
+
+// Visão por cliente — quanto cada um ainda deve e como está o prazo dele
+function renderContasReceberClientes(){
+  const hoje=today();
+  if(!contasReceber.length) return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma venda a prazo cadastrada ainda.</div>';
+
+  const porCliente={};
+  contasReceber.forEach(c=>{
+    const nome=crNomeCliente(c);
+    if(!porCliente[nome]) porCliente[nome]={nome,pendente:0,atrasado:0,recebido:0,parcelas:[],proxVenc:null};
+    const valor=parseFloat(c.valor)||0;
+    if(c.recebido){ porCliente[nome].recebido+=valor; }
+    else {
+      porCliente[nome].pendente+=valor;
+      porCliente[nome].parcelas.push(c);
+      if((c.vencimento||'')&&c.vencimento<hoje) porCliente[nome].atrasado+=valor;
+      if(c.vencimento&&(!porCliente[nome].proxVenc||c.vencimento<porCliente[nome].proxVenc)) porCliente[nome].proxVenc=c.vencimento;
+    }
+  });
+
+  // Quem está atrasado primeiro, depois quem deve mais
+  const lista=Object.values(porCliente).sort((a,b)=>(b.atrasado-a.atrasado)||(b.pendente-a.pendente));
+
+  let html='<div style="font-size:11px;color:#64748b;margin-bottom:14px">Clientes com atraso aparecem primeiro. O valor em destaque é o que ainda falta receber.</div>';
+  lista.forEach(cli=>{
+    const temAtraso=cli.atrasado>0;
+    const quitado=cli.pendente<=0;
+    html+='<div class="card" style="margin-bottom:10px;'+(temAtraso?'border-left:4px solid #dc2626':(quitado?'border-left:4px solid #059669':'border-left:4px solid #e2e8f0'))+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:14px;font-weight:700">'+cli.nome+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:2px">'
+      +(quitado?'✓ Sem pendências':(cli.parcelas.length+' parcela'+(cli.parcelas.length!==1?'s':'')+' em aberto'+(cli.proxVenc?' · próxima em '+fmtDate(cli.proxVenc):'')))
+      +'</div>'
+      +(temAtraso?'<div style="font-size:11px;color:#dc2626;font-weight:700;margin-top:2px">⚠️ '+fmtMoeda(cli.atrasado)+' em atraso</div>':'')
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:10px;color:#94a3b8">falta receber</div>'
+      +'<div style="font-size:18px;font-weight:800;color:'+(temAtraso?'#dc2626':(quitado?'#059669':'#1e293b'))+'">'+fmtMoeda(cli.pendente)+'</div>'
+      +(cli.recebido>0?'<div style="font-size:10px;color:#059669;margin-top:2px">já pagou '+fmtMoeda(cli.recebido)+'</div>':'')
+      +'</div></div></div>';
+  });
+  return html;
+}
+
+window._crAbrirNovo=function(){
+  window._crParcelasTemp=[{valor:'',vencimento:today()}];
+  const optsCliente='<option value="">— Selecione —</option>'
+    +clientes.map(c=>'<option value="'+c.id+'">'+c.nome+'</option>').join('');
+  showModal('+ Nova venda a prazo',
+    '<div class="form-group"><label>Cliente</label>'
+    +'<select id="cr-cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+optsCliente+'</select>'
+    +(clientes.length?'':'<div style="font-size:11px;color:#dc2626;margin-top:4px">Nenhum cliente cadastrado — cadastre em Financeiro → Entradas.</div>')
+    +'</div>'
+    +'<div class="form-group"><label>Descrição (opcional)</label>'
+    +'<input id="cr-descricao" placeholder="Ex: 10 cadeiras varanda" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Quantidade de parcelas</label>'
+    +'<input type="number" id="cr-qtd" min="1" step="1" value="1" oninput="window._crAtualizarParcelas()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100px"></div>'
+    +'<div id="cr-parcelas-rows"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._crSalvarNovo()">Salvar</button>');
+  window._crRenderParcelas();
+};
+
+window._crAtualizarParcelas=function(){
+  const atual=window._crParcelasTemp||[];
+  atual.forEach((p,i)=>{
+    const v=document.getElementById('cr-pv-'+i)?.value;
+    const d=document.getElementById('cr-pd-'+i)?.value;
+    if(v!=null&&v!=='') p.valor=v;
+    if(d) p.vencimento=d;
+  });
+  let qtd=parseInt(document.getElementById('cr-qtd')?.value)||1;
+  if(qtd<1) qtd=1;
+  if(qtd>60) qtd=60;
+  while(atual.length<qtd){
+    const last=atual[atual.length-1];
+    let prox=today();
+    if(last&&last.vencimento){
+      const d=new Date(last.vencimento+'T12:00:00');
+      d.setMonth(d.getMonth()+1);
+      prox=d.toISOString().slice(0,10);
+    }
+    atual.push({valor:last?last.valor:'',vencimento:prox});
+  }
+  atual.length=qtd;
+  window._crParcelasTemp=atual;
+  window._crRenderParcelas();
+};
+
+window._crRenderParcelas=function(){
+  const el=document.getElementById('cr-parcelas-rows');
+  if(!el) return;
+  const lista=window._crParcelasTemp||[];
+  el.innerHTML=lista.map((p,i)=>
+    '<div class="form-row" style="align-items:flex-end">'
+    +'<div class="form-group"><label>Parcela '+(i+1)+'/'+lista.length+' — Valor (R$)</label>'
+    +'<input type="number" min="0" step="0.01" id="cr-pv-'+i+'" value="'+(p.valor||'')+'" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Vencimento</label>'
+    +'<input type="date" id="cr-pd-'+i+'" value="'+(p.vencimento||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'</div>'
+  ).join('');
+};
+
+window._crSalvarNovo=async function(){
+  const clienteId=document.getElementById('cr-cliente')?.value||'';
+  const descricao=document.getElementById('cr-descricao')?.value.trim()||'';
+  if(!clienteId){showToast('Selecione o cliente.');return;}
+  const qtd=(window._crParcelasTemp||[]).length;
+  const parcelas=[];
+  for(let i=0;i<qtd;i++){
+    const valor=parseFloat(document.getElementById('cr-pv-'+i)?.value)||0;
+    const vencimento=document.getElementById('cr-pd-'+i)?.value||today();
+    if(!valor){showToast('Informe o valor da parcela '+(i+1)+'.');return;}
+    parcelas.push({valor,vencimento});
+  }
+  const clienteNome=clientes.find(c=>c.id===clienteId)?.nome||'';
+  closeModal();
+  const grupoId='g'+Date.now();
+  try{
+    for(let i=0;i<parcelas.length;i++){
+      await addDoc(collection(db,'contas_receber'),{
+        clienteId,
+        clienteNome,
+        descricao,
+        valor:parcelas[i].valor,
+        vencimento:parcelas[i].vencimento,
+        parcela:qtd>1?(i+1)+'/'+qtd:'',
+        grupoId,
+        recebido:false,
+        criadoPor:currentUserData?.nome||'',
+        criadoEm:new Date().toISOString(),
+      });
+    }
+    showToast(qtd>1?qtd+' parcelas lançadas!':'Venda a prazo salva!');
+  }catch(e){
+    console.error('Erro ao salvar contas_receber:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
+window._crEditarConta=function(id){
+  const c=contasReceber.find(x=>x.id===id);
+  if(!c) return;
+  const optsCliente='<option value="">— Selecione —</option>'
+    +clientes.map(cl=>'<option value="'+cl.id+'"'+(c.clienteId===cl.id?' selected':'')+'>'+cl.nome+'</option>').join('');
+  showModal('Editar parcela',
+    '<div class="form-group"><label>Cliente</label>'
+    +'<select id="cr-ed-cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+optsCliente+'</select></div>'
+    +'<div class="form-group"><label>Descrição (opcional)</label>'
+    +'<input id="cr-ed-descricao" value="'+(c.descricao||'').replace(/"/g,'&quot;')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-row">'
+    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<input type="number" id="cr-ed-valor" min="0" step="0.01" value="'+(c.valor||'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Vencimento</label>'
+    +'<input type="date" id="cr-ed-vencimento" value="'+(c.vencimento||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Parcela</label>'
+    +'<input id="cr-ed-parcela" value="'+(c.parcela||'').replace(/"/g,'&quot;')+'" placeholder="Ex: 1/3" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._crExcluirConta(\''+id+'\')">Excluir</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._crSalvarEdicao(\''+id+'\')">Salvar</button>');
+};
+
+window._crSalvarEdicao=async function(id){
+  const clienteId=document.getElementById('cr-ed-cliente')?.value||'';
+  const descricao=document.getElementById('cr-ed-descricao')?.value.trim()||'';
+  const valor=parseFloat(document.getElementById('cr-ed-valor')?.value)||0;
+  const vencimento=document.getElementById('cr-ed-vencimento')?.value||today();
+  const parcela=document.getElementById('cr-ed-parcela')?.value.trim()||'';
+  if(!clienteId){showToast('Selecione o cliente.');return;}
+  if(!valor){showToast('Informe o valor.');return;}
+  const clienteNome=clientes.find(c=>c.id===clienteId)?.nome||'';
+  closeModal();
+  try{
+    await updateDoc(doc(db,'contas_receber',id),{clienteId,clienteNome,descricao,valor,vencimento,parcela});
+    showToast('Parcela atualizada!');
+  }catch(e){
+    console.error('Erro ao atualizar contas_receber:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
+window._crMarcarRecebido=async function(id){
+  try{
+    await updateDoc(doc(db,'contas_receber',id),{recebido:true,dataRecebimento:today()});
+    showToast('Baixa registrada!');
+  }catch(e){
+    console.error('Erro ao dar baixa:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+window._crDesmarcarRecebido=async function(id){
+  try{
+    await updateDoc(doc(db,'contas_receber',id),{recebido:false,dataRecebimento:null});
+    showToast('Baixa desfeita.');
+  }catch(e){
+    console.error('Erro ao desfazer baixa:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+
+window._crExcluirConta=function(id){
+  window._pendingCrId=id;
+  closeModal();
+  showModal('Excluir parcela','<div style="font-size:13px">Deseja excluir esta parcela?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._crConfirmarExcluir()">Excluir</button>');
+};
+window._crConfirmarExcluir=async function(){
+  const id=window._pendingCrId; if(!id) return;
+  closeModal();
+  try{
+    await deleteDoc(doc(db,'contas_receber',id));
+    showToast('Parcela excluída!');
+  }catch(e){
+    console.error('Erro ao excluir contas_receber:',e);
+    showToast('Erro ao excluir: '+e.message);
+  }
+};
+
 function renderTabFinanceiro(tab){
   try{
     if(tab==='fin_dashboard') return renderFinDashboard();
@@ -19861,6 +20245,16 @@ const LISTENERS_POR_SETOR={
   contas_pagar: [
     ()=>onSnapshot(collection(db,'contas_pagar'),snap=>{
       contasPagar=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  contas_receber: [
+    ()=>onSnapshot(collection(db,'contas_receber'),snap=>{
+      contasReceber=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fin_clientes'),snap=>{
+      clientes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
       if(currentUserData)reloadTab();
     }),
   ],
