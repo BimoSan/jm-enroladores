@@ -565,11 +565,12 @@ const DRE_GRUPOS=[
 const DRE_GRUPO_PADRAO={
   'Energia':'producao','Manutenção de Maquinário':'producao','Peças para Maquinários':'producao',
   'EPI':'producao','Ferramentas':'producao','Materiais Diversos':'producao','Perdas':'producao',
+  'Gás':'producao',
   'Sistema':'administrativa','Internet':'administrativa','Aluguel':'administrativa','Água':'administrativa',
   'Almoço/Merenda':'administrativa','Despesas com Pessoal':'administrativa','Salários Administrativos':'administrativa',
   'Materiais Administrativos':'administrativa','Materiais de Limpeza':'administrativa',
-  'Sem Identificação':'administrativa','Outros':'administrativa',
-  'Fretes':'comercial','Patrocínio/Doação':'comercial','Combustível':'comercial',
+  'Sem Identificação':'administrativa','Outros':'administrativa','Patrocínio/Doação':'administrativa',
+  'Fretes':'comercial','Combustível':'comercial',
   'Manutenção de Caminhão':'comercial','Peças Automotivas':'comercial','Manutenção Carro/Moto':'comercial',
   'Imposto':'tributaria','Multas':'tributaria',
   'Investimento':'investimento',
@@ -18408,6 +18409,17 @@ window._imprimirDRE=function(mes,mesNome){
   }
   linhas+=linhaPdf('(=) RESULTADO LÍQUIDO',d.resultadoLiquido,{forte:true,bg:d.resultadoLiquido>=0?'#e8f5ef':'#fdecea',cor:d.resultadoLiquido>=0?'#059669':'#dc2626',pct:true});
 
+  // Detalhamento dos custos indiretos por categoria — mesmas seções da tela
+  const detalheHtml=DRE_GRUPOS.map(g=>{
+    const itens=(d.detalhePorGrupo[g.id]||[]).filter(([,v])=>v>0);
+    if(!itens.length) return '';
+    const totalGrupo=itens.reduce((s,[,v])=>s+v,0);
+    return '<div class="grupo">'
+      +'<div class="grupo-tit"><span>'+g.label+'</span><span>'+fmtMoeda(totalGrupo)+'</span></div>'
+      +itens.map(([cat,val])=>'<div class="grupo-item"><span>'+cat+'</span><span>'+fmtMoeda(val)+'</span></div>').join('')
+      +'</div>';
+  }).join('');
+
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>DRE — ${mesNome}</title>
@@ -18417,11 +18429,16 @@ window._imprimirDRE=function(mes,mesNome){
   h1{font-size:22px;margin:0 0 2px}
   .sub{color:#64748b;font-size:12px;margin-bottom:18px}
   table{width:100%;border-collapse:collapse;font-size:12px}
+  .secao-tit{font-size:14px;font-weight:800;margin:24px 0 10px;padding-bottom:4px;border-bottom:2px solid #1e293b}
+  .grupo{margin-bottom:12px;break-inside:avoid}
+  .grupo-tit{display:flex;justify-content:space-between;font-size:12px;font-weight:800;background:#f1f5f9;padding:5px 8px;border-radius:5px}
+  .grupo-item{display:flex;justify-content:space-between;font-size:11px;color:#555;padding:3px 8px 3px 20px;border-bottom:1px solid #f1f5f9}
   @media print{@page{size:A4;margin:14mm}}
 </style></head><body>
   <h1>DRE — ${mesNome}</h1>
   <div class="sub">Demonstrativo de resultado gerencial (base caixa) · JM Gestão Fabril</div>
   <table>${linhas}</table>
+  ${detalheHtml?'<div class="secao-tit">Custos indiretos por categoria</div>'+detalheHtml:''}
   <div style="font-size:10px;color:#94a3b8;margin-top:20px">Gerado em ${new Date().toLocaleString('pt-BR')} · Considera valores efetivamente recebidos e pagos no mês.</div>
 </body></html>`);
   win.document.close();
