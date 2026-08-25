@@ -549,6 +549,36 @@ let configFin={categoriasCustos:['Energia','Sistema','Internet','Aluguel','Água
   'Materiais Administrativos','Materiais Diversos','Materiais de Limpeza',
   'Fretes','Ferramentas','Investimento','Combustível','EPI',
   'Sem Identificação','Outros']};
+
+// ── DRE: em qual linha do resultado cada custo indireto entra ──────
+// 'producao'     → soma no CPV (custo do produto vendido)
+// 'administrativa'/'comercial'/'tributaria' → despesa operacional
+// 'investimento' → fora do operacional (entra só no resultado líquido)
+// Classificação padrão; o admin pode ajustar em Custos Indiretos → Categorias.
+const DRE_GRUPOS=[
+  {id:'producao',      label:'Custo de produção (CPV)'},
+  {id:'administrativa',label:'Despesa administrativa'},
+  {id:'comercial',     label:'Despesa comercial / viagens'},
+  {id:'tributaria',    label:'Despesa tributária'},
+  {id:'investimento',  label:'Investimento (não operacional)'},
+];
+const DRE_GRUPO_PADRAO={
+  'Energia':'producao','Manutenção de Maquinário':'producao','Peças para Maquinários':'producao',
+  'EPI':'producao','Ferramentas':'producao','Materiais Diversos':'producao','Perdas':'producao',
+  'Sistema':'administrativa','Internet':'administrativa','Aluguel':'administrativa','Água':'administrativa',
+  'Almoço/Merenda':'administrativa','Despesas com Pessoal':'administrativa','Salários Administrativos':'administrativa',
+  'Materiais Administrativos':'administrativa','Materiais de Limpeza':'administrativa',
+  'Sem Identificação':'administrativa','Outros':'administrativa',
+  'Fretes':'comercial','Patrocínio/Doação':'comercial','Combustível':'comercial',
+  'Manutenção de Caminhão':'comercial','Peças Automotivas':'comercial','Manutenção Carro/Moto':'comercial',
+  'Imposto':'tributaria','Multas':'tributaria',
+  'Investimento':'investimento',
+};
+// Grupo de uma categoria: o configurado pelo admin, senão o padrão, senão administrativa.
+function dreGrupoDaCategoria(cat){
+  return (configFin.dreGrupos||{})[cat]||DRE_GRUPO_PADRAO[cat]||'administrativa';
+}
+
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
@@ -15652,17 +15682,37 @@ window._custoNovo=function(){
 
 window._custoGerenciarCategorias=function(){
   const cats=configFin.categoriasCustos||[];
-  const linhas=cats.map((c,i)=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-    +'<div style="flex:1;font-size:13px;padding:6px 8px;background:#f8fafc;border-radius:7px">'+c+'</div>'
-    +'<button type="button" onclick="window._custoRemoverCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:13px;cursor:pointer">✕</button>'
-    +'</div>').join('');
+  const linhas=cats.map((c,i)=>{
+    const grupoAtual=dreGrupoDaCategoria(c);
+    const opts=DRE_GRUPOS.map(g=>'<option value="'+g.id+'"'+(g.id===grupoAtual?' selected':'')+'>'+g.label+'</option>').join('');
+    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+      +'<div style="flex:1;min-width:0;font-size:13px;padding:6px 8px;background:#f8fafc;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c+'</div>'
+      +'<select onchange="window._custoSetGrupoDRE('+i+',this.value)" title="Onde entra no DRE" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 6px;max-width:150px">'+opts+'</select>'
+      +'<button type="button" onclick="window._custoRemoverCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:13px;cursor:pointer;flex-shrink:0">✕</button>'
+      +'</div>';
+  }).join('');
   showModal('Gerenciar categorias de custo',
-    '<div id="ci-cat-lista" style="max-height:260px;overflow-y:auto;margin-bottom:10px">'+linhas+'</div>'
+    '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">A coluna do meio define em qual linha do <strong>DRE</strong> cada categoria entra. Vale a pena conferir isso com o contador de vocês.</div>'
+    +'<div id="ci-cat-lista" style="max-height:260px;overflow-y:auto;margin-bottom:10px">'+linhas+'</div>'
     +'<div style="display:flex;gap:6px">'
     +'<input id="ci-cat-nova" placeholder="Nova categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
     +'<button type="button" onclick="window._custoAdicionarCategoria()" style="background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:0 16px;font-size:13px;font-weight:700;cursor:pointer">+</button>'
     +'</div>',
     '<button class="btn btn-sm btn-primary" onclick="window._custoNovo()">Voltar</button>');
+};
+window._custoSetGrupoDRE=async function(idx,grupo){
+  const cats=configFin.categoriasCustos||[];
+  const cat=cats[idx];
+  if(!cat) return;
+  const dreGrupos={...(configFin.dreGrupos||{}),[cat]:grupo};
+  configFin={...configFin,dreGrupos};
+  try{
+    await setDoc(doc(db,'config_financeiro','geral'),configFin);
+    showToast('Classificação do DRE atualizada!');
+  }catch(e){
+    console.error('Erro ao salvar classificação do DRE:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
 };
 window._custoAdicionarCategoria=async function(){
   const input=document.getElementById('ci-cat-nova');
@@ -16437,6 +16487,66 @@ function finViagensDetalhe(mes){
   const totalMot=abastecimentos.reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
   return {abastecimentos,totalComb,totalMot,total:totalComb+totalMot};
 }
+// ── DRE gerencial de um mês ────────────────────────────────────────
+// Base CAIXA: usa o que efetivamente entrou/saiu no mês (é assim que o
+// sistema registra tudo). Não é o DRE contábil formal (regime de
+// competência, com depreciação/provisões) — é o resultado gerencial.
+function calcDREMes(mes){
+  const receita=vendas.filter(v=>(v.data||'').startsWith(mes))
+    .reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+
+  const maoObra=finPagamentosTodos()
+    .filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes)
+    .reduce((s,p)=>s+p.valor,0);
+  const almox=finComprasTodos().filter(c=>(c.data||'').startsWith(mes))
+    .reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+  const matDiretosVal=matDiretos.filter(m=>(m.data||'').startsWith(mes))
+    .reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const quimicos=(espumaEstoque||[])
+    .filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes))
+    .reduce((s,e)=>{
+      const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
+      return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
+    },0);
+  const viagens=finViagensDetalhe(mes).total;
+
+  // Custos indiretos quebrados pelos grupos do DRE
+  const porGrupo={producao:0,administrativa:0,comercial:0,tributaria:0,investimento:0};
+  const detalhePorGrupo={producao:[],administrativa:[],comercial:[],tributaria:[],investimento:[]};
+  finCustosIndiretosDetalhe(mes).catsOrd.forEach(([cat,val])=>{
+    const g=dreGrupoDaCategoria(cat);
+    porGrupo[g]=(porGrupo[g]||0)+val;
+    (detalhePorGrupo[g]=detalhePorGrupo[g]||[]).push([cat,val]);
+  });
+
+  const cpv=maoObra+matDiretosVal+quimicos+almox+porGrupo.producao;
+  const lucroBruto=receita-cpv;
+  const despComercial=porGrupo.comercial+viagens;
+  const despOperacionais=porGrupo.administrativa+despComercial+porGrupo.tributaria;
+  const resultadoOperacional=lucroBruto-despOperacionais;
+  const investimento=porGrupo.investimento;
+  const resultadoLiquido=resultadoOperacional-investimento;
+
+  return {
+    mes,receita,
+    cpvItens:[
+      ['Mão de obra de produção',maoObra],
+      ['Materiais diretos',matDiretosVal],
+      ['Materiais químicos',quimicos],
+      ['Almoxarifado / materiais',almox],
+      ['Custos indiretos de produção',porGrupo.producao],
+    ],
+    cpv,lucroBruto,
+    despItens:[
+      ['Administrativas',porGrupo.administrativa],
+      ['Comerciais e viagens',despComercial],
+      ['Tributárias',porGrupo.tributaria],
+    ],
+    despOperacionais,resultadoOperacional,investimento,resultadoLiquido,
+    detalhePorGrupo,
+  };
+}
+
 function finPagamentosTodos(){
   // Recolhe todas as fichas fechadas/canceladas pagas ou a pagar de todos os setores
   const lista=[];
@@ -18171,7 +18281,7 @@ function renderFinRelatorio(){
   // Tabela mensal detalhada
   html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Balanço mensal (entradas x saídas)</div>';
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th><th style="padding:8px 10px;text-align:center">PDF</th></tr></thead><tbody>';
+  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th><th style="padding:8px 10px;text-align:center">DRE / PDF</th></tr></thead><tbody>';
   html+=mesesData.filter(m=>m.total>0||m.vendVal>0).map((m,i)=>{
     const nomeMes=MESES_N3[parseInt(m.mes.slice(5))-1];
     return `<tr style="${i%2?'background:#f8fafc':''}">
@@ -18185,7 +18295,10 @@ function renderFinRelatorio(){
     <td style="padding:8px 10px;text-align:right;color:#374151">${m.viagVal>0?fmtMoeda(m.viagVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1e40af">${fmtMoeda(m.total)}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:${m.resultado>=0?'#059669':'#dc2626'}">${m.resultado>=0?'+':''}${fmtMoeda(m.resultado)}</td>
-    <td style="padding:8px 10px;text-align:center"><button class="btn btn-sm btn-ghost" style="padding:3px 8px" title="Gerar PDF do balanço de ${nomeMes}" onclick="window._exportarBalancoPDF('${m.mes}','${nomeMes} de ${ano}')">📄</button></td>
+    <td style="padding:8px 10px;text-align:center;white-space:nowrap">
+      <button class="btn btn-sm btn-ghost" style="padding:3px 8px" title="Ver DRE de ${nomeMes}" onclick="window._finVerDRE('${m.mes}','${nomeMes} de ${ano}')">📊</button>
+      <button class="btn btn-sm btn-ghost" style="padding:3px 8px" title="Gerar PDF do balanço de ${nomeMes}" onclick="window._exportarBalancoPDF('${m.mes}','${nomeMes} de ${ano}')">📄</button>
+    </td>
   </tr>`;}).join('');
   html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#059669">${fmtMoeda(totalAnoVend)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td><td style="padding:8px 10px;text-align:right;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</td><td></td></tr>`;
   html+='</tbody></table></div></div>';
@@ -18215,6 +18328,105 @@ function renderFinRelatorio(){
 
   return html;
 }
+
+// ── DRE de um mês (modal) ──────────────────────────────────────────
+function dreLinhasHtml(d){
+  const pct=v=>d.receita>0?' <span style="font-size:10px;color:#94a3b8">('+(v/d.receita*100).toFixed(1).replace('.',',')+'%)</span>':'';
+  const linha=(label,valor,opts)=>{
+    const o=opts||{};
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:'+(o.forte?'8px 10px':'5px 10px')
+      +';'+(o.forte?'background:'+(o.bg||'#f1f5f9')+';border-radius:8px;margin:6px 0;':'')
+      +(o.recuo?'padding-left:24px;':'')+'">'
+      +'<span style="font-size:'+(o.forte?'13':'12')+'px;'+(o.forte?'font-weight:800':'color:#64748b')+'">'+label+'</span>'
+      +'<span style="font-size:'+(o.forte?'14':'12')+'px;font-weight:'+(o.forte?'900':'700')+';color:'+(o.cor||'#1e293b')+'">'
+      // Linhas de despesa (sinal) sempre saem como "-R$ x". Linhas de
+      // resultado mantêm o sinal natural — prejuízo precisa aparecer negativo.
+      +(o.sinal?'-'+fmtMoeda(Math.abs(valor)):fmtMoeda(valor))+(o.pct?pct(valor):'')+'</span>'
+      +'</div>';
+  };
+
+  let h='';
+  h+=linha('RECEITA DE VENDAS',d.receita,{forte:true,bg:'#f0fdf4',cor:'#059669'});
+
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px">(-) Custo dos produtos vendidos</div>';
+  d.cpvItens.filter(([,v])=>v>0).forEach(([l,v])=>{ h+=linha(l,v,{recuo:true,sinal:true}); });
+  h+=linha('(=) LUCRO BRUTO',d.lucroBruto,{forte:true,bg:'#eff6ff',cor:d.lucroBruto>=0?'#1d4ed8':'#dc2626',pct:true});
+
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px">(-) Despesas operacionais</div>';
+  d.despItens.filter(([,v])=>v>0).forEach(([l,v])=>{ h+=linha(l,v,{recuo:true,sinal:true}); });
+  h+=linha('(=) RESULTADO OPERACIONAL',d.resultadoOperacional,{forte:true,bg:'#faf5ff',cor:d.resultadoOperacional>=0?'#7c3aed':'#dc2626',pct:true});
+
+  if(d.investimento>0){
+    h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px">(-) Não operacional</div>';
+    h+=linha('Investimentos',d.investimento,{recuo:true,sinal:true});
+  }
+  h+=linha('(=) RESULTADO LÍQUIDO',d.resultadoLiquido,{forte:true,bg:d.resultadoLiquido>=0?'#f0fdf4':'#fef2f2',cor:d.resultadoLiquido>=0?'#059669':'#dc2626',pct:true});
+  return h;
+}
+
+window._finVerDRE=function(mes,mesNome){
+  const d=calcDREMes(mes);
+  const detalhe=DRE_GRUPOS.map(g=>{
+    const itens=(d.detalhePorGrupo[g.id]||[]).filter(([,v])=>v>0);
+    if(!itens.length) return '';
+    return '<div style="margin-bottom:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:3px">'+g.label+'</div>'
+      +itens.map(([cat,val])=>'<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:2px 0 2px 12px">'
+        +'<span>'+cat+'</span><span style="font-weight:700">'+fmtMoeda(val)+'</span></div>').join('')
+      +'</div>';
+  }).join('');
+
+  showModal('📊 DRE — '+mesNome,
+    '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Resultado gerencial (base caixa) — considera o que entrou e saiu no mês.</div>'
+    +dreLinhasHtml(d)
+    +(detalhe?'<details style="margin-top:14px"><summary style="font-size:11px;font-weight:700;color:#64748b;cursor:pointer;user-select:none">▶ Custos indiretos por categoria</summary>'
+      +'<div style="margin-top:8px;background:#f8fafc;border-radius:8px;padding:10px">'+detalhe+'</div></details>':''),
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._imprimirDRE(\''+mes+'\',\''+mesNome.replace(/'/g,"\\'")+'\')">🖨️ Imprimir</button>');
+};
+
+window._imprimirDRE=function(mes,mesNome){
+  const d=calcDREMes(mes);
+  const linhaPdf=(label,valor,o)=>{
+    o=o||{};
+    const pctTxt=o.pct&&d.receita>0?' ('+(valor/d.receita*100).toFixed(1).replace('.',',')+'%)':'';
+    return '<tr'+(o.forte?' style="background:'+(o.bg||'#f1f5f9')+'"':'')+'>'
+      +'<td style="padding:'+(o.forte?'8px 10px':'5px 10px')+';'+(o.recuo?'padding-left:26px;':'')+(o.forte?'font-weight:800':'color:#555')+'">'+label+'</td>'
+      +'<td style="padding:'+(o.forte?'8px 10px':'5px 10px')+';text-align:right;font-weight:'+(o.forte?'800':'600')+';color:'+(o.cor||'#1e293b')+'">'
+      +(o.sinal?'-'+fmtMoeda(Math.abs(valor)):fmtMoeda(valor))+pctTxt+'</td></tr>';
+  };
+  let linhas=linhaPdf('RECEITA DE VENDAS',d.receita,{forte:true,bg:'#e8f5ef',cor:'#059669'});
+  linhas+='<tr><td colspan="2" style="padding:10px 10px 2px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase">(-) Custo dos produtos vendidos</td></tr>';
+  d.cpvItens.filter(([,v])=>v>0).forEach(([l,v])=>{linhas+=linhaPdf(l,v,{recuo:true,sinal:true});});
+  linhas+=linhaPdf('(=) LUCRO BRUTO',d.lucroBruto,{forte:true,bg:'#e8f0fb',cor:d.lucroBruto>=0?'#1d4ed8':'#dc2626',pct:true});
+  linhas+='<tr><td colspan="2" style="padding:10px 10px 2px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase">(-) Despesas operacionais</td></tr>';
+  d.despItens.filter(([,v])=>v>0).forEach(([l,v])=>{linhas+=linhaPdf(l,v,{recuo:true,sinal:true});});
+  linhas+=linhaPdf('(=) RESULTADO OPERACIONAL',d.resultadoOperacional,{forte:true,bg:'#f3e8fb',cor:d.resultadoOperacional>=0?'#7c3aed':'#dc2626',pct:true});
+  if(d.investimento>0){
+    linhas+='<tr><td colspan="2" style="padding:10px 10px 2px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase">(-) Não operacional</td></tr>';
+    linhas+=linhaPdf('Investimentos',d.investimento,{recuo:true,sinal:true});
+  }
+  linhas+=linhaPdf('(=) RESULTADO LÍQUIDO',d.resultadoLiquido,{forte:true,bg:d.resultadoLiquido>=0?'#e8f5ef':'#fdecea',cor:d.resultadoLiquido>=0?'#059669':'#dc2626',pct:true});
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>DRE — ${mesNome}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;margin:24px;color:#1e293b;font-size:13px}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:#64748b;font-size:12px;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  @media print{@page{size:A4;margin:14mm}}
+</style></head><body>
+  <h1>DRE — ${mesNome}</h1>
+  <div class="sub">Demonstrativo de resultado gerencial (base caixa) · JM Gestão Fabril</div>
+  <table>${linhas}</table>
+  <div style="font-size:10px;color:#94a3b8;margin-top:20px">Gerado em ${new Date().toLocaleString('pt-BR')} · Considera valores efetivamente recebidos e pagos no mês.</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),600);
+};
 
 window._exportarBalancoPDF=function(mes, mesNome){
   const {pagamentos:pagsMes,total:pagVal,porSetorOrd:setoresOrd}=finPagamentosDetalhe(mes);
