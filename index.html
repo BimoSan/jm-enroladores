@@ -1743,6 +1743,26 @@ function renderPainelEnrolador(){
       +'</div>'
     +'</div>';
 
+    // Quebra do "em mão" por tipo de peça — o enrolador precisa saber
+    // exatamente o que ainda está na casa dele, não só o total.
+    const pendentesPorTipo=TIPOS.map(t=>({
+      t,
+      qtd:somaEntr(fichaAberta,t.id)-somaRecol(fichaAberta,t.id),
+    })).filter(x=>x.qtd>0);
+    if(pendentesPorTipo.length){
+      html+='<div class="card" style="margin-bottom:16px">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🏠 O que está na sua casa</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">'
+        +pendentesPorTipo.map(({t,qtd})=>{
+          const c=TIPO_CORES[t.id]||{bg:'#f8fafc',border:'#e2e8f0',color:'#475569'};
+          return '<div style="background:'+c.bg+';border:1.5px solid '+c.border+';border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
+            +'<span style="font-size:12px;font-weight:600;color:'+c.color+';min-width:0;word-break:break-word">'+t.label+'</span>'
+            +'<span style="font-size:20px;font-weight:900;color:'+c.color+';flex-shrink:0">'+qtd+'</span>'
+            +'</div>';
+        }).join('')
+        +'</div></div>';
+    }
+
     // Últimas movimentações por tipo de peça
     const movs=[];
     const apt=enr.apontadorPerfil||'apontador1';
