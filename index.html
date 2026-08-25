@@ -2496,11 +2496,15 @@ function renderRelatorio(){
   </div>`;
 
   // ── Resumo mensal ──
-  // Agrupa fichas pagas por mês de fechamento (usa dataAbertura como referência)
+  // Agrupa pelo mês em que o dinheiro SAIU (data do pagamento). Usar a data de
+  // abertura jogava o valor pago hoje lá no mês em que a ficha foi aberta,
+  // espalhando a mão de obra do mês por meses passados. Fallback: fechamento,
+  // depois abertura — só pra fichas antigas que não têm data de pagamento.
   const mapMensal={};
   pagas.forEach(f=>{
-    if(!f.dataAbertura)return;
-    const [y,m]=f.dataAbertura.split('-');
+    const dataRef=f.dataPagamento||f.dataFechamento||f.dataCancelamento||f.dataAbertura;
+    if(!dataRef)return;
+    const [y,m]=dataRef.split('-');
     const chave=`${y}-${m.padStart(2,'0')}`;
     if(!mapMensal[chave])mapMensal[chave]={ano:parseInt(y),mes:parseInt(m),totalPago:0,fichas:0,pecas:0};
     mapMensal[chave].totalPago+=calcularPagamento(f);
@@ -2749,7 +2753,7 @@ function renderValores(){
           <div class="avatar" style="background:${c}22;color:${c}">${initials(enr.nome)}</div>
           <div>
             <div style="font-size:13px;font-weight:600">${enr.nome}</div>
-            <div style="font-size:11px;color:#666">${isCancelada?'Cancelada':'Fechada'} em ${fmtDate(f.dataAbertura)}</div>
+            <div style="font-size:11px;color:#666">${isCancelada?'Cancelada':'Fechada'} em ${fmtDate(isCancelada?(f.dataCancelamento||f.dataAbertura):(f.dataFechamento||f.dataAbertura))}</div>
           </div>
         </div>
         <div style="text-align:right">
@@ -16445,7 +16449,7 @@ function finPagamentosTodos(){
       const valor=isCancelada?calcularPagamentoCancelada(f):calcularPagamento(f);
       if(valor<=0) return;
       lista.push({id:f.id,setor:'Enrolamento Terc.',pessoa:enr?.nome||'—',valor,pago:!!f.pago,
-        dataPagamento:f.dataPagamento||null,dataRef:f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_terc'});
+        dataPagamento:f.dataPagamento||null,dataRef:f.dataFechamento||f.dataCancelamento||f.dataAbertura||'',tipo:'ficha',fichaObj:f,setorKey:'enrolamento_terc'});
     });
 
   // Metalúrgica
