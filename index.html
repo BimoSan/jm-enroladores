@@ -580,6 +580,18 @@ function dreGrupoDaCategoria(cat){
   return (configFin.dreGrupos||{})[cat]||DRE_GRUPO_PADRAO[cat]||'administrativa';
 }
 
+// ── Destino do custo indireto (pra ratear entre as fábricas) ───────
+// Usado no lançamento em Financeiro e no cálculo de rateio na Engenharia.
+const CUSTO_DESTINOS=[
+  {id:'comum',    label:'Comum às duas fábricas', curto:'Comum',        cor:'#64748b', bg:'#f1f5f9'},
+  {id:'cadeiras', label:'Fábrica de Cadeiras',    curto:'Cadeiras',     cor:'#1e40af', bg:'#dbeafe'},
+  {id:'pintura',  label:'Cadeiras — só pintura',  curto:'Pintura',      cor:'#b45309', bg:'#fef3c7'},
+  {id:'estofados',label:'Fábrica de Estofados',   curto:'Estofados',    cor:'#7c3aed', bg:'#ede9fe'},
+];
+function custoDestinoInfo(id){
+  return CUSTO_DESTINOS.find(d=>d.id===id)||CUSTO_DESTINOS[0];
+}
+
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
@@ -842,6 +854,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'eng_produtos':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
   'eng_mp':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
   'eng_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  'eng_indiretos': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
   'eng_espuma':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
   'eng_colchao':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M2 12h20M6 7v10M18 7v10"/></svg>',
   'eng_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
@@ -913,7 +926,7 @@ const TAB_LABELS={
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
   'fin_dashboard':'Dashboard','fin_vendas':'Entradas','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
-  'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_colchao':'Calculadora de Colchão','eng_relatorio':'Relatórios','eng_config':'Configurações',
+  'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_colchao':'Calculadora de Colchão','eng_indiretos':'Custo Indireto','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'grad_minha_ficha':'Minha Ficha','grad_meu_desempenho':'Meu Desempenho',
   'tap_painel':'Painel','tap_apontar':'Apontamento','tap_fichas':'Fichas','tap_ranking':'Ranking','tap_tapecadores':'Tapecadores','tap_config':'Configurações',
@@ -1181,7 +1194,7 @@ function renderApp(){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
   } else if(currentSetor==='engenharia'){
-    tabs.push('eng_produtos','eng_mp','eng_espuma','eng_colchao','eng_relatorio');
+    tabs.push('eng_produtos','eng_mp','eng_espuma','eng_colchao','eng_indiretos','eng_relatorio');
     const pgEng=currentUserData?.perfil;
     if(['admin','proprietario'].includes(pgEng)) tabs.push('eng_config');
     if(!currentTab||!currentTab.startsWith('eng_')) currentTab='eng_produtos';
@@ -9423,15 +9436,10 @@ function renderEnroladoresCardsInt(){
       },0),0);
     const ganhoFicha=ficha?somaProducaoFicha(ficha):0;
 
-    // Peças do mês por tipo
-    const mesAtual=hoje.slice(0,7);
-    const totMes={};
-    fichasInt.filter(f=>f.enroladorId===enr.id).forEach(f=>{
-      (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).forEach(a=>{
-        getTiposInt().forEach(t=>{ totMes[t.id]=(totMes[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
-      });
-    });
-    const totalMes=Object.values(totMes).reduce((s,v)=>s+v,0);
+    // Peças por tipo da FICHA ATUAL (não do mês) — é o que interessa na hora
+    // de apontar: o que já foi lançado nessa ficha aberta.
+    const totFicha=ficha?totalPecasFichaInt(ficha):{};
+    const totalFicha=Object.values(totFicha).reduce((s,v)=>s+v,0);
     const podeLancar=['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
 
     html+='<div class="card" style="padding:14px;'+(podeLancar?'cursor:pointer':'')+'"'+(podeLancar?' onclick="window._aiAbrirEnrolador(\''+enr.id+'\')"':'')+'>'
@@ -9448,36 +9456,32 @@ function renderEnroladoresCardsInt(){
       +(ganhoFicha?'<div style="font-size:11px;color:#10b981">'+fmtMoeda(ganhoFicha)+' na ficha</div>':'')
       +'</div></div>';
 
-    // Hoje por tipo + mês por tipo lado a lado
-    const tiposComDados=getTiposInt().filter(t=>(totMes[t.id]||0)>0||(pecasHoje>0));
-    if(tiposComDados.length>0){
-      // Hoje
+    // Hoje + total da ficha, por tipo de peça
+    if(ficha){
       const totHoje={};
-      fichasInt.filter(f=>f.enroladorId===enr.id).forEach(f=>{
-        (f.apontamentos||[]).filter(a=>a.data===hoje).forEach(a=>{
-          getTiposInt().forEach(t=>{ totHoje[t.id]=(totHoje[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
-        });
+      (ficha.apontamentos||[]).filter(a=>a.data===hoje).forEach(a=>{
+        getTiposInt().forEach(t=>{ totHoje[t.id]=(totHoje[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
       });
 
-      const tiposAtivos=getTiposInt().filter(t=>(totHoje[t.id]||0)>0||(totMes[t.id]||0)>0);
+      const tiposAtivos=getTiposInt().filter(t=>(totHoje[t.id]||0)>0||(totFicha[t.id]||0)>0);
       if(tiposAtivos.length>0){
         html+='<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:10px">'
           +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">';
         tiposAtivos.forEach(t=>{
           const qHoje=totHoje[t.id]||0;
-          const qMes=totMes[t.id]||0;
+          const qFicha=totFicha[t.id]||0;
           html+='<div style="background:#f8fafc;border-radius:10px;padding:8px 10px">'
             +'<div style="font-size:10px;color:#64748b;font-weight:600;margin-bottom:4px">'+t.label+'</div>'
             +'<div style="display:flex;justify-content:space-between;align-items:flex-end">'
             +'<div>'
             +(qHoje>0?'<div style="font-size:11px;color:#475569">Hoje: <strong style="color:#1e40af">'+qHoje+'</strong></div>':'')
-            +(qMes>0?'<div style="font-size:11px;color:#475569">Mês: <strong style="color:#065f46">'+qMes+'</strong></div>':'')
+            +(qFicha>0?'<div style="font-size:11px;color:#475569">Ficha: <strong style="color:#065f46">'+qFicha+'</strong></div>':'')
             +'</div>'
             +'</div>'
             +'</div>';
         });
         html+='</div>'
-          +(totalMes>0?'<div style="margin-top:6px;font-size:11px;color:#64748b;text-align:right">Total no mês: <strong style="color:#065f46">'+totalMes+' peças</strong></div>':'')
+          +(totalFicha>0?'<div style="margin-top:6px;font-size:11px;color:#64748b;text-align:right">Total na ficha: <strong style="color:#065f46">'+totalFicha+' peças</strong></div>':'')
           +'</div>';
       }
     }
@@ -9690,6 +9694,9 @@ function renderFichaIntCard(f,opts){
   const rolos=totalRolosFicha(f);
   const totalPecasN=Object.values(totPecas).reduce((s,v)=>s+v,0);
   const podeFechar=f.status==='aberta'&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
+  // Reabrir só enquanto a ficha não foi paga — depois de paga, mexer nela
+  // bagunçaria o que já foi registrado como pagamento no Financeiro.
+  const podeReabrir=f.status==='fechada'&&!f.pago&&['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
 
   if(resumo){
     return `<div class="card" style="margin-bottom:10px">
@@ -9762,6 +9769,8 @@ function renderFichaIntCard(f,opts){
           <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${f.status==='aberta'?'#d1fae5':'#f1f5f9'};color:${f.status==='aberta'?'#065f46':'#64748b'}">${f.status}</span>
         </div>
         ${podeFechar?`<button class="btn btn-sm btn-warn" onclick="window._fecharFichaInt('${f.id}')">Fechar ficha</button>`:''}
+        ${podeReabrir?`<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd" onclick="window._reabrirFichaInt('${f.id}')">↩ Reabrir</button>`:''}
+        ${(f.status==='fechada'&&f.pago)?`<span style="font-size:10px;color:#94a3b8">paga — não dá pra reabrir</span>`:''}
         ${isAdminInt?`<button class="btn btn-sm btn-danger" onclick="window._excluirFichaInt('${f.id}')">Excluir ficha</button>`:''}
       </div>
     </div>
@@ -9794,6 +9803,40 @@ window._fecharFichaInt=async function(fichaId){
   if(!confirm('Fechar esta ficha?')) return;
   await updateDoc(doc(db,'fichas_int',fichaId),{status:'fechada',dataFechamento:today()});
   showToast('Ficha fechada!');
+};
+
+window._reabrirFichaInt=function(fichaId){
+  const f=fichasInt.find(x=>x.id===fichaId);
+  if(!f) return;
+  if(f.pago){showToast('Ficha já paga — não é possível reabrir.');return;}
+  const enr=getEnrInt(f.enroladorId);
+  // O sistema trabalha com uma ficha aberta por enrolador (fichaIntAtiva);
+  // reabrir com outra já aberta deixaria duas ativas ao mesmo tempo.
+  const jaAberta=fichasInt.find(x=>x.enroladorId===f.enroladorId&&x.status==='aberta');
+  if(jaAberta){
+    showModal('Não dá pra reabrir agora',
+      '<div style="font-size:13px;line-height:1.6"><strong>'+(enr?.nome||'—')+'</strong> já tem uma ficha aberta (desde '+fmtDate(jaAberta.dataAbertura)+').<br><br>Feche ou exclua a ficha aberta antes de reabrir esta, senão ficariam duas ativas ao mesmo tempo.</div>',
+      '<button class="btn btn-sm btn-primary" onclick="window._closeModal()">Entendi</button>');
+    return;
+  }
+  window._pendingReabrirInt=fichaId;
+  showModal('↩ Reabrir ficha',
+    '<div style="font-size:13px;margin-bottom:8px">Reabrir a ficha de <strong>'+(enr?.nome||'—')+'</strong>?</div>'
+    +'<div style="font-size:12px;color:#64748b">Ela volta para <strong>Aberta</strong> e pode receber novos apontamentos. A produção já lançada continua na ficha.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._confirmarReabrirFichaInt()">Reabrir</button>');
+};
+window._confirmarReabrirFichaInt=async function(){
+  const id=window._pendingReabrirInt; if(!id) return;
+  closeModal();
+  try{
+    await updateDoc(doc(db,'fichas_int',id),{status:'aberta',dataFechamento:null});
+    window._pendingReabrirInt=null;
+    showToast('Ficha reaberta!');
+  }catch(e){
+    console.error('Erro ao reabrir ficha:',e);
+    showToast('Erro: '+e.message);
+  }
 };
 
 // ── Enroladores ───────────────────────────────────────────────────
@@ -12819,6 +12862,7 @@ function renderTabEngenharia(tab){
     if(tab==='eng_produtos')  return renderEngProdutos();
     if(tab==='eng_espuma')    return renderEngEspuma();
     if(tab==='eng_colchao')   return renderEngColchao();
+    if(tab==='eng_indiretos') return renderEngIndiretos();
     if(tab==='eng_relatorio') return renderEngRelatorio();
     if(tab==='eng_config')    return renderEngConfig();
     return renderEngProdutos();
@@ -14381,10 +14425,18 @@ function renderEngConfig(){
 
   // Gestão de categorias
   html+='<div class="card" style="margin-bottom:14px">'
-    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:12px">📂 Categorias de produtos</div>'
-    +cats.map((cat,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
-      +'<span style="font-size:13px;font-weight:600">'+cat.label+'</span>'
-      +(podeEditar?'<button onclick="window._engExcluirCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>':'')
+    +'<div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">📂 Categorias de produtos</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:12px">A fábrica e a marcação de pintura são o que o rateio do custo indireto usa pra dividir os custos.</div>'
+    +cats.map((cat,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+      +'<span style="font-size:13px;font-weight:600;flex:1;min-width:0">'+cat.label+'</span>'
+      +(podeEditar?'<select onchange="window._engSetCatCampo('+i+',\'fabrica\',this.value)" title="Fábrica" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:7px;padding:4px 6px">'
+        +'<option value="cadeiras"'+((cat.fabrica||'cadeiras')==='cadeiras'?' selected':'')+'>🪑 Cadeiras</option>'
+        +'<option value="estofados"'+(cat.fabrica==='estofados'?' selected':'')+'>🛋️ Estofados</option>'
+        +'</select>':'<span style="font-size:10px;color:#94a3b8">'+((cat.fabrica||'cadeiras')==='estofados'?'Estofados':'Cadeiras')+'</span>')
+      +(podeEditar?'<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#b45309;cursor:pointer;white-space:nowrap"'+((cat.fabrica||'cadeiras')==='estofados'?' style="display:none"':'')+'>'
+        +'<input type="checkbox" '+(cat.pintura?'checked':'')+' onchange="window._engSetCatCampo('+i+',\'pintura\',this.checked)" style="width:14px;height:14px">pintada</label>'
+        :(cat.pintura?'<span style="font-size:10px;color:#b45309">pintada</span>':''))
+      +(podeEditar?'<button onclick="window._engExcluirCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>':'')
       +'</div>').join('')
     +(cats.length===0?'<div style="font-size:12px;color:#94a3b8;padding:8px 0">Nenhuma categoria cadastrada.</div>':'')
     +(podeEditar?'<div style="display:flex;gap:8px;margin-top:12px">'
@@ -14450,6 +14502,23 @@ window._engSalvarConfig=async function(){
   showToast('Configurações salvas!');
 };
 
+// Fábrica / marcação de pintura de uma categoria — usado no rateio do indireto
+window._engSetCatCampo=async function(idx,campo,valor){
+  const cats=[...(configEng.categorias||[])];
+  if(!cats[idx]) return;
+  cats[idx]={...cats[idx],[campo]:valor};
+  // Categoria de estofado não tem pintura no rateio — evita ficar marcado escondido
+  if(campo==='fabrica'&&valor==='estofados') cats[idx].pintura=false;
+  configEng={...configEng,categorias:cats};
+  try{
+    await setDoc(doc(db,'config_eng','geral'),configEng);
+    reloadTab();
+  }catch(e){
+    console.error('Erro ao salvar categoria:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
 window._engAddCategoria=async function(){
   const nome=document.getElementById('eng-nova-cat')?.value.trim();
   if(!nome){showToast('Digite o nome da categoria.');return;}
@@ -14473,6 +14542,210 @@ window._engExcluirCategoria=async function(idx){
   await setDoc(doc(db,'config_eng','geral'),configEng);
   showToast('Categoria removida!');
   reloadTab();
+};
+
+// ════════════════════════════════════════════════════════════════
+// CUSTO INDIRETO — rateio dos custos do Financeiro entre as fábricas
+// ════════════════════════════════════════════════════════════════
+// Modelo: custos "comum" são divididos entre Cadeiras e Estofados na
+// proporção da quantidade média produzida. Dentro de Cadeiras, os custos
+// gerais se dividem entre TODAS as cadeiras e os custos de pintura só
+// entre as pintadas — por isso a pintada custa mais.
+function engQtdMedia(produtoId){
+  return parseFloat((configEng.qtdMedia||{})[produtoId])||0;
+}
+// Fábrica/pintura de uma categoria (configurado em Engenharia → Configurações)
+function engCatInfo(catId){
+  const c=getEngCategorias().find(x=>x.id===catId);
+  return {fabrica:c?.fabrica||'cadeiras',pintura:!!c?.pintura};
+}
+
+function calcRateioIndireto(mesesSelecionados){
+  // Soma os custos indiretos do período, separados por destino
+  const porDestino={comum:0,cadeiras:0,pintura:0,estofados:0};
+  custosIndiretos.filter(c=>mesesSelecionados.includes((c.data||'').slice(0,7)))
+    .forEach(c=>{
+      const d=custoDestinoInfo(c.destino).id;
+      porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
+    });
+  // Divide pelo nº de meses pra virar média mensal (a quantidade também é média mensal)
+  const nMeses=Math.max(1,mesesSelecionados.length);
+  Object.keys(porDestino).forEach(k=>{ porDestino[k]=porDestino[k]/nMeses; });
+
+  // Quantidades médias por fábrica, a partir dos produtos
+  let qCadeiras=0,qPintadas=0,qEstofados=0;
+  engProdutos.filter(p=>p.tipo!=='jogo').forEach(p=>{
+    const q=engQtdMedia(p.id);
+    if(q<=0) return;
+    const info=engCatInfo(p.categoria);
+    if(info.fabrica==='estofados'){ qEstofados+=q; }
+    else { qCadeiras+=q; if(info.pintura) qPintadas+=q; }
+  });
+
+  // Rateio do comum, proporcional à quantidade produzida
+  const qTotal=qCadeiras+qEstofados;
+  const comumCadeiras=qTotal>0?porDestino.comum*(qCadeiras/qTotal):0;
+  const comumEstofados=qTotal>0?porDestino.comum*(qEstofados/qTotal):0;
+
+  const baseCadeiras=qCadeiras>0?(porDestino.cadeiras+comumCadeiras)/qCadeiras:0;
+  const adicionalPintura=qPintadas>0?porDestino.pintura/qPintadas:0;
+  const indiretoEstofado=qEstofados>0?(porDestino.estofados+comumEstofados)/qEstofados:0;
+
+  // Valor final por categoria de produto
+  const porCategoria={};
+  getEngCategorias().forEach(cat=>{
+    const info=engCatInfo(cat.id);
+    porCategoria[cat.id]=info.fabrica==='estofados'
+      ? indiretoEstofado
+      : baseCadeiras+(info.pintura?adicionalPintura:0);
+  });
+
+  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,
+    comumCadeiras,comumEstofados,baseCadeiras,adicionalPintura,indiretoEstofado,porCategoria};
+}
+
+function renderEngIndiretos(){
+  const podeEditar=['admin','proprietario'].includes(currentUserData?.perfil);
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+
+  const mesesComCusto=[...new Set(custosIndiretos.map(c=>(c.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  if(!mesesComCusto.length){
+    return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum custo indireto lançado ainda.<br><span style="font-size:12px">Lance os custos em <strong>Financeiro → Custos Indiretos</strong> e marque o destino de cada um.</span></div>';
+  }
+  // Período: por padrão os 3 últimos meses com lançamento
+  if(!window._engIndPeriodo) window._engIndPeriodo='3';
+  const per=window._engIndPeriodo;
+  const mesesSel=per==='todos'?mesesComCusto:mesesComCusto.slice(0,parseInt(per)||3);
+
+  const r=calcRateioIndireto(mesesSel);
+
+  let html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<span style="font-size:12px;font-weight:700;color:#475569">Base de cálculo:</span>'
+    +'<select onchange="window._engIndSetPeriodo(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +['1','3','6','12','todos'].map(v=>'<option value="'+v+'"'+(v===per?' selected':'')+'>'+(v==='todos'?'Todos os meses':(v==='1'?'Último mês':'Últimos '+v+' meses'))+'</option>').join('')
+    +'</select>'
+    +'<span style="font-size:11px;color:#94a3b8">'+mesesSel.map(mesLabel).join(' · ')+'</span>'
+    +'</div>';
+
+  // Custos por destino (média mensal)
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">💸 Custo indireto — média mensal por destino</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Total do período dividido por '+r.nMeses+' mês'+(r.nMeses!==1?'es':'')+'.</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'
+    +CUSTO_DESTINOS.map(d=>'<div style="background:'+d.bg+';border-radius:10px;padding:10px 12px">'
+      +'<div style="font-size:10px;font-weight:700;color:'+d.cor+'">'+d.curto+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:'+d.cor+'">'+fmtMoeda(r.porDestino[d.id]||0)+'</div>'
+      +'</div>').join('')
+    +'</div></div>';
+
+  // Quantidades médias por produto
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">📦 Quantidade média produzida por mês</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">É por aqui que o custo indireto é dividido. Produtos com quantidade 0 ficam de fora do rateio.</div>';
+
+  const porFabrica={cadeiras:[],estofados:[]};
+  engProdutos.filter(p=>p.tipo!=='jogo').forEach(p=>{
+    const info=engCatInfo(p.categoria);
+    porFabrica[info.fabrica==='estofados'?'estofados':'cadeiras'].push({p,info});
+  });
+
+  [['cadeiras','🪑 Fábrica de Cadeiras','#1e40af'],['estofados','🛋️ Fábrica de Estofados','#7c3aed']].forEach(([fab,titulo,cor])=>{
+    const lista=porFabrica[fab];
+    if(!lista.length) return;
+    html+='<div style="font-size:12px;font-weight:800;color:'+cor+';margin:12px 0 6px">'+titulo+'</div>';
+    lista.sort((a,b)=>a.p.nome.localeCompare(b.p.nome,'pt-BR')).forEach(({p,info})=>{
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc">'
+        +'<div style="min-width:0;flex:1">'
+        +'<span style="font-size:12px;font-weight:600">'+p.nome+'</span>'
+        +(info.pintura?' <span style="font-size:9px;background:#fef3c7;color:#b45309;padding:1px 6px;border-radius:99px;font-weight:700">pintada</span>':'')
+        +'</div>'
+        +'<input type="number" min="0" step="1" value="'+(engQtdMedia(p.id)||'')+'" placeholder="0" '+(podeEditar?'':'disabled')
+        +' onchange="window._engSetQtdMedia(\''+p.id+'\',this.value)"'
+        +' style="width:90px;font-size:13px;font-weight:700;text-align:center;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px">'
+        +'</div>';
+    });
+  });
+  html+='<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;margin-top:12px;padding-top:10px;border-top:2px solid #f1f5f9">'
+    +'<span>Total por mês</span>'
+    +'<span>'+ (r.qCadeiras+r.qEstofados) +' peças <span style="font-weight:500;color:#94a3b8">('+r.qCadeiras+' cadeiras · '+r.qEstofados+' estofados)</span></span>'
+    +'</div>'
+    +(r.qPintadas>0?'<div style="font-size:11px;color:#b45309;text-align:right;margin-top:2px">'+r.qPintadas+' cadeiras pintadas</div>':'')
+    +'</div>';
+
+  // Resultado do rateio
+  const semQtd=(r.qCadeiras+r.qEstofados)===0;
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">🧮 Custo indireto calculado por peça</div>';
+  if(semQtd){
+    html+='<div style="font-size:12px;color:#94a3b8;text-align:center;padding:16px">Informe a quantidade média produzida acima para calcular.</div>';
+  } else {
+    html+='<div style="background:#f8fafc;border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px;color:#64748b;line-height:1.7">'
+      +'Comum rateado: <strong>'+fmtMoeda(r.comumCadeiras)+'</strong> pra Cadeiras · <strong>'+fmtMoeda(r.comumEstofados)+'</strong> pra Estofados<br>'
+      +'Base por cadeira: <strong>'+fmtMoeda(r.baseCadeiras)+'</strong>'
+      +(r.adicionalPintura>0?' · adicional de pintura: <strong>'+fmtMoeda(r.adicionalPintura)+'</strong>':'')
+      +'</div>';
+    html+=getEngCategorias().map(cat=>{
+      const info=engCatInfo(cat.id);
+      const novo=r.porCategoria[cat.id]||0;
+      const atual=getEngIndireto(cat.id);
+      const dif=novo-atual;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+        +'<div><span style="font-size:13px;font-weight:600">'+cat.label+'</span>'
+        +' <span style="font-size:9px;color:#94a3b8">'+(info.fabrica==='estofados'?'estofados':'cadeiras')+(info.pintura?' · pintada':'')+'</span></div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:15px;font-weight:800;color:#0e7490">'+fmtMoeda(novo)+'</div>'
+        +(Math.abs(dif)>0.005?'<div style="font-size:10px;color:'+(dif>0?'#dc2626':'#059669')+'">atual '+fmtMoeda(atual)+' ('+(dif>0?'+':'')+fmtMoeda(dif)+')</div>':'<div style="font-size:10px;color:#94a3b8">igual ao atual</div>')
+        +'</div></div>';
+    }).join('');
+    if(podeEditar){
+      html+='<button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="window._engAplicarIndiretos()">✓ Aplicar aos custos indiretos dos produtos</button>'
+        +'<div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:6px">Isso substitui os valores em Configurações e recalcula o custo de todos os produtos.</div>';
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+window._engIndSetPeriodo=function(v){ window._engIndPeriodo=v; reloadTab(); };
+
+window._engSetQtdMedia=async function(produtoId,valor){
+  const qtd=parseFloat(valor)||0;
+  const qtdMedia={...(configEng.qtdMedia||{}),[produtoId]:qtd};
+  configEng={...configEng,qtdMedia};
+  try{
+    await setDoc(doc(db,'config_eng','geral'),configEng);
+    reloadTab();
+  }catch(e){
+    console.error('Erro ao salvar quantidade média:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
+window._engAplicarIndiretos=function(){
+  showModal('Aplicar custos indiretos',
+    '<div style="font-size:13px;line-height:1.6">Os valores calculados vão substituir os custos indiretos atuais de cada categoria, em <strong>Configurações</strong>.<br><br>O custo e o preço de venda de <strong>todos os produtos</strong> serão recalculados com os novos valores.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._engConfirmarAplicarIndiretos()">Aplicar</button>');
+};
+window._engConfirmarAplicarIndiretos=async function(){
+  const per=window._engIndPeriodo||'3';
+  const mesesComCusto=[...new Set(custosIndiretos.map(c=>(c.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const mesesSel=per==='todos'?mesesComCusto:mesesComCusto.slice(0,parseInt(per)||3);
+  const r=calcRateioIndireto(mesesSel);
+  closeModal();
+  try{
+    const indiretos={...(configEng.indiretos||{})};
+    getEngCategorias().forEach(cat=>{
+      indiretos[cat.id]=parseFloat((r.porCategoria[cat.id]||0).toFixed(2));
+    });
+    configEng={...configEng,indiretos};
+    await setDoc(doc(db,'config_eng','geral'),configEng);
+    showToast('Custos indiretos atualizados!');
+  }catch(e){
+    console.error('Erro ao aplicar custos indiretos:',e);
+    showToast('Erro: '+e.message);
+  }
 };
 
 function renderEngRelatorio(){
@@ -15415,12 +15688,16 @@ function renderFinCustos(){
           +'<span style="font-size:12px;font-weight:800;color:#dc2626">'+fmtMoeda(totalDia)+'</span>'
           +'</div>';
         itens.forEach((c,i)=>{
-          html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
-            +'<div style="flex:1">'
+          const dest=custoDestinoInfo(c.destino);
+          const optsDest=CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'"'+(d.id===dest.id?' selected':'')+'>'+d.curto+'</option>').join('');
+          html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;gap:8px;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+            +'<div style="flex:1;min-width:0">'
             +'<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 7px;border-radius:99px;font-weight:700">'+c.categoria+'</span>'
+            +' <span style="font-size:10px;background:'+dest.bg+';color:'+dest.cor+';padding:1px 7px;border-radius:99px;font-weight:700">'+dest.curto+'</span>'
             +(c.descricao?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+c.descricao+'</div>':'')
             +'</div>'
-            +'<div style="display:flex;align-items:center;gap:8px">'
+            +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+            +'<select onchange="window._custoSetDestino(\''+c.id+'\',this.value)" title="Destino do custo" style="font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:3px 4px">'+optsDest+'</select>'
             +'<span style="font-size:13px;font-weight:700;color:#dc2626">'+fmtMoeda(parseFloat(c.valor))+'</span>'
             +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._custoExcluir(\''+c.id+'\')">✕</button>'
             +'</div></div>';
@@ -15691,6 +15968,11 @@ window._custoNovo=function(){
     +'<select id="ci-cat" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;flex:1">'+opts+'</select>'
     +'<button type="button" onclick="window._custoGerenciarCategorias()" style="font-size:11px;font-weight:700;color:#1e40af;background:#eff6ff;border:none;border-radius:9px;padding:0 12px;cursor:pointer;white-space:nowrap">Gerenciar</button>'
     +'</div></div>'
+    +'<div class="form-group"><label>Destino do custo</label>'
+    +'<select id="ci-destino" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+    +CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'">'+d.label+'</option>').join('')
+    +'</select>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Define em qual fábrica esse custo entra no rateio do custo indireto por peça (Engenharia).</div></div>'
     +'<div class="form-group"><label>Valor (R$)</label>'
     +'<input type="number" id="ci-valor" min="0" step="0.01" placeholder="0,00" onfocus="this.select()" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
@@ -15757,14 +16039,27 @@ window._custoRemoverCategoria=async function(idx){
 };
 window._custoSalvar=async function(){
   const categoria=document.getElementById('ci-cat')?.value;
+  const destino=document.getElementById('ci-destino')?.value||'comum';
   const valor=parseFloat(document.getElementById('ci-valor')?.value)||0;
   const data=document.getElementById('ci-data')?.value;
   const descricao=document.getElementById('ci-desc')?.value.trim()||'';
   if(!valor){showToast('Informe o valor.');return;}
   if(!data){showToast('Informe a data.');return;}
   closeModal();
-  await addDoc(collection(db,'fin_custos'),{categoria,valor,data,descricao,criadoEm:new Date().toISOString()});
+  await addDoc(collection(db,'fin_custos'),{categoria,destino,valor,data,descricao,criadoEm:new Date().toISOString()});
   showToast('Lançamento registrado!');
+};
+
+// Trocar o destino direto na lista, sem precisar reabrir o lançamento —
+// facilita classificar os custos antigos que ainda estão como "comum".
+window._custoSetDestino=async function(id,destino){
+  try{
+    await updateDoc(doc(db,'fin_custos',id),{destino});
+    showToast('Destino atualizado!');
+  }catch(e){
+    console.error('Erro ao atualizar destino do custo:',e);
+    showToast('Erro: '+e.message);
+  }
 };
 window._custoExcluir=function(id){
   window._pendingCusto=id;
@@ -20648,6 +20943,12 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(doc(db,'config_eng','geral'),snap=>{
       if(snap.exists()) configEng={indiretos:{cadeiraNaoPintada:0,cadeiraPintada:0,estofado:0},margemPadrao:0,...snap.data()};
+      if(currentUserData)reloadTab();
+    }),
+    // A aba "Custo Indireto" rateia os custos indiretos lançados no Financeiro
+    // entre as fábricas, então precisa deles carregados aqui também.
+    ()=>onSnapshot(collection(db,'fin_custos'),snap=>{
+      custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
       if(currentUserData)reloadTab();
     }),
   ],
