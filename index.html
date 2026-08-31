@@ -16543,14 +16543,20 @@ function renderContasReceberClientes(){
   return html;
 }
 
-window._crAbrirNovo=function(){
-  window._crParcelasTemp=[{valor:'',vencimento:today()}];
+window._crAbrirNovo=function(opts){
+  // manterParcelas: usado ao voltar do cadastro de cliente, pra não perder
+  // o que já tinha sido digitado na venda.
+  if(!(opts&&opts.manterParcelas)) window._crParcelasTemp=[{valor:'',vencimento:today()}];
   const optsCliente='<option value="">— Selecione —</option>'
-    +clientes.map(c=>'<option value="'+c.id+'">'+c.nome+'</option>').join('');
+    +[...clientes].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'))
+      .map(c=>'<option value="'+c.id+'">'+c.nome+'</option>').join('');
   showModal('+ Nova venda a prazo',
     '<div class="form-group"><label>Cliente</label>'
-    +'<select id="cr-cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+optsCliente+'</select>'
-    +(clientes.length?'':'<div style="font-size:11px;color:#dc2626;margin-top:4px">Nenhum cliente cadastrado — cadastre em Financeiro → Entradas.</div>')
+    +'<div style="display:flex;gap:6px">'
+    +'<select id="cr-cliente" style="flex:1;min-width:0;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'+optsCliente+'</select>'
+    +'<button type="button" onclick="window._crNovoCliente()" style="font-size:11px;font-weight:700;color:#1e40af;background:#eff6ff;border:none;border-radius:9px;padding:0 12px;cursor:pointer;white-space:nowrap">+ Novo</button>'
+    +'</div>'
+    +(clientes.length?'':'<div style="font-size:11px;color:#94a3b8;margin-top:4px">Nenhum cliente cadastrado ainda — use o botão "+ Novo" ao lado.</div>')
     +'</div>'
     +'<div class="form-group"><label>Descrição (opcional)</label>'
     +'<input id="cr-descricao" placeholder="Ex: 10 cadeiras varanda" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
@@ -16560,6 +16566,66 @@ window._crAbrirNovo=function(){
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._crSalvarNovo()">Salvar</button>');
   window._crRenderParcelas();
+};
+
+// Cadastro rápido de cliente sem sair da venda — guarda o que já foi
+// digitado, abre o cadastro e volta pra venda com o cliente novo escolhido.
+window._crNovoCliente=function(){
+  const lista=window._crParcelasTemp||[];
+  lista.forEach((p,i)=>{
+    const v=document.getElementById('cr-pv-'+i)?.value;
+    const d=document.getElementById('cr-pd-'+i)?.value;
+    if(v!=null&&v!=='') p.valor=v;
+    if(d) p.vencimento=d;
+  });
+  window._crRascunho={
+    clienteId:document.getElementById('cr-cliente')?.value||'',
+    descricao:document.getElementById('cr-descricao')?.value||'',
+  };
+  showModal('+ Novo cliente',
+    '<div class="form-group"><label>Nome</label>'
+    +'<input id="cr-cli-nome" placeholder="Nome do cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Telefone (opcional)</label>'
+    +'<input id="cr-cli-tel" placeholder="(88) 99999-9999" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Cidade (opcional)</label>'
+    +'<input id="cr-cli-cidade" placeholder="Ex: Juazeiro do Norte" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._crVoltarVenda()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._crSalvarCliente()">Salvar cliente</button>');
+};
+
+window._crSalvarCliente=async function(){
+  const nome=document.getElementById('cr-cli-nome')?.value.trim();
+  const telefone=document.getElementById('cr-cli-tel')?.value.trim()||'';
+  const cidade=document.getElementById('cr-cli-cidade')?.value.trim()||'';
+  if(!nome){showToast('Digite o nome do cliente.');return;}
+  if(clientes.some(c=>(c.nome||'').toLowerCase()===nome.toLowerCase())){
+    showToast('Já existe um cliente com esse nome.');return;
+  }
+  try{
+    const ref=await addDoc(collection(db,'fin_clientes'),{nome,telefone,cidade,criadoEm:new Date().toISOString()});
+    // Otimista: o listener atualiza a lista logo em seguida, mas já deixamos
+    // o cliente disponível pra reabrir a venda com ele selecionado.
+    if(!clientes.some(c=>c.id===ref.id)) clientes.push({id:ref.id,nome,telefone,cidade});
+    window._crRascunho={...(window._crRascunho||{}),clienteId:ref.id};
+    showToast('Cliente cadastrado!');
+    window._crVoltarVenda();
+  }catch(e){
+    console.error('Erro ao cadastrar cliente:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+
+// Reabre a venda restaurando o que já tinha sido preenchido
+window._crVoltarVenda=function(){
+  const r=window._crRascunho||{};
+  window._crAbrirNovo({manterParcelas:true});
+  const sel=document.getElementById('cr-cliente');
+  if(sel&&r.clienteId) sel.value=r.clienteId;
+  const desc=document.getElementById('cr-descricao');
+  if(desc&&r.descricao) desc.value=r.descricao;
+  const qtdEl=document.getElementById('cr-qtd');
+  if(qtdEl) qtdEl.value=(window._crParcelasTemp||[]).length||1;
+  window._crRascunho=null;
 };
 
 window._crAtualizarParcelas=function(){
