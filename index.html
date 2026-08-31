@@ -910,6 +910,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'cp_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'cr_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   'cr_clientes': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'cr_cadastro': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
 };
 const TAB_LABELS={
   'painel':'Painel','fichas':'Fichas','entregar':'Entrega','recolher':'Recolhimento',
@@ -920,7 +921,7 @@ const TAB_LABELS={
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking','hist_prod_metal':'Histórico Mensal',
   // Caminhões
   'cp_lista':'Contas a Pagar',
-  'cr_lista':'A Receber','cr_clientes':'Por Cliente',
+  'cr_lista':'A Receber','cr_clientes':'Por Cliente','cr_cadastro':'Clientes',
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
@@ -1188,7 +1189,7 @@ function renderApp(){
     tabs.push('cp_lista');
     currentTab='cp_lista';
   } else if(currentSetor==='contas_receber'){
-    tabs.push('cr_lista','cr_clientes');
+    tabs.push('cr_lista','cr_clientes','cr_cadastro');
     if(!currentTab||!currentTab.startsWith('cr_')) currentTab='cr_lista';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
@@ -1387,7 +1388,8 @@ function renderTab(tab){
   ativarListenersSetor(currentSetor);
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='contas_pagar') return renderContasPagar();
-  if(currentSetor==='contas_receber') return currentTab==='cr_clientes'?renderContasReceberClientes():renderContasReceber();
+  if(currentSetor==='contas_receber') return currentTab==='cr_clientes'?renderContasReceberClientes()
+    :currentTab==='cr_cadastro'?renderCadastroClientes():renderContasReceber();
   if(currentSetor==='setores_geral') return renderTabSetoresGeral(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
@@ -16542,6 +16544,121 @@ function renderContasReceberClientes(){
   });
   return html;
 }
+
+// ── Cadastro de clientes (lista, editar, excluir) ─────────────────
+function renderCadastroClientes(){
+  const podeEditar=podeEditarContasReceber();
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap">'
+    +'<div style="font-size:12px;color:#64748b">'+clientes.length+' cliente'+(clientes.length!==1?'s':'')+' cadastrado'+(clientes.length!==1?'s':'')+'</div>'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._crCadNovoCliente()">+ Novo cliente</button>':'')
+    +'</div>';
+
+  if(!clientes.length){
+    return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum cliente cadastrado ainda.</div>';
+  }
+
+  // Quanto cada cliente ainda deve — pra avisar antes de excluir
+  const pendentePorCliente={};
+  contasReceber.filter(c=>!c.recebido).forEach(c=>{
+    if(!c.clienteId) return;
+    pendentePorCliente[c.clienteId]=(pendentePorCliente[c.clienteId]||0)+(parseFloat(c.valor)||0);
+  });
+
+  html+=[...clientes].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR')).map(cli=>{
+    const pend=pendentePorCliente[cli.id]||0;
+    const detalhes=[cli.telefone,cli.cidade].filter(Boolean).join(' · ');
+    return '<div class="card" style="margin-bottom:8px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+cli.nome+'</div>'
+      +(detalhes?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+detalhes+'</div>':'')
+      +(pend>0?'<div style="font-size:11px;color:#d97706;font-weight:700;margin-top:2px">deve '+fmtMoeda(pend)+'</div>':'')
+      +'</div>'
+      +(podeEditar?'<div style="display:flex;gap:4px;flex-shrink:0">'
+        +'<button onclick="window._crCadEditarCliente(\''+cli.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer" title="Editar">✎</button>'
+        +'<button onclick="window._crCadExcluirCliente(\''+cli.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:28px;height:28px;font-size:13px;cursor:pointer" title="Excluir">✕</button>'
+        +'</div>':'')
+      +'</div></div>';
+  }).join('');
+  return html;
+}
+
+window._crCadNovoCliente=function(cli){
+  const c=cli||{};
+  const isEdit=!!c.id;
+  showModal(isEdit?'Editar cliente':'+ Novo cliente',
+    '<div class="form-group"><label>Nome</label>'
+    +'<input id="crc-nome" value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Nome do cliente" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Telefone (opcional)</label>'
+    +'<input id="crc-tel" value="'+(c.telefone||'').replace(/"/g,'&quot;')+'" placeholder="(88) 99999-9999" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Cidade (opcional)</label>'
+    +'<input id="crc-cidade" value="'+(c.cidade||'').replace(/"/g,'&quot;')+'" placeholder="Ex: Juazeiro do Norte" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._crCadSalvarCliente(\''+(c.id||'')+'\')">Salvar</button>');
+};
+window._crCadEditarCliente=function(id){
+  const c=clientes.find(x=>x.id===id);
+  if(c) window._crCadNovoCliente(c);
+};
+window._crCadSalvarCliente=async function(id){
+  const nome=document.getElementById('crc-nome')?.value.trim();
+  const telefone=document.getElementById('crc-tel')?.value.trim()||'';
+  const cidade=document.getElementById('crc-cidade')?.value.trim()||'';
+  if(!nome){showToast('Digite o nome do cliente.');return;}
+  if(clientes.some(c=>c.id!==id&&(c.nome||'').toLowerCase()===nome.toLowerCase())){
+    showToast('Já existe um cliente com esse nome.');return;
+  }
+  closeModal();
+  try{
+    if(id){
+      await updateDoc(doc(db,'fin_clientes',id),{nome,telefone,cidade});
+      // As parcelas guardam o nome do cliente junto — atualiza pra não ficar
+      // aparecendo o nome antigo nas vendas já lançadas.
+      const paraAtualizar=contasReceber.filter(c=>c.clienteId===id&&c.clienteNome!==nome);
+      for(const c of paraAtualizar){
+        await updateDoc(doc(db,'contas_receber',c.id),{clienteNome:nome});
+      }
+      showToast('Cliente atualizado!');
+    } else {
+      await addDoc(collection(db,'fin_clientes'),{nome,telefone,cidade,criadoEm:new Date().toISOString()});
+      showToast('Cliente cadastrado!');
+    }
+  }catch(e){
+    console.error('Erro ao salvar cliente:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+window._crCadExcluirCliente=function(id){
+  const cli=clientes.find(x=>x.id===id);
+  if(!cli) return;
+  const vinculadas=contasReceber.filter(c=>c.clienteId===id);
+  const emAberto=vinculadas.filter(c=>!c.recebido).length;
+  if(vinculadas.length){
+    // Excluir apagaria a referência das vendas já lançadas — melhor barrar.
+    showModal('Não dá pra excluir',
+      '<div style="font-size:13px;line-height:1.6"><strong>'+cli.nome+'</strong> tem <strong>'+vinculadas.length+'</strong> parcela'+(vinculadas.length!==1?'s':'')+' lançada'+(vinculadas.length!==1?'s':'')+' em Contas a Receber'
+      +(emAberto?' ('+emAberto+' ainda em aberto)':'')+'.<br><br>Exclua ou finalize essas parcelas antes de remover o cliente, senão o histórico fica sem dono.</div>',
+      '<button class="btn btn-sm btn-primary" onclick="window._closeModal()">Entendi</button>');
+    return;
+  }
+  window._pendingCrCliente=id;
+  showModal('Excluir cliente',
+    '<div style="font-size:13px">Excluir <strong>'+cli.nome+'</strong> do cadastro?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._crCadConfirmarExcluir()">Excluir</button>');
+};
+window._crCadConfirmarExcluir=async function(){
+  const id=window._pendingCrCliente; if(!id) return;
+  closeModal();
+  try{
+    await deleteDoc(doc(db,'fin_clientes',id));
+    window._pendingCrCliente=null;
+    showToast('Cliente excluído!');
+  }catch(e){
+    console.error('Erro ao excluir cliente:',e);
+    showToast('Erro: '+e.message);
+  }
+};
 
 window._crAbrirNovo=function(opts){
   // manterParcelas: usado ao voltar do cadastro de cliente, pra não perder
