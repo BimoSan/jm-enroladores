@@ -14794,14 +14794,19 @@ function calcRateioIndireto(mesesSelecionados){
     else { qCadeiras+=q; if(info.pintura) qPintadas+=q; }
   });
 
+  // Folha salarial mensal informada na Engenharia — entra direto na fábrica
+  // correspondente, sem passar pelo rateio do comum (já vem separada).
+  const folhaCadeiras=parseFloat((configEng.folha||{}).cadeiras)||0;
+  const folhaEstofados=parseFloat((configEng.folha||{}).estofados)||0;
+
   // Rateio do comum, proporcional à quantidade produzida
   const qTotal=qCadeiras+qEstofados;
   const comumCadeiras=qTotal>0?porDestino.comum*(qCadeiras/qTotal):0;
   const comumEstofados=qTotal>0?porDestino.comum*(qEstofados/qTotal):0;
 
-  const baseCadeiras=qCadeiras>0?(porDestino.cadeiras+comumCadeiras)/qCadeiras:0;
+  const baseCadeiras=qCadeiras>0?(porDestino.cadeiras+folhaCadeiras+comumCadeiras)/qCadeiras:0;
   const adicionalPintura=qPintadas>0?porDestino.pintura/qPintadas:0;
-  const indiretoEstofado=qEstofados>0?(porDestino.estofados+comumEstofados)/qEstofados:0;
+  const indiretoEstofado=qEstofados>0?(porDestino.estofados+folhaEstofados+comumEstofados)/qEstofados:0;
 
   // Valor final por categoria de produto
   const porCategoria={};
@@ -14812,7 +14817,7 @@ function calcRateioIndireto(mesesSelecionados){
       : baseCadeiras+(info.pintura?adicionalPintura:0);
   });
 
-  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,
+  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,folhaCadeiras,folhaEstofados,
     comumCadeiras,comumEstofados,baseCadeiras,adicionalPintura,indiretoEstofado,porCategoria};
 }
 
@@ -14867,6 +14872,21 @@ function renderEngIndiretos(){
     +CUSTO_DESTINOS.map(d=>'<div style="background:'+d.bg+';border-radius:10px;padding:10px 12px">'
       +'<div style="font-size:10px;font-weight:700;color:'+d.cor+'">'+d.curto+'</div>'
       +'<div style="font-size:16px;font-weight:800;color:'+d.cor+'">'+fmtMoeda(r.porDestino[d.id]||0)+'</div>'
+      +'</div>').join('')
+    +'</div></div>';
+
+  // Folha salarial — informada aqui porque não é lançada em Custos Indiretos.
+  // Vai direto pra fábrica correspondente, sem entrar no rateio do comum.
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">👥 Folha salarial mensal</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Valor por mês de cada fábrica. Entra inteiro na fábrica indicada — não é rateado.</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">'
+    +[['cadeiras','🪑 Folha — Cadeiras','#1e40af'],['estofados','🛋️ Folha — Estofados','#7c3aed']].map(([k,label,cor])=>
+      '<div style="background:#f8fafc;border-radius:10px;padding:10px 12px">'
+      +'<div style="font-size:11px;font-weight:700;color:'+cor+';margin-bottom:6px">'+label+'</div>'
+      +'<input type="number" min="0" step="0.01" value="'+((configEng.folha||{})[k]||'')+'" placeholder="0,00" '+(podeEditar?'':'disabled')
+      +' onchange="window._engSetFolha(\''+k+'\',this.value)"'
+      +' style="width:100%;font-size:15px;font-weight:800;text-align:center;border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 8px">'
       +'</div>').join('')
     +'</div></div>';
 
@@ -14925,6 +14945,8 @@ function renderEngIndiretos(){
   } else {
     html+='<div style="background:#f8fafc;border-radius:10px;padding:10px;margin-bottom:12px;font-size:11px;color:#64748b;line-height:1.7">'
       +'Comum rateado: <strong>'+fmtMoeda(r.comumCadeiras)+'</strong> pra Cadeiras · <strong>'+fmtMoeda(r.comumEstofados)+'</strong> pra Estofados<br>'
+      +((r.folhaCadeiras>0||r.folhaEstofados>0)
+        ?'Folha salarial: <strong>'+fmtMoeda(r.folhaCadeiras)+'</strong> pra Cadeiras · <strong>'+fmtMoeda(r.folhaEstofados)+'</strong> pra Estofados<br>':'')
       +'Base por cadeira: <strong>'+fmtMoeda(r.baseCadeiras)+'</strong>'
       +(r.adicionalPintura>0?' · adicional de pintura: <strong>'+fmtMoeda(r.adicionalPintura)+'</strong>':'')
       +'</div>';
@@ -14951,6 +14973,19 @@ function renderEngIndiretos(){
 }
 
 window._engIndSetBase=function(v){ window._engIndBase=v; reloadTab(); };
+
+window._engSetFolha=async function(fabrica,valor){
+  const v=parseFloat(valor)||0;
+  const folha={...(configEng.folha||{}),[fabrica]:v};
+  configEng={...configEng,folha};
+  try{
+    await setDoc(doc(db,'config_eng','geral'),configEng);
+    reloadTab();
+  }catch(e){
+    console.error('Erro ao salvar folha salarial:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
 
 window._engSetQtdCategoria=async function(catId,valor){
   const qtd=parseFloat(valor)||0;
