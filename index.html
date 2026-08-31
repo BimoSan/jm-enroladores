@@ -16303,20 +16303,30 @@ window._custoAdicionarCategoria=async function(){
   const nome=input?.value.trim();
   if(!nome){showToast('Digite o nome da categoria.');return;}
   const cats=configFin.categoriasCustos||[];
-  if(cats.includes(nome)){showToast('Essa categoria já existe.');return;}
+  if(cats.some(c=>c.toLowerCase()===nome.toLowerCase())){showToast('Essa categoria já existe.');return;}
   const novaLista=[...cats,nome];
-  await setDoc(doc(db,'config_financeiro','geral'),{...configFin,categoriasCustos:novaLista});
-  configFin={...configFin,categoriasCustos:novaLista};
-  showToast('Categoria adicionada!');
-  window._custoGerenciarCategorias();
+  try{
+    await setDoc(doc(db,'config_financeiro','geral'),{...configFin,categoriasCustos:novaLista});
+    configFin={...configFin,categoriasCustos:novaLista};
+    showToast('Categoria adicionada!');
+    window._custoGerenciarCategorias();
+  }catch(e){
+    console.error('Erro ao adicionar categoria:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
 };
 window._custoRemoverCategoria=async function(idx){
   const cats=configFin.categoriasCustos||[];
   const novaLista=cats.filter((_,i)=>i!==idx);
-  await setDoc(doc(db,'config_financeiro','geral'),{...configFin,categoriasCustos:novaLista});
-  configFin={...configFin,categoriasCustos:novaLista};
-  showToast('Categoria removida.');
-  window._custoGerenciarCategorias();
+  try{
+    await setDoc(doc(db,'config_financeiro','geral'),{...configFin,categoriasCustos:novaLista});
+    configFin={...configFin,categoriasCustos:novaLista};
+    showToast('Categoria removida.');
+    window._custoGerenciarCategorias();
+  }catch(e){
+    console.error('Erro ao remover categoria:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
 };
 window._custoSalvar=async function(){
   const categoria=document.getElementById('ci-cat')?.value;
