@@ -14780,9 +14780,26 @@ function calcRateioIndireto(mesesSelecionados){
       const d=custoDestinoInfo(c.destino).id;
       porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
     });
+
+  // Materiais indiretos do almoxarifado (solda, linha, banho...): o que saiu
+  // do estoque no período × custo unitário do item, no destino marcado nele.
+  const matIndiretos=[];
+  (almItens||[]).filter(i=>i.materialIndireto).forEach(item=>{
+    const qtd=(almMovimentos||[])
+      .filter(m=>m.itemId===item.id&&m.tipo==='saida'&&mesesSelecionados.includes((m.data||'').slice(0,7)))
+      .reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
+    if(qtd<=0) return;
+    const custoUnit=parseFloat(item.custoUnitario)||0;
+    const total=qtd*custoUnit;
+    const d=custoDestinoInfo(item.destinoIndireto).id;
+    porDestino[d]=(porDestino[d]||0)+total;
+    matIndiretos.push({item,qtd,custoUnit,total,destino:d});
+  });
+
   // Divide pelo nº de meses pra virar média mensal (a quantidade também é média mensal)
   const nMeses=Math.max(1,mesesSelecionados.length);
   Object.keys(porDestino).forEach(k=>{ porDestino[k]=porDestino[k]/nMeses; });
+  matIndiretos.forEach(m=>{ m.totalMes=m.total/nMeses; m.qtdMes=m.qtd/nMeses; });
 
   // Quantidades médias por fábrica, somando as categorias
   let qCadeiras=0,qPintadas=0,qEstofados=0;
@@ -14817,7 +14834,7 @@ function calcRateioIndireto(mesesSelecionados){
       : baseCadeiras+(info.pintura?adicionalPintura:0);
   });
 
-  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,folhaCadeiras,folhaEstofados,
+  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,folhaCadeiras,folhaEstofados,matIndiretos,
     comumCadeiras,comumEstofados,baseCadeiras,adicionalPintura,indiretoEstofado,porCategoria};
 }
 
@@ -14874,6 +14891,32 @@ function renderEngIndiretos(){
       +'<div style="font-size:16px;font-weight:800;color:'+d.cor+'">'+fmtMoeda(r.porDestino[d.id]||0)+'</div>'
       +'</div>').join('')
     +'</div></div>';
+
+  // Materiais indiretos do almoxarifado — mostra o que entrou e de onde veio
+  if(r.matIndiretos.length){
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">🧰 Materiais indiretos do almoxarifado</div>'
+      +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Saídas do estoque no período × custo unitário. Já estão somados nos destinos acima. Marque um item como indireto em <strong>Almoxarifado → Itens</strong>.</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">'
+      +'<thead><tr style="background:#f8fafc">'
+      +'<th style="padding:6px 8px;text-align:left">Item</th>'
+      +'<th style="padding:6px 8px;text-align:center">Destino</th>'
+      +'<th style="padding:6px 8px;text-align:right">Qtd/mês</th>'
+      +'<th style="padding:6px 8px;text-align:right">Custo unit.</th>'
+      +'<th style="padding:6px 8px;text-align:right">Total/mês</th>'
+      +'</tr></thead><tbody>'
+      +r.matIndiretos.sort((a,b)=>b.totalMes-a.totalMes).map((m,i)=>{
+        const d=custoDestinoInfo(m.destino);
+        return '<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+          +'<td style="padding:6px 8px;font-weight:600">'+(m.item.descricao||'—')+'</td>'
+          +'<td style="padding:6px 8px;text-align:center"><span style="font-size:10px;background:'+d.bg+';color:'+d.cor+';padding:1px 7px;border-radius:99px;font-weight:700">'+d.curto+'</span></td>'
+          +'<td style="padding:6px 8px;text-align:right">'+m.qtdMes.toLocaleString('pt-BR',{maximumFractionDigits:1})+' '+(m.item.unidade||'')+'</td>'
+          +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(m.custoUnit)+'</td>'
+          +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#7c3aed">'+fmtMoeda(m.totalMes)+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div></div>';
+  }
 
   // Folha salarial — informada aqui porque não é lançada em Custos Indiretos.
   // Vai direto pra fábrica correspondente, sem entrar no rateio do comum.
@@ -19967,7 +20010,9 @@ function renderAlmItens(){
       +'<span style="font-size:10px;background:'+cor+'22;color:'+cor+';padding:2px 7px;border-radius:99px;font-weight:700;white-space:nowrap">'+item.codigo+'</span>'
       +'<span style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+item.descricao+'</span>'
       +'</div>'
-      +'<div style="font-size:10px;color:'+cor+'">'+item.classificacao+'</div>'
+      +'<div style="font-size:10px;color:'+cor+'">'+item.classificacao
+      +(item.materialIndireto?' · <span style="color:#7c3aed;font-weight:700">🧰 indireto ('+custoDestinoInfo(item.destinoIndireto).curto+')</span>':'')
+      +'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual
@@ -20028,7 +20073,9 @@ window._filtrarAlmItens=function(q){
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
       +'<div style="flex:1;min-width:0">'
       +'<span style="font-size:13px;font-weight:700">'+item.descricao+'</span>'
-      +'<div style="font-size:10px;color:'+cor+'">'+item.classificacao+'</div>'
+      +'<div style="font-size:10px;color:'+cor+'">'+item.classificacao
+      +(item.materialIndireto?' · <span style="color:#7c3aed;font-weight:700">🧰 indireto ('+custoDestinoInfo(item.destinoIndireto).curto+')</span>':'')
+      +'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;margin-left:10px">'
       +'<div style="font-size:20px;font-weight:800;color:'+(alerta?'#dc2626':'#1e293b')+'">'+atual+' <span style="font-size:11px;color:#64748b">'+item.unidade+'</span></div>'
@@ -20068,10 +20115,37 @@ window._novoAlmItem=()=>{
     +'<div class="form-group"><label>Estoque máximo</label><input id="ni-max" type="number" min="0" value="5000" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
     +'<div class="form-group"><label>Estoque atual</label><input id="ni-atual" type="number" min="0" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
-  +'<div class="form-group"><label>Custo unitário (R$)</label><input id="ni-custo" type="number" min="0" step="0.01" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+  +'<div class="form-group"><label>Custo unitário (R$)</label><input id="ni-custo" type="number" min="0" step="0.01" value="0" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +almCampoIndiretoHtml('ni',{}),
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarNovoAlmItem()">Salvar</button>',true);
 };
+
+// Campo "material indireto" — usado no cadastro e na edição do item.
+// Marca materiais que não dá pra medir por produto (solda, linha, banho) pra
+// entrarem no rateio do custo indireto da Engenharia, pelo consumo do mês.
+function almCampoIndiretoHtml(prefixo,item){
+  const marcado=!!item.materialIndireto;
+  const destinoAtual=item.destinoIndireto||'comum';
+  return '<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;margin-top:4px">'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#5b21b6;cursor:pointer">'
+    +'<input type="checkbox" id="'+prefixo+'-indireto" '+(marcado?'checked':'')
+    +' onchange="document.getElementById(\''+prefixo+'-dest-ind\').style.display=this.checked?\'block\':\'none\'" style="width:15px;height:15px">'
+    +'Material indireto (não dá pra medir por produto)</label>'
+    +'<div style="font-size:10px;color:#7c3aed;margin:4px 0 0 23px">Ex: solda, linha, produtos de banho. O consumo do mês entra no rateio do custo indireto.</div>'
+    +'<div id="'+prefixo+'-dest-ind" style="display:'+(marcado?'block':'none')+';margin-top:8px">'
+    +'<label style="font-size:11px;font-weight:700;color:#5b21b6;display:block;margin-bottom:4px">Destino do custo</label>'
+    +'<select id="'+prefixo+'-destino-ind" style="font-size:12px;border:1.5px solid #ddd6fe;border-radius:8px;padding:6px 8px;width:100%">'
+    +CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'"'+(d.id===destinoAtual?' selected':'')+'>'+d.label+'</option>').join('')
+    +'</select></div>'
+    +'</div>';
+}
+// Lê os dois campos de uma vez, pra cadastro e edição usarem a mesma regra
+function almLerCampoIndireto(prefixo){
+  const materialIndireto=document.getElementById(prefixo+'-indireto')?.checked||false;
+  return {materialIndireto,
+    destinoIndireto:materialIndireto?(document.getElementById(prefixo+'-destino-ind')?.value||'comum'):null};
+}
 
 window._salvarNovoAlmItem=async()=>{
   const cod=document.getElementById('ni-cod')?.value.trim();
@@ -20083,7 +20157,8 @@ window._salvarNovoAlmItem=async()=>{
   const atual=parseInt(document.getElementById('ni-atual')?.value)||0;
   if(!cod||!desc){showToast('Informe o código e a descrição.');return;}
   const custo=parseFloat(document.getElementById('ni-custo')?.value)||0;
-  await addDoc(collection(db,'alm_itens'),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,custoUnitario:custo,observacoes:''});
+  await addDoc(collection(db,'alm_itens'),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:atual,custoUnitario:custo,observacoes:'',
+    ...almLerCampoIndireto('ni')});
   closeModal();showToast('Item cadastrado!');
 };
 
@@ -20104,7 +20179,8 @@ window._editarAlmItem=id=>{
     +'<div class="form-group"><label>Estoque máximo</label><input id="ei-max" type="number" value="'+(item.estoqueMax||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
     +'<div class="form-group"><label>Corrigir estoque atual (base)</label><input id="ei-atual" type="number" value="'+atual+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
-  +'<div class="form-group"><label>Custo unitário (R$)</label><input id="ei-custo" type="number" min="0" step="0.01" value="'+(item.custoUnitario||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>',
+  +'<div class="form-group"><label>Custo unitário (R$)</label><input id="ei-custo" type="number" min="0" step="0.01" value="'+(item.custoUnitario||0)+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +almCampoIndiretoHtml('ei',item),
     '<button class="btn btn-ghost btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-danger btn-sm" onclick="window._excluirAlmItem(&quot;'+id+'&quot;)">Excluir</button>'
     +'<button class="btn btn-primary btn-sm" onclick="window._salvarAlmItem(&quot;'+id+'&quot;)">Salvar</button>',true);
@@ -20125,7 +20201,8 @@ window._salvarAlmItem=async id=>{
   const somaMovimentos=almMovimentos.filter(m=>m.itemId===id)
     .reduce((s,m)=>m.tipo==='entrada'?s+(parseInt(m.quantidade)||0):s-(parseInt(m.quantidade)||0),0);
   const novoBase=novoAtualDesejado-somaMovimentos;
-  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:novoBase,custoUnitario:custo});
+  await updateDoc(doc(db,'alm_itens',id),{codigo:cod,descricao:desc,unidade:und,classificacao:cl,estoqueMin:min,estoqueMax:max,estoqueAtual:novoBase,custoUnitario:custo,
+    ...almLerCampoIndireto('ei')});
   closeModal();showToast('Item atualizado!');
 };
 
@@ -21511,6 +21588,16 @@ const LISTENERS_POR_SETOR={
     // entre as fábricas, então precisa deles carregados aqui também.
     ()=>onSnapshot(collection(db,'fin_custos'),snap=>{
       custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
+      if(currentUserData)reloadTab();
+    }),
+    // Materiais marcados como indiretos no almoxarifado (solda, linha, banho)
+    // entram no rateio pelo consumo — por isso itens e movimentos aqui também.
+    ()=>onSnapshot(collection(db,'alm_itens'),snap=>{
+      almItens=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'alm_movimentos'),snap=>{
+      almMovimentos=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
   ],
