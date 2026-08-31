@@ -907,6 +907,13 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'ranking_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
   'hist_prod_metal': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
   'setores_resumo': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  // Relatório de produção mensal — mesmo ícone de calendário em todos os setores
+  'prod_terc': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+  'prod_int': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+  'prod_fitas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+  'grad_producao': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+  'tap_producao': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+  'esp_producao_rel': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
   'cp_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'cr_lista': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   'cr_clientes': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -919,6 +926,9 @@ const TAB_LABELS={
   'painel_metal':'Painel','apontar':'Apontamento','fichas_metal':'Fichas',
   'soldadores_metal':'Soldadores','ponto_metal':'Folha de Ponto','config_metal':'Configurações',
   'minha_prod':'Minha Produção','meu_desempenho':'Meu Desempenho','ranking_metal':'Ranking','hist_prod_metal':'Histórico Mensal',
+  // Relatório de produção mensal (mesma tela em todos os setores)
+  'prod_terc':'Produção Mensal','prod_int':'Produção Mensal','prod_fitas':'Produção Mensal',
+  'grad_producao':'Produção Mensal','tap_producao':'Produção Mensal','esp_producao_rel':'Produção Mensal',
   // Caminhões
   'cp_lista':'Contas a Pagar',
   'cr_lista':'A Receber','cr_clientes':'Por Cliente','cr_cadastro':'Clientes',
@@ -1207,38 +1217,38 @@ function renderApp(){
     if(!currentTab||!currentTab.startsWith('cam_')) currentTab='cam_rotas';
   } else if(currentSetor==='espuma'){
     const pg=currentUserData?.perfil;
-    if(['admin','proprietario','encarregado_est','encarregado_esp'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_relatorio','esp_config');
+    if(['admin','proprietario','encarregado_est','encarregado_esp'].includes(pg)) tabs.push('esp_painel','esp_apontar','esp_estoque','esp_fichas','esp_operadores','esp_producao_rel','esp_relatorio','esp_config');
     else if(pg==='operador_esp') tabs.push('esp_painel','esp_fichas');
     else if(pg==='administracao') tabs.push('esp_painel','esp_apontar');
-    else if(pg==='financeiro') tabs.push('esp_painel','esp_relatorio');
+    else if(pg==='financeiro') tabs.push('esp_painel','esp_producao_rel','esp_relatorio');
     else tabs.push('esp_painel');
     if(!currentTab||!currentTab.startsWith('esp_')) currentTab='esp_painel';
   } else if(currentSetor==='grades'){
     const pg=currentUserData?.perfil;
-    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking','grad_gradistas','grad_config');
-    else if(pg==='apontador_gra') tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking');
+    if(['admin','proprietario','encarregado_est'].includes(pg)) tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking','grad_producao','grad_gradistas','grad_config');
+    else if(pg==='apontador_gra') tabs.push('grad_painel','grad_apontar','grad_fichas','grad_ranking','grad_producao');
     else if(pg==='gradista') tabs.push('grad_minha_ficha','grad_meu_desempenho','grad_ranking');
-    else tabs.push('grad_painel','grad_ranking');
+    else tabs.push('grad_painel','grad_ranking','grad_producao');
     if(!currentTab||!currentTab.startsWith('grad_')) currentTab='grad_painel';
   } else if(currentSetor==='tapecamento'){
     const pt=currentUserData?.perfil;
-    if(['admin','proprietario','encarregado_est'].includes(pt)) tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking','tap_tapecadores','tap_config');
-    else if(pt==='apontador_tap') tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking');
+    if(['admin','proprietario','encarregado_est'].includes(pt)) tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking','tap_producao','tap_tapecadores','tap_config');
+    else if(pt==='apontador_tap') tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking','tap_producao');
     else if(pt==='tapecador') tabs.push('tap_minha_ficha','tap_meu_desempenho','tap_ranking');
-    else tabs.push('tap_painel','tap_ranking');
+    else tabs.push('tap_painel','tap_ranking','tap_producao');
     if(!currentTab||!currentTab.startsWith('tap_')) currentTab='tap_painel';
   } else if(currentSetor==='enrolamento_int'){
     const pInt=currentUserData?.perfil;
     if(['admin','encarregado_cad','apontador_int'].includes(pInt)){
-      tabs.push('painel_int','apontar_int','fichas_int','ranking_int','enroladores_int','config_int');
+      tabs.push('painel_int','apontar_int','fichas_int','ranking_int','prod_int','enroladores_int','config_int');
       if(pInt==='admin') tabs.push('usuarios_int');
     } else if(pInt==='enrolador_int'){
       tabs.push('minha_prod_int','minhas_fichas_int','meu_rendimento_int','ranking_int');
     } else {
-      tabs.push('painel_int','ranking_int');
+      tabs.push('painel_int','ranking_int','prod_int');
     }
   } else if(currentSetor==='fitas'){
-    tabs.push('estoque_fitas','traco_fitas','relatorio_fitas');
+    tabs.push('estoque_fitas','traco_fitas','prod_fitas','relatorio_fitas');
     if(currentUserData?.perfil==='admin') tabs.push('config_fitas','usuarios_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
@@ -1256,7 +1266,7 @@ function renderApp(){
     if(can('registrar'))tabs.push('recolher');
     if(can('verRelatorio'))tabs.push('relatorio');
     if(can('verRanking'))tabs.push('ranking');
-    if(can('verPainel')&&currentUserData?.perfil!=='enrolador')tabs.push('historico');
+    if(can('verPainel')&&currentUserData?.perfil!=='enrolador')tabs.push('historico','prod_terc');
     if(can('verValores'))tabs.push('valores');
     if(can('cadastrarEnrolador'))tabs.push('enroladores');
     if(can('gerenciarUsuarios'))tabs.push('usuarios');
@@ -1407,6 +1417,7 @@ function renderTab(tab){
   if(tab==='entregar')return renderEntrega();
   if(tab==='recolher')return renderRecolhimento();
   if(tab==='historico')return renderHistoricoSemanal();
+  if(tab==='prod_terc')return renderRelProducaoTerc();
   if(tab==='relatorio'){try{return renderRelatorio();}catch(e){console.error('renderRelatorio ERRO:',e.message,e.stack);return '<div class="card" style="color:red;padding:20px">Erro: '+e.message+'</div>';}}
   if(tab==='ranking')return renderRanking();
   if(tab==='valores')return renderValores();
@@ -6897,6 +6908,7 @@ function renderTabEspuma(tab){
     if(tab==='esp_estoque')   return renderEspEstoque();
     if(tab==='esp_fichas')    return renderEspFichas();
     if(tab==='esp_operadores')return renderEspOperadores();
+    if(tab==='esp_producao_rel') return renderRelProducaoEsp();
     if(tab==='esp_relatorio') return renderEspRelatorio();
     if(tab==='esp_config')    return renderEspConfig();
     return renderEspPainel();
@@ -8181,6 +8193,7 @@ function renderTabGrades(tab){
     if(tab==='grad_apontar')   return renderGradApontar();
     if(tab==='grad_fichas')    return renderGradFichas();
     if(tab==='grad_ranking')   return renderGradRanking();
+    if(tab==='grad_producao')  return renderRelProducaoGrad();
     if(tab==='grad_minha_ficha')    return renderGradMinhaFicha();
     if(tab==='grad_meu_desempenho') return renderGradMeuDesempenho();
     if(tab==='grad_gradistas') return renderGradGradistas();
@@ -9306,6 +9319,7 @@ function renderTabInt(tab){
     if(tab==='minhas_fichas_int') return renderMinhasFichasInt();
     if(tab==='meu_rendimento_int') return renderMeuRendimentoInt();
     if(tab==='ranking_int')     return renderRankingInt();
+    if(tab==='prod_int')        return renderRelProducaoInt();
     if(tab==='usuarios_int')    return renderUsuariosContexto('setor','cadeiras','enrolamento_int','Enrolamento Interno');
     return renderPainelInt();
   }catch(e){
@@ -10188,6 +10202,7 @@ function renderTabTapecamento(tab){
     if(tab==='tap_apontar')        return renderTapApontar();
     if(tab==='tap_fichas')         return renderTapFichas();
     if(tab==='tap_ranking')        return renderTapRanking();
+    if(tab==='tap_producao')       return renderRelProducaoTap();
     if(tab==='tap_tapecadores')    return renderTapTapecadores();
     if(tab==='tap_config')         return renderTapConfig();
     if(tab==='tap_minha_ficha')    return renderTapMinhaFicha();
@@ -10861,6 +10876,7 @@ function renderTabFitas(tab){
     if(tab==='producao_fitas')  return renderProducaoFitas();
     if(tab==='saidas_fitas')    return renderSaidasFitas();
     if(tab==='traco_fitas')     return renderTracoFitas();
+    if(tab==='prod_fitas')      return renderRelProducaoFitas();
     if(tab==='relatorio_fitas') return renderRelatorioFitas();
     if(tab==='config_fitas')    return renderConfigFitas();
     if(tab==='usuarios_fitas')  return renderUsuariosContexto('setor','cadeiras','fitas','Setor de Fitas');
@@ -12596,6 +12612,186 @@ function renderRankingMetal(){
 }
 
 // ── Histórico de Produção Mensal por Peça ────────────────────────
+// ════════════════════════════════════════════════════════════════
+// RELATÓRIO DE PRODUÇÃO MENSAL — formato único usado por todos os setores
+// ════════════════════════════════════════════════════════════════
+// Cada setor só informa de onde vêm os meses e as quantidades; o layout
+// (seletor de mês, total e tabelas) fica todo aqui.
+window._relProdMes={};
+window._setRelProdMes=function(key,v){ window._relProdMes[key]=v; reloadTab(); };
+
+function renderRelProducao(cfg){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabel=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+  const unidade=cfg.unidade||'peças';
+
+  const mesesDisp=cfg.meses();
+  if(!mesesDisp.length){
+    return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma produção registrada ainda.</div>';
+  }
+  if(!window._relProdMes[cfg.key]||!mesesDisp.includes(window._relProdMes[cfg.key])){
+    window._relProdMes[cfg.key]=mesesDisp[0];
+  }
+  const mes=window._relProdMes[cfg.key];
+
+  const grupos=cfg.grupos(mes).map(g=>({...g,itens:(g.itens||[]).filter(i=>i.qtd>0).sort((a,b)=>b.qtd-a.qtd)}))
+    .filter(g=>g.itens.length);
+  const totalGeral=grupos.reduce((s,g)=>s+g.itens.reduce((ss,i)=>ss+i.qtd,0),0);
+
+  const tabela=g=>{
+    const totalGrupo=g.itens.reduce((s,i)=>s+i.qtd,0);
+    return '<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<span style="font-size:12px;font-weight:700;color:'+(g.cor||'#1e40af')+'">'+g.titulo+'</span>'
+      +'<span style="font-size:12px;font-weight:800;color:'+(g.cor||'#1e40af')+'">'+totalGrupo+'</span>'
+      +'</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">'+(cfg.colLabel||'Peça')+'</th>'
+      +'<th style="padding:7px 10px;text-align:right">Quantidade produzida</th></tr></thead><tbody>'
+      +g.itens.map((it,i)=>'<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+        +'<td style="padding:7px 10px;font-weight:600">'+it.label+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+(g.cor||'#1e40af')+'">'+it.qtd+'</td></tr>').join('')
+      +'</tbody></table></div></div>';
+  };
+
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
+    +'<select onchange="window._setRelProdMes(\''+cfg.key+'\',this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +mesesDisp.map(m=>'<option value="'+m+'"'+(m===mes?' selected':'')+'>'+mesLabel(m)+'</option>').join('')
+    +'</select>'
+    +'<div style="text-align:right"><div style="font-size:10px;color:#64748b">'+mesLabel(mes)+'</div>'
+    +'<div style="font-size:22px;font-weight:900;color:#1e293b">'+totalGeral+' '+unidade+'</div></div>'
+    +'</div>'
+    +(!grupos.length
+      ?'<div class="card"><div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma produção registrada nesse mês.</div></div>'
+      :grupos.map(tabela).join(''));
+}
+
+// ── Enrolamento Terceirizado: produção = peças recolhidas (devolvidas prontas)
+function renderRelProducaoTerc(){
+  return renderRelProducao({
+    key:'terc',
+    meses:()=>[...new Set(fichas.flatMap(f=>(f.recolhimentos||[])
+      .filter(r=>!r.administrativo).map(r=>(r.data||'').slice(0,7))).filter(Boolean))].sort().reverse(),
+    grupos:(mes)=>{
+      // Separa por casa/apontador, porque cada um tem sua produção
+      return Object.entries(APT_CASA).map(([aptId,info])=>{
+        const tot={};
+        fichas.forEach(f=>{
+          const enr=getEnr(f.enroladorId);
+          if((enr?.apontadorPerfil||'apontador1')!==aptId) return;
+          (f.recolhimentos||[]).filter(r=>!r.administrativo&&(r.data||'').startsWith(mes)).forEach(r=>{
+            TIPOS.forEach(t=>{ tot[t.id]=(tot[t.id]||0)+(parseInt((r.tipos||{})[t.id])||0); });
+          });
+        });
+        return {titulo:'🏠 '+info.nome,cor:info.cor,
+          itens:TIPOS.map(t=>({label:t.label,qtd:tot[t.id]||0}))};
+      });
+    },
+  });
+}
+
+// ── Enrolamento Interno
+function renderRelProducaoInt(){
+  return renderRelProducao({
+    key:'int',
+    meses:()=>[...new Set(fichasInt.flatMap(f=>(f.apontamentos||[])
+      .map(a=>(a.data||'').slice(0,7))).filter(Boolean))].sort().reverse(),
+    grupos:(mes)=>{
+      const tot={};
+      fichasInt.forEach(f=>{
+        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mes)).forEach(a=>{
+          getTiposInt().forEach(t=>{ tot[t.id]=(tot[t.id]||0)+(parseInt((a.tipos||{})[t.id])||0); });
+        });
+      });
+      return [{titulo:'🏭 Produção do mês',cor:'#065f46',
+        itens:getTiposInt().map(t=>({label:t.label,qtd:tot[t.id]||0}))}];
+    },
+  });
+}
+
+// ── Setor de Fitas: produção em rolos, por cor + fio
+function renderRelProducaoFitas(){
+  return renderRelProducao({
+    key:'fitas',
+    unidade:'rolos',
+    colLabel:'Item',
+    meses:()=>[...new Set(producaoFitas.map(p=>(p.data||'').slice(0,7)).filter(Boolean))].sort().reverse(),
+    grupos:(mes)=>{
+      const doMes=producaoFitas.filter(p=>(p.data||'').startsWith(mes));
+      const porCor={};
+      let fio=0;
+      doMes.forEach(p=>{
+        const rolos=parseInt(p.rolos)||0;
+        if(p.tipo==='fio') fio+=rolos;
+        else porCor[p.cor||'—']=(porCor[p.cor||'—']||0)+rolos;
+      });
+      return [
+        {titulo:'🎗️ Fitas por cor',cor:'#1e40af',
+          itens:Object.entries(porCor).map(([cor,qtd])=>({label:cor,qtd}))},
+        {titulo:'🧵 Fio',cor:'#7c3aed',itens:[{label:'Fio',qtd:fio}]},
+      ];
+    },
+  });
+}
+
+// ── Grades
+function renderRelProducaoGrad(){
+  return renderRelProducao({
+    key:'grad',
+    meses:()=>[...new Set(fichasGrad.flatMap(f=>(f.apontamentos||[])
+      .map(a=>(a.data||'').slice(0,7))).filter(Boolean))].sort().reverse(),
+    grupos:(mes)=>{
+      const tot={};
+      fichasGrad.forEach(f=>{
+        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mes)).forEach(a=>{
+          getPecasGradAtivas().forEach(p=>{ tot[p.id]=(tot[p.id]||0)+(parseInt((a.pecas||{})[p.id])||0); });
+        });
+      });
+      return [{titulo:'🪚 Produção do mês',cor:'#1d4ed8',
+        itens:getPecasGradAtivas().map(p=>({label:p.label,qtd:tot[p.id]||0}))}];
+    },
+  });
+}
+
+// ── Tapeçamento
+function renderRelProducaoTap(){
+  return renderRelProducao({
+    key:'tap',
+    meses:()=>[...new Set(fichasTap.flatMap(f=>(f.apontamentos||[])
+      .map(a=>(a.data||'').slice(0,7))).filter(Boolean))].sort().reverse(),
+    grupos:(mes)=>{
+      const tot={};
+      fichasTap.forEach(f=>{
+        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mes)).forEach(a=>{
+          getPecasTapAtivas().forEach(p=>{ tot[p.id]=(tot[p.id]||0)+(parseInt((a.pecas||{})[p.id])||0); });
+        });
+      });
+      return [{titulo:'🪑 Produção do mês',cor:'#0e7490',
+        itens:getPecasTapAtivas().map(p=>({label:p.label,qtd:tot[p.id]||0}))}];
+    },
+  });
+}
+
+// ── Blocos de Espuma: produção por tipo de bloco (fórmula)
+function renderRelProducaoEsp(){
+  return renderRelProducao({
+    key:'esp',
+    unidade:'blocos',
+    colLabel:'Tipo de bloco',
+    meses:()=>[...new Set(espumaProducao.map(p=>(p.data||'').slice(0,7)).filter(Boolean))].sort().reverse(),
+    grupos:(mes)=>{
+      const formulas=configEspuma.formulas||[];
+      const tot={};
+      espumaProducao.filter(p=>(p.data||'').startsWith(mes)).forEach(p=>{
+        const fId=p.formulaId||configEspuma.formulaAtiva;
+        tot[fId]=(tot[fId]||0)+(parseInt(p.blocos)||0);
+      });
+      return [{titulo:'⬜ Blocos produzidos',cor:'#1d4ed8',
+        itens:formulas.map(f=>({label:f.label,qtd:tot[f.id]||0}))}];
+    },
+  });
+}
+
 function renderHistoricoProducaoMetal(){
   const MESES3=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesesDisp=[...new Set(apontamentosMetal.map(a=>(a.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
@@ -14556,6 +14752,18 @@ window._engExcluirCategoria=async function(idx){
 function engQtdMedia(produtoId){
   return parseFloat((configEng.qtdMedia||{})[produtoId])||0;
 }
+// Traduz a base escolhida ('2026-08' ou 'media3'/'mediatodos') na lista de
+// meses que entram na conta. Devolve [] se a base não existir mais.
+function engIndMesesDaBase(base,mesesComCusto){
+  if(!base) return [];
+  if(base==='mediatodos') return mesesComCusto;
+  if(base.startsWith('media')){
+    const n=parseInt(base.replace('media',''))||3;
+    return mesesComCusto.slice(0,n);
+  }
+  return mesesComCusto.includes(base)?[base]:[];
+}
+
 // Fábrica/pintura de uma categoria (configurado em Engenharia → Configurações)
 function engCatInfo(catId){
   const c=getEngCategorias().find(x=>x.id===catId);
@@ -14615,25 +14823,44 @@ function renderEngIndiretos(){
   if(!mesesComCusto.length){
     return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum custo indireto lançado ainda.<br><span style="font-size:12px">Lance os custos em <strong>Financeiro → Custos Indiretos</strong> e marque o destino de cada um.</span></div>';
   }
-  // Período: por padrão os 3 últimos meses com lançamento
-  if(!window._engIndPeriodo) window._engIndPeriodo='3';
-  const per=window._engIndPeriodo;
-  const mesesSel=per==='todos'?mesesComCusto:mesesComCusto.slice(0,parseInt(per)||3);
+  // Base de cálculo: um mês específico OU a média de um período. Mês a mês
+  // mostra o custo real daquele mês; a média suaviza gastos que caem de uma
+  // vez só (13º, seguro anual) e não representam um mês típico.
+  if(!window._engIndBase||!engIndMesesDaBase(window._engIndBase,mesesComCusto).length){
+    window._engIndBase=mesesComCusto[0];
+  }
+  const base=window._engIndBase;
+  const mesesSel=engIndMesesDaBase(base,mesesComCusto);
+  const ehMedia=base.startsWith('media');
+  const baseLabel=ehMedia
+    ?('Média de '+mesesSel.length+' mês'+(mesesSel.length!==1?'es':''))
+    :mesLabel(base);
 
   const r=calcRateioIndireto(mesesSel);
 
   let html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">'
     +'<span style="font-size:12px;font-weight:700;color:#475569">Base de cálculo:</span>'
-    +'<select onchange="window._engIndSetPeriodo(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
-    +['1','3','6','12','todos'].map(v=>'<option value="'+v+'"'+(v===per?' selected':'')+'>'+(v==='todos'?'Todos os meses':(v==='1'?'Último mês':'Últimos '+v+' meses'))+'</option>').join('')
+    +'<select onchange="window._engIndSetBase(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +'<optgroup label="Mês específico">'
+    +mesesComCusto.map(m=>'<option value="'+m+'"'+(m===base?' selected':'')+'>'+mesLabel(m)+'</option>').join('')
+    +'</optgroup>'
+    +'<optgroup label="Média de período">'
+    +[['media3','Média dos últimos 3 meses'],['media6','Média dos últimos 6 meses'],
+      ['media12','Média dos últimos 12 meses'],['mediatodos','Média de todos os meses']]
+      .filter(([v])=>engIndMesesDaBase(v,mesesComCusto).length>1||v===base)
+      .map(([v,l])=>'<option value="'+v+'"'+(v===base?' selected':'')+'>'+l+'</option>').join('')
+    +'</optgroup>'
     +'</select>'
-    +'<span style="font-size:11px;color:#94a3b8">'+mesesSel.map(mesLabel).join(' · ')+'</span>'
+    +'<span style="font-size:11px;color:#94a3b8">'+(ehMedia?mesesSel.map(mesLabel).join(' · '):'custos lançados neste mês')+'</span>'
     +'</div>';
 
-  // Custos por destino (média mensal)
+  // Custos por destino
   html+='<div class="card" style="margin-bottom:14px">'
-    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">💸 Custo indireto — média mensal por destino</div>'
-    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Total do período dividido por '+r.nMeses+' mês'+(r.nMeses!==1?'es':'')+'.</div>'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">💸 Custo indireto — '+baseLabel+'</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">'
+    +(ehMedia?'Total dos '+mesesSel.length+' meses dividido por '+mesesSel.length+', separado pelo destino marcado no Financeiro.'
+             :'Lançamentos do mês, separados pelo destino marcado no Financeiro.')
+    +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'
     +CUSTO_DESTINOS.map(d=>'<div style="background:'+d.bg+';border-radius:10px;padding:10px 12px">'
       +'<div style="font-size:10px;font-weight:700;color:'+d.cor+'">'+d.curto+'</div>'
@@ -14709,7 +14936,7 @@ function renderEngIndiretos(){
   return html;
 }
 
-window._engIndSetPeriodo=function(v){ window._engIndPeriodo=v; reloadTab(); };
+window._engIndSetBase=function(v){ window._engIndBase=v; reloadTab(); };
 
 window._engSetQtdMedia=async function(produtoId,valor){
   const qtd=parseFloat(valor)||0;
@@ -14731,9 +14958,9 @@ window._engAplicarIndiretos=function(){
     +'<button class="btn btn-sm btn-primary" onclick="window._engConfirmarAplicarIndiretos()">Aplicar</button>');
 };
 window._engConfirmarAplicarIndiretos=async function(){
-  const per=window._engIndPeriodo||'3';
   const mesesComCusto=[...new Set(custosIndiretos.map(c=>(c.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
-  const mesesSel=per==='todos'?mesesComCusto:mesesComCusto.slice(0,parseInt(per)||3);
+  const mesesSel=engIndMesesDaBase(window._engIndBase||mesesComCusto[0],mesesComCusto);
+  if(!mesesSel.length){showToast('Selecione a base de cálculo.');return;}
   const r=calcRateioIndireto(mesesSel);
   closeModal();
   try{
@@ -14741,7 +14968,10 @@ window._engConfirmarAplicarIndiretos=async function(){
     getEngCategorias().forEach(cat=>{
       indiretos[cat.id]=parseFloat((r.porCategoria[cat.id]||0).toFixed(2));
     });
-    configEng={...configEng,indiretos};
+    // Guarda de onde veio o valor, pra dar pra conferir depois de onde saiu
+    configEng={...configEng,indiretos,
+      indiretosBase:window._engIndBase||mesesComCusto[0],
+      indiretosAtualizadoEm:new Date().toISOString()};
     await setDoc(doc(db,'config_eng','geral'),configEng);
     showToast('Custos indiretos atualizados!');
   }catch(e){
