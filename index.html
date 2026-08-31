@@ -14749,8 +14749,10 @@ window._engExcluirCategoria=async function(idx){
 // proporção da quantidade média produzida. Dentro de Cadeiras, os custos
 // gerais se dividem entre TODAS as cadeiras e os custos de pintura só
 // entre as pintadas — por isso a pintada custa mais.
-function engQtdMedia(produtoId){
-  return parseFloat((configEng.qtdMedia||{})[produtoId])||0;
+// Quantidade média produzida por mês de uma CATEGORIA (não de cada produto):
+// o rateio é por categoria, então é aqui que a produção precisa ser informada.
+function engQtdCategoria(catId){
+  return parseFloat((configEng.qtdCategoria||{})[catId])||0;
 }
 // Traduz a base escolhida ('2026-08' ou 'media3'/'mediatodos') na lista de
 // meses que entram na conta. Devolve [] se a base não existir mais.
@@ -14782,12 +14784,12 @@ function calcRateioIndireto(mesesSelecionados){
   const nMeses=Math.max(1,mesesSelecionados.length);
   Object.keys(porDestino).forEach(k=>{ porDestino[k]=porDestino[k]/nMeses; });
 
-  // Quantidades médias por fábrica, a partir dos produtos
+  // Quantidades médias por fábrica, somando as categorias
   let qCadeiras=0,qPintadas=0,qEstofados=0;
-  engProdutos.filter(p=>p.tipo!=='jogo').forEach(p=>{
-    const q=engQtdMedia(p.id);
+  getEngCategorias().forEach(cat=>{
+    const q=engQtdCategoria(cat.id);
     if(q<=0) return;
-    const info=engCatInfo(p.categoria);
+    const info=engCatInfo(cat.id);
     if(info.fabrica==='estofados'){ qEstofados+=q; }
     else { qCadeiras+=q; if(info.pintura) qPintadas+=q; }
   });
@@ -14868,29 +14870,30 @@ function renderEngIndiretos(){
       +'</div>').join('')
     +'</div></div>';
 
-  // Quantidades médias por produto
+  // Quantidades médias por categoria
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">📦 Quantidade média produzida por mês</div>'
-    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">É por aqui que o custo indireto é dividido. Produtos com quantidade 0 ficam de fora do rateio.</div>';
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Informe quantas peças de cada categoria saem por mês — é por aqui que o custo indireto é dividido. Categoria com 0 fica de fora do rateio.</div>';
 
+  const cats=getEngCategorias();
   const porFabrica={cadeiras:[],estofados:[]};
-  engProdutos.filter(p=>p.tipo!=='jogo').forEach(p=>{
-    const info=engCatInfo(p.categoria);
-    porFabrica[info.fabrica==='estofados'?'estofados':'cadeiras'].push({p,info});
+  cats.forEach(cat=>{
+    const info=engCatInfo(cat.id);
+    porFabrica[info.fabrica==='estofados'?'estofados':'cadeiras'].push({cat,info});
   });
 
   [['cadeiras','🪑 Fábrica de Cadeiras','#1e40af'],['estofados','🛋️ Fábrica de Estofados','#7c3aed']].forEach(([fab,titulo,cor])=>{
     const lista=porFabrica[fab];
     if(!lista.length) return;
     html+='<div style="font-size:12px;font-weight:800;color:'+cor+';margin:12px 0 6px">'+titulo+'</div>';
-    lista.sort((a,b)=>a.p.nome.localeCompare(b.p.nome,'pt-BR')).forEach(({p,info})=>{
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #f8fafc">'
+    lista.forEach(({cat,info})=>{
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc">'
         +'<div style="min-width:0;flex:1">'
-        +'<span style="font-size:12px;font-weight:600">'+p.nome+'</span>'
+        +'<span style="font-size:13px;font-weight:600">'+cat.label+'</span>'
         +(info.pintura?' <span style="font-size:9px;background:#fef3c7;color:#b45309;padding:1px 6px;border-radius:99px;font-weight:700">pintada</span>':'')
         +'</div>'
-        +'<input type="number" min="0" step="1" value="'+(engQtdMedia(p.id)||'')+'" placeholder="0" '+(podeEditar?'':'disabled')
-        +' onchange="window._engSetQtdMedia(\''+p.id+'\',this.value)"'
+        +'<input type="number" min="0" step="1" value="'+(engQtdCategoria(cat.id)||'')+'" placeholder="0" '+(podeEditar?'':'disabled')
+        +' onchange="window._engSetQtdCategoria(\''+cat.id+'\',this.value)"'
         +' style="width:90px;font-size:13px;font-weight:700;text-align:center;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px">'
         +'</div>';
     });
@@ -14938,15 +14941,15 @@ function renderEngIndiretos(){
 
 window._engIndSetBase=function(v){ window._engIndBase=v; reloadTab(); };
 
-window._engSetQtdMedia=async function(produtoId,valor){
+window._engSetQtdCategoria=async function(catId,valor){
   const qtd=parseFloat(valor)||0;
-  const qtdMedia={...(configEng.qtdMedia||{}),[produtoId]:qtd};
-  configEng={...configEng,qtdMedia};
+  const qtdCategoria={...(configEng.qtdCategoria||{}),[catId]:qtd};
+  configEng={...configEng,qtdCategoria};
   try{
     await setDoc(doc(db,'config_eng','geral'),configEng);
     reloadTab();
   }catch(e){
-    console.error('Erro ao salvar quantidade média:',e);
+    console.error('Erro ao salvar quantidade da categoria:',e);
     showToast('Erro ao salvar: '+e.message);
   }
 };
