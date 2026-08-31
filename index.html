@@ -14631,7 +14631,7 @@ function renderEngConfig(){
         +'<option value="cadeiras"'+((cat.fabrica||'cadeiras')==='cadeiras'?' selected':'')+'>🪑 Cadeiras</option>'
         +'<option value="estofados"'+(cat.fabrica==='estofados'?' selected':'')+'>🛋️ Estofados</option>'
         +'</select>':'<span style="font-size:10px;color:#94a3b8">'+((cat.fabrica||'cadeiras')==='estofados'?'Estofados':'Cadeiras')+'</span>')
-      +(podeEditar?'<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#b45309;cursor:pointer;white-space:nowrap"'+((cat.fabrica||'cadeiras')==='estofados'?' style="display:none"':'')+'>'
+      +(podeEditar?'<label style="display:'+((cat.fabrica||'cadeiras')==='estofados'?'none':'flex')+';align-items:center;gap:4px;font-size:11px;color:#b45309;cursor:pointer;white-space:nowrap">'
         +'<input type="checkbox" '+(cat.pintura?'checked':'')+' onchange="window._engSetCatCampo('+i+',\'pintura\',this.checked)" style="width:14px;height:14px">pintada</label>'
         :(cat.pintura?'<span style="font-size:10px;color:#b45309">pintada</span>':''))
       +(podeEditar?'<button onclick="window._engExcluirCategoria('+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>':'')
@@ -14870,34 +14870,45 @@ function renderEngIndiretos(){
       +'</div>').join('')
     +'</div></div>';
 
-  // Quantidades médias por categoria
-  html+='<div class="card" style="margin-bottom:14px">'
-    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">📦 Quantidade média produzida por mês</div>'
-    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Informe quantas peças de cada categoria saem por mês — é por aqui que o custo indireto é dividido. Categoria com 0 fica de fora do rateio.</div>';
-
+  // Categorias: fábrica, pintura e quantidade — tudo o que o rateio precisa,
+  // na mesma tela, pra não ter que ir configurar em outro lugar.
   const cats=getEngCategorias();
-  const porFabrica={cadeiras:[],estofados:[]};
-  cats.forEach(cat=>{
-    const info=engCatInfo(cat.id);
-    porFabrica[info.fabrica==='estofados'?'estofados':'cadeiras'].push({cat,info});
-  });
+  const todasCadeiras=cats.length>0&&cats.every(c=>engCatInfo(c.id).fabrica!=='estofados');
+  const nenhumaPintada=!cats.some(c=>engCatInfo(c.id).pintura);
 
-  [['cadeiras','🪑 Fábrica de Cadeiras','#1e40af'],['estofados','🛋️ Fábrica de Estofados','#7c3aed']].forEach(([fab,titulo,cor])=>{
-    const lista=porFabrica[fab];
-    if(!lista.length) return;
-    html+='<div style="font-size:12px;font-weight:800;color:'+cor+';margin:12px 0 6px">'+titulo+'</div>';
-    lista.forEach(({cat,info})=>{
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc">'
-        +'<div style="min-width:0;flex:1">'
-        +'<span style="font-size:13px;font-weight:600">'+cat.label+'</span>'
-        +(info.pintura?' <span style="font-size:9px;background:#fef3c7;color:#b45309;padding:1px 6px;border-radius:99px;font-weight:700">pintada</span>':'')
-        +'</div>'
-        +'<input type="number" min="0" step="1" value="'+(engQtdCategoria(cat.id)||'')+'" placeholder="0" '+(podeEditar?'':'disabled')
-        +' onchange="window._engSetQtdCategoria(\''+cat.id+'\',this.value)"'
-        +' style="width:90px;font-size:13px;font-weight:700;text-align:center;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px">'
-        +'</div>';
-    });
-  });
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">📦 Categorias — fábrica, pintura e produção mensal</div>'
+    +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">O rateio divide os custos por aqui. Categoria com quantidade 0 fica de fora.</div>';
+
+  if(todasCadeiras||nenhumaPintada){
+    html+='<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#92400e;line-height:1.6">'
+      +'⚠️ <strong>Confira a classificação abaixo.</strong> '
+      +(todasCadeiras?'Nenhuma categoria está marcada como <strong>Estofados</strong> — por isso todo o custo comum está indo pras cadeiras. ':'')
+      +(nenhumaPintada?'Nenhuma categoria está marcada como <strong>pintada</strong> — sem isso, o custo de pintura não é aplicado e pintada/não pintada saem iguais.':'')
+      +'</div>';
+  }
+
+  html+=cats.map(cat=>{
+    const info=engCatInfo(cat.id);
+    const ehEstof=info.fabrica==='estofados';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f8fafc;flex-wrap:wrap">'
+      +'<span style="font-size:13px;font-weight:600;flex:1;min-width:120px">'+cat.label+'</span>'
+      +(podeEditar
+        ?'<select onchange="window._engSetCatCampo('+cats.indexOf(cat)+',\'fabrica\',this.value)" title="Fábrica" style="font-size:11px;border:1.5px solid #e2e8f0;border-radius:7px;padding:4px 6px">'
+          +'<option value="cadeiras"'+(!ehEstof?' selected':'')+'>🪑 Cadeiras</option>'
+          +'<option value="estofados"'+(ehEstof?' selected':'')+'>🛋️ Estofados</option>'
+          +'</select>'
+        :'<span style="font-size:10px;color:#94a3b8">'+(ehEstof?'Estofados':'Cadeiras')+'</span>')
+      +(podeEditar
+        ?'<label style="display:'+(ehEstof?'none':'flex')+';align-items:center;gap:4px;font-size:11px;color:#b45309;cursor:pointer;white-space:nowrap">'
+          +'<input type="checkbox" '+(info.pintura?'checked':'')+' onchange="window._engSetCatCampo('+cats.indexOf(cat)+',\'pintura\',this.checked)" style="width:14px;height:14px">pintada</label>'
+        :(info.pintura?'<span style="font-size:10px;color:#b45309">pintada</span>':''))
+      +'<input type="number" min="0" step="1" value="'+(engQtdCategoria(cat.id)||'')+'" placeholder="0" '+(podeEditar?'':'disabled')
+      +' onchange="window._engSetQtdCategoria(\''+cat.id+'\',this.value)" title="Quantidade produzida por mês"'
+      +' style="width:80px;font-size:13px;font-weight:700;text-align:center;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 6px">'
+      +'</div>';
+  }).join('');
+
   html+='<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;margin-top:12px;padding-top:10px;border-top:2px solid #f1f5f9">'
     +'<span>Total por mês</span>'
     +'<span>'+ (r.qCadeiras+r.qEstofados) +' peças <span style="font-weight:500;color:#94a3b8">('+r.qCadeiras+' cadeiras · '+r.qEstofados+' estofados)</span></span>'
