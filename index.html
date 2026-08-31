@@ -16406,16 +16406,19 @@ function renderContasReceber(){
 
   const pendentes=contasReceber.filter(c=>!c.recebido).sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
   const recebidas=contasReceber.filter(c=>c.recebido).sort((a,b)=>(b.dataRecebimento||b.vencimento||'')<(a.dataRecebimento||a.vencimento||'')?-1:1);
-  const somaValor=(lista)=>lista.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  // Em aberto conta só o que FALTA receber (desconta pagamento parcial);
+  // recebido conta o que efetivamente entrou.
+  const somaPendente=(lista)=>lista.reduce((s,c)=>s+crPendente(c),0);
+  const somaRecebida=(lista)=>lista.reduce((s,c)=>s+((parseFloat(c.valorPago)||parseFloat(c.valor))||0),0);
 
   const atrasadas=pendentes.filter(c=>(c.vencimento||'')&&(c.vencimento<hoje));
-  const aReceberMes=somaValor(pendentes.filter(c=>(c.vencimento||'').slice(0,7)===mesAtual));
-  const recebidoMes=somaValor(recebidas.filter(c=>(c.dataRecebimento||'').slice(0,7)===mesAtual));
-  const totalPendente=somaValor(pendentes);
+  const aReceberMes=somaPendente(pendentes.filter(c=>(c.vencimento||'').slice(0,7)===mesAtual));
+  const recebidoMes=somaRecebida(recebidas.filter(c=>(c.dataRecebimento||'').slice(0,7)===mesAtual));
+  const totalPendente=somaPendente(pendentes);
 
   // Cards de resumo
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff"><div><div class="stat-label">Atrasado</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(somaValor(atrasadas))+'</div><div style="font-size:10px;opacity:.85">'+atrasadas.length+' parcela'+(atrasadas.length!==1?'s':'')+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff"><div><div class="stat-label">Atrasado</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(somaPendente(atrasadas))+'</div><div style="font-size:10px;opacity:.85">'+atrasadas.length+' parcela'+(atrasadas.length!==1?'s':'')+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff"><div><div class="stat-label">A receber este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(aReceberMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff"><div><div class="stat-label">Recebido este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(recebidoMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff"><div><div class="stat-label">Total a receber</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(totalPendente)+'</div></div></div>'
@@ -16426,7 +16429,7 @@ function renderContasReceber(){
   pendentes.forEach(c=>{
     const m=(c.vencimento||'').slice(0,7);
     if(!m) return;
-    previsao[m]=(previsao[m]||0)+(parseFloat(c.valor)||0);
+    previsao[m]=(previsao[m]||0)+crPendente(c);
   });
   const mesesPrev=Object.keys(previsao).sort();
   if(mesesPrev.length){
@@ -16457,6 +16460,10 @@ function renderContasReceber(){
       +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+crNomeCliente(c)+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
       +'<div style="font-size:11px;color:'+sit.cor+';font-weight:700;margin-top:2px">'+sit.label+' · vence '+fmtDate(c.vencimento||'')+'</div>'
       +(c.descricao?'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+c.descricao+'</div>':'')
+      +(!c.recebido&&(parseFloat(c.valorPago)||0)>0
+        ?'<div style="font-size:11px;color:#059669;font-weight:700;margin-top:2px">recebido '+fmtMoeda(parseFloat(c.valorPago)||0)+' · falta '+fmtMoeda(crPendente(c))+'</div>':'')
+      +((c.abatimentos||[]).length
+        ?'<div style="font-size:10px;color:#7c3aed;margin-top:2px">↓ abatido '+fmtMoeda((c.abatimentos||[]).reduce((s,a)=>s+(parseFloat(a.valor)||0),0))+' de pagamento a mais</div>':'')
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0">'
       +'<div style="font-size:17px;font-weight:800;color:'+sit.cor+'">'+fmtMoeda(parseFloat(c.valor)||0)+'</div>'
@@ -16510,12 +16517,14 @@ function renderContasReceberClientes(){
   contasReceber.forEach(c=>{
     const nome=crNomeCliente(c);
     if(!porCliente[nome]) porCliente[nome]={nome,pendente:0,atrasado:0,recebido:0,parcelas:[],proxVenc:null};
-    const valor=parseFloat(c.valor)||0;
-    if(c.recebido){ porCliente[nome].recebido+=valor; }
+    if(c.recebido){ porCliente[nome].recebido+=(parseFloat(c.valorPago)||parseFloat(c.valor))||0; }
     else {
-      porCliente[nome].pendente+=valor;
+      // O que falta receber já desconta o que foi pago parcialmente
+      const falta=crPendente(c);
+      porCliente[nome].pendente+=falta;
+      porCliente[nome].recebido+=(parseFloat(c.valorPago)||0);
       porCliente[nome].parcelas.push(c);
-      if((c.vencimento||'')&&c.vencimento<hoje) porCliente[nome].atrasado+=valor;
+      if((c.vencimento||'')&&c.vencimento<hoje) porCliente[nome].atrasado+=falta;
       if(c.vencimento&&(!porCliente[nome].proxVenc||c.vencimento<porCliente[nome].proxVenc)) porCliente[nome].proxVenc=c.vencimento;
     }
   });
@@ -16864,18 +16873,99 @@ window._crSalvarEdicao=async function(id){
   }
 };
 
-window._crMarcarRecebido=async function(id){
+// Quanto ainda falta receber nesta parcela (considera pagamento parcial)
+function crPendente(c){
+  return Math.max(0,(parseFloat(c.valor)||0)-(parseFloat(c.valorPago)||0));
+}
+
+window._crMarcarRecebido=function(id){
+  const c=contasReceber.find(x=>x.id===id);
+  if(!c) return;
+  const pendente=crPendente(c);
+  const jaPago=parseFloat(c.valorPago)||0;
+  // Parcelas seguintes da MESMA venda que ainda estão em aberto — é nelas
+  // que uma sobra é abatida.
+  const seguintes=contasReceber.filter(x=>x.grupoId&&x.grupoId===c.grupoId&&x.id!==c.id&&!x.recebido);
+  showModal('Dar baixa — '+crNomeCliente(c)+(c.parcela?' ('+c.parcela+')':''),
+    (jaPago>0?'<div style="font-size:11px;color:#059669;margin-bottom:8px">Já recebido nesta parcela: <strong>'+fmtMoeda(jaPago)+'</strong> de '+fmtMoeda(parseFloat(c.valor)||0)+'</div>':'')
+    +'<div class="form-group"><label>Valor recebido (R$)</label>'
+    +'<input type="number" id="crb-valor" min="0" step="0.01" value="'+pendente.toFixed(2)+'" onfocus="this.select()" style="font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%;text-align:center"></div>'
+    +'<div class="form-group"><label>Data do recebimento</label>'
+    +'<input type="date" id="crb-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="font-size:11px;color:#94a3b8;line-height:1.6;background:#f8fafc;border-radius:8px;padding:8px 10px">'
+    +'Falta receber nesta parcela: <strong>'+fmtMoeda(pendente)+'</strong>.<br>'
+    +(seguintes.length
+      ?'Se receber <strong>a mais</strong>, a diferença é dividida igualmente entre as <strong>'+seguintes.length+'</strong> parcela'+(seguintes.length!==1?'s':'')+' que ainda faltam.'
+      :'Não há parcelas seguintes em aberto pra abater uma sobra.')
+    +'<br>Se receber <strong>a menos</strong>, a parcela continua aberta com o saldo restante.'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._crConfirmarBaixa(\''+id+'\')">Confirmar baixa</button>');
+};
+
+window._crConfirmarBaixa=async function(id){
+  const c=contasReceber.find(x=>x.id===id);
+  if(!c) return;
+  const recebidoAgora=parseFloat(document.getElementById('crb-valor')?.value)||0;
+  const data=document.getElementById('crb-data')?.value||today();
+  if(recebidoAgora<=0){showToast('Informe o valor recebido.');return;}
+  const pendente=crPendente(c);
+  closeModal();
   try{
-    await updateDoc(doc(db,'contas_receber',id),{recebido:true,dataRecebimento:today()});
-    showToast('Baixa registrada!');
+    if(recebidoAgora<pendente-0.005){
+      // Pagamento parcial — parcela segue aberta com o saldo
+      await updateDoc(doc(db,'contas_receber',id),{
+        valorPago:(parseFloat(c.valorPago)||0)+recebidoAgora,
+        ultimoRecebimento:data,
+      });
+      showToast('Recebimento parcial registrado. Falta '+fmtMoeda(pendente-recebidoAgora)+'.');
+      return;
+    }
+
+    // Quita a parcela
+    await updateDoc(doc(db,'contas_receber',id),{
+      recebido:true,dataRecebimento:data,
+      valorPago:(parseFloat(c.valorPago)||0)+Math.min(recebidoAgora,pendente),
+    });
+
+    const sobra=recebidoAgora-pendente;
+    if(sobra<=0.005){ showToast('Baixa registrada!'); return; }
+
+    // Sobra: divide igualmente entre as parcelas seguintes em aberto
+    const seguintes=contasReceber
+      .filter(x=>x.grupoId&&x.grupoId===c.grupoId&&x.id!==id&&!x.recebido)
+      .sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
+    if(!seguintes.length){
+      showToast('Baixa registrada. Sobra de '+fmtMoeda(sobra)+' sem parcela seguinte pra abater.');
+      return;
+    }
+    // Arredonda em centavos e joga a diferença na última, pra fechar exato
+    const cota=Math.floor((sobra/seguintes.length)*100)/100;
+    let distribuido=0;
+    for(let i=0;i<seguintes.length;i++){
+      const p=seguintes[i];
+      const abate=i===seguintes.length-1?parseFloat((sobra-distribuido).toFixed(2)):cota;
+      distribuido+=abate;
+      const pendP=crPendente(p);
+      const novoValor=parseFloat(Math.max(0,(parseFloat(p.valor)||0)-abate).toFixed(2));
+      const dados={
+        valor:novoValor,
+        abatimentos:[...(p.abatimentos||[]),{data,valor:parseFloat(abate.toFixed(2)),origem:c.parcela||'parcela anterior'}],
+      };
+      // Se o abatimento zerou o que faltava, a parcela já fica quitada
+      if(abate>=pendP-0.005){ dados.recebido=true; dados.dataRecebimento=data; dados.valorPago=novoValor; }
+      await updateDoc(doc(db,'contas_receber',p.id),dados);
+    }
+    showToast('Baixa registrada! '+fmtMoeda(sobra)+' abatido em '+seguintes.length+' parcela'+(seguintes.length!==1?'s':'')+'.');
   }catch(e){
     console.error('Erro ao dar baixa:',e);
     showToast('Erro: '+e.message);
   }
 };
+
 window._crDesmarcarRecebido=async function(id){
   try{
-    await updateDoc(doc(db,'contas_receber',id),{recebido:false,dataRecebimento:null});
+    await updateDoc(doc(db,'contas_receber',id),{recebido:false,dataRecebimento:null,valorPago:0});
     showToast('Baixa desfeita.');
   }catch(e){
     console.error('Erro ao desfazer baixa:',e);
