@@ -17210,6 +17210,52 @@ function crPendente(c){
   return Math.max(0,(parseFloat(c.valor)||0)-(parseFloat(c.valorPago)||0));
 }
 
+// ── Recebimentos do Contas a Receber como entrada de caixa ───────────────
+// Cada baixa grava um evento em c.recebimentos. Contas antigas (anteriores a
+// esse histórico) não têm o array — nelas o fallback usa valorPago na data da
+// baixa, que é o melhor que dá pra reconstruir.
+function crEventosRecebimento(c){
+  if(Array.isArray(c.recebimentos)) return c.recebimentos.filter(r=>r&&r.data);
+  const valor=parseFloat(c.valorPago)||0;
+  if(valor<=0) return [];
+  const data=c.dataRecebimento||c.ultimoRecebimento;
+  return data?[{data,valor,estimado:true}]:[];
+}
+
+// Lista achatada de todos os recebimentos de um mês ('YYYY-MM'), já com o
+// nome do cliente pra exibição.
+function crRecebimentosDoMes(mes){
+  const out=[];
+  (contasReceber||[]).forEach(c=>{
+    crEventosRecebimento(c).forEach(r=>{
+      if(!(r.data||'').startsWith(mes)) return;
+      out.push({
+        contaId:c.id,
+        cliente:crNomeCliente(c),
+        descricao:c.descricao||'',
+        parcela:c.parcela||'',
+        data:r.data,
+        valor:parseFloat(r.valor)||0,
+        estimado:!!r.estimado,
+      });
+    });
+  });
+  return out.sort((a,b)=>(a.data||'')<(b.data||'')?1:-1);
+}
+
+function crTotalRecebidoMes(mes){
+  return crRecebimentosDoMes(mes).reduce((s,r)=>s+r.valor,0);
+}
+
+// Total de dinheiro que entrou no mês: vendas à vista (aba Entradas) +
+// baixas do Contas a Receber (vendas a prazo).
+function finEntradasMes(mes){
+  const aVista=(vendas||[]).filter(v=>(v.data||'').startsWith(mes))
+    .reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  const aPrazo=crTotalRecebidoMes(mes);
+  return {aVista,aPrazo,total:aVista+aPrazo};
+}
+
 window._crMarcarRecebido=function(id){
   const c=contasReceber.find(x=>x.id===id);
   if(!c) return;
@@ -17244,11 +17290,20 @@ window._crConfirmarBaixa=async function(id){
   const pendente=crPendente(c);
   closeModal();
   try{
+    // Histórico de recebimentos: cada baixa vira um evento {data,valor}. É o
+    // que permite dizer quanto dinheiro entrou em CADA mês — só valorPago +
+    // dataRecebimento não dá conta de uma parcela recebida em duas vezes.
+    // O valor lançado é o recebido de fato (inclusive a sobra que vai abater
+    // parcelas seguintes), porque o caixa recebeu tudo nesta data.
+    const evento={data,valor:parseFloat(recebidoAgora.toFixed(2))};
+    const historico=[...(c.recebimentos||[]),evento];
+
     if(recebidoAgora<pendente-0.005){
       // Pagamento parcial — parcela segue aberta com o saldo
       await updateDoc(doc(db,'contas_receber',id),{
         valorPago:(parseFloat(c.valorPago)||0)+recebidoAgora,
         ultimoRecebimento:data,
+        recebimentos:historico,
       });
       showToast('Recebimento parcial registrado. Falta '+fmtMoeda(pendente-recebidoAgora)+'.');
       return;
@@ -17258,6 +17313,7 @@ window._crConfirmarBaixa=async function(id){
     await updateDoc(doc(db,'contas_receber',id),{
       recebido:true,dataRecebimento:data,
       valorPago:(parseFloat(c.valorPago)||0)+Math.min(recebidoAgora,pendente),
+      recebimentos:historico,
     });
 
     const sobra=recebidoAgora-pendente;
@@ -17283,6 +17339,10 @@ window._crConfirmarBaixa=async function(id){
       const dados={
         valor:novoValor,
         abatimentos:[...(p.abatimentos||[]),{data,valor:parseFloat(abate.toFixed(2)),origem:c.parcela||'parcela anterior'}],
+        // Abatimento NÃO é entrada de caixa nova — esse dinheiro já foi contado
+        // na parcela de origem. Grava o histórico explícito (mesmo vazio) pra
+        // essa parcela nunca cair no fallback de dados antigos.
+        recebimentos:(p.recebimentos||[]),
       };
       // Se o abatimento zerou o que faltava, a parcela já fica quitada
       if(abate>=pendP-0.005){ dados.recebido=true; dados.dataRecebimento=data; dados.valorPago=novoValor; }
@@ -17297,7 +17357,7 @@ window._crConfirmarBaixa=async function(id){
 
 window._crDesmarcarRecebido=async function(id){
   try{
-    await updateDoc(doc(db,'contas_receber',id),{recebido:false,dataRecebimento:null,valorPago:0});
+    await updateDoc(doc(db,'contas_receber',id),{recebido:false,dataRecebimento:null,valorPago:0,recebimentos:[]});
     showToast('Baixa desfeita.');
   }catch(e){
     console.error('Erro ao desfazer baixa:',e);
@@ -17413,8 +17473,8 @@ function finViagensDetalhe(mes){
 // sistema registra tudo). Não é o DRE contábil formal (regime de
 // competência, com depreciação/provisões) — é o resultado gerencial.
 function calcDREMes(mes){
-  const receita=vendas.filter(v=>(v.data||'').startsWith(mes))
-    .reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  // Receita de caixa = vendas à vista + baixas do Contas a Receber no mês.
+  const receita=finEntradasMes(mes).total;
 
   const maoObra=finPagamentosTodos()
     .filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes)
@@ -17615,10 +17675,16 @@ function finComprasTodos(){
 function renderFinVendas(){
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   if(!window._vendasMes) window._vendasMes=today().slice(0,7);
-  const mesesDisp=[...new Set([today().slice(0,7),...vendas.map(v=>(v.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  // Os meses disponíveis somam os das vendas à vista e os das baixas do
+  // Contas a Receber — senão um mês que só teve recebimento a prazo sumiria.
+  const mesesCR=(contasReceber||[]).flatMap(c=>crEventosRecebimento(c).map(r=>(r.data||'').slice(0,7))).filter(Boolean);
+  const mesesDisp=[...new Set([today().slice(0,7),...vendas.map(v=>(v.data||'').slice(0,7)).filter(Boolean),...mesesCR])].sort().reverse();
   const mes=mesesDisp.includes(window._vendasMes)?window._vendasMes:mesesDisp[0]||today().slice(0,7);
   const doMes=vendas.filter(v=>(v.data||'').startsWith(mes));
   const totalMes=doMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  const recCR=crRecebimentosDoMes(mes);
+  const totalCR=recCR.reduce((s,r)=>s+r.valor,0);
+  const totalGeral=totalMes+totalCR;
   const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
 
   const mesSelect='<select onchange="window._vendasSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
@@ -17627,11 +17693,48 @@ function renderFinVendas(){
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     ${mesSelect}
     <div style="text-align:right">
-      <div style="font-size:10px;color:#64748b">${mesLabel(mes)}</div>
-      <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalMes)}</div>
+      <div style="font-size:10px;color:#64748b">Entrou em ${mesLabel(mes)}</div>
+      <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalGeral)}</div>
     </div>
     <button class="btn btn-primary btn-sm" onclick="window._vendasNovo()">+ Entrada</button>
   </div>`;
+
+  // Quebra à vista x a prazo
+  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💰 Origem do dinheiro</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">⚡ À vista</div>'
+    +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(totalMes)+'</div>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+doMes.length+' lançamento'+(doMes.length!==1?'s':'')+'</div>'
+    +'</div>'
+    +'<div style="text-align:center;background:#eff6ff;border-radius:12px;padding:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">📥 A prazo (Contas a Receber)</div>'
+    +'<div style="font-size:18px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</div>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+recCR.length+' baixa'+(recCR.length!==1?'s':'')+'</div>'
+    +'</div>'
+    +'</div></div>';
+
+  // Recebimentos vindos do Contas a Receber (só leitura — a baixa é dada lá)
+  if(recCR.length){
+    html+='<div class="card" style="margin-bottom:16px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Recebimentos do Contas a Receber</div>'
+      +'<span style="font-size:13px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</span></div>';
+    recCR.forEach((r,i)=>{
+      const[ano,m_,dd]=(r.data||'--').split('-');
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+        +'<div style="min-width:0;flex:1">'
+        +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.cliente
+        +(r.parcela?'<span style="font-size:10px;color:#64748b;font-weight:600"> · '+r.parcela+'</span>':'')+'</div>'
+        +'<div style="font-size:10px;color:#94a3b8">'+dd+'/'+m_+'/'+ano+(r.descricao?' · '+r.descricao:'')
+        +(r.estimado?' · <span style="color:#b45309">data estimada</span>':'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:14px;font-weight:800;color:#1d4ed8;margin-left:10px">'+fmtMoeda(r.valor)+'</span>'
+        +'</div>';
+    });
+    html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Para alterar, dê a baixa no módulo <strong>Contas a Receber</strong>.</div>';
+    html+='</div>';
+  }
 
   // Agrupado por dia
   const porDia={};
@@ -17642,7 +17745,7 @@ function renderFinVendas(){
   const porForma={pix:0,dinheiro:0,cheque:0};
   doMes.forEach(v=>{ const f=v.forma||'outros'; if(porForma[f]!==undefined) porForma[f]+=parseFloat(v.valor)||0; });
   if(totalMes>0){
-    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💳 Por forma de recebimento</div>'
+    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💳 À vista — por forma de recebimento</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
       +[{k:'pix',l:'📱 Pix'},{k:'dinheiro',l:'💵 Dinheiro'},{k:'cheque',l:'📝 Cheque'}].map(({k,l})=>`<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">
         <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">${l}</div>
@@ -17651,9 +17754,9 @@ function renderFinVendas(){
       +'</div></div>';
   }
 
-  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos — '+mesLabel(mes)+'</div>';
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚡ Lançamentos à vista — '+mesLabel(mes)+'</div>';
   if(!dias.length){
-    html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda neste mês.</div>';
+    html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda à vista neste mês.</div>';
   } else {
     dias.forEach((dia,di)=>{
       const itens=porDia[dia];
@@ -17866,7 +17969,9 @@ function renderFinDashboard(){
   const totalViagensMes=finViagensDetalhe(mesAtualFin).total;
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
-  const totalVendasMes=vendasDoMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  const recCRDoMes=crRecebimentosDoMes(mesAtualFin);
+  const entradasDoMes=finEntradasMes(mesAtualFin);
+  const totalVendasMes=entradasDoMes.total;
 
   // Por setor (pendente)
   const porSetor={};
@@ -17931,7 +18036,8 @@ function renderFinDashboard(){
     <div class="card" style="border-left:4px solid #059669;background:#f0fdf4;padding:20px;text-align:center">
       <div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:6px">ENTRADAS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:28px;font-weight:900;color:#059669">${fmtMoeda(totalVendasMes)}</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:4px">${vendasDoMes.length} entrada${vendasDoMes.length!==1?'s':''}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">${fmtMoeda(entradasDoMes.aVista)} à vista · ${fmtMoeda(entradasDoMes.aPrazo)} a prazo</div>
+      <div style="font-size:10px;color:#9ca3af;margin-top:2px">${vendasDoMes.length} lançamento${vendasDoMes.length!==1?'s':''} · ${recCRDoMes.length} baixa${recCRDoMes.length!==1?'s':''}</div>
     </div>
     <div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:20px;text-align:center">
       <div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px">SAÍDAS — ${mesNomeFin.toUpperCase()}</div>
@@ -19127,8 +19233,7 @@ function renderFinRelatorio(){
     const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
     const viagVal=finViagensDetalhe(mes).total;
-    const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
-    const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+    const vendVal=finEntradasMes(mes).total;
     const total=pagVal+compVal+indVal+matVal+quimVal+viagVal;
     return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,vendVal,total,resultado:vendVal-total};
   });
@@ -19267,7 +19372,7 @@ function dreLinhasHtml(d){
   };
 
   let h='';
-  h+=linha('RECEITA DE VENDAS',d.receita,{forte:true,bg:'#f0fdf4',cor:'#059669'});
+  h+=linha('RECEITA (RECEBIMENTOS)',d.receita,{forte:true,bg:'#f0fdf4',cor:'#059669'});
 
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px">(-) Custo dos produtos vendidos</div>';
   d.cpvItens.filter(([,v])=>v>0).forEach(([l,v])=>{ h+=linha(l,v,{recuo:true,sinal:true}); });
@@ -19316,7 +19421,7 @@ window._imprimirDRE=function(mes,mesNome){
       +'<td style="padding:'+(o.forte?'8px 10px':'5px 10px')+';text-align:right;font-weight:'+(o.forte?'800':'600')+';color:'+(o.cor||'#1e293b')+'">'
       +(o.sinal?'-'+fmtMoeda(Math.abs(valor)):fmtMoeda(valor))+pctTxt+'</td></tr>';
   };
-  let linhas=linhaPdf('RECEITA DE VENDAS',d.receita,{forte:true,bg:'#e8f5ef',cor:'#059669'});
+  let linhas=linhaPdf('RECEITA (RECEBIMENTOS)',d.receita,{forte:true,bg:'#e8f5ef',cor:'#059669'});
   linhas+='<tr><td colspan="2" style="padding:10px 10px 2px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase">(-) Custo dos produtos vendidos</td></tr>';
   d.cpvItens.filter(([,v])=>v>0).forEach(([l,v])=>{linhas+=linhaPdf(l,v,{recuo:true,sinal:true});});
   linhas+=linhaPdf('(=) LUCRO BRUTO',d.lucroBruto,{forte:true,bg:'#e8f0fb',cor:d.lucroBruto>=0?'#1d4ed8':'#dc2626',pct:true});
@@ -19372,10 +19477,10 @@ window._exportarBalancoPDF=function(mes, mesNome){
   const {totalComb,totalMot:totalGastMot,total:viagVal}=finViagensDetalhe(mes);
   const {itens:indiretMes,total:indVal,catsOrd:catsIndiretos}=finCustosIndiretosDetalhe(mes);
   const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
-  const vendasMes=vendas.filter(v=>(v.data||'').startsWith(mes));
+  const entradasMes=finEntradasMes(mes);
 
   const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
-  const vendVal=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+  const vendVal=entradasMes.total;
   const totalSaidas=pagVal+compVal+indVal+matVal+quimVal+viagVal;
   const resultado=vendVal-totalSaidas;
 
@@ -19498,7 +19603,9 @@ ${categorias.length?`<div class="grid2">
     <th style="text-align:right">% das saídas</th>
   </tr></thead>
   <tbody>
-    <tr><td style="font-weight:700;color:#059669">Entradas (vendas)</td><td style="text-align:right;font-weight:700;color:#059669">R$ ${vendVal.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#94a3b8">—</td></tr>
+    <tr><td style="font-weight:700;color:#059669">Entradas (recebimentos)</td><td style="text-align:right;font-weight:700;color:#059669">R$ ${vendVal.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#94a3b8">—</td></tr>
+    <tr><td style="padding-left:18px;color:#64748b">↳ à vista</td><td style="text-align:right;color:#64748b">R$ ${entradasMes.aVista.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#94a3b8">—</td></tr>
+    <tr><td style="padding-left:18px;color:#64748b">↳ a prazo (Contas a Receber)</td><td style="text-align:right;color:#64748b">R$ ${entradasMes.aPrazo.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#94a3b8">—</td></tr>
     ${categorias.map(c=>`<tr><td>${c.nome}</td><td style="text-align:right;color:#dc2626">R$ ${c.valor.toFixed(2).replace('.',',')}</td><td style="text-align:right;color:#64748b">${totalSaidas>0?Math.round(c.valor/totalSaidas*100):0}%</td></tr>`).join('')}
   </tbody>
   <tfoot>
@@ -21490,6 +21597,12 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(collection(db,'fin_vendas'),snap=>{
       vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    // Contas a Receber: as baixas do mês contam como entrada de dinheiro
+    // (venda a prazo), então o Financeiro precisa enxergar essa coleção.
+    ()=>onSnapshot(collection(db,'contas_receber'),snap=>{
+      contasReceber=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
     ()=>onSnapshot(collection(db,'fin_clientes'),snap=>{
