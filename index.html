@@ -13077,7 +13077,7 @@ function getEngIndireto(categoria){
 }
 
 function custoComponentes(lista){
-  return (lista||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+  return (lista||[]).reduce((s,c)=>s+subtotalComponente(c),0);
 }
 
 // Custo indireto de UMA peça: indireto-base da categoria × percentual configurado
@@ -13136,6 +13136,24 @@ function custoUnitMp(m){
     :(parseFloat(m.custo)||0);
   const perdaPerc=parseFloat(m.desperdicio)||0;
   return custoBase*(1+perdaPerc/100);
+}
+
+// Custo unitário de um componente de produto, SEMPRE em tempo real.
+// Se o componente está vinculado a uma matéria-prima cadastrada, o preço vem
+// dela agora — assim, mudar o custo do ferro reflete na hora em toda cadeira
+// que usa ferro, sem precisar reabrir produto por produto. O custoUnit gravado
+// no componente só é usado como fallback: componentes digitados à mão e MPs
+// que foram excluídas do cadastro.
+function custoUnitComponente(c){
+  if(!c) return 0;
+  if(c.mpId){
+    const mp=(engMaterias||[]).find(m=>m.id===c.mpId);
+    if(mp) return custoUnitMp(mp);
+  }
+  return parseFloat(c.custoUnit)||0;
+}
+function subtotalComponente(c){
+  return (parseFloat(c&&c.qtd)||0)*custoUnitComponente(c);
 }
 
 function renderEngMp(){
@@ -13783,7 +13801,7 @@ window._engVerJogo=function(id, aba){
     let dirTotal=0, moTotal=0, indTotal=0;
     const linhas=tipo.itens.map(({prod,reforma,qtd})=>{
       const mo=(reforma.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0)*qtd;
-      const dir=(reforma.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0)*qtd;
+      const dir=(reforma.componentes||[]).reduce((s,c)=>s+subtotalComponente(c),0)*qtd;
       const ind=calcIndiretoPeca(prod.categoria,prod.indiretoPct)*qtd;
       dirTotal+=dir; moTotal+=mo; indTotal+=ind;
       const sub=dir+mo+ind;
@@ -13964,8 +13982,8 @@ window._engImprimirFichaTecnica=function(id){
     ? '<table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f8fafc"><th style="padding:5px 10px;text-align:left;border-bottom:1px solid #e2e8f0">Material</th><th style="padding:5px 10px;text-align:center;border-bottom:1px solid #e2e8f0">Qtd.</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Custo unit.</th><th style="padding:5px 10px;text-align:right;border-bottom:1px solid #e2e8f0">Subtotal</th></tr></thead>'
       +'<tbody>'+p.componentes.map(comp=>{
-        const sub=(parseFloat(comp.qtd)||0)*(parseFloat(comp.custoUnit)||0);
-        return '<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">'+comp.nome+'</td><td style="padding:5px 10px;text-align:center;border-bottom:1px solid #f1f5f9">'+comp.qtd+'</td><td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9">'+fmtMoeda(parseFloat(comp.custoUnit)||0)+'</td><td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700">'+fmtMoeda(sub)+'</td></tr>';
+        const sub=subtotalComponente(comp);
+        return '<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">'+comp.nome+'</td><td style="padding:5px 10px;text-align:center;border-bottom:1px solid #f1f5f9">'+comp.qtd+'</td><td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9">'+fmtMoeda(custoUnitComponente(comp))+'</td><td style="padding:5px 10px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700">'+fmtMoeda(sub)+'</td></tr>';
       }).join('')
       +'</tbody></table>'
     : '<div style="color:#94a3b8;font-size:12px">Nenhum material cadastrado.</div>';
@@ -14044,7 +14062,7 @@ window._engRenderReformas=function(){
   el.innerHTML=reformas.map((r,i)=>{
     const compRows=(r.componentes||[]).map((c,j)=>{
       const vinculado=!!c.mpId;
-      const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+      const subtotal=subtotalComponente(c);
       return '<div style="background:#fff;border-radius:7px;padding:7px;margin-bottom:5px;border:1px solid #e9d5ff">'
         +'<div style="display:grid;grid-template-columns:1fr 28px;gap:5px;margin-bottom:5px">'
         +'<select onchange="window._engReformaSelectMp('+i+','+j+',this.value)" style="font-size:11px;border:1.5px solid #d8b4fe;border-radius:6px;padding:5px;width:100%;color:'+(vinculado?'#7c3aed':'#94a3b8')+'">'
@@ -14056,7 +14074,7 @@ window._engRenderReformas=function(){
         +'<div style="display:grid;grid-template-columns:2fr 60px 80px;gap:5px">'
         +'<input value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Nome" '+(vinculado?'disabled':'')+' oninput="window._engReformasTemp['+i+'].componentes['+j+'].nome=this.value" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;'+(vinculado?'background:#f5f3ff;':'')+'width:100%">'
         +'<input type="number" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engReformasTemp['+i+'].componentes['+j+'].qtd=parseFloat(this.value)||0" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;width:100%;text-align:center">'
-        +'<input type="number" value="'+(c.custoUnit||'')+'" placeholder="R$/un" '+(vinculado?'disabled':'')+' oninput="window._engReformasTemp['+i+'].componentes['+j+'].custoUnit=parseFloat(this.value)||0" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;'+(vinculado?'background:#f5f3ff;':'')+'width:100%;text-align:center">'
+        +'<input type="number" value="'+(vinculado?custoUnitComponente(c).toFixed(4):(c.custoUnit||''))+'" placeholder="R$/un" '+(vinculado?'disabled':'')+' oninput="window._engReformasTemp['+i+'].componentes['+j+'].custoUnit=parseFloat(this.value)||0" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:5px;'+(vinculado?'background:#f5f3ff;':'')+'width:100%;text-align:center">'
         +'</div>'
         +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:3px">subtotal: '+fmtMoeda(subtotal)+'</div>'
         +'</div>';
@@ -14068,7 +14086,7 @@ window._engRenderReformas=function(){
       +'<button onclick="window._engReformasTemp['+i+'].maoObraEtapas.splice('+j+',1);window._engRenderReformas()" style="border:none;background:#fee2e2;color:#dc2626;border-radius:5px;width:24px;height:30px;cursor:pointer;font-size:11px">✕</button>'
       +'</div>').join('');
 
-    const custoDireto=(r.componentes||[]).reduce((s,c)=>(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0)+s,0);
+    const custoDireto=(r.componentes||[]).reduce((s,c)=>subtotalComponente(c)+s,0);
     const custoMO=(r.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
     const indiretoPctVal=document.getElementById('ep-indireto-pct')?.value;
     const catId=document.getElementById('ep-categoria')?.value;
@@ -14160,7 +14178,7 @@ window._engRenderMaoObra=function(){
 
 window._engAtualizarResumoCusto=function(){
   const comps=(window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp)||[];
-  const direto=comps.reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+  const direto=comps.reduce((s,c)=>s+subtotalComponente(c),0);
   const categoria=document.getElementById('ep-categoria')?.value;
   const indiretoPctVal=document.getElementById('ep-indireto-pct')?.value;
   const pct=isNaN(parseFloat(indiretoPctVal))?100:parseFloat(indiretoPctVal);
@@ -14199,7 +14217,7 @@ window._engAtualizarComponente=function(idx,campo,valor){
   if(campo==='qtd'||campo==='custoUnit'){
     // Atualiza só o subtotal exibido, sem recriar os inputs (evita perda de foco/cursor)
     const c=lista[idx];
-    const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+    const subtotal=subtotalComponente(c);
     const subEl=document.getElementById('ep-comp-subtotal-'+idx);
     if(subEl) subEl.textContent=fmtMoeda(subtotal);
     window._engAtualizarResumoCusto();
@@ -14232,7 +14250,7 @@ window._engRenderComponentes=function(){
   const comps=(window._engAba==='reforma'?window._engComponentesReformaTemp:window._engComponentesTemp)||[];
   const mpOpts=engMaterias.map(m=>'<option value="'+m.id+'">'+m.nome+'</option>').join('');
   lista_.innerHTML=comps.map((c,i)=>{
-    const subtotal=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+    const subtotal=subtotalComponente(c);
     const vinculado=!!c.mpId;
     const mpAtual=vinculado?engMaterias.find(m=>m.id===c.mpId):null;
     const perdaInfo=mpAtual&&parseFloat(mpAtual.desperdicio)>0?' <span style="color:#92400e">(+'+mpAtual.desperdicio+'% desperdício)</span>':'';
@@ -14247,7 +14265,7 @@ window._engRenderComponentes=function(){
       +'<div style="display:grid;grid-template-columns:2fr 70px 90px;gap:6px;align-items:center">'
       +'<input value="'+(c.nome||'').replace(/"/g,'&quot;')+'" placeholder="Nome do componente" '+(vinculado?'disabled':'')+' oninput="window._engAtualizarComponente('+i+',\'nome\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 8px;width:100%;'+(vinculado?'background:#f1f5f9;color:#64748b':'')+'">'
       +'<input type="number" min="0" step="0.01" value="'+(c.qtd||'')+'" placeholder="Qtd" oninput="window._engAtualizarComponente('+i+',\'qtd\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center">'
-      +'<input type="number" min="0" step="0.01" value="'+(c.custoUnit||'')+'" placeholder="R$ unit" '+(vinculado?'disabled':'')+' oninput="window._engAtualizarComponente('+i+',\'custoUnit\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center;'+(vinculado?'background:#f1f5f9;color:#64748b':'')+'">'
+      +'<input type="number" min="0" step="0.01" value="'+(vinculado?custoUnitComponente(c).toFixed(4):(c.custoUnit||''))+'" placeholder="R$ unit" '+(vinculado?'disabled':'')+' oninput="window._engAtualizarComponente('+i+',\'custoUnit\',this.value)" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 4px;width:100%;text-align:center;'+(vinculado?'background:#f1f5f9;color:#64748b':'')+'">'
       +'</div>'
       +'<div style="text-align:right;font-size:10px;color:#94a3b8;margin-top:4px">subtotal: <span id="ep-comp-subtotal-'+i+'">'+fmtMoeda(subtotal)+'</span>'+perdaInfo+'</div>'
       +'</div>';
@@ -14325,7 +14343,7 @@ window._engVerProduto=function(id, aba){
     const comps=versao==='reforma'?(p.componentesReforma||[]):(p.componentes||[]);
     const maoObraLabel='Mão de obra'+(etapas.length?' ('+etapas.length+' etapa'+(etapas.length!==1?'s':'')+')'  :'');
     const linhasComp=comps.map(comp=>{
-      const subtotal=(parseFloat(comp.qtd)||0)*(parseFloat(comp.custoUnit)||0);
+      const subtotal=subtotalComponente(comp);
       return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid #f1f5f9">'
         +'<span style="color:#475569">'+comp.nome+' <span style="color:#94a3b8">×'+comp.qtd+'</span></span>'
         +'<span style="font-weight:700">'+fmtMoeda(subtotal)+'</span>'
@@ -14356,14 +14374,14 @@ window._engVerProduto=function(id, aba){
     if(!r){conteudo='<div style="color:#94a3b8">Reforma não encontrada.</div>';}
     else{
       const maoObra=(r.maoObraEtapas||[]).reduce((s,e)=>s+(parseFloat(e.valor)||0),0);
-      const direto=(r.componentes||[]).reduce((s,c)=>s+(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0),0);
+      const direto=(r.componentes||[]).reduce((s,c)=>s+subtotalComponente(c),0);
       const indireto=calcIndiretoPeca(p.categoria,p.indiretoPct);
       const indiretoPct=p.indiretoPct!=null?p.indiretoPct:100;
       const total=direto+indireto+maoObra;
       const margem=parseFloat(p.margem)||parseFloat(configEng.margemPadrao)||0;
       const venda=total*(1+margem/100);
       const linhasComp=(r.componentes||[]).map(c=>{
-        const sub=(parseFloat(c.qtd)||0)*(parseFloat(c.custoUnit)||0);
+        const sub=subtotalComponente(c);
         return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid #f1f5f9">'
           +'<span style="color:#475569">'+c.nome+' <span style="color:#94a3b8">×'+c.qtd+'</span></span>'
           +'<span style="font-weight:700">'+fmtMoeda(sub)+'</span></div>';
