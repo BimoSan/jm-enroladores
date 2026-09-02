@@ -7472,9 +7472,10 @@ function renderEspRelatorio(){
     +'<div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">A pagar operadores</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalBlocos*getValorBloco())+'</div></div></div>'
     +'</div>';
 
-  const IMPOSTO_BLOCO=0.12; // 12% de impostos sobre o custo de produção
-
   // Custo por bloco — por tipo
+  // Os impostos NÃO entram aqui: eles já são lançados nos custos indiretos
+  // (Financeiro → Custos Indiretos, grupo tributária) e daí são rateados por
+  // peça na Engenharia. Somar 12% aqui contaria o mesmo imposto duas vezes.
   if(custosPorFormula.length){
     html+='<div class="card" style="margin-bottom:14px">'
       +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⬜ Custo por tipo de bloco</div>'
@@ -7483,27 +7484,21 @@ function renderEspRelatorio(){
       +'<th style="padding:6px 8px;text-align:left">Bloco</th>'
       +'<th style="padding:6px 8px;text-align:right">Custo MP</th>'
       +'<th style="padding:6px 8px;text-align:right">Mão de obra</th>'
-      +'<th style="padding:6px 8px;text-align:right">Subtotal</th>'
-      +'<th style="padding:6px 8px;text-align:right;color:#dc2626">+12% imp.</th>'
-      +'<th style="padding:6px 8px;text-align:right;color:#1d4ed8">Custo real</th>'
+      +'<th style="padding:6px 8px;text-align:right;color:#1d4ed8">Custo do bloco</th>'
       +'</tr></thead><tbody>';
     custosPorFormula.forEach(({formula,custo},i)=>{
       const isAtiva=formula.id===configEspuma.formulaAtiva;
       const maoDeObra=formula.valorBloco||0;
       const subtotal=custo>0?custo+maoDeObra:null;
-      const impostos=subtotal!==null?subtotal*IMPOSTO_BLOCO:null;
-      const custoReal=subtotal!==null?subtotal+impostos:null;
       html+='<tr style="'+(i%2?'background:#f8fafc':'')+'">'
         +'<td style="padding:6px 8px;font-weight:700">'+formula.label+(isAtiva?' <span style="font-size:9px;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:99px;font-weight:700">ativa</span>':'')+'</td>'
         +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+(custo>0?'#92400e':'#94a3b8')+'">'+(custo>0?fmtMoeda(custo):'—')+'</td>'
         +'<td style="padding:6px 8px;text-align:right;color:#1e293b">'+fmtMoeda(maoDeObra)+'</td>'
-        +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+(subtotal===null?'—':fmtMoeda(subtotal))+'</td>'
-        +'<td style="padding:6px 8px;text-align:right;color:#dc2626">'+(impostos===null?'—':fmtMoeda(impostos))+'</td>'
-        +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:'+(custoReal===null?'#94a3b8':'#1d4ed8')+'">'+(custoReal===null?'—':fmtMoeda(custoReal))+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:'+(subtotal===null?'#94a3b8':'#1d4ed8')+'">'+(subtotal===null?'—':fmtMoeda(subtotal))+'</td>'
         +'</tr>';
     });
     html+='</tbody></table>'
-      +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">* Custo real = custo de produção + 12% de impostos</div>'
+      +'<div style="font-size:10px;color:#94a3b8;margin-top:6px">* Custo do bloco = matéria-prima + mão de obra. Impostos e demais custos indiretos entram pelo rateio da Engenharia.</div>'
       +(custosPorFormula.some(c=>c.custo===0)?'<div style="font-size:10px;color:#94a3b8;margin-top:2px">Cadastre o custo por kg das MPs nas configurações para calcular o custo de cada bloco.</div>':'')
       +'</div>';
   }
