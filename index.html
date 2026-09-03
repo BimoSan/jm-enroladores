@@ -220,6 +220,9 @@ if('serviceWorker' in navigator){
   /* ── Modal ── */
   .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;backdrop-filter:blur(2px)}
   .modal-box{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .modal-shake{animation:modalShake .3s ease}
+  @keyframes modalShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  @media (prefers-reduced-motion:reduce){.modal-shake{animation:none}}
   .modal-title{font-size:15px;font-weight:800;color:#1e293b;margin-bottom:14px}
   .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 
@@ -765,8 +768,18 @@ function showToast(msg){
 
 // ── Modal ────────────────────────────────────────────────────────
 function showModal(title,html,btns,wide=false){
-  document.getElementById('modal-root').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)window._closeModal()"><div class="modal-box" style="${wide?'max-width:720px':''}"><div class="modal-title">${title}</div><div id="modal-body">${html}</div><div class="modal-btns">${btns}</div></div></div>`;
+  // Clicar fora NÃO fecha: era muito fácil perder um formulário inteiro já
+  // preenchido com um clique errado. Em vez disso a caixa dá uma balançada,
+  // pra ficar claro que o clique foi registrado e que a saída é pelo botão.
+  document.getElementById('modal-root').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)window._modalChacoalhar()"><div class="modal-box" style="${wide?'max-width:720px':''}"><div class="modal-title">${title}</div><div id="modal-body">${html}</div><div class="modal-btns">${btns}</div></div></div>`;
 }
+window._modalChacoalhar=function(){
+  const box=document.querySelector('#modal-root .modal-box');
+  if(!box) return;
+  box.classList.remove('modal-shake');
+  void box.offsetWidth; // reinicia a animação se o usuário clicar várias vezes
+  box.classList.add('modal-shake');
+};
 function closeModal(){document.getElementById('modal-root').innerHTML='';}
 function showConfirm(title,msg,confirmLabel,cls,onConfirm){
   showModal(title,`<div style="font-size:13px;color:#444;line-height:1.6">${msg}</div>`,
