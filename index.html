@@ -9838,7 +9838,13 @@ function renderFichasInt(){
   const filtro=window._fichasIntFiltro;
   const fichasFilt=filtro==='abertas'?fichasInt.filter(f=>f.status==='aberta'):
     filtro==='fechadas'?fichasInt.filter(f=>f.status==='fechada'):[...fichasInt];
-  fichasFilt.sort((a,b)=>(getEnrInt(a.enroladorId).nome||'').localeCompare(getEnrInt(b.enroladorId).nome||'','pt-BR'));
+  if(filtro==='fechadas'){
+    // Fechadas: mais recente primeiro — quem fechou agora quer ver a própria
+    // ficha no topo, não catada em ordem alfabética no meio da lista.
+    fichasFilt.sort((a,b)=>(b.dataFechamento||'')<(a.dataFechamento||'')?-1:(b.dataFechamento||'')>(a.dataFechamento||'')?1:0);
+  } else {
+    fichasFilt.sort((a,b)=>(getEnrInt(a.enroladorId).nome||'').localeCompare(getEnrInt(b.enroladorId).nome||'','pt-BR'));
+  }
 
   let html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +['abertas','fechadas','todas'].map(f=>'<button class="btn btn-sm '+(filtro===f?'btn-primary':'btn-ghost')+'" onclick="window._fichasIntFiltro=\''+f+'\';window.reloadTab()">'+f.charAt(0).toUpperCase()+f.slice(1)+'</button>').join('')
