@@ -832,6 +832,14 @@ function reloadTab(){
     el.innerHTML='<div class="card" style="text-align:center;padding:40px 20px;color:#dc2626"><div style="font-size:32px;margin-bottom:10px">⚠️</div><div style="font-size:14px;font-weight:700">Não deu pra carregar esta tela</div><div style="font-size:12px;margin-top:4px;color:#94a3b8">'+(e&&e.message||'Erro desconhecido')+'</div></div>';
   }
 }
+// O script principal roda como <script type="module">, então funções
+// declaradas aqui NÃO viram globais automaticamente — um onclick="...reloadTab()"
+// inline (que roda no escopo global da página, fora do módulo) não enxerga
+// reloadTab e lança "reloadTab is not defined" silenciosamente, sem atualizar
+// nada na tela. Todo o resto do app já chama funções assim por window._algo();
+// esta linha expõe reloadTab do mesmo jeito, pra qualquer onclick futuro
+// poder chamar reloadTab() ou window.reloadTab() sem cair nessa armadilha.
+window.reloadTab=reloadTab;
 
 // ── Login ────────────────────────────────────────────────────────
 function renderLogin(){
@@ -9833,7 +9841,7 @@ function renderFichasInt(){
   fichasFilt.sort((a,b)=>(getEnrInt(a.enroladorId).nome||'').localeCompare(getEnrInt(b.enroladorId).nome||'','pt-BR'));
 
   let html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
-    +['abertas','fechadas','todas'].map(f=>'<button class="btn btn-sm '+(filtro===f?'btn-primary':'btn-ghost')+'" onclick="window._fichasIntFiltro=\''+f+'\';reloadTab()">'+f.charAt(0).toUpperCase()+f.slice(1)+'</button>').join('')
+    +['abertas','fechadas','todas'].map(f=>'<button class="btn btn-sm '+(filtro===f?'btn-primary':'btn-ghost')+'" onclick="window._fichasIntFiltro=\''+f+'\';window.reloadTab()">'+f.charAt(0).toUpperCase()+f.slice(1)+'</button>').join('')
     +'</div>';
 
   if(!fichasFilt.length) return html+'<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px">Nenhuma ficha '+filtro+'.</div></div>';
