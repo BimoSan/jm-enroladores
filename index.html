@@ -6779,14 +6779,15 @@ function renderCamRelatorio(){
     const total=comb+gMot;
     // Por km em vez de por viagem: viagens têm distâncias bem diferentes entre
     // si, então gasto/viagem penalizava motorista que só pega rota longa. Por
-    // km compara todo mundo na mesma régua.
-    return {m,km,comb,gMot,viagens,total,indice:km?gMot/km:0};
+    // km compara todo mundo na mesma régua. Inclui combustível — é gasto real
+    // da rota, não só o que o motorista recebeu à parte.
+    return {m,km,comb,gMot,viagens,total,indice:km?total/km:0};
   }).filter(x=>x.viagens>0).sort((a,b)=>a.indice-b.indice);
 
   if(porMotorista.length){
     html+='<div class="card" style="margin-top:14px">'
       +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Por motorista</div>'
-      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Gasto Mot./km (sem combustível) — do que gasta menos pro que gasta mais.</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Custo/km (combustível + gasto do motorista) — do que gasta menos pro que gasta mais.</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f1f5f9">'
       +'<th style="padding:7px 10px;text-align:left">Motorista</th>'
@@ -6795,7 +6796,7 @@ function renderCamRelatorio(){
       +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
       +'<th style="padding:7px 10px;text-align:right">Gasto Mot.</th>'
       +'<th style="padding:7px 10px;text-align:right">Total</th>'
-      +'<th style="padding:7px 10px;text-align:right">Gasto Mot./Km</th>'
+      +'<th style="padding:7px 10px;text-align:right">Custo/Km</th>'
       +'</tr></thead><tbody>'
       +porMotorista.map(({m,km,comb,gMot,viagens,total,indice},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
         +'<td style="padding:7px 10px;font-weight:700">'+m.nome+'</td>'
