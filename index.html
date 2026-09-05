@@ -685,7 +685,17 @@ const today=()=>{
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 };
-const fmtDate=s=>{if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`};
+// Aceita string 'YYYY-MM-DD' (o normal) mas não trava se algum registro
+// antigo/importado tiver guardado um Timestamp do Firestore ou um Date —
+// um .split em algo que não é string já travou uma tela inteira antes.
+const fmtDate=s=>{
+  if(!s)return'';
+  if(typeof s!=='string'){
+    const d=typeof s.toDate==='function'?s.toDate():(s instanceof Date?s:null);
+    return d?d.toLocaleDateString('pt-BR'):'';
+  }
+  const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;
+};
 const corPill=cor=>{if(!cor)return'';const st=COR_STYLE[cor]||{bg:'#eee',color:'#333'};return`<span class="cor-pill" style="background:${st.bg};color:${st.color}">${cor}</span>`};
 const getEnr=id=>enroladores.find(e=>e.id===id);
 const getFicha=id=>fichas.find(f=>f.id===id);
@@ -810,7 +820,17 @@ function render(){
 }
 function reloadTab(){
   const el=document.getElementById('tab-content');
-  if(el)el.innerHTML=currentTab?renderTab(currentTab):'<div class="card" style="text-align:center;padding:40px 20px;color:#94a3b8"><div style="font-size:32px;margin-bottom:10px">🔒</div><div style="font-size:14px;font-weight:700;color:#475569">Sem acesso a este setor</div><div style="font-size:12px;margin-top:4px">Seu perfil não tem permissão para ver nenhuma tela aqui.</div></div>';
+  if(!el) return;
+  // Se o render de uma aba der erro (ex: um registro antigo com um formato
+  // inesperado), sem isso a tela ficava travada mostrando o conteúdo antigo
+  // sem nenhum aviso — parecia que o clique "não fez nada". Agora aparece
+  // uma mensagem e o erro completo vai pro console, pra dar pra diagnosticar.
+  try{
+    el.innerHTML=currentTab?renderTab(currentTab):'<div class="card" style="text-align:center;padding:40px 20px;color:#94a3b8"><div style="font-size:32px;margin-bottom:10px">🔒</div><div style="font-size:14px;font-weight:700;color:#475569">Sem acesso a este setor</div><div style="font-size:12px;margin-top:4px">Seu perfil não tem permissão para ver nenhuma tela aqui.</div></div>';
+  }catch(e){
+    console.error('Erro ao renderizar aba "'+currentTab+'":',e);
+    el.innerHTML='<div class="card" style="text-align:center;padding:40px 20px;color:#dc2626"><div style="font-size:32px;margin-bottom:10px">⚠️</div><div style="font-size:14px;font-weight:700">Não deu pra carregar esta tela</div><div style="font-size:12px;margin-top:4px;color:#94a3b8">'+(e&&e.message||'Erro desconhecido')+'</div></div>';
+  }
 }
 
 // ── Login ────────────────────────────────────────────────────────
@@ -9809,8 +9829,8 @@ function renderFichasInt(){
   if(!window._fichasIntFiltro) window._fichasIntFiltro='abertas';
   const filtro=window._fichasIntFiltro;
   const fichasFilt=filtro==='abertas'?fichasInt.filter(f=>f.status==='aberta'):
-    filtro==='fechadas'?fichasInt.filter(f=>f.status==='fechada'):fichasInt;
-  fichasFilt.sort((a,b)=>b.dataAbertura>a.dataAbertura?1:-1);
+    filtro==='fechadas'?fichasInt.filter(f=>f.status==='fechada'):[...fichasInt];
+  fichasFilt.sort((a,b)=>(getEnrInt(a.enroladorId).nome||'').localeCompare(getEnrInt(b.enroladorId).nome||'','pt-BR'));
 
   let html='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
     +['abertas','fechadas','todas'].map(f=>'<button class="btn btn-sm '+(filtro===f?'btn-primary':'btn-ghost')+'" onclick="window._fichasIntFiltro=\''+f+'\';reloadTab()">'+f.charAt(0).toUpperCase()+f.slice(1)+'</button>').join('')
