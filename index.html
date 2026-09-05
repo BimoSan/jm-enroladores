@@ -6777,13 +6777,16 @@ function renderCamRelatorio(){
     const gMot=rotasM.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
     const viagens=rotasM.length;
     const total=comb+gMot;
-    return {m,km,comb,gMot,viagens,total,indice:viagens?gMot/viagens:0};
+    // Por km em vez de por viagem: viagens têm distâncias bem diferentes entre
+    // si, então gasto/viagem penalizava motorista que só pega rota longa. Por
+    // km compara todo mundo na mesma régua.
+    return {m,km,comb,gMot,viagens,total,indice:km?gMot/km:0};
   }).filter(x=>x.viagens>0).sort((a,b)=>a.indice-b.indice);
 
   if(porMotorista.length){
     html+='<div class="card" style="margin-top:14px">'
       +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Por motorista</div>'
-      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Gasto Mot./viagem (sem combustível) — do que gasta menos pro que gasta mais.</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Gasto Mot./km (sem combustível) — do que gasta menos pro que gasta mais.</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f1f5f9">'
       +'<th style="padding:7px 10px;text-align:left">Motorista</th>'
@@ -6792,7 +6795,7 @@ function renderCamRelatorio(){
       +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
       +'<th style="padding:7px 10px;text-align:right">Gasto Mot.</th>'
       +'<th style="padding:7px 10px;text-align:right">Total</th>'
-      +'<th style="padding:7px 10px;text-align:right">Gasto Mot./Viagem</th>'
+      +'<th style="padding:7px 10px;text-align:right">Gasto Mot./Km</th>'
       +'</tr></thead><tbody>'
       +porMotorista.map(({m,km,comb,gMot,viagens,total,indice},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
         +'<td style="padding:7px 10px;font-weight:700">'+m.nome+'</td>'
@@ -6801,7 +6804,7 @@ function renderCamRelatorio(){
         +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(comb?fmtMoeda(comb):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;color:#6366f1">'+(gMot?fmtMoeda(gMot):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtMoeda(total)+'</td>'
-        +'<td style="padding:7px 10px;text-align:right;font-weight:800;color:#059669">'+fmtMoeda(indice)+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-weight:800;color:#059669">'+(km?indice.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:3,maximumFractionDigits:3}):'—')+'</td>'
         +'</tr>').join('')
       +'</tbody></table></div></div>';
   }
