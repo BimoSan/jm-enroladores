@@ -618,6 +618,7 @@ let matQuimicos=[];
 let matQuimicosConfig={categorias:[]};
 let vendas=[];
 let clientes=[];
+let valesPagamento=[]; // descontos de vale lançados em cima de um pagamento de mão de obra
 let pagManuais=[];
 // Engenharia
 let engProdutos=[];
@@ -5639,7 +5640,7 @@ window._setRelAp=function(v){
 };
 
 window._imprimirFicha=function(id, tipo){
-  let titulo='', pessoa='', setor='', referencia='', valor=0, status='', dataPag='', linhas=[], obs='';
+  let titulo='', pessoa='', setor='', referencia='', valor=0, status='', dataPag='', linhas=[], obs='', valeValor=0, valeObs='';
 
   if(tipo==='ficha'||tipo==='bonus'){
     // Busca na lista de pagamentos
@@ -5650,6 +5651,8 @@ window._imprimirFicha=function(id, tipo){
     pessoa=p.pessoa;
     setor=p.setor;
     valor=p.valor;
+    valeValor=p.valeValor||0;
+    valeObs=p.valeObs||'';
     status=p.pago?'PAGO':'AGUARDANDO PAGAMENTO';
     dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
 
@@ -5677,6 +5680,8 @@ window._imprimirFicha=function(id, tipo){
     pessoa=p.pessoa;
     setor=p.setor;
     valor=p.valor;
+    valeValor=p.valeValor||0;
+    valeObs=p.valeObs||'';
     status=p.pago?'PAGO':'AGUARDANDO PAGAMENTO';
     dataPag=p.dataPagamento?p.dataPagamento.split('-').reverse().join('/'):'—';
     referencia='Quinzena: '+p.dataRef;
@@ -5830,6 +5835,10 @@ window._imprimirFicha=function(id, tipo){
     </tr></thead>
     <tbody>
       ${linhasHtml}
+      ${valeValor>0?`<tr>
+        <td colspan="3" style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#dc2626">Vale descontado${valeObs?' — '+valeObs:''}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;color:#dc2626;font-weight:700">-${valeValor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+      </tr>`:''}
       <tr class="total-row">
         <td colspan="3">TOTAL A PAGAR</td>
         <td>${valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
@@ -6769,9 +6778,15 @@ function renderCamRelatorio(){
       +'</tbody></table></div></div>';
   }
 
-  // Por motorista
+  // Por motorista — com filtro de mês, porque o ano inteiro junto escondia
+  // meses ruins de meses bons e não dava pra comparar direito.
+  if(!window._camRelMotMes) window._camRelMotMes='todos';
+  const motMes=window._camRelMotMes;
+  const motMesOpts='<option value="todos"'+(motMes==='todos'?' selected':'')+'>Ano todo</option>'
+    +MESES.map((label,mi)=>{const v=ano+'-'+String(mi+1).padStart(2,'0');return '<option value="'+v+'"'+(motMes===v?' selected':'')+'>'+label+'</option>';}).join('');
   const porMotorista=camMotoristas.map(m=>{
-    const rotasM=camRotas.filter(r=>r.motoristId===m.id&&(r.data||'').slice(0,4)===ano);
+    const rotasM=camRotas.filter(r=>r.motoristId===m.id&&(r.data||'').slice(0,4)===ano
+      &&(motMes==='todos'||(r.data||'').slice(0,7)===motMes));
     const km=rotasM.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
     const comb=rotasM.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
     const gMot=rotasM.reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
@@ -6784,10 +6799,13 @@ function renderCamRelatorio(){
     return {m,km,comb,gMot,viagens,total,indice:km?total/km:0};
   }).filter(x=>x.viagens>0).sort((a,b)=>a.indice-b.indice);
 
+  html+='<div class="card" style="margin-top:14px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">'
+    +'<div style="font-size:13px;font-weight:700">Por motorista</div>'
+    +'<select onchange="window._camRelMotMes=this.value;reloadTab()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:8px;padding:4px 8px">'+motMesOpts+'</select>'
+    +'</div>';
   if(porMotorista.length){
-    html+='<div class="card" style="margin-top:14px">'
-      +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">Por motorista</div>'
-      +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Custo/km (combustível + gasto do motorista) — do que gasta menos pro que gasta mais.</div>'
+    html+='<div style="font-size:11px;color:#64748b;margin-bottom:10px">Ordenado por Custo/km (combustível + gasto do motorista) — do que gasta menos pro que gasta mais.</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
       +'<thead><tr style="background:#f1f5f9">'
       +'<th style="padding:7px 10px;text-align:left">Motorista</th>'
@@ -6807,8 +6825,11 @@ function renderCamRelatorio(){
         +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtMoeda(total)+'</td>'
         +'<td style="padding:7px 10px;text-align:right;font-weight:800;color:#059669">'+(km?indice.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:3,maximumFractionDigits:3}):'—')+'</td>'
         +'</tr>').join('')
-      +'</tbody></table></div></div>';
+      +'</tbody></table></div>';
+  } else {
+    html+='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:12px">Nenhuma viagem neste período.</div>';
   }
+  html+='</div>';
 
   return html;
 }
@@ -17615,6 +17636,57 @@ function calcDREMes(mes){
   };
 }
 
+// ── Vale descontado de um pagamento de mão de obra ────────────────────────
+// Chave estável combinando setor+id do pagamento (os ids de cada setor vêm de
+// coleções diferentes, então precisam do setor junto pra não colidir).
+function finValeKey(setorKey,id){ return setorKey+'__'+id; }
+function finValeDoPagamento(setorKey,id){
+  return (valesPagamento||[]).find(v=>v.id===finValeKey(setorKey,id));
+}
+window._finAbrirVale=function(setorKey,id){
+  const vale=finValeDoPagamento(setorKey,id);
+  window._pendingValeSetorKey=setorKey;
+  window._pendingValeId=id;
+  showModal(vale?'Editar Vale':'+ Vale',
+    '<div style="font-size:12px;color:#64748b;margin-bottom:10px;line-height:1.5">O valor informado aqui é descontado deste pagamento. Não mexe no cálculo original — só abate na hora de pagar.</div>'
+    +'<div class="form-group"><label>Valor do vale (R$)</label>'
+    +'<input type="number" id="vl-valor" min="0" step="0.01" placeholder="0,00" value="'+(vale?vale.valor:'')+'" onfocus="this.select()" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%"></div>'
+    +'<div class="form-group"><label>Observação (opcional)</label>'
+    +'<input id="vl-obs" placeholder="Ex: vale de 20/08" value="'+((vale&&vale.observacao||'').replace(/"/g,'&quot;'))+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +(vale?'<button class="btn btn-sm btn-danger" onclick="window._finRemoverVale()">Remover</button>':'')
+    +'<button class="btn btn-sm btn-primary" onclick="window._finSalvarVale()">Salvar</button>');
+};
+window._finSalvarVale=async function(){
+  const setorKey=window._pendingValeSetorKey,id=window._pendingValeId;
+  if(!setorKey||!id) return;
+  const valor=parseFloat(document.getElementById('vl-valor')?.value)||0;
+  const observacao=document.getElementById('vl-obs')?.value.trim()||'';
+  if(valor<=0){showToast('Informe o valor do vale.');return;}
+  closeModal();
+  try{
+    await setDoc(doc(db,'fin_vales_pagamento',finValeKey(setorKey,id)),{
+      setorKey,pagamentoId:id,valor,observacao,
+      criadoEm:new Date().toISOString(),criadoPor:currentUserData?.nome||'',
+    });
+    showToast('Vale registrado! Já descontado do pagamento.');
+  }catch(e){
+    console.error('Erro ao salvar vale:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+window._finRemoverVale=async function(){
+  const setorKey=window._pendingValeSetorKey,id=window._pendingValeId;
+  if(!setorKey||!id) return;
+  closeModal();
+  try{
+    await deleteDoc(doc(db,'fin_vales_pagamento',finValeKey(setorKey,id)));
+    showToast('Vale removido!');
+  }catch(e){
+    console.error('Erro ao remover vale:',e);
+    showToast('Erro: '+e.message);
+  }
+};
 function finPagamentosTodos(){
   // Recolhe todas as fichas fechadas/canceladas pagas ou a pagar de todos os setores
   const lista=[];
@@ -17741,7 +17813,16 @@ function finPagamentosTodos(){
     });
   });
 
-  return lista.sort((a,b)=>{
+  // Desconta o vale de cada pagamento aqui, num lugar só — assim todo mundo
+  // que consome finPagamentosTodos() (totais do painel, relatório mensal, DRE,
+  // marcar como pago, impressos) já enxerga o valor líquido automaticamente,
+  // sem precisar lembrar de aplicar o desconto em cada tela separadamente.
+  // valorBruto fica guardado pra quem precisar mostrar o valor cheio.
+  return lista.map(p=>{
+    const vale=finValeDoPagamento(p.setorKey,p.id);
+    const valeValor=vale?Math.max(0,parseFloat(vale.valor)||0):0;
+    return {...p,valorBruto:p.valor,valeValor,valeObs:vale?.observacao||'',valor:Math.max(0,p.valor-valeValor)};
+  }).sort((a,b)=>{
     if(!a.pago&&b.pago) return -1;
     if(a.pago&&!b.pago) return 1;
     return (b.dataRef||'')>(a.dataRef||'')?1:-1;
@@ -18302,7 +18383,12 @@ function renderFinPagamentos(){
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
+        <div style="text-align:right">
+          ${p.valeValor>0?`<div style="font-size:11px;color:#94a3b8;text-decoration:line-through">${fmtMoeda(p.valorBruto)}</div>`:''}
+          <div style="font-size:16px;font-weight:800;color:${p.pago?'#059669':'#d97706'}">${fmtMoeda(p.valor)}</div>
+          ${p.valeValor>0?`<div style="font-size:10px;color:#dc2626;font-weight:700">- vale ${fmtMoeda(p.valeValor)}${p.valeObs?' · '+p.valeObs:''}</div>`:''}
+        </div>
+        ${can('marcarPago')?`<button class="btn btn-sm" style="font-size:11px;padding:4px 10px;background:${p.valeValor>0?'#fee2e2':'#f1f5f9'};color:${p.valeValor>0?'#dc2626':'#64748b'};border:none" onclick="window._finAbrirVale('${p.setorKey}','${p.id}')">${p.valeValor>0?'Editar vale':'+ Vale'}</button>`:''}
         <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:4px 10px;display:flex;align-items:center;gap:4px" onclick="window._imprimirFicha('${p.id}','${p.tipo}')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir
@@ -21714,6 +21800,10 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(collection(db,'fin_clientes'),snap=>{
       clientes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'fin_vales_pagamento'),snap=>{
+      valesPagamento=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(currentUserData)reloadTab();
     }),
     ()=>onSnapshot(collection(db,'pag_manuais'),snap=>{
