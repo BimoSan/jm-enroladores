@@ -17937,7 +17937,7 @@ function renderTabFinanceiro(tab){
     if(tab==='fin_matdiretos') return renderFinMatDiretos();
     if(tab==='fin_matquimicos') return renderCustoSimplesTab('mat_quimicos');
     if(tab==='fin_custos') return renderFinCustos();
-    if(tab==='fin_viagens') return renderCustoSimplesTab('viagens');
+    if(tab==='fin_viagens') return renderFinViagens();
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
   }catch(e){
@@ -18619,9 +18619,8 @@ function renderFinDashboard(){
   const realMatQuimicos=custoSaidaRealMes('mat_quimicos',matQuimicos,mesAtualFin);
   const totalMatQuimicosMes=realMatQuimicos.total;
 
-  const viagensDoMes=(finViagensCustos||[]).filter(v=>(v.data||'').startsWith(mesAtualFin));
-  const realViagens=custoSaidaRealMes('viagens',finViagensCustos,mesAtualFin);
-  const totalViagensMes=realViagens.total;
+  // Viagens continua como sempre foi — puxando de Caminhões, tudo à vista.
+  const totalViagensMes=finViagensDetalhe(mesAtualFin).total;
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const recCRDoMes=crRecebimentosDoMes(mesAtualFin);
@@ -18668,11 +18667,11 @@ function renderFinDashboard(){
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(m.valor)||0;
   });
-  (finViagensCustos||[]).forEach(v=>{
-    const mes_=(v.data||'').slice(0,7);
+  todosAbastecimentos().forEach(a=>{
+    const mes_=(a.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    porMes[mes_]+=parseFloat(v.valor)||0;
+    porMes[mes_]+=(parseFloat(a.totalPago)||0)+(parseFloat(a.gastoMot)||0);
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
@@ -18740,7 +18739,7 @@ function renderFinDashboard(){
     <div class="card" style="border-left:4px solid #dc2626;background:#f9fafb;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">${viagensDoMes.length} lançamento${viagensDoMes.length!==1?"s":""}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">combustível + motoristas</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
