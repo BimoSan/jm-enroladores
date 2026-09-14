@@ -747,6 +747,33 @@ window._custoVincularNovaCP=function(){
 // valor + à vista/a prazo. Custos Indiretos e Mão de Obra não usam isso:
 // continuam exatamente como sempre foram, sempre à vista.
 // ════════════════════════════════════════════════════════════════
+// Toggle "à vista / a prazo" reaproveitado em todo formulário de lançamento
+// novo de custo (Mat. Diretos, Mat. Químicos, Almoxarifado, Viagens) — fica
+// visível na hora de lançar, em vez de perguntar depois de já ter salvo.
+function formaPagamentoToggleHtml(prefix){
+  return '<div class="form-group"><label>Forma de pagamento</label>'
+    +'<div style="display:flex;gap:8px;margin-top:4px">'
+    +'<button type="button" id="'+prefix+'-fp-avista" onclick="window._fpSetForma(\''+prefix+'\',\'avista\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #86efac;background:#dcfce7;color:#15803d;font-size:13px;font-weight:700;cursor:pointer">⚡ À vista</button>'
+    +'<button type="button" id="'+prefix+'-fp-aprazo" onclick="window._fpSetForma(\''+prefix+'\',\'aprazo\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #e2e8f0;background:#fff;color:#1e293b;font-size:13px;font-weight:700;cursor:pointer">📥 A prazo</button>'
+    +'</div><input type="hidden" id="'+prefix+'-forma" value="avista"></div>';
+}
+window._fpSetForma=function(prefix,forma){
+  const avistaBtn=document.getElementById(prefix+'-fp-avista');
+  const aprazoBtn=document.getElementById(prefix+'-fp-aprazo');
+  if(avistaBtn){
+    avistaBtn.style.background=forma==='avista'?'#dcfce7':'#fff';
+    avistaBtn.style.borderColor=forma==='avista'?'#86efac':'#e2e8f0';
+    avistaBtn.style.color=forma==='avista'?'#15803d':'#1e293b';
+  }
+  if(aprazoBtn){
+    aprazoBtn.style.background=forma==='aprazo'?'#dbeafe':'#fff';
+    aprazoBtn.style.borderColor=forma==='aprazo'?'#93c5fd':'#e2e8f0';
+    aprazoBtn.style.color=forma==='aprazo'?'#1d4ed8':'#1e293b';
+  }
+  const input=document.getElementById(prefix+'-forma');
+  if(input) input.value=forma;
+};
+
 const CUSTO_SIMPLES_CONFIG={
   mat_quimicos:{titulo:'Material Químico', cor:'#0e7490', temQuantidade:true,
     colFirestore:'mat_quimicos', configFirestore:'config_mat_quimicos',
@@ -871,7 +898,8 @@ window._csNovo=function(colKey,id){
     return '<option value="'+i+'"'+(i===idxAtual?' selected':'')+'>'+nome+'</option>';
   }).join('');
   showModal(it?'Editar '+cs.titulo:'+ '+cs.titulo,
-    (cats.length?'<div class="form-group"><label>Categoria</label>'
+    (!it?formaPagamentoToggleHtml('cs'):'')
+    +(cats.length?'<div class="form-group"><label>Categoria</label>'
       +'<select id="cs-cat" onchange="window._csAtualizarUnid(\''+colKey+'\')" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
       +catOpts+'</select></div>'
       :'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Nenhuma categoria cadastrada ainda — use "⚙️ Categorias" antes de lançar.</div>')
@@ -914,6 +942,7 @@ window._csSalvar=async function(colKey,id){
   const valor=parseFloat(document.getElementById('cs-valor')?.value)||0;
   const data=document.getElementById('cs-data')?.value||today();
   const descricao=document.getElementById('cs-desc')?.value.trim()||'';
+  const formaPagamento=document.getElementById('cs-forma')?.value||'avista';
   if(!valor){showToast('Informe o valor.');return;}
   closeModal();
   try{
@@ -926,10 +955,11 @@ window._csSalvar=async function(colKey,id){
       const dados={categoria,valor,data,descricao,formaPagamento:'avista',criadoEm:new Date().toISOString()};
       if(cs.temQuantidade){dados.qtd=qtd;dados.unidade=unidade;}
       const ref=await addDoc(collection(db,cs.colFirestore),dados);
-      showToast('Lançamento salvo!');
-      // Só pergunta à vista/a prazo em lançamento NOVO — editar não muda a
-      // forma de pagamento, isso se ajusta pelo selo "vincular" na lista.
-      window._csPerguntarForma(colKey,ref.id);
+      if(formaPagamento==='aprazo'){
+        window._custoVincularCP(colKey,ref.id);
+      } else {
+        showToast('Lançamento salvo!');
+      }
     }
   }catch(e){
     console.error('Erro ao salvar lançamento:',e);
@@ -19495,7 +19525,8 @@ window._matDiretosNovo=function(id){
     return '<option value="'+i+'"'+(i===idxAtual?' selected':'')+'>'+nome+'</option>';
   }).join('');
   showModal(it?'Editar Material Direto':'+ Material Direto',
-    '<div class="form-group"><label>Categoria</label>'
+    (!it?formaPagamentoToggleHtml('md'):'')
+    +'<div class="form-group"><label>Categoria</label>'
     +'<select id="md-cat" onchange="window._matDiretosAtualizarUnid()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
     +catOpts+'</select></div>'
     +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">'
@@ -19579,6 +19610,7 @@ window._matDiretosSalvar=async function(id){
   const qtd=parseFloat(document.getElementById('md-qtd')?.value)||0;
   const valor=parseFloat(document.getElementById('md-valor')?.value)||0;
   const data=document.getElementById('md-data')?.value||today();
+  const formaPagamento=document.getElementById('md-forma')?.value||'avista';
   if(!valor){showToast('Informe o valor.');return;}
   closeModal();
   try{
@@ -19588,8 +19620,11 @@ window._matDiretosSalvar=async function(id){
       showToast('Lançamento atualizado!');
     } else {
       const ref=await addDoc(collection(db,'mat_diretos'),{categoria,unidade,qtd,valor,data,formaPagamento:'avista',criadoEm:new Date().toISOString()});
-      showToast('Lançamento salvo!');
-      window._csPerguntarForma('mat_diretos',ref.id);
+      if(formaPagamento==='aprazo'){
+        window._custoVincularCP('mat_diretos',ref.id);
+      } else {
+        showToast('Lançamento salvo!');
+      }
     }
   }catch(e){
     console.error('Erro ao salvar material direto:',e);
