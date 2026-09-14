@@ -17926,100 +17926,105 @@ function renderFinVendas(){
     </div>
   </div>`;
 
-  // Quebra à vista x a prazo
-  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💰 Origem do dinheiro</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +'<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">'
+  // Quebra à vista x a prazo — clicável, escolhe qual bloco de detalhe
+  // aparece embaixo. Antes os dois ficavam sempre abertos e a tela ficava
+  // enorme de tão vertical.
+  if(!window._vendasSubTab) window._vendasSubTab='avista';
+  const subTab=window._vendasSubTab;
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    +'<div onclick="window._vendasSetSubTab(\'avista\')" style="cursor:pointer;text-align:center;background:#f0fdf4;border-radius:12px;padding:12px;border:2px solid '+(subTab==='avista'?'#059669':'transparent')+'">'
     +'<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">⚡ À vista</div>'
     +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(totalMes)+'</div>'
     +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+doMes.length+' lançamento'+(doMes.length!==1?'s':'')+'</div>'
     +'</div>'
-    +'<div style="text-align:center;background:#eff6ff;border-radius:12px;padding:12px">'
+    +'<div onclick="window._vendasSetSubTab(\'aprazo\')" style="cursor:pointer;text-align:center;background:#eff6ff;border-radius:12px;padding:12px;border:2px solid '+(subTab==='aprazo'?'#1d4ed8':'transparent')+'">'
     +'<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">📥 A prazo (Contas a Receber)</div>'
     +'<div style="font-size:18px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</div>'
     +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+recCR.length+' baixa'+(recCR.length!==1?'s':'')+'</div>'
     +'</div>'
-    +'</div></div>';
+    +'</div>';
 
-  // Recebimentos vindos do Contas a Receber (só leitura — a baixa é dada lá)
-  if(recCR.length){
-    html+='<div class="card" style="margin-bottom:16px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Recebimentos do Contas a Receber</div>'
-      +'<span style="font-size:13px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</span></div>';
-    recCR.forEach((r,i)=>{
-      const[ano,m_,dd]=(r.data||'--').split('-');
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
-        +'<div style="min-width:0;flex:1">'
-        +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.cliente
-        +(r.parcela?'<span style="font-size:10px;color:#64748b;font-weight:600"> · '+r.parcela+'</span>':'')+'</div>'
-        +'<div style="font-size:10px;color:#94a3b8">'+dd+'/'+m_+'/'+ano+(r.descricao?' · '+r.descricao:'')
-        +(r.estimado?' · <span style="color:#b45309">data estimada</span>':'')+'</div>'
-        +'</div>'
-        +'<span style="font-size:14px;font-weight:800;color:#1d4ed8;margin-left:10px">'+fmtMoeda(r.valor)+'</span>'
-        +'</div>';
-    });
-    html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Para alterar, dê a baixa no módulo <strong>Contas a Receber</strong>.</div>';
+  if(subTab==='avista'){
+    // Agrupado por dia
+    const porDia={};
+    doMes.forEach(v=>{ const d=v.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(v); });
+    const dias=Object.keys(porDia).sort().reverse();
+
+    // Resumo por forma de pagamento
+    const porForma={pix:0,dinheiro:0,cheque:0};
+    doMes.forEach(v=>{ const f=v.forma||'outros'; if(porForma[f]!==undefined) porForma[f]+=parseFloat(v.valor)||0; });
+    if(totalMes>0){
+      html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💳 Por forma de recebimento</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+        +[{k:'pix',l:'📱 Pix'},{k:'dinheiro',l:'💵 Dinheiro'},{k:'cheque',l:'📝 Cheque'}].map(({k,l})=>`<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">${l}</div>
+          <div style="font-size:18px;font-weight:800;color:#059669">${fmtMoeda(porForma[k])}</div>
+        </div>`).join('')
+        +'</div></div>';
+    }
+
+    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚡ Lançamentos à vista — '+mesLabel(mes)+'</div>';
+    if(!dias.length){
+      html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda à vista neste mês.</div>';
+    } else {
+      dias.forEach((dia,di)=>{
+        const itens=porDia[dia];
+        const totalDia=itens.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+        const[ano,m_,dd]=dia.split('-');
+        html+=`<div style="${di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:800;color:#475569">${dd}/${m_}/${ano}</span>
+            <span style="font-size:12px;font-weight:800;color:#059669">${fmtMoeda(totalDia)}</span>
+          </div>`;
+        itens.forEach((v,i)=>{
+          html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
+            <div>
+              <span style="font-size:13px;font-weight:700">${v.forma==='pix'?'📱 Pix':v.forma==='dinheiro'?'💵 Dinheiro':v.forma==='cheque'?'📝 Cheque':v.forma||'—'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(parseFloat(v.valor))}</span>
+              <button onclick="window._vendasExcluir('${v.id}')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
+            </div>
+          </div>`;
+        });
+        html+='</div>';
+      });
+    }
     html+='</div>';
-  }
-
-  // Agrupado por dia
-  const porDia={};
-  doMes.forEach(v=>{ const d=v.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(v); });
-  const dias=Object.keys(porDia).sort().reverse();
-
-  // Resumo por forma de pagamento
-  const porForma={pix:0,dinheiro:0,cheque:0};
-  doMes.forEach(v=>{ const f=v.forma||'outros'; if(porForma[f]!==undefined) porForma[f]+=parseFloat(v.valor)||0; });
-  if(totalMes>0){
-    html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💳 À vista — por forma de recebimento</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
-      +[{k:'pix',l:'📱 Pix'},{k:'dinheiro',l:'💵 Dinheiro'},{k:'cheque',l:'📝 Cheque'}].map(({k,l})=>`<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">
-        <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">${l}</div>
-        <div style="font-size:18px;font-weight:800;color:#059669">${fmtMoeda(porForma[k])}</div>
-      </div>`).join('')
-      +'</div></div>';
-  }
-
-  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚡ Lançamentos à vista — '+mesLabel(mes)+'</div>';
-  if(!dias.length){
-    html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda à vista neste mês.</div>';
   } else {
-    dias.forEach((dia,di)=>{
-      const itens=porDia[dia];
-      const totalDia=itens.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
-      const[ano,m_,dd]=dia.split('-');
-      html+=`<div style="${di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':''}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-size:11px;font-weight:800;color:#475569">${dd}/${m_}/${ano}</span>
-          <span style="font-size:12px;font-weight:800;color:#059669">${fmtMoeda(totalDia)}</span>
-        </div>`;
-      itens.forEach((v,i)=>{
-        html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
-          <div>
-            <span style="font-size:13px;font-weight:700">${v.forma==='pix'?'📱 Pix':v.forma==='dinheiro'?'💵 Dinheiro':v.forma==='cheque'?'📝 Cheque':v.forma||'—'}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(parseFloat(v.valor))}</span>
-            <button onclick="window._vendasExcluir('${v.id}')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
-          </div>
-        </div>`;
+    // Recebimentos do mês selecionado, vindos do Contas a Receber (só
+    // leitura — a baixa é dada aqui embaixo mesmo, na gestão de parcelas)
+    if(recCR.length){
+      html+='<div class="card" style="margin-bottom:16px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Recebido em '+mesLabel(mes)+'</div>'
+        +'<span style="font-size:13px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</span></div>';
+      recCR.forEach((r,i)=>{
+        const[ano,m_,dd]=(r.data||'--').split('-');
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="min-width:0;flex:1">'
+          +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.cliente
+          +(r.parcela?'<span style="font-size:10px;color:#64748b;font-weight:600"> · '+r.parcela+'</span>':'')+'</div>'
+          +'<div style="font-size:10px;color:#94a3b8">'+dd+'/'+m_+'/'+ano+(r.descricao?' · '+r.descricao:'')
+          +(r.estimado?' · <span style="color:#b45309">data estimada</span>':'')+'</div>'
+          +'</div>'
+          +'<span style="font-size:14px;font-weight:800;color:#1d4ed8;margin-left:10px">'+fmtMoeda(r.valor)+'</span>'
+          +'</div>';
       });
       html+='</div>';
-    });
-  }
-  html+='</div>';
+    }
 
-  // Vendas a prazo — parcelas em aberto/recebidas, dar baixa etc. Os cards
-  // daqui embaixo são sempre "hoje", diferente do seletor de mês lá em cima
-  // (que é só pra ver quanto entrou de caixa num mês específico).
-  html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:22px 0 10px">📥 Vendas a prazo</div>';
-  html+=renderContasReceber();
+    // Gestão de parcelas — pendentes/recebidas, dar baixa etc. Os cards
+    // daqui embaixo são sempre "hoje", diferente do seletor de mês lá em
+    // cima (que é só pra ver quanto entrou de caixa num mês específico).
+    html+=renderContasReceber();
+  }
 
   return html;
 }
 window._vendasSetMes=function(m){ window._vendasMes=m; reloadTab(); };
 window._vendasSetView=function(v){ window._vendasView=v; reloadTab(); };
+window._vendasSetSubTab=function(v){ window._vendasSubTab=v; reloadTab(); };
 window._entradaNova=function(){
   showModal('+ Nova Entrada',
     '<div style="font-size:13px;color:#444;line-height:1.6;margin-bottom:14px">Essa venda foi à vista ou a prazo?</div>'
