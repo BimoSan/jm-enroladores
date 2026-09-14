@@ -781,6 +781,10 @@ window._fpSetForma=function(prefix,forma){
   }
   const input=document.getElementById(prefix+'-forma');
   if(input) input.value=forma;
+  // A prazo, o valor vem da soma das parcelas — o campo "Valor total" fica
+  // escondido pra não dar a entender que precisa preencher os dois.
+  const valorGroup=document.getElementById(prefix+'-valor-group');
+  if(valorGroup) valorGroup.style.display=forma==='aprazo'?'none':'';
   const fields=document.getElementById(prefix+'-prazo-fields');
   if(fields){
     fields.style.display=forma==='aprazo'?'block':'none';
@@ -990,8 +994,7 @@ window._csNovo=function(colKey,id){
     return '<option value="'+i+'"'+(i===idxAtual?' selected':'')+'>'+nome+'</option>';
   }).join('');
   showModal(it?'Editar '+cs.titulo:'+ '+cs.titulo,
-    (!it?formaPagamentoToggleHtml('cs'):'')
-    +(cats.length?'<div class="form-group"><label>Categoria</label>'
+    (cats.length?'<div class="form-group"><label>Categoria</label>'
       +'<select id="cs-cat" onchange="window._csAtualizarUnid(\''+colKey+'\')" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
       +catOpts+'</select></div>'
       :'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Nenhuma categoria cadastrada ainda — use "⚙️ Categorias" antes de lançar.</div>')
@@ -1001,12 +1004,13 @@ window._csNovo=function(colKey,id){
       +'<div class="form-group"><label>Unidade</label>'
       +'<input id="cs-unid" readonly style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;background:#f8fafc;color:#64748b"></div>'
       +'</div>'):'')
-    +'<div class="form-group"><label>Valor total (R$)</label>'
+    +'<div class="form-group" id="cs-valor-group"><label>Valor total (R$)</label>'
     +'<input type="number" id="cs-valor" min="0" step="0.01" placeholder="0,00" value="'+(it&&it.valor!=null?it.valor:'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="cs-data" value="'+((it&&it.data)||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Descrição (opcional)</label>'
-    +'<input id="cs-desc" value="'+((it&&it.descricao||'').replace(/"/g,'&quot;'))+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    +'<input id="cs-desc" value="'+((it&&it.descricao||'').replace(/"/g,'&quot;'))+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +(!it?formaPagamentoToggleHtml('cs'):''),
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._csSalvar(\''+colKey+'\''+(id?',\''+id+'\'':'')+')">Salvar</button>');
   if(cs.temQuantidade) setTimeout(()=>window._csAtualizarUnid(colKey),50);
@@ -1031,16 +1035,20 @@ window._csSalvar=async function(colKey,id){
   const categoria=typeof cat==='object'?cat.nome:(cat||'Outros');
   const unidade=typeof cat==='object'?cat.unidade:'un';
   const qtd=cs.temQuantidade?(parseFloat(document.getElementById('cs-qtd')?.value)||0):null;
-  const valor=parseFloat(document.getElementById('cs-valor')?.value)||0;
+  let valor=parseFloat(document.getElementById('cs-valor')?.value)||0;
   const data=document.getElementById('cs-data')?.value||today();
   const descricao=document.getElementById('cs-desc')?.value.trim()||'';
   const formaPagamento=document.getElementById('cs-forma')?.value||'avista';
-  if(!valor){showToast('Informe o valor.');return;}
+  // O valor do lançamento a prazo vira a SOMA das parcelas, não o que estava
+  // em "Valor total" — assim nunca fica um número diferente do que foi de
+  // fato lançado em Contas a Pagar.
   let dadosPrazo=null;
   if(!id&&formaPagamento==='aprazo'){
     dadosPrazo=lerParcelasPrazoForm('cs');
     if(!dadosPrazo.ok) return;
+    valor=dadosPrazo.parcelas.reduce((s,p)=>s+p.valor,0);
   }
+  if(!valor){showToast('Informe o valor.');return;}
   closeModal();
   try{
     if(id){
@@ -19626,8 +19634,7 @@ window._matDiretosNovo=function(id){
     return '<option value="'+i+'"'+(i===idxAtual?' selected':'')+'>'+nome+'</option>';
   }).join('');
   showModal(it?'Editar Material Direto':'+ Material Direto',
-    (!it?formaPagamentoToggleHtml('md'):'')
-    +'<div class="form-group"><label>Categoria</label>'
+    '<div class="form-group"><label>Categoria</label>'
     +'<select id="md-cat" onchange="window._matDiretosAtualizarUnid()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
     +catOpts+'</select></div>'
     +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">'
@@ -19636,10 +19643,11 @@ window._matDiretosNovo=function(id){
     +'<div class="form-group"><label>Unidade</label>'
     +'<input id="md-unid" readonly style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;background:#f8fafc;color:#64748b"></div>'
     +'</div>'
-    +'<div class="form-group"><label>Valor total (R$)</label>'
+    +'<div class="form-group" id="md-valor-group"><label>Valor total (R$)</label>'
     +'<input type="number" id="md-valor" min="0" step="0.01" placeholder="0,00" value="'+(it&&it.valor!=null?it.valor:'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
-    +'<input type="date" id="md-data" value="'+((it&&it.data)||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    +'<input type="date" id="md-data" value="'+((it&&it.data)||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +(!it?formaPagamentoToggleHtml('md'):''),
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._matDiretosSalvar('+(id?'\''+id+'\'':'')+')">Salvar</button>');
   setTimeout(window._matDiretosAtualizarUnid,50);
@@ -19709,17 +19717,21 @@ window._matDiretosSalvar=async function(id){
   const categoria=typeof cat==='object'?cat.nome:(cat||'Outros');
   const unidade=typeof cat==='object'?cat.unidade:'un';
   const qtd=parseFloat(document.getElementById('md-qtd')?.value)||0;
-  const valor=parseFloat(document.getElementById('md-valor')?.value)||0;
+  let valor=parseFloat(document.getElementById('md-valor')?.value)||0;
   const data=document.getElementById('md-data')?.value||today();
   const formaPagamento=document.getElementById('md-forma')?.value||'avista';
-  if(!valor){showToast('Informe o valor.');return;}
   // Se for a prazo, valida fornecedor/parcelas ANTES de fechar o modal —
-  // senão um campo faltando faria perder tudo que já foi digitado.
+  // senão um campo faltando faria perder tudo que já foi digitado. O valor
+  // do lançamento vira a SOMA das parcelas (não o que estava em "Valor
+  // total"), pra nunca ficar um número diferente do que foi de fato lançado
+  // em Contas a Pagar.
   let dadosPrazo=null;
   if(!id&&formaPagamento==='aprazo'){
     dadosPrazo=lerParcelasPrazoForm('md');
     if(!dadosPrazo.ok) return;
+    valor=dadosPrazo.parcelas.reduce((s,p)=>s+p.valor,0);
   }
+  if(!valor){showToast('Informe o valor.');return;}
   closeModal();
   try{
     if(id){
