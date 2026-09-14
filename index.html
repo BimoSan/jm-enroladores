@@ -16571,6 +16571,38 @@ function renderFinCustos(){
       <div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Total ${ano}</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAno)}</div></div></div>
     </div>`;
 
+    const realCI=custoSaidaRealMes('indiretos',custosIndiretos,mes);
+    const cpTotCI=cpTotaisCategoria('indireto',mes);
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'
+      +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesNome+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(realCI.total)+'</div></div></div>'
+      +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesNome+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotCI.aPagarMes)+'</div></div></div>'
+      +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotCI.aPagarGeral)+'</div></div></div>'
+      +'</div>';
+
+    // Duplicatas de Contas a Pagar já classificadas como Custo Indireto —
+    // aparecem aqui mesmo sem "+ Lançamento" correspondente, porque a
+    // categoria também pode ter sido marcada direto na lista de Contas a Pagar.
+    const dupsCategoriaCI=(contasPagar||[]).filter(c=>c.categoria==='indireto')
+      .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
+    if(dupsCategoriaCI.length){
+      html+='<div class="card" style="margin-bottom:14px">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — Custo Indireto</div>';
+      dupsCategoriaCI.forEach((c,i)=>{
+        const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
+        const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
+        const statusLabel=c.pago?'✓ Pago'+(c.dataPagamento?' em '+fmtDate(c.dataPagamento):''):(vencida?'Vencida':'A vencer');
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="min-width:0;flex:1">'
+          +'<div style="font-size:13px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
+          +'<div style="font-size:10px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(c.vencimento||'')+'</div>'
+          +'</div>'
+          +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
+          +'</div>';
+      });
+      html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Sem categoria específica (Energia, Gás etc.) — essa granularidade só existe nos lançamentos daqui. Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
+      html+='</div>';
+    }
+
     if(!doMes.length){
       html+='<div class="card" style="text-align:center;color:#94a3b8;padding:24px">Nenhum lançamento em '+mesNome+'. Clique em "+ Lançamento" para adicionar.</div>';
     } else {
@@ -16627,7 +16659,8 @@ function renderFinCustos(){
         itens.forEach((c,i)=>{
           const dest=custoDestinoInfo(c.destino);
           const optsDest=CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'"'+(d.id===dest.id?' selected':'')+'>'+d.curto+'</option>').join('');
-          html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;gap:8px;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          html+='<div style="padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
             +'<div style="flex:1;min-width:0">'
             +'<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:1px 7px;border-radius:99px;font-weight:700">'+c.categoria+'</span>'
             +' <span style="font-size:10px;background:'+dest.bg+';color:'+dest.cor+';padding:1px 7px;border-radius:99px;font-weight:700">'+dest.curto+'</span>'
@@ -16638,7 +16671,9 @@ function renderFinCustos(){
             +'<span style="font-size:13px;font-weight:700;color:#dc2626">'+fmtMoeda(parseFloat(c.valor))+'</span>'
             +'<button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._custoEditar(\''+c.id+'\')">Editar</button>'
             +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._custoExcluir(\''+c.id+'\')">✕</button>'
-            +'</div></div>';
+            +'</div></div>'
+            +'<div style="margin-top:4px;text-align:right">'+custoFormaBadgeHtml('indiretos',c)+'</div>'
+            +'</div>';
         });
         html+='</div>';
       });
@@ -16900,6 +16935,7 @@ window._setCustoMesView=function(mes){ window._custoMes=mes; window._custoView='
 
 // Mesmo modal pra criar e editar: com id, vem preenchido e o Salvar atualiza.
 window._custoNovo=function(id){
+  delete window.ci_parcelasTemp; // começa zerado a cada abertura do modal
   const c=id?(custosIndiretos||[]).find(x=>x.id===id):null;
   if(id&&!c){showToast('Lançamento não encontrado.');return;}
   const cats=configFin.categoriasCustos||[];
@@ -16919,12 +16955,13 @@ window._custoNovo=function(id){
     +CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'"'+(d.id===destAtual?' selected':'')+'>'+d.label+'</option>').join('')
     +'</select>'
     +'<div style="font-size:10px;color:#94a3b8;margin-top:4px">Define em qual fábrica esse custo entra no rateio do custo indireto por peça (Engenharia).</div></div>'
-    +'<div class="form-group"><label>Valor (R$)</label>'
+    +'<div class="form-group" id="ci-valor-group"><label>Valor (R$)</label>'
     +'<input type="number" id="ci-valor" min="0" step="0.01" placeholder="0,00" value="'+(c&&c.valor!=null?c.valor:'')+'" onfocus="this.select()" style="font-size:16px;font-weight:700;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%"></div>'
     +'<div class="form-group"><label>Data</label>'
     +'<input type="date" id="ci-data" value="'+((c&&c.data)||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
     +'<div class="form-group"><label>Descrição (opcional)</label>'
-    +'<input id="ci-desc" placeholder="Ex: Conta de luz ref. maio" value="'+((c&&c.descricao||'').replace(/"/g,'&quot;'))+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    +'<input id="ci-desc" placeholder="Ex: Conta de luz ref. maio" value="'+((c&&c.descricao||'').replace(/"/g,'&quot;'))+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +(!c?formaPagamentoToggleHtml('ci'):''),
     '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-danger" onclick="window._custoSalvar('+(id?'\''+id+'\'':'')+')">Salvar</button>');
 };
@@ -16999,11 +17036,20 @@ window._custoRemoverCategoria=async function(idx){
 window._custoSalvar=async function(id){
   const categoria=document.getElementById('ci-cat')?.value;
   const destino=document.getElementById('ci-destino')?.value||'comum';
-  const valor=parseFloat(document.getElementById('ci-valor')?.value)||0;
+  let valor=parseFloat(document.getElementById('ci-valor')?.value)||0;
   const data=document.getElementById('ci-data')?.value;
   const descricao=document.getElementById('ci-desc')?.value.trim()||'';
-  if(!valor){showToast('Informe o valor.');return;}
+  const formaPagamento=document.getElementById('ci-forma')?.value||'avista';
   if(!data){showToast('Informe a data.');return;}
+  // A prazo, o valor vem da soma das parcelas — não do campo "Valor" (que
+  // fica escondido nesse modo).
+  let dadosPrazo=null;
+  if(!id&&formaPagamento==='aprazo'){
+    dadosPrazo=lerParcelasPrazoForm('ci');
+    if(!dadosPrazo.ok) return;
+    valor=dadosPrazo.parcelas.reduce((s,p)=>s+p.valor,0);
+  }
+  if(!valor){showToast('Informe o valor.');return;}
   closeModal();
   try{
     if(id){
@@ -17011,8 +17057,15 @@ window._custoSalvar=async function(id){
         editadoEm:new Date().toISOString(),editadoPor:currentUserData?.nome||''});
       showToast('Lançamento atualizado!');
     } else {
-      await addDoc(collection(db,'fin_custos'),{categoria,destino,valor,data,descricao,criadoEm:new Date().toISOString()});
-      showToast('Lançamento registrado!');
+      const ref=await addDoc(collection(db,'fin_custos'),{categoria,destino,valor,data,descricao,formaPagamento:'avista',criadoEm:new Date().toISOString()});
+      if(dadosPrazo){
+        const grupoId=await criarDuplicataAPrazo('indireto',dadosPrazo.fornecedor,dadosPrazo.parcelas);
+        await updateDoc(doc(db,'fin_custos',ref.id),{formaPagamento:'aprazo',cpGrupoId:grupoId});
+        delete window.ci_parcelasTemp;
+        showToast('Lançamento salvo e duplicata criada em Contas a Pagar!');
+      } else {
+        showToast('Lançamento registrado!');
+      }
     }
   }catch(e){
     console.error('Erro ao salvar custo indireto:',e);
