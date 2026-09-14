@@ -16529,6 +16529,12 @@ function podeEditarContasPagar(){
   return false;
 }
 
+window._cpSetView=function(v,mes){
+  window._cpView=v;
+  if(mes) window._cpPagasMes=mes;
+  reloadTab();
+};
+window._cpSetPagasMes=function(m){ window._cpPagasMes=m; reloadTab(); };
 function renderContasPagar(){
   const podeEditar=podeEditarContasPagar();
   const hoje=today();
@@ -16558,10 +16564,18 @@ function renderContasPagar(){
   const pagoMes=somaValor(pagas.filter(c=>(c.dataPagamento||'').slice(0,7)===mesAtual));
   const totalPendenteGeral=somaValor(pendentes);
 
+  if(!window._cpView) window._cpView='pendentes';
+  // "Pago este mês" agora é clicável — leva direto pra lista de pagas já
+  // filtrada no mês atual, sem precisar catar no meio do histórico inteiro.
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff"><div><div class="stat-label">A pagar este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(aPagarMes)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff"><div><div class="stat-label">Pago este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(pagoMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;'+(window._cpView==='pendentes'?'box-shadow:0 0 0 3px #fde68a':'cursor:pointer')+'" onclick="window._cpSetView(\'pendentes\')"><div><div class="stat-label">A pagar este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(aPagarMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;'+(window._cpView==='pagas'?'box-shadow:0 0 0 3px #6ee7b7':'cursor:pointer')+'" onclick="window._cpSetView(\'pagas\',\''+mesAtual+'\')"><div><div class="stat-label">Pago este mês</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(pagoMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff"><div><div class="stat-label">Pendente no geral</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(totalPendenteGeral)+'</div></div></div>'
+    +'</div>';
+
+  html+='<div style="display:flex;gap:8px;margin-bottom:14px">'
+    +'<button onclick="window._cpSetView(\'pendentes\')" class="btn btn-sm '+(window._cpView==='pendentes'?'btn-primary':'btn-ghost')+'">A pagar ('+pendentes.length+')</button>'
+    +'<button onclick="window._cpSetView(\'pagas\')" class="btn btn-sm '+(window._cpView==='pagas'?'btn-primary':'btn-ghost')+'">Pagas ('+pagas.length+')</button>'
     +'</div>';
 
   const linha=(c)=>{
@@ -16589,11 +16603,12 @@ function renderContasPagar(){
       +'</div></div></div>';
   };
 
-  // Agrupa uma lista (já ordenada) por mês de vencimento, preservando a ordem
-  const agruparPorMes=(lista)=>{
+  // Agrupa uma lista (já ordenada) por mês — vencimento pras pendentes, data
+  // de pagamento pras pagas (é isso que "pago em setembro" quer dizer).
+  const agruparPorMes=(lista,campo)=>{
     const grupos=[];
     lista.forEach(c=>{
-      const chave=(c.vencimento||'').slice(0,7);
+      const chave=(c[campo]||'').slice(0,7);
       let g=grupos.find(x=>x.chave===chave);
       if(!g){g={chave,itens:[]};grupos.push(g);}
       g.itens.push(c);
@@ -16601,22 +16616,44 @@ function renderContasPagar(){
     return grupos;
   };
 
-  html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A pagar ('+pendentes.length+')</div>';
-  if(!pendentes.length){
-    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma duplicata pendente 🎉</div>';
+  if(window._cpView==='pendentes'){
+    if(!pendentes.length){
+      html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma duplicata pendente 🎉</div>';
+    } else {
+      agruparPorMes(pendentes,'vencimento').forEach(g=>{
+        html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
+        html+=g.itens.map(linha).join('');
+      });
+    }
   } else {
-    agruparPorMes(pendentes).forEach(g=>{
-      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
-      html+=g.itens.map(linha).join('');
-    });
-  }
+    // Pagas — com filtro de mês, porque o histórico inteiro junto fica
+    // gigante (a lista de pendentes já passa de 200 itens). "Todo o período"
+    // continua disponível pra quem precisar olhar um mês bem antigo.
+    if(!window._cpPagasMes) window._cpPagasMes=mesAtual;
+    const mesesComPagto=[...new Set(pagas.map(c=>(c.dataPagamento||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    if(!mesesComPagto.includes(mesAtual)) mesesComPagto.unshift(mesAtual);
+    const mesSel=window._cpPagasMes;
+    const pagasFiltradas=mesSel==='todos'?pagas:pagas.filter(c=>(c.dataPagamento||'').slice(0,7)===mesSel);
+    const totalFiltrado=somaValor(pagasFiltradas);
 
-  if(pagas.length){
-    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Pagas ('+pagas.length+')</div>';
-    agruparPorMes(pagas).forEach(g=>{
-      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
-      html+=g.itens.map(linha).join('');
-    });
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
+      +'<select onchange="window._cpSetPagasMes(this.value)" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 10px">'
+      +mesesComPagto.map(m=>'<option value="'+m+'"'+(mesSel===m?' selected':'')+'>'+mesLabel(m)+'</option>').join('')
+      +'<option value="todos"'+(mesSel==='todos'?' selected':'')+'>Todo o período</option>'
+      +'</select>'
+      +'<div style="font-size:15px;font-weight:800;color:#059669">'+fmtMoeda(totalFiltrado)+'</div>'
+      +'</div>';
+
+    if(!pagasFiltradas.length){
+      html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma duplicata paga neste período.</div>';
+    } else if(mesSel==='todos'){
+      agruparPorMes(pagasFiltradas,'dataPagamento').forEach(g=>{
+        html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+(g.chave?mesLabel(g.chave):'Sem data de pagamento')+'</div>';
+        html+=g.itens.map(linha).join('');
+      });
+    } else {
+      html+=pagasFiltradas.map(linha).join('');
+    }
   }
 
   return html;
