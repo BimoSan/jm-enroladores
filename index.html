@@ -16545,6 +16545,20 @@ function renderFinCustos(){
     if(!porCat[c.categoria]) porCat[c.categoria]=0;
     porCat[c.categoria]+=parseFloat(c.valor)||0;
   });
+  // Duplicatas de Contas a Pagar categorizadas direto lá (sem "+ Lançamento"
+  // aqui) também entram, contanto que tenham ganhado uma categoria
+  // específica. As que JÁ vieram de um lançamento (cpGrupoId aponta pra cá)
+  // ficam de fora — senão contava o mesmo custo duas vezes.
+  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
+  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.categoriaIndireta)
+    .forEach(c=>{
+      const grupoId=c.grupoId||c.id;
+      if(gruposJaLancados.has(grupoId)) return;
+      const mesRef=(c.pago?c.dataPagamento:c.vencimento)||'';
+      if(!mesRef.startsWith(mes)) return;
+      if(!porCat[c.categoriaIndireta]) porCat[c.categoriaIndireta]=0;
+      porCat[c.categoriaIndireta]+=parseFloat(c.valor)||0;
+    });
   const catOrdenadas=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
   const maxCat=catOrdenadas[0]?.[1]||1;
 
@@ -16582,7 +16596,11 @@ function renderFinCustos(){
 
     // Duplicatas de Contas a Pagar já classificadas como Custo Indireto —
     // aparecem aqui mesmo sem "+ Lançamento" correspondente, porque a
-    // categoria também pode ter sido marcada direto na lista de Contas a Pagar.
+    // categoria também pode ter sido marcada direto na lista de Contas a
+    // Pagar. Cada uma ganha aqui a categoria específica (Energia, Gás etc.)
+    // pra poder entrar no "Por categoria" mais embaixo — sem isso, ficava
+    // sempre de fora do relatório por não ter vindo de um "+ Lançamento".
+    const catsEspecificas=configFin.categoriasCustos||[];
     const dupsCategoriaCI=(contasPagar||[]).filter(c=>c.categoria==='indireto')
       .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
     if(dupsCategoriaCI.length){
@@ -16592,15 +16610,21 @@ function renderFinCustos(){
         const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
         const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
         const statusLabel=c.pago?'✓ Pago'+(c.dataPagamento?' em '+fmtDate(c.dataPagamento):''):(vencida?'Vencida':'A vencer');
-        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+        const optsCatEsp='<option value="">Sem categoria</option>'
+          +catsEspecificas.map(cat=>'<option value="'+cat+'"'+(c.categoriaIndireta===cat?' selected':'')+'>'+cat+'</option>').join('');
+        html+='<div style="padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
           +'<div style="min-width:0;flex:1">'
           +'<div style="font-size:13px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
           +'<div style="font-size:10px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(c.vencimento||'')+'</div>'
           +'</div>'
           +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
-          +'</div>';
+          +'</div>'
+          +'<div style="margin-top:4px;text-align:right">'
+          +'<select onchange="window._cpSetCategoriaIndireta(\''+c.id+'\',this.value)" title="Categoria específica (pro relatório por categoria)" style="font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:'+(c.categoriaIndireta?'#334155':'#94a3b8')+'">'+optsCatEsp+'</select>'
+          +'</div></div>';
       });
-      html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Sem categoria específica (Energia, Gás etc.) — essa granularidade só existe nos lançamentos daqui. Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
+      html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Escolha a categoria específica de cada uma pra ela entrar no "Por categoria" logo abaixo. Pra dar baixa ou editar o resto, use a aba <strong>Contas a Pagar</strong>.</div>';
       html+='</div>';
     }
 
@@ -16624,9 +16648,10 @@ function renderFinCustos(){
           +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#dc2626,#f87171);border-radius:99px"></div>'
           +'</div></div>';
       });
+      const totalPorCat=Object.values(porCat).reduce((s,v)=>s+v,0);
       html+='<div style="border-top:2px solid #e2e8f0;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between">'
         +'<span style="font-size:13px;font-weight:700">Total</span>'
-        +'<span style="font-size:14px;font-weight:800;color:#dc2626">'+fmtMoeda(totalMes)+'</span>'
+        +'<span style="font-size:14px;font-weight:800;color:#dc2626">'+fmtMoeda(totalPorCat)+'</span>'
         +'</div></div>';
 
       // Lançamentos do mês agrupados por dia (mais recente primeiro)
@@ -17418,6 +17443,18 @@ window._cpSetCategoria=async function(id,categoria){
     showToast('Categoria atualizada!');
   }catch(e){
     console.error('Erro ao atualizar categoria:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+// Categoria específica (Energia, Gás etc.) de uma duplicata de Custo
+// Indireto — só existe pra ela poder entrar no "Por categoria" da tela de
+// Custos Indiretos; não é a categoria "grande" (mat_direto/indireto/...).
+window._cpSetCategoriaIndireta=async function(id,categoriaIndireta){
+  try{
+    await updateDoc(doc(db,'contas_pagar',id),{categoriaIndireta:categoriaIndireta||null});
+    showToast('Categoria atualizada!');
+  }catch(e){
+    console.error('Erro ao atualizar categoria específica:',e);
     showToast('Erro: '+e.message);
   }
 };
