@@ -1136,8 +1136,9 @@ function renderSelecionarSetor(){
 function renderSelecionarFinanceiro(){
   const opcoes=[
     {id:'contas_pagar',    nome:'Contas a Pagar',  icon:'🧾', desc:'Duplicatas e boletos por vencimento'},
-    {id:'contas_receber',  nome:'Contas a Receber',icon:'📥', desc:'Prazos dos clientes e recebimentos'},
-    {id:'financeiro_geral',nome:'Financeiro',      icon:'💰', desc:'Pagamentos, compras e relatórios financeiros'},
+    // Contas a Receber virou parte da aba Entradas, dentro de Financeiro —
+    // não é mais uma opção separada aqui.
+    {id:'financeiro_geral',nome:'Financeiro',      icon:'💰', desc:'Pagamentos, compras, entradas e relatórios financeiros'},
   ];
   const cards=opcoes.map(o=>`
     <div class="setor-card" onclick="window._selecionarSubFinanceiro('${o.id}')">
@@ -1161,7 +1162,7 @@ function renderSelecionarFinanceiro(){
 window._selecionarSubFinanceiro=id=>{
   currentSetor=id;
   sessionStorage.setItem('jm_setor',id);
-  currentTab=id==='contas_pagar'?'cp_lista':id==='contas_receber'?'cr_lista':'fin_dashboard';
+  currentTab=id==='contas_pagar'?'cp_lista':'fin_dashboard';
   render();
 };
 
@@ -1217,6 +1218,15 @@ window._voltarSetores=()=>{
 };
 
 function renderApp(){
+  // Contas a Receber virou parte da aba Entradas do Financeiro — sessão
+  // antiga guardada no navegador (sessionStorage) pode ainda apontar pro
+  // setor antigo. Redireciona sozinho em vez de quebrar a tela de quem
+  // estava logado no meio dessa troca.
+  if(currentSetor==='contas_receber'){
+    currentSetor='financeiro_geral';
+    currentTab='fin_vendas';
+    sessionStorage.setItem('jm_setor','financeiro_geral');
+  }
   const p=PERFIS[currentUserData.perfil]||PERFIS.apontador;
   const tabs=[];
   if(currentSetor==='metalurgica'){
@@ -1240,9 +1250,6 @@ function renderApp(){
   } else if(currentSetor==='contas_pagar'){
     tabs.push('cp_lista');
     currentTab='cp_lista';
-  } else if(currentSetor==='contas_receber'){
-    tabs.push('cr_lista','cr_clientes','cr_cadastro');
-    if(!currentTab||!currentTab.startsWith('cr_')) currentTab='cr_lista';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
     if(!currentTab||!currentTab.startsWith('man_')) currentTab='man_painel';
@@ -1375,7 +1382,6 @@ function renderApp(){
               currentSetor==='espuma'?'Blocos de Espuma':
               currentSetor==='financeiro_geral'?'Financeiro':
               currentSetor==='contas_pagar'?'Contas a Pagar':
-              currentSetor==='contas_receber'?'Contas a Receber':
               currentSetor==='manutencao'?'Manutenção':
               currentSetor==='engenharia'?'Engenharia':
               currentSetor==='setores_geral'?'Resumo dos Setores':
@@ -1440,8 +1446,6 @@ function renderTab(tab){
   ativarListenersSetor(currentSetor);
   if(currentSetor==='financeiro_geral') return renderTabFinanceiro(tab);
   if(currentSetor==='contas_pagar') return renderContasPagar();
-  if(currentSetor==='contas_receber') return currentTab==='cr_clientes'?renderContasReceberClientes()
-    :currentTab==='cr_cadastro'?renderCadastroClientes():renderContasReceber();
   if(currentSetor==='setores_geral') return renderTabSetoresGeral(tab);
   if(currentSetor==='manutencao') return renderTabManutencao(tab);
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
@@ -16861,6 +16865,9 @@ function crSituacao(c){
   return {chave:'futuro',label:'A vencer',cor:'#1e293b',bg:'#fff',border:'#e2e8f0'};
 }
 
+// Corpo da gestão de vendas a prazo (cards de resumo, previsão, listas de
+// pendentes/recebidas). Usado dentro da aba Entradas — o botão de lançar
+// venda nova mora lá em cima, unificado com o de lançar à vista.
 function renderContasReceber(){
   const podeEditar=podeEditarContasReceber();
   const hoje=today();
@@ -16872,13 +16879,9 @@ function renderContasReceber(){
     return MESES[parseInt(m)-1]+' '+y;
   };
 
-  let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
-    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._crAbrirNovo()">+ Nova venda a prazo</button>':'')
-    +'</div>';
-
+  let html='';
   if(!contasReceber.length){
-    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma venda a prazo cadastrada ainda.</div>';
-    return html;
+    return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma venda a prazo cadastrada ainda.</div>';
   }
 
   const pendentes=contasReceber.filter(c=>!c.recebido).sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
@@ -17877,7 +17880,23 @@ function finComprasTodos(){
 
 // ── Dashboard ───────────────────────────────────────────────────
 // ── VENDAS ───────────────────────────────────────────────────────
+// Entradas = à vista (fin_vendas) + a prazo (Contas a Receber), fundidos numa
+// tela só. window._vendasView escolhe entre a lista principal e a gestão de
+// clientes (que ficava numa aba própria antes de Contas a Receber se mudar
+// pra cá).
 function renderFinVendas(){
+  if(!window._vendasView) window._vendasView='lista';
+  if(window._vendasView!=='lista'){
+    let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">'
+      +'<button class="btn btn-sm btn-ghost" onclick="window._vendasSetView(\'lista\')">← Voltar pra Entradas</button>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button class="btn btn-sm '+(window._vendasView==='clientes'?'btn-primary':'btn-ghost')+'" onclick="window._vendasSetView(\'clientes\')">Resumo por cliente</button>'
+      +'<button class="btn btn-sm '+(window._vendasView==='cadastro'?'btn-primary':'btn-ghost')+'" onclick="window._vendasSetView(\'cadastro\')">Cadastro</button>'
+      +'</div></div>';
+    html+=window._vendasView==='cadastro'?renderCadastroClientes():renderContasReceberClientes();
+    return html;
+  }
+
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   if(!window._vendasMes) window._vendasMes=today().slice(0,7);
   // Os meses disponíveis somam os das vendas à vista e os das baixas do
@@ -17901,7 +17920,10 @@ function renderFinVendas(){
       <div style="font-size:10px;color:#64748b">Entrou em ${mesLabel(mes)}</div>
       <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalGeral)}</div>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="window._vendasNovo()">+ Entrada</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm btn-ghost" onclick="window._vendasSetView('clientes')">👤 Clientes</button>
+      <button class="btn btn-primary btn-sm" onclick="window._entradaNova()">+ Entrada</button>
+    </div>
   </div>`;
 
   // Quebra à vista x a prazo
@@ -17987,9 +18009,26 @@ function renderFinVendas(){
     });
   }
   html+='</div>';
+
+  // Vendas a prazo — parcelas em aberto/recebidas, dar baixa etc. Os cards
+  // daqui embaixo são sempre "hoje", diferente do seletor de mês lá em cima
+  // (que é só pra ver quanto entrou de caixa num mês específico).
+  html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:22px 0 10px">📥 Vendas a prazo</div>';
+  html+=renderContasReceber();
+
   return html;
 }
 window._vendasSetMes=function(m){ window._vendasMes=m; reloadTab(); };
+window._vendasSetView=function(v){ window._vendasView=v; reloadTab(); };
+window._entradaNova=function(){
+  showModal('+ Nova Entrada',
+    '<div style="font-size:13px;color:#444;line-height:1.6;margin-bottom:14px">Essa venda foi à vista ou a prazo?</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<button onclick="window._closeModal();window._vendasNovo()" style="padding:16px;border-radius:12px;background:#dcfce7;border:2px solid #86efac;font-size:15px;font-weight:700;color:#15803d;cursor:pointer;text-align:left">⚡ À vista<div style="font-size:11px;font-weight:600;color:#166534;margin-top:2px">Pix, dinheiro ou cheque — já entrou no caixa</div></button>'
+    +'<button onclick="window._closeModal();window._crAbrirNovo()" style="padding:16px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;text-align:left">📥 A prazo<div style="font-size:11px;font-weight:600;color:#1e40af;margin-top:2px">Parcelado — vira um recebimento futuro em Contas a Receber</div></button>'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>');
+};
 window._vendasNovo=function(){
   showModal('+ Nova Entrada',
     '<div class="form-group"><label>Forma de recebimento</label>'
