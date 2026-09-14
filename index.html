@@ -595,6 +595,387 @@ function custoDestinoInfo(id){
   return CUSTO_DESTINOS.find(d=>d.id===id)||CUSTO_DESTINOS[0];
 }
 
+// ── Categorias de Contas a Pagar × telas de custo do Financeiro ──────────
+// Liga cada duplicata a uma categoria de custo, e cada tela de custo sabe em
+// que coleção do Firestore gravar quando um lançamento vira "a prazo".
+const CP_CATEGORIAS=[
+  {id:'mat_direto', label:'Material Direto'},
+  {id:'mat_quimico',label:'Material Químico'},
+  {id:'almoxarifado',label:'Almoxarifado'},
+  {id:'viagens',    label:'Viagens'},
+  {id:'indireto',   label:'Custo Indireto'},
+  {id:'outro',      label:'Outro / Geral'},
+];
+function cpCategoriaInfo(id){
+  return CP_CATEGORIAS.find(c=>c.id===id)||null;
+}
+// valorDe existe porque cada coleção pode guardar o valor gasto num campo
+// diferente — hoje são todos ".valor" (lançamento manual simples), mas o
+// indireto dos outros era diferente antes e é bom manter esse desacoplamento.
+const CUSTO_COLECOES={
+  mat_diretos:  {colFirestore:'mat_diretos',     categoriaCP:'mat_direto',
+    valorDe:it=>parseFloat(it.valor)||0},
+  mat_quimicos: {colFirestore:'mat_quimicos',    categoriaCP:'mat_quimico',
+    valorDe:it=>parseFloat(it.valor)||0},
+  almoxarifado: {colFirestore:'fin_almoxarifado',categoriaCP:'almoxarifado',
+    valorDe:it=>parseFloat(it.valor)||0},
+  viagens:      {colFirestore:'fin_viagens',     categoriaCP:'viagens',
+    valorDe:it=>parseFloat(it.valor)||0},
+  indiretos:    {colFirestore:'fin_custos',      categoriaCP:'indireto',
+    valorDe:it=>parseFloat(it.valor)||0},
+};
+
+// Quanto ainda falta pagar de uma categoria — no mês (pela data de
+// vencimento) e no total (qualquer vencimento, passado ou futuro).
+function cpTotaisCategoria(categoriaCP,mes){
+  const pendentes=(contasPagar||[]).filter(c=>c.categoria===categoriaCP&&!c.pago);
+  const doMes=pendentes.filter(c=>(c.vencimento||'').startsWith(mes));
+  return {
+    aPagarMes:doMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0),
+    aPagarGeral:pendentes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0),
+    qtdMes:doMes.length,qtdGeral:pendentes.length,
+  };
+}
+
+// Soma tudo que está sob o mesmo grupoId de duplicatas (uma compra parcelada
+// vira várias linhas em contas_pagar, todas com o mesmo grupoId).
+function cpGrupoInfo(grupoId){
+  const itens=(contasPagar||[]).filter(c=>(c.grupoId||c.id)===grupoId);
+  if(!itens.length) return null;
+  const total=itens.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const pagoValor=itens.filter(c=>c.pago).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  return {grupoId,fornecedor:itens[0].fornecedor||'—',itens,total,pagoValor,
+    pendenteValor:total-pagoValor,todasPagas:itens.every(c=>c.pago),categoria:itens[0].categoria};
+}
+
+// Um lançamento de custo é "a prazo" só quando está de fato vinculado a uma
+// duplicata em Contas a Pagar. Sem isso (a grande maioria, hoje) conta como
+// à vista — comportamento igual ao de sempre.
+function custoEstaAPrazo(item){
+  return item.formaPagamento==='aprazo'&&!!item.cpGrupoId;
+}
+
+function custoFormaBadgeHtml(colKey,item){
+  if(!custoEstaAPrazo(item)){
+    return '<button class="btn btn-sm btn-ghost" style="font-size:10px;white-space:nowrap" onclick="window._custoVincularCP(\''+colKey+'\',\''+item.id+'\')">⚡ à vista · marcar a prazo</button>';
+  }
+  const g=cpGrupoInfo(item.cpGrupoId);
+  if(!g){
+    return '<button class="btn btn-sm" style="font-size:10px;background:#fee2e2;color:#dc2626;border:none;white-space:nowrap" onclick="window._custoVincularCP(\''+colKey+'\',\''+item.id+'\')">⚠️ vínculo quebrado — revincular</button>';
+  }
+  const cor=g.todasPagas?'#059669':'#1d4ed8';
+  const bg=g.todasPagas?'#f0fdf4':'#eff6ff';
+  return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+    +'<span style="font-size:10px;background:'+bg+';color:'+cor+';padding:2px 8px;border-radius:99px;font-weight:700;white-space:nowrap">📥 '+g.fornecedor+' · '+(g.todasPagas?'pago':fmtMoeda(g.pendenteValor)+' pendente')+'</span>'
+    +'<button class="btn btn-sm btn-ghost" style="font-size:10px" onclick="window._custoDesvincularCP(\''+colKey+'\',\''+item.id+'\')">desvincular</button>'
+    +'</div>';
+}
+
+// Saída real de caixa de uma categoria de custo num mês: soma os
+// lançamentos à vista (do próprio mês) + o que foi de fato pago em Contas a
+// Pagar naquele mês, na categoria correspondente — não importa em que mês a
+// compra em si foi lançada, o que conta pro caixa é quando o boleto saiu.
+function custoSaidaRealMes(colKey,itensTodos,mes){
+  const cfg=CUSTO_COLECOES[colKey];
+  const avista=cfg?(itensTodos||[]).filter(it=>(it.data||'').startsWith(mes)&&!custoEstaAPrazo(it))
+    .reduce((s,it)=>s+cfg.valorDe(it),0):0;
+  const aprazoPago=cfg?(contasPagar||[]).filter(c=>c.categoria===cfg.categoriaCP&&c.pago&&(c.dataPagamento||'').startsWith(mes))
+    .reduce((s,c)=>s+(parseFloat(c.valor)||0),0):0;
+  return {avista,aprazoPago,total:avista+aprazoPago};
+}
+
+window._custoVincularCP=function(colKey,docId){
+  const cfg=CUSTO_COLECOES[colKey]; if(!cfg) return;
+  window._pendingCustoVinculo={colKey,docId};
+  const grupos={};
+  (contasPagar||[]).forEach(c=>{
+    const g=c.grupoId||c.id;
+    if(!grupos[g]) grupos[g]={grupoId:g,fornecedor:c.fornecedor||'—',total:0,n:0};
+    grupos[g].total+=parseFloat(c.valor)||0;
+    grupos[g].n++;
+  });
+  const listaGrupos=Object.values(grupos).sort((a,b)=>(a.fornecedor||'').localeCompare(b.fornecedor||'','pt-BR'));
+  const opts=listaGrupos.map(g=>'<option value="'+g.grupoId+'">'+g.fornecedor+' — '+fmtMoeda(g.total)+(g.n>1?' ('+g.n+'x)':'')+'</option>').join('');
+  showModal('Vincular a Contas a Pagar',
+    '<div style="font-size:12px;color:#64748b;margin-bottom:12px;line-height:1.5">Esse lançamento foi a prazo — escolha a duplicata correspondente já cadastrada em Contas a Pagar, ou crie uma nova.</div>'
+    +(listaGrupos.length?'<div class="form-group"><label>Duplicata existente</label>'
+      +'<select id="cvcp-grupo" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"><option value="">— Selecione —</option>'+opts+'</select></div>'
+      :'<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Nenhuma duplicata cadastrada ainda em Contas a Pagar.</div>'),
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-ghost" onclick="window._custoVincularNovaCP()">+ Nova duplicata</button>'
+    +(listaGrupos.length?'<button class="btn btn-sm btn-primary" onclick="window._custoVincularConfirmar()">Vincular</button>':''));
+};
+window._custoVincularConfirmar=async function(){
+  const grupoId=document.getElementById('cvcp-grupo')?.value;
+  if(!grupoId){showToast('Escolha uma duplicata.');return;}
+  const pend=window._pendingCustoVinculo; if(!pend) return;
+  const cfg=CUSTO_COLECOES[pend.colKey]; if(!cfg) return;
+  closeModal();
+  try{
+    await updateDoc(doc(db,cfg.colFirestore,pend.docId),{formaPagamento:'aprazo',cpGrupoId:grupoId});
+    window._pendingCustoVinculo=null;
+    showToast('Vinculado a Contas a Pagar!');
+  }catch(e){
+    console.error('Erro ao vincular:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+window._custoDesvincularCP=async function(colKey,docId){
+  const cfg=CUSTO_COLECOES[colKey]; if(!cfg) return;
+  try{
+    await updateDoc(doc(db,cfg.colFirestore,docId),{formaPagamento:'avista',cpGrupoId:null});
+    showToast('Marcado como à vista de novo.');
+  }catch(e){
+    console.error('Erro ao desvincular:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+// Abre "+ Nova duplicata" já preparado pra, ao salvar, vincular
+// automaticamente de volta no lançamento de custo que pediu o vínculo.
+window._custoVincularNovaCP=function(){
+  const pend=window._pendingCustoVinculo;
+  closeModal();
+  window._cpVinculoOrigemPendente=pend||null;
+  window._cpAbrirNovo();
+};
+
+// ════════════════════════════════════════════════════════════════
+// "CUSTO SIMPLES" — motor genérico de lançamento manual usado por
+// Mat. Químicos, Almoxarifado e Viagens dentro do Financeiro. Essas telas
+// pararam de puxar dado de outro setor (Espuma, Almoxarifado, Caminhões) —
+// agora são um registro próprio, só delas, com categoria + quantidade +
+// valor + à vista/a prazo. Custos Indiretos e Mão de Obra não usam isso:
+// continuam exatamente como sempre foram, sempre à vista.
+// ════════════════════════════════════════════════════════════════
+const CUSTO_SIMPLES_CONFIG={
+  mat_quimicos:{titulo:'Material Químico', cor:'#0e7490', temQuantidade:true,
+    colFirestore:'mat_quimicos', configFirestore:'config_mat_quimicos',
+    arr:()=>matQuimicos, cfg:()=>matQuimicosConfig, setCfg:c=>{matQuimicosConfig=c;}},
+  almoxarifado:{titulo:'Almoxarifado', cor:'#b45309', temQuantidade:true,
+    colFirestore:'fin_almoxarifado', configFirestore:'config_fin_almoxarifado',
+    arr:()=>finAlmox, cfg:()=>finAlmoxConfig, setCfg:c=>{finAlmoxConfig=c;}},
+  viagens:{titulo:'Viagens', cor:'#374151', temQuantidade:false,
+    colFirestore:'fin_viagens', configFirestore:'config_fin_viagens',
+    arr:()=>finViagensCustos, cfg:()=>finViagensConfig, setCfg:c=>{finViagensConfig=c;}},
+};
+
+function renderCustoSimplesTab(colKey){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return '';
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesVar='_csMes_'+colKey;
+  if(!window[mesVar]) window[mesVar]=today().slice(0,7);
+  const mes=window[mesVar];
+  const mesLabel=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+  const arr=cs.arr()||[];
+  const mesesDisp=[...new Set([today().slice(0,7),...arr.map(it=>(it.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
+  const doMes=arr.filter(it=>(it.data||'').startsWith(mes));
+
+  const real=custoSaidaRealMes(colKey,arr,mes);
+  const cpTot=cpTotaisCategoria(CUSTO_COLECOES[colKey].categoriaCP,mes);
+
+  const mesSelect='<select onchange="window._csSetMes(\''+colKey+'\',this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
+    +mesesDisp.map(m=>'<option value="'+m+'"'+(m===mes?' selected':'')+'>'+mesLabel(m)+'</option>').join('')+'</select>';
+
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'
+    +mesSelect
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn btn-ghost btn-sm" style="border:1.5px solid #64748b;color:#64748b" onclick="window._csGerirCats(\''+colKey+'\')">⚙️ Categorias</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._csNovo(\''+colKey+'\')">+ Lançamento</button>'
+    +'</div></div>';
+
+  // Os 3 números que importam: o que já saiu do caixa, o que ainda vence
+  // esse mês, e o total pendente sem olhar pra data — visão de curto e de
+  // longo prazo lado a lado.
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(real.total)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarGeral)+'</div></div></div>'
+    +'</div>';
+
+  // Lançamentos do mês, agrupados por dia
+  const porDia={};
+  doMes.forEach(it=>{ const d=it.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(it); });
+  const dias=Object.keys(porDia).sort().reverse();
+
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos — '+mesLabel(mes)+'</div>';
+  if(!dias.length){
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhum lançamento neste mês.</div>';
+  } else {
+    dias.forEach((dia,di)=>{
+      const itens=porDia[dia];
+      const totalDia=itens.reduce((s,it)=>s+(parseFloat(it.valor)||0),0);
+      const[ano,m_,dd]=dia.split('-');
+      html+='<div style="'+(di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<span style="font-size:11px;font-weight:800;color:#475569">'+dd+'/'+m_+'/'+ano+'</span>'
+        +'<span style="font-size:12px;font-weight:800;color:'+cs.cor+'">'+fmtMoeda(totalDia)+'</span>'
+        +'</div>';
+      itens.forEach((it,i)=>{
+        html+='<div style="padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between">'
+          +'<div style="flex:1">'
+          +'<span style="font-size:10px;background:'+cs.cor+'22;color:'+cs.cor+';padding:1px 7px;border-radius:99px;font-weight:700">'+(it.categoria||'Outros')+'</span>'
+          +(cs.temQuantidade&&it.qtd?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.qtd+' '+(it.unidade||'un')+'</div>':'')
+          +(it.descricao?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.descricao+'</div>':'')
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:13px;font-weight:700;color:'+cs.cor+'">'+fmtMoeda(parseFloat(it.valor)||0)+'</span>'
+          +'<button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._csEditar(\''+colKey+'\',\''+it.id+'\')">Editar</button>'
+          +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._csExcluir(\''+colKey+'\',\''+it.id+'\')">✕</button>'
+          +'</div></div>'
+          +'<div style="margin-top:4px;text-align:right">'+custoFormaBadgeHtml(colKey,it)+'</div>'
+          +'</div>';
+      });
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+window._csSetMes=function(colKey,m){ window['_csMes_'+colKey]=m; reloadTab(); };
+
+window._csNovo=function(colKey,id){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  const arr=cs.arr()||[];
+  const it=id?arr.find(x=>x.id===id):null;
+  if(id&&!it){showToast('Lançamento não encontrado.');return;}
+  const cats=(cs.cfg().categorias)||[];
+  const idxAtual=it?Math.max(0,cats.findIndex(c=>(typeof c==='object'?c.nome:c)===it.categoria)):0;
+  const catOpts=cats.map((c,i)=>{
+    const nome=typeof c==='object'?c.nome:c;
+    return '<option value="'+i+'"'+(i===idxAtual?' selected':'')+'>'+nome+'</option>';
+  }).join('');
+  showModal(it?'Editar '+cs.titulo:'+ '+cs.titulo,
+    (cats.length?'<div class="form-group"><label>Categoria</label>'
+      +'<select id="cs-cat" onchange="window._csAtualizarUnid(\''+colKey+'\')" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'
+      +catOpts+'</select></div>'
+      :'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Nenhuma categoria cadastrada ainda — use "⚙️ Categorias" antes de lançar.</div>')
+    +(cs.temQuantidade?('<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">'
+      +'<div class="form-group"><label>Quantidade</label>'
+      +'<input type="number" id="cs-qtd" min="0" step="0.01" placeholder="0" value="'+(it&&it.qtd!=null?it.qtd:'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+      +'<div class="form-group"><label>Unidade</label>'
+      +'<input id="cs-unid" readonly style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;background:#f8fafc;color:#64748b"></div>'
+      +'</div>'):'')
+    +'<div class="form-group"><label>Valor total (R$)</label>'
+    +'<input type="number" id="cs-valor" min="0" step="0.01" placeholder="0,00" value="'+(it&&it.valor!=null?it.valor:'')+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Data</label>'
+    +'<input type="date" id="cs-data" value="'+((it&&it.data)||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Descrição (opcional)</label>'
+    +'<input id="cs-desc" value="'+((it&&it.descricao||'').replace(/"/g,'&quot;'))+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._csSalvar(\''+colKey+'\''+(id?',\''+id+'\'':'')+')">Salvar</button>');
+  if(cs.temQuantidade) setTimeout(()=>window._csAtualizarUnid(colKey),50);
+};
+window._csEditar=function(colKey,id){ window._csNovo(colKey,id); };
+
+window._csAtualizarUnid=function(colKey){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  const idx=parseInt(document.getElementById('cs-cat')?.value)||0;
+  const cats=(cs.cfg().categorias)||[];
+  const cat=cats[idx];
+  const unidade=typeof cat==='object'?cat.unidade:'un';
+  const el=document.getElementById('cs-unid');
+  if(el) el.value=unidade;
+};
+
+window._csSalvar=async function(colKey,id){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  const cats=(cs.cfg().categorias)||[];
+  const idx=parseInt(document.getElementById('cs-cat')?.value)||0;
+  const cat=cats[idx];
+  const categoria=typeof cat==='object'?cat.nome:(cat||'Outros');
+  const unidade=typeof cat==='object'?cat.unidade:'un';
+  const qtd=cs.temQuantidade?(parseFloat(document.getElementById('cs-qtd')?.value)||0):null;
+  const valor=parseFloat(document.getElementById('cs-valor')?.value)||0;
+  const data=document.getElementById('cs-data')?.value||today();
+  const descricao=document.getElementById('cs-desc')?.value.trim()||'';
+  if(!valor){showToast('Informe o valor.');return;}
+  closeModal();
+  try{
+    if(id){
+      const dados={categoria,valor,data,descricao,editadoEm:new Date().toISOString(),editadoPor:currentUserData?.nome||''};
+      if(cs.temQuantidade){dados.qtd=qtd;dados.unidade=unidade;}
+      await updateDoc(doc(db,cs.colFirestore,id),dados);
+      showToast('Lançamento atualizado!');
+    } else {
+      const dados={categoria,valor,data,descricao,formaPagamento:'avista',criadoEm:new Date().toISOString()};
+      if(cs.temQuantidade){dados.qtd=qtd;dados.unidade=unidade;}
+      const ref=await addDoc(collection(db,cs.colFirestore),dados);
+      showToast('Lançamento salvo!');
+      // Só pergunta à vista/a prazo em lançamento NOVO — editar não muda a
+      // forma de pagamento, isso se ajusta pelo selo "vincular" na lista.
+      window._csPerguntarForma(colKey,ref.id);
+    }
+  }catch(e){
+    console.error('Erro ao salvar lançamento:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+window._csPerguntarForma=function(colKey,docId){
+  showModal('Como foi esse gasto?',
+    '<div style="font-size:13px;color:#444;line-height:1.6;margin-bottom:14px">Lançamento salvo. Foi pago à vista ou é a prazo?</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<button onclick="window._closeModal()" style="padding:16px;border-radius:12px;background:#dcfce7;border:2px solid #86efac;font-size:15px;font-weight:700;color:#15803d;cursor:pointer;text-align:left">⚡ À vista<div style="font-size:11px;font-weight:600;color:#166534;margin-top:2px">Já contabilizado — não precisa fazer mais nada</div></button>'
+    +'<button onclick="window._custoVincularCP(\''+colKey+'\',\''+docId+'\')" style="padding:16px;border-radius:12px;background:#dbeafe;border:2px solid #93c5fd;font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;text-align:left">📥 A prazo<div style="font-size:11px;font-weight:600;color:#1e40af;margin-top:2px">Escolher ou criar a duplicata em Contas a Pagar</div></button>'
+    +'</div>',
+    '');
+};
+
+window._csGerirCats=function(colKey){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  const cats=(cs.cfg().categorias)||[];
+  const lista=cats.map((c,i)=>{
+    const nome=typeof c==='object'?c.nome:c;
+    const unidade=typeof c==='object'?c.unidade:'un';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9">'
+      +'<div><span style="font-size:13px;font-weight:600">'+nome+'</span>'+(cs.temQuantidade?' <span style="font-size:11px;color:#94a3b8">('+unidade+')</span>':'')+'</div>'
+      +'<button onclick="window._csExcluirCat(\''+colKey+'\','+i+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
+      +'</div>';
+  }).join('');
+  const corpo='<div id="cs-cats-lista">'+(lista||'<div style="color:#94a3b8;text-align:center;padding:12px">Nenhuma categoria cadastrada.</div>')+'</div>'
+    +'<div style="display:grid;grid-template-columns:'+(cs.temQuantidade?'2fr 1fr auto':'1fr auto')+';gap:8px;margin-top:14px;align-items:end">'
+    +'<div><label style="font-size:11px;font-weight:600;color:#475569">Nome</label>'
+    +'<input id="cs-nova-cat" placeholder="Ex: Outros" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>'
+    +(cs.temQuantidade?'<div><label style="font-size:11px;font-weight:600;color:#475569">Unidade</label>'
+      +'<input id="cs-nova-unid" placeholder="kg, un, m" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-top:4px"></div>':'')
+    +'<button class="btn btn-primary btn-sm" onclick="window._csAddCat(\''+colKey+'\')" style="height:36px">+ Add</button>'
+    +'</div>';
+  const modalBody=document.getElementById('modal-body');
+  if(modalBody){ modalBody.innerHTML=corpo; return; }
+  showModal('⚙️ Categorias — '+cs.titulo, corpo,
+    '<button class="btn btn-sm" onclick="window._closeModal()">Fechar</button>');
+};
+window._csAddCat=async function(colKey){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  const nome=document.getElementById('cs-nova-cat')?.value.trim();
+  const unidade=cs.temQuantidade?(document.getElementById('cs-nova-unid')?.value.trim()||'un'):'un';
+  if(!nome){showToast('Digite o nome da categoria.');return;}
+  const cats=[...((cs.cfg().categorias)||[])];
+  const jaExiste=cats.some(c=>(typeof c==='object'?c.nome:c)===nome);
+  if(jaExiste){showToast('Categoria já existe.');return;}
+  cats.push({nome,unidade});
+  const novoCfg={...cs.cfg(),categorias:cats};
+  cs.setCfg(novoCfg);
+  await setDoc(doc(db,cs.configFirestore,'geral'),novoCfg);
+  showToast('Categoria adicionada!');
+  window._csGerirCats(colKey);
+};
+window._csExcluirCat=async function(colKey,idx){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  const cats=[...((cs.cfg().categorias)||[])];
+  cats.splice(idx,1);
+  const novoCfg={...cs.cfg(),categorias:cats};
+  cs.setCfg(novoCfg);
+  await setDoc(doc(db,cs.configFirestore,'geral'),novoCfg);
+  showToast('Categoria removida!');
+  window._csGerirCats(colKey);
+};
+window._csExcluir=async function(colKey,id){
+  const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  await deleteDoc(doc(db,cs.colFirestore,id));
+  showToast('Lançamento excluído!');
+};
+
 let soldadores=[];
 let apontamentosMetal=[];
 let fichasMetal=[];
@@ -616,6 +997,12 @@ let matDiretos=[];
 let matDiretosConfig={categorias:['Tecido','Espuma','Madeira','Metal','Embalagem','Cola/Químicos','Fios/Elétrico','EPI','Outros']};
 let matQuimicos=[];
 let matQuimicosConfig={categorias:[]};
+// Almoxarifado e Viagens dentro do Financeiro são lançamento manual, próprios
+// — não puxam mais do setor Almoxarifado nem de Caminhões.
+let finAlmox=[];
+let finAlmoxConfig={categorias:[{nome:'Outros',unidade:'un'}]};
+let finViagensCustos=[];
+let finViagensConfig={categorias:[{nome:'Combustível',unidade:'un'},{nome:'Manutenção',unidade:'un'},{nome:'Pedágio',unidade:'un'}]};
 let vendas=[];
 let clientes=[];
 let valesPagamento=[]; // descontos de vale lançados em cima de um pagamento de mão de obra
@@ -16525,7 +16912,7 @@ function renderContasPagar(){
   };
 
   let html='<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
-    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._cpAbrirNovo()">+ Nova duplicata</button>':'')
+    +(podeEditar?'<button class="btn btn-primary btn-sm" onclick="window._cpVinculoOrigemPendente=null;window._cpAbrirNovo()">+ Nova duplicata</button>':'')
     +'</div>';
 
   if(!contasPagar.length){
@@ -16569,6 +16956,11 @@ function renderContasPagar(){
       +'<div style="min-width:0;flex:1">'
       +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
       +'<div style="font-size:11px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(venc)+'</div>'
+      +(podeEditar?'<select onchange="window._cpSetCategoria(\''+c.id+'\',this.value)" title="Categoria do custo" style="margin-top:5px;font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:'+(c.categoria?'#334155':'#94a3b8')+'">'
+        +'<option value=""'+(!c.categoria?' selected':'')+'>Sem categoria</option>'
+        +CP_CATEGORIAS.map(cat=>'<option value="'+cat.id+'"'+(c.categoria===cat.id?' selected':'')+'>'+cat.label+'</option>').join('')
+        +'</select>'
+        :(c.categoria?'<span style="font-size:10px;color:#64748b;margin-top:3px;display:inline-block">'+(cpCategoriaInfo(c.categoria)?.label||'')+'</span>':''))
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0">'
       +'<div style="font-size:17px;font-weight:800;color:'+cor+'">'+fmtMoeda(parseFloat(c.valor)||0)+'</div>'
@@ -16642,13 +17034,21 @@ function renderContasPagar(){
 // a partir da posição de cada parcela, não é digitado.
 window._cpAbrirNovo=function(){
   window._cpParcelasTemp=[{valor:'',vencimento:today()}];
+  // Se veio de uma tela de custo pedindo vínculo, sugere a categoria certa
+  // e já avisa o pra que serve essa duplicata.
+  const origem=window._cpVinculoOrigemPendente;
+  const catSugerida=origem?(CUSTO_COLECOES[origem.colKey]?.categoriaCP||'outro'):'outro';
+  const catOpts=CP_CATEGORIAS.map(c=>'<option value="'+c.id+'"'+(c.id===catSugerida?' selected':'')+'>'+c.label+'</option>').join('');
   showModal('+ Nova duplicata',
-    '<div class="form-group"><label>Nome do fornecedor</label>'
+    (origem?'<div style="font-size:11px;color:#1d4ed8;background:#eff6ff;border-radius:8px;padding:8px 10px;margin-bottom:10px">Essa duplicata vai ficar vinculada ao lançamento de custo que você estava editando.</div>':'')
+    +'<div class="form-group"><label>Nome do fornecedor</label>'
     +'<input id="cp-fornecedor" placeholder="Ex: Tecidos Silva" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Categoria</label>'
+    +'<select id="cp-categoria" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%">'+catOpts+'</select></div>'
     +'<div class="form-group"><label>Quantidade de parcelas</label>'
     +'<input type="number" id="cp-qtd" min="1" step="1" value="1" oninput="window._cpAtualizarParcelas()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100px"></div>'
     +'<div id="cp-parcelas-rows"></div>',
-    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    '<button class="btn btn-sm" onclick="window._cpVinculoOrigemPendente=null;window._closeModal()">Cancelar</button>'
     +'<button class="btn btn-sm btn-primary" onclick="window._cpSalvarNovo()">Salvar</button>');
   window._cpRenderParcelas();
 };
@@ -16698,6 +17098,7 @@ window._cpRenderParcelas=function(){
 window._cpSalvarNovo=async function(){
   const fornecedor=document.getElementById('cp-fornecedor')?.value.trim();
   if(!fornecedor){showToast('Digite o nome do fornecedor.');return;}
+  const categoria=document.getElementById('cp-categoria')?.value||'outro';
   const qtd=(window._cpParcelasTemp||[]).length;
   const parcelas=[];
   for(let i=0;i<qtd;i++){
@@ -16706,12 +17107,17 @@ window._cpSalvarNovo=async function(){
     if(!valor){showToast('Informe o valor da parcela '+(i+1)+'.');return;}
     parcelas.push({valor,vencimento});
   }
+  // Se essa duplicata nasceu de um "vincular a prazo" numa tela de custo,
+  // guarda quem pediu o vínculo — depois de salvar, escreve de volta nela.
+  const origem=window._cpVinculoOrigemPendente;
+  window._cpVinculoOrigemPendente=null;
   closeModal();
   const grupoId='g'+Date.now();
   try{
     for(let i=0;i<parcelas.length;i++){
       await addDoc(collection(db,'contas_pagar'),{
         fornecedor,
+        categoria,
         valor:parcelas[i].valor,
         vencimento:parcelas[i].vencimento,
         parcela:qtd>1?(i+1)+'/'+qtd:'',
@@ -16720,6 +17126,10 @@ window._cpSalvarNovo=async function(){
         criadoPor:currentUserData?.nome||'',
         criadoEm:new Date().toISOString(),
       });
+    }
+    if(origem){
+      const cfg=CUSTO_COLECOES[origem.colKey];
+      if(cfg) await updateDoc(doc(db,cfg.colFirestore,origem.docId),{formaPagamento:'aprazo',cpGrupoId:grupoId});
     }
     showToast(qtd>1?qtd+' parcelas lançadas!':'Duplicata salva!');
   }catch(e){
@@ -16780,6 +17190,17 @@ window._cpDesmarcarPago=async function(id){
     showToast('Marcação de pago desfeita.');
   }catch(e){
     console.error('Erro ao desmarcar pago:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+// Reclassificar direto na lista, sem abrir modal — pensado pra revisar em
+// lote as duplicatas antigas que ainda estão sem categoria.
+window._cpSetCategoria=async function(id,categoria){
+  try{
+    await updateDoc(doc(db,'contas_pagar',id),{categoria:categoria||null});
+    showToast('Categoria atualizada!');
+  }catch(e){
+    console.error('Erro ao atualizar categoria:',e);
     showToast('Erro: '+e.message);
   }
 };
@@ -17512,11 +17933,11 @@ function renderTabFinanceiro(tab){
     if(tab==='fin_vendas')    return renderFinVendas();
     if(tab==='cp_lista')     return renderContasPagar();
     if(tab==='fin_pagamentos') return renderFinPagamentos();
-    if(tab==='fin_compras') return renderFinCompras();
+    if(tab==='fin_compras') return renderCustoSimplesTab('almoxarifado');
     if(tab==='fin_matdiretos') return renderFinMatDiretos();
-    if(tab==='fin_matquimicos') return renderFinMatQuimicos();
+    if(tab==='fin_matquimicos') return renderCustoSimplesTab('mat_quimicos');
     if(tab==='fin_custos') return renderFinCustos();
-    if(tab==='fin_viagens') return renderFinViagens();
+    if(tab==='fin_viagens') return renderCustoSimplesTab('viagens');
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
   }catch(e){
@@ -18140,7 +18561,7 @@ function renderFinMatQuimicos(){
     html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma entrada encontrada.</div>';
   } else {
     html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Data</th><th style="padding:7px 10px;text-align:left">MP</th><th style="padding:7px 10px;text-align:center">Kg</th><th style="padding:7px 10px;text-align:center">Tambores</th><th style="padding:7px 10px;text-align:right">Total</th><th style="padding:7px 10px;text-align:left">Obs.</th></tr></thead><tbody>';
+    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Data</th><th style="padding:7px 10px;text-align:left">MP</th><th style="padding:7px 10px;text-align:center">Kg</th><th style="padding:7px 10px;text-align:center">Tambores</th><th style="padding:7px 10px;text-align:right">Total</th><th style="padding:7px 10px;text-align:left">Obs.</th><th style="padding:7px 10px;text-align:right">Pagamento</th></tr></thead><tbody>';
     html+=filtradas.sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).map((e,i)=>{
       const d=(e.data||'').split('-').reverse().join('/');
       const val=calcValor(e);
@@ -18151,6 +18572,7 @@ function renderFinMatQuimicos(){
         <td style="padding:7px 10px;text-align:center;color:#64748b">${e.tambores||'—'}</td>
         <td style="padding:7px 10px;text-align:right;font-weight:700;color:#0e7490">${val>0?fmtMoeda(val):'—'}</td>
         <td style="padding:7px 10px;color:#64748b;font-size:11px">${e.obs||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;white-space:nowrap">${custoFormaBadgeHtml('mat_quimicos',e)}</td>
       </tr>`;
     }).join('');
     html+='</tbody></table></div>';
@@ -18173,24 +18595,33 @@ function renderFinDashboard(){
   const pagasDoMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mesAtualFin);
   const totalPagoMes=pagasDoMes.reduce((s,p)=>s+p.valor,0);
 
-  const comprasDoMes=finComprasTodos().filter(c=>(c.data||'').startsWith(mesAtualFin));
-  const totalComprasMes=comprasDoMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
+  // Almoxarifado, Mat. Químicos e Viagens agora são lançamento manual,
+  // próprio do Financeiro — não puxam mais dos setores Almoxarifado, Espuma
+  // e Caminhões (cada um desses continua com o controle físico/operacional
+  // dele, só não alimenta mais esse número financeiro).
+  const comprasDoMes=(finAlmox||[]).filter(c=>(c.data||'').startsWith(mesAtualFin));
+  const comprasTotalMes=comprasDoMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const realAlmoxarifado=custoSaidaRealMes('almoxarifado',finAlmox,mesAtualFin);
+  const totalComprasMes=realAlmoxarifado.total;
 
   const custosDoMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mesAtualFin));
-  const totalCustosDoMes=custosDoMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const custosTotalMes=custosDoMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const realIndiretos=custoSaidaRealMes('indiretos',custosIndiretos,mesAtualFin);
+  const totalCustosDoMes=realIndiretos.total;
 
   const matDiretosDoMes=matDiretos.filter(m=>(m.data||'').startsWith(mesAtualFin));
-  const totalMatDiretosMes=matDiretosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const matDiretosTotalMes=matDiretosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const realMatDiretos=custoSaidaRealMes('mat_diretos',matDiretos,mesAtualFin);
+  const totalMatDiretosMes=realMatDiretos.total;
 
-  const matQuimicosDoMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mesAtualFin));
-  const totalMatQuimicosMes=matQuimicosDoMes.reduce((s,e)=>{
-    const custoPorKg=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
-    return s+(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
-  },0);
+  const matQuimicosDoMes=(matQuimicos||[]).filter(m=>(m.data||'').startsWith(mesAtualFin));
+  const matQuimicosTotalMes=matQuimicosDoMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const realMatQuimicos=custoSaidaRealMes('mat_quimicos',matQuimicos,mesAtualFin);
+  const totalMatQuimicosMes=realMatQuimicos.total;
 
-  // Viagens do mês: combustível + gastos com motoristas — pela data de cada
-  // abastecimento, não pela data de saída da rota
-  const totalViagensMes=finViagensDetalhe(mesAtualFin).total;
+  const viagensDoMes=(finViagensCustos||[]).filter(v=>(v.data||'').startsWith(mesAtualFin));
+  const realViagens=custoSaidaRealMes('viagens',finViagensCustos,mesAtualFin);
+  const totalViagensMes=realViagens.total;
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const recCRDoMes=crRecebimentosDoMes(mesAtualFin);
@@ -18213,11 +18644,11 @@ function renderFinDashboard(){
     if(!porMes[m]) porMes[m]=0;
     porMes[m]+=p.valor;
   });
-  finComprasTodos().forEach(c=>{
+  (finAlmox||[]).forEach(c=>{
     const m=(c.data||'').slice(0,7);
     if(!m) return;
     if(!porMes[m]) porMes[m]=0;
-    porMes[m]+=parseFloat(c.custoTotal)||0;
+    porMes[m]+=parseFloat(c.valor)||0;
   });
   custosIndiretos.forEach(c=>{
     const m=(c.data||'').slice(0,7);
@@ -18231,18 +18662,17 @@ function renderFinDashboard(){
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(m.valor)||0;
   });
-  (espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0).forEach(e=>{
-    const mes_=(e.data||'').slice(0,7);
+  (matQuimicos||[]).forEach(m=>{
+    const mes_=(m.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    const custoPorKg=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
-    porMes[mes_]+=(custoPorKg>0?custoPorKg*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
+    porMes[mes_]+=parseFloat(m.valor)||0;
   });
-  todosAbastecimentos().forEach(a=>{
-    const mes_=(a.data||'').slice(0,7);
+  (finViagensCustos||[]).forEach(v=>{
+    const mes_=(v.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    porMes[mes_]+=(parseFloat(a.totalPago)||0)+(parseFloat(a.gastoMot)||0);
+    porMes[mes_]+=parseFloat(v.valor)||0;
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
@@ -18266,7 +18696,7 @@ function renderFinDashboard(){
     <div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:20px;text-align:center">
       <div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px">SAÍDAS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:28px;font-weight:900;color:#dc2626">${fmtMoeda(totalSaidas)}</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:4px">mão de obra + materiais</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">o que saiu de fato do caixa</div>
     </div>
     <div class="card" style="border-left:4px solid ${resultado>=0?'#059669':'#dc2626'};background:${resultado>=0?'#f0fdf4':'#fef2f2'};padding:20px;text-align:center">
       <div style="font-size:11px;font-weight:700;color:${resultado>=0?'#059669':'#dc2626'};margin-bottom:6px">RESULTADO — ${mesNomeFin.toUpperCase()}</div>
@@ -18288,29 +18718,29 @@ function renderFinDashboard(){
     <div class="card" style="border-left:4px solid #dc2626;background:#f0f9ff;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#0369a1;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ALMOXARIFADO — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#0369a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalComprasMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">${comprasDoMes.length} entradas</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${comprasDoMes.length} entradas${Math.abs(comprasTotalMes-totalComprasMes)>0.01?' · comprado: '+fmtMoeda(comprasTotalMes):''}</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:8px">
     <div class="card" style="border-left:4px solid #dc2626;background:#f5f3ff;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#7c3aed;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">INDIRETOS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#7c3aed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalCustosDoMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">${custosDoMes.length} lançamento${custosDoMes.length!==1?"s":""}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${custosDoMes.length} lançamento${custosDoMes.length!==1?"s":""}${Math.abs(custosTotalMes-totalCustosDoMes)>0.01?' · lançado: '+fmtMoeda(custosTotalMes):''}</div>
     </div>
     <div class="card" style="border-left:4px solid #dc2626;background:#f0fdfa;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#0d9488;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MAT. DIRETOS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#0d9488;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatDiretosMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">${matDiretosDoMes.length} lançamento${matDiretosDoMes.length!==1?"s":""}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${matDiretosDoMes.length} lançamento${matDiretosDoMes.length!==1?"s":""}${Math.abs(matDiretosTotalMes-totalMatDiretosMes)>0.01?' · comprado: '+fmtMoeda(matDiretosTotalMes):''}</div>
     </div>
     <div class="card" style="border-left:4px solid #dc2626;background:#ecfeff;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#0e7490;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">MAT. QUÍMICOS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#0e7490;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalMatQuimicosMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">${matQuimicosDoMes.length} entrada${matQuimicosDoMes.length!==1?"s":""}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${matQuimicosDoMes.length} entrada${matQuimicosDoMes.length!==1?"s":""}${Math.abs(matQuimicosTotalMes-totalMatQuimicosMes)>0.01?' · comprado: '+fmtMoeda(matQuimicosTotalMes):''}</div>
     </div>
     <div class="card" style="border-left:4px solid #dc2626;background:#f9fafb;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">combustível + motoristas</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${viagensDoMes.length} lançamento${viagensDoMes.length!==1?"s":""}</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
@@ -18843,6 +19273,14 @@ function renderFinMatDiretos(){
     </div>
   </div>`;
 
+  const realMD=custoSaidaRealMes('mat_diretos',matDiretos,mes);
+  const cpTotMD=cpTotaisCategoria('mat_direto',mes);
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(realMD.total)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarMes)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarGeral)+'</div></div></div>'
+    +'</div>';
+
   // Resumo por categoria
   const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
   if(cats.length){
@@ -18880,7 +19318,8 @@ function renderFinMatDiretos(){
         +'<span style="font-size:12px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalDia)+'</span>'
         +'</div>';
       itens.forEach((it,i)=>{
-        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+        html+='<div style="padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between">'
           +'<div style="flex:1">'
           +'<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:99px;font-weight:700">'+(it.categoria||'Outros')+'</span>'
           +(it.qtd?'<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.qtd+' '+(it.unidade||'un')+'</div>':'')
@@ -18889,7 +19328,9 @@ function renderFinMatDiretos(){
           +'<span style="font-size:13px;font-weight:700;color:#1d4ed8">'+fmtMoeda(parseFloat(it.valor))+'</span>'
           +'<button class="btn btn-sm btn-warn" style="font-size:10px" onclick="window._matDiretosEditar(\''+it.id+'\')">Editar</button>'
           +'<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="window._matDiretosExcluir(\''+it.id+'\')">✕</button>'
-          +'</div></div>';
+          +'</div></div>'
+          +'<div style="margin-top:4px;text-align:right">'+custoFormaBadgeHtml('mat_diretos',it)+'</div>'
+          +'</div>';
       });
       html+='</div>';
     });
@@ -19097,8 +19538,9 @@ window._matDiretosSalvar=async function(id){
         editadoEm:new Date().toISOString(),editadoPor:currentUserData?.nome||''});
       showToast('Lançamento atualizado!');
     } else {
-      await addDoc(collection(db,'mat_diretos'),{categoria,unidade,qtd,valor,data,criadoEm:new Date().toISOString()});
+      const ref=await addDoc(collection(db,'mat_diretos'),{categoria,unidade,qtd,valor,data,formaPagamento:'avista',criadoEm:new Date().toISOString()});
       showToast('Lançamento salvo!');
+      window._csPerguntarForma('mat_diretos',ref.id);
     }
   }catch(e){
     console.error('Erro ao salvar material direto:',e);
@@ -19157,7 +19599,7 @@ function renderFinCompras(){
     html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhuma compra encontrada.</div>';
   } else {
     html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Data</th><th style="padding:7px 10px;text-align:left">Item</th><th style="padding:7px 10px;text-align:center">Qtd.</th><th style="padding:7px 10px;text-align:right">Unit.</th><th style="padding:7px 10px;text-align:right">Total</th><th style="padding:7px 10px;text-align:left">Fornecedor</th><th style="padding:7px 10px;text-align:left">NF</th></tr></thead><tbody>';
+    html+='<thead><tr style="background:#f8fafc"><th style="padding:7px 10px;text-align:left">Data</th><th style="padding:7px 10px;text-align:left">Item</th><th style="padding:7px 10px;text-align:center">Qtd.</th><th style="padding:7px 10px;text-align:right">Unit.</th><th style="padding:7px 10px;text-align:right">Total</th><th style="padding:7px 10px;text-align:left">Fornecedor</th><th style="padding:7px 10px;text-align:left">NF</th><th style="padding:7px 10px;text-align:right">Pagamento</th></tr></thead><tbody>';
     html+=filtradas.map((c,i)=>{
       const d=(c.data||'').split('-').reverse().join('/');
       const unit=c.custoUnitario?fmtMoeda(parseFloat(c.custoUnitario)):'—';
@@ -19169,6 +19611,7 @@ function renderFinCompras(){
         <td style="padding:7px 10px;text-align:right;font-weight:700;color:#b45309">${fmtMoeda(parseFloat(c.custoTotal)||0)}</td>
         <td style="padding:7px 10px;color:#64748b">${c.fornecedor||'—'}</td>
         <td style="padding:7px 10px;color:#64748b">${c.notaFiscal||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;white-space:nowrap">${custoFormaBadgeHtml('almoxarifado',c)}</td>
       </tr>`;
     }).join('');
     html+='</tbody></table></div>';
@@ -21850,6 +22293,20 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(doc(db,'config_mat_quimicos','geral'),snap=>{
       if(snap.exists()) matQuimicosConfig={categorias:[],...snap.data()};
+    }),
+    ()=>onSnapshot(collection(db,'fin_almoxarifado'),snap=>{
+      finAlmox=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_fin_almoxarifado','geral'),snap=>{
+      if(snap.exists()) finAlmoxConfig={categorias:[],...snap.data()};
+    }),
+    ()=>onSnapshot(collection(db,'fin_viagens'),snap=>{
+      finViagensCustos=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_fin_viagens','geral'),snap=>{
+      if(snap.exists()) finViagensConfig={categorias:[{nome:'Combustível',unidade:'un'},{nome:'Manutenção',unidade:'un'},{nome:'Pedágio',unidade:'un'}],...snap.data()};
     }),
     ()=>onSnapshot(collection(db,'fin_vendas'),snap=>{
       vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
