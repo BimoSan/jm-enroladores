@@ -792,6 +792,31 @@ function renderCustoSimplesTab(colKey){
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarGeral)+'</div></div></div>'
     +'</div>';
 
+  // Duplicatas de Contas a Pagar já classificadas nessa categoria — aparecem
+  // aqui mesmo sem ter um "+ Lançamento" correspondente, porque a categoria
+  // também pode ser marcada direto na lista de Contas a Pagar (reclassificar
+  // uma duplicata antiga não cria lançamento nenhum aqui, só a etiqueta).
+  const dupsCategoria=(contasPagar||[]).filter(c=>c.categoria===CUSTO_COLECOES[colKey].categoriaCP)
+    .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
+  if(dupsCategoria.length){
+    html+='<div class="card" style="margin-bottom:16px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — '+cs.titulo+'</div>';
+    dupsCategoria.forEach((c,i)=>{
+      const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
+      const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
+      const statusLabel=c.pago?'✓ Pago'+(c.dataPagamento?' em '+fmtDate(c.dataPagamento):''):(vencida?'Vencida':'A vencer');
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+        +'<div style="min-width:0;flex:1">'
+        +'<div style="font-size:13px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
+        +'<div style="font-size:10px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(c.vencimento||'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
+        +'</div>';
+    });
+    html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
+    html+='</div>';
+  }
+
   // Lançamentos do mês, agrupados por dia
   const porDia={};
   doMes.forEach(it=>{ const d=it.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(it); });
@@ -17937,7 +17962,7 @@ function renderTabFinanceiro(tab){
     if(tab==='fin_matdiretos') return renderFinMatDiretos();
     if(tab==='fin_matquimicos') return renderCustoSimplesTab('mat_quimicos');
     if(tab==='fin_custos') return renderFinCustos();
-    if(tab==='fin_viagens') return renderFinViagens();
+    if(tab==='fin_viagens') return renderCustoSimplesTab('viagens');
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
   }catch(e){
@@ -18619,8 +18644,9 @@ function renderFinDashboard(){
   const realMatQuimicos=custoSaidaRealMes('mat_quimicos',matQuimicos,mesAtualFin);
   const totalMatQuimicosMes=realMatQuimicos.total;
 
-  // Viagens continua como sempre foi — puxando de Caminhões, tudo à vista.
-  const totalViagensMes=finViagensDetalhe(mesAtualFin).total;
+  const viagensDoMes=(finViagensCustos||[]).filter(v=>(v.data||'').startsWith(mesAtualFin));
+  const realViagens=custoSaidaRealMes('viagens',finViagensCustos,mesAtualFin);
+  const totalViagensMes=realViagens.total;
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const recCRDoMes=crRecebimentosDoMes(mesAtualFin);
@@ -18667,11 +18693,11 @@ function renderFinDashboard(){
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(m.valor)||0;
   });
-  todosAbastecimentos().forEach(a=>{
-    const mes_=(a.data||'').slice(0,7);
+  (finViagensCustos||[]).forEach(v=>{
+    const mes_=(v.data||'').slice(0,7);
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
-    porMes[mes_]+=(parseFloat(a.totalPago)||0)+(parseFloat(a.gastoMot)||0);
+    porMes[mes_]+=parseFloat(v.valor)||0;
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
@@ -18739,7 +18765,7 @@ function renderFinDashboard(){
     <div class="card" style="border-left:4px solid #dc2626;background:#f9fafb;padding:14px 10px;text-align:center">
       <div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:4px">combustível + motoristas</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${viagensDoMes.length} lançamento${viagensDoMes.length!==1?"s":""}</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
@@ -19279,6 +19305,30 @@ function renderFinMatDiretos(){
     +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarGeral)+'</div></div></div>'
     +'</div>';
+
+  // Duplicatas de Contas a Pagar já classificadas como Material Direto —
+  // aparecem aqui mesmo sem "+ Lançamento" correspondente, porque a
+  // categoria também pode ter sido marcada direto na lista de Contas a Pagar.
+  const dupsCategoriaMD=(contasPagar||[]).filter(c=>c.categoria==='mat_direto')
+    .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
+  if(dupsCategoriaMD.length){
+    html+='<div class="card" style="margin-bottom:16px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — Material Direto</div>';
+    dupsCategoriaMD.forEach((c,i)=>{
+      const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
+      const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
+      const statusLabel=c.pago?'✓ Pago'+(c.dataPagamento?' em '+fmtDate(c.dataPagamento):''):(vencida?'Vencida':'A vencer');
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+        +'<div style="min-width:0;flex:1">'
+        +'<div style="font-size:13px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
+        +'<div style="font-size:10px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(c.vencimento||'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
+        +'</div>';
+    });
+    html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
+    html+='</div>';
+  }
 
   // Resumo por categoria
   const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
