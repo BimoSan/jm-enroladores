@@ -1730,8 +1730,11 @@ window._voltarFabrica=()=>{
 };
 window._voltarSetores=()=>{
   pararListenersSetor();
-  // Se vier de uma fábrica que vai direto (sem setor), voltar para seleção de fábricas
-  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='manutencao'||currentFabrica==='engenharia'||currentFabrica==='setores_geral'){
+  // Se vier de uma fábrica que vai direto (sem tela de escolher setor),
+  // volta pra seleção de fábricas. Financeiro entrou nessa lista quando
+  // Contas a Pagar/Receber viraram abas dele — não tem mais o que escolher
+  // ali no meio, senão "Trocar setor" ficava só reabrindo o Financeiro de novo.
+  if(currentFabrica==='almoxarifado'||currentFabrica==='caminhoes'||currentFabrica==='manutencao'||currentFabrica==='engenharia'||currentFabrica==='setores_geral'||currentFabrica==='financeiro'){
     currentFabrica=null;
     currentSetor=null;
     sessionStorage.removeItem('jm_fabrica');
