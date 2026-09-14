@@ -755,7 +755,16 @@ function formaPagamentoToggleHtml(prefix){
     +'<div style="display:flex;gap:8px;margin-top:4px">'
     +'<button type="button" id="'+prefix+'-fp-avista" onclick="window._fpSetForma(\''+prefix+'\',\'avista\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #86efac;background:#dcfce7;color:#15803d;font-size:13px;font-weight:700;cursor:pointer">⚡ À vista</button>'
     +'<button type="button" id="'+prefix+'-fp-aprazo" onclick="window._fpSetForma(\''+prefix+'\',\'aprazo\')" style="flex:1;padding:10px;border-radius:9px;border:2px solid #e2e8f0;background:#fff;color:#1e293b;font-size:13px;font-weight:700;cursor:pointer">📥 A prazo</button>'
-    +'</div><input type="hidden" id="'+prefix+'-forma" value="avista"></div>';
+    +'</div><input type="hidden" id="'+prefix+'-forma" value="avista"></div>'
+    // Fica escondido até marcar "A prazo" — é aqui que entra fornecedor e as
+    // parcelas, pra já sair direto pronto pra virar duplicata em Contas a Pagar.
+    +'<div id="'+prefix+'-prazo-fields" style="display:none;background:#eff6ff;border:1.5px solid #dbeafe;border-radius:10px;padding:12px;margin-bottom:14px">'
+    +'<div class="form-group"><label>Fornecedor</label>'
+    +'<input id="'+prefix+'-fornecedor" placeholder="Ex: Tecidos Silva" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Quantidade de parcelas</label>'
+    +'<input type="number" id="'+prefix+'-qtdparc" min="1" step="1" value="1" oninput="window._fpAtualizarParcelas(\''+prefix+'\')" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100px"></div>'
+    +'<div id="'+prefix+'-parcelas-rows"></div>'
+    +'</div>';
 }
 window._fpSetForma=function(prefix,forma){
   const avistaBtn=document.getElementById(prefix+'-fp-avista');
@@ -772,7 +781,89 @@ window._fpSetForma=function(prefix,forma){
   }
   const input=document.getElementById(prefix+'-forma');
   if(input) input.value=forma;
+  const fields=document.getElementById(prefix+'-prazo-fields');
+  if(fields){
+    fields.style.display=forma==='aprazo'?'block':'none';
+    if(forma==='aprazo'){
+      if(!window[prefix+'_parcelasTemp']){
+        // Sugere o valor total já digitado como valor da 1ª parcela —
+        // economiza o usuário ter que retiplar quando é uma parcela só.
+        const valorEl=document.getElementById(prefix+'-valor');
+        window[prefix+'_parcelasTemp']=[{valor:(valorEl&&valorEl.value)||'',vencimento:today()}];
+      }
+      // Sempre redesenha — sem isso, uma tentativa anterior cancelada deixava
+      // window[...] preenchido e as linhas de parcela nunca apareciam de novo.
+      window._fpRenderParcelas(prefix);
+    }
+  }
 };
+window._fpAtualizarParcelas=function(prefix){
+  const atual=window[prefix+'_parcelasTemp']||[];
+  atual.forEach((p,i)=>{
+    const v=document.getElementById(prefix+'-pv-'+i)?.value;
+    const d=document.getElementById(prefix+'-pd-'+i)?.value;
+    if(v!=null&&v!=='') p.valor=v;
+    if(d) p.vencimento=d;
+  });
+  let qtd=parseInt(document.getElementById(prefix+'-qtdparc')?.value)||1;
+  if(qtd<1) qtd=1;
+  if(qtd>60) qtd=60;
+  while(atual.length<qtd){
+    const last=atual[atual.length-1];
+    let prox=today();
+    if(last&&last.vencimento){
+      const d=new Date(last.vencimento+'T12:00:00');
+      d.setMonth(d.getMonth()+1);
+      prox=d.toISOString().slice(0,10);
+    }
+    atual.push({valor:last?last.valor:'',vencimento:prox});
+  }
+  atual.length=qtd;
+  window[prefix+'_parcelasTemp']=atual;
+  window._fpRenderParcelas(prefix);
+};
+window._fpRenderParcelas=function(prefix){
+  const el=document.getElementById(prefix+'-parcelas-rows');
+  if(!el) return;
+  const lista=window[prefix+'_parcelasTemp']||[];
+  el.innerHTML=lista.map((p,i)=>
+    '<div class="form-row" style="align-items:flex-end">'
+    +'<div class="form-group"><label>Parcela '+(i+1)+'/'+lista.length+' — Valor (R$)</label>'
+    +'<input type="number" min="0" step="0.01" id="'+prefix+'-pv-'+i+'" value="'+(p.valor||'')+'" placeholder="0,00" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div class="form-group"><label>Vencimento</label>'
+    +'<input type="date" id="'+prefix+'-pd-'+i+'" value="'+(p.vencimento||today())+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'</div>'
+  ).join('');
+};
+
+// Lê fornecedor + parcelas do bloco "a prazo" de um formulário. Retorna
+// {ok:false} (com toast já disparado) se faltar algo, ou {ok:true,...}.
+function lerParcelasPrazoForm(prefix){
+  const fornecedor=document.getElementById(prefix+'-fornecedor')?.value.trim();
+  if(!fornecedor){showToast('Digite o fornecedor da duplicata.');return{ok:false};}
+  const qtdParc=(window[prefix+'_parcelasTemp']||[]).length||1;
+  const parcelas=[];
+  for(let i=0;i<qtdParc;i++){
+    const pv=parseFloat(document.getElementById(prefix+'-pv-'+i)?.value)||0;
+    const pd=document.getElementById(prefix+'-pd-'+i)?.value||today();
+    if(!pv){showToast('Informe o valor da parcela '+(i+1)+'.');return{ok:false};}
+    parcelas.push({valor:pv,vencimento:pd});
+  }
+  return{ok:true,fornecedor,parcelas};
+}
+// Cria as duplicatas em Contas a Pagar (uma por parcela, mesmo grupoId) e
+// devolve o grupoId, pra gravar de volta no lançamento de origem.
+async function criarDuplicataAPrazo(categoriaCP,fornecedor,parcelas){
+  const grupoId='g'+Date.now();
+  for(let i=0;i<parcelas.length;i++){
+    await addDoc(collection(db,'contas_pagar'),{
+      fornecedor,categoria:categoriaCP,valor:parcelas[i].valor,vencimento:parcelas[i].vencimento,
+      parcela:parcelas.length>1?(i+1)+'/'+parcelas.length:'',grupoId,pago:false,
+      criadoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString(),
+    });
+  }
+  return grupoId;
+}
 
 const CUSTO_SIMPLES_CONFIG={
   mat_quimicos:{titulo:'Material Químico', cor:'#0e7490', temQuantidade:true,
@@ -888,6 +979,7 @@ window._csSetMes=function(colKey,m){ window['_csMes_'+colKey]=m; reloadTab(); };
 
 window._csNovo=function(colKey,id){
   const cs=CUSTO_SIMPLES_CONFIG[colKey]; if(!cs) return;
+  delete window.cs_parcelasTemp; // começa zerado a cada abertura do modal
   const arr=cs.arr()||[];
   const it=id?arr.find(x=>x.id===id):null;
   if(id&&!it){showToast('Lançamento não encontrado.');return;}
@@ -944,6 +1036,11 @@ window._csSalvar=async function(colKey,id){
   const descricao=document.getElementById('cs-desc')?.value.trim()||'';
   const formaPagamento=document.getElementById('cs-forma')?.value||'avista';
   if(!valor){showToast('Informe o valor.');return;}
+  let dadosPrazo=null;
+  if(!id&&formaPagamento==='aprazo'){
+    dadosPrazo=lerParcelasPrazoForm('cs');
+    if(!dadosPrazo.ok) return;
+  }
   closeModal();
   try{
     if(id){
@@ -955,8 +1052,11 @@ window._csSalvar=async function(colKey,id){
       const dados={categoria,valor,data,descricao,formaPagamento:'avista',criadoEm:new Date().toISOString()};
       if(cs.temQuantidade){dados.qtd=qtd;dados.unidade=unidade;}
       const ref=await addDoc(collection(db,cs.colFirestore),dados);
-      if(formaPagamento==='aprazo'){
-        window._custoVincularCP(colKey,ref.id);
+      if(dadosPrazo){
+        const grupoId=await criarDuplicataAPrazo(CUSTO_COLECOES[colKey].categoriaCP,dadosPrazo.fornecedor,dadosPrazo.parcelas);
+        await updateDoc(doc(db,cs.colFirestore,ref.id),{formaPagamento:'aprazo',cpGrupoId:grupoId});
+        delete window.cs_parcelasTemp;
+        showToast('Lançamento salvo e duplicata criada em Contas a Pagar!');
       } else {
         showToast('Lançamento salvo!');
       }
@@ -19514,6 +19614,7 @@ ${cats.length?`<div class="card"><h3>Por categoria</h3>${barsHtml}</div>`:''}
 // Mesmo modal serve pra criar e pra editar: passando um id, os campos vêm
 // preenchidos com o lançamento e o Salvar atualiza em vez de criar outro.
 window._matDiretosNovo=function(id){
+  delete window.md_parcelasTemp; // começa zerado a cada abertura do modal
   const it=id?(matDiretos||[]).find(m=>m.id===id):null;
   if(id&&!it){showToast('Lançamento não encontrado.');return;}
   const cats=matDiretosConfig.categorias||[];
@@ -19612,6 +19713,13 @@ window._matDiretosSalvar=async function(id){
   const data=document.getElementById('md-data')?.value||today();
   const formaPagamento=document.getElementById('md-forma')?.value||'avista';
   if(!valor){showToast('Informe o valor.');return;}
+  // Se for a prazo, valida fornecedor/parcelas ANTES de fechar o modal —
+  // senão um campo faltando faria perder tudo que já foi digitado.
+  let dadosPrazo=null;
+  if(!id&&formaPagamento==='aprazo'){
+    dadosPrazo=lerParcelasPrazoForm('md');
+    if(!dadosPrazo.ok) return;
+  }
   closeModal();
   try{
     if(id){
@@ -19620,8 +19728,11 @@ window._matDiretosSalvar=async function(id){
       showToast('Lançamento atualizado!');
     } else {
       const ref=await addDoc(collection(db,'mat_diretos'),{categoria,unidade,qtd,valor,data,formaPagamento:'avista',criadoEm:new Date().toISOString()});
-      if(formaPagamento==='aprazo'){
-        window._custoVincularCP('mat_diretos',ref.id);
+      if(dadosPrazo){
+        const grupoId=await criarDuplicataAPrazo('mat_direto',dadosPrazo.fornecedor,dadosPrazo.parcelas);
+        await updateDoc(doc(db,'mat_diretos',ref.id),{formaPagamento:'aprazo',cpGrupoId:grupoId});
+        delete window.md_parcelasTemp;
+        showToast('Lançamento salvo e duplicata criada em Contas a Pagar!');
       } else {
         showToast('Lançamento salvo!');
       }
