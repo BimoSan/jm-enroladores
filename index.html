@@ -8345,7 +8345,16 @@ window._espCadastrarUsuario=async function(){
 };
 
 async function _saveConfigEspuma(){
-  await setDoc(doc(db,'config_espuma','geral'),configEspuma);
+  // Sem isso, uma regra de permissão barrando a escrita (ex: encarregado sem
+  // acesso a config_espuma no Firestore) falhava calada — a tela fechava e
+  // parecia ter salvo, mas nada ia pro banco. Agora aparece o erro na hora.
+  try{
+    await setDoc(doc(db,'config_espuma','geral'),configEspuma);
+  }catch(e){
+    console.error('Erro ao salvar configuração de espuma:',e);
+    showToast('Erro ao salvar: '+e.message);
+    throw e;
+  }
 }
 
 window._espNovaMp=function(mp={}){
