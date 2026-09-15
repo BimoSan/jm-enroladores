@@ -8921,10 +8921,13 @@ function renderGradPainel(){
       const c=avatarColor(ci);
       const mesAtualGrad=hoje.slice(0,7);
 
-      // Apontamentos de hoje e da quinzena — busca qualquer ficha aberta
+      // Apontamentos de hoje e da quinzena — usa o mesmo helper que o
+      // resto da tela (fichaGradAtiva). Antes buscava direto aqui sem
+      // checar status==='aberta' na primeira tentativa: se o gradista já
+      // tinha uma ficha FECHADA na mesma quinzena, pegava essa em vez da
+      // aberta de verdade, escondendo a produção lançada hoje.
       const totHoje={}, totQ={};
-      const ficha=fichasGrad.find(f=>f.gradId===g.id&&f.quinzena===q)
-               ||fichasGrad.find(f=>f.gradId===g.id&&f.status==='aberta');
+      const ficha=fichaGradAtiva(g.id,q);
       (ficha?.apontamentos||[]).forEach(a=>{
         getPecasGradAtivas().forEach(p=>{
           const v=parseInt((a.pecas||{})[p.id])||0;
