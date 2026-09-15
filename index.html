@@ -16624,7 +16624,9 @@ function renderFinCustos(){
           +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
           +'</div>'
           +'<div style="margin-top:4px;text-align:right">'
-          +'<select onchange="window._cpSetCategoriaIndireta(\''+c.id+'\',this.value)" title="Categoria específica (pro relatório por categoria)" style="font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:'+(c.categoriaIndireta?'#334155':'#94a3b8')+'">'+optsCatEsp+'</select>'
+          +(podeEditarContasPagar()
+            ?'<select onchange="window._cpSetCategoriaIndireta(\''+c.id+'\',this.value)" title="Categoria específica (pro relatório por categoria)" style="font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:'+(c.categoriaIndireta?'#334155':'#94a3b8')+'">'+optsCatEsp+'</select>'
+            :(c.categoriaIndireta?'<span style="font-size:10px;color:#64748b">'+c.categoriaIndireta+'</span>':''))
           +'</div></div>';
       });
       html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Escolha a categoria específica de cada uma pra ela entrar no "Por categoria" logo abaixo. Pra dar baixa ou editar o resto, use a aba <strong>Contas a Pagar</strong>.</div>';
@@ -17134,7 +17136,7 @@ window._custoConfirmarExcluir=async function(){
 // fábrica que lança os próprios boletos), sem abrir edição pra todo proprietário.
 function podeEditarContasPagar(){
   const perfil=currentUserData?.perfil;
-  if(perfil==='financeiro') return true;
+  if(perfil==='admin'||perfil==='financeiro') return true;
   if(perfil==='proprietario') return !!currentUserData?.podeLancarContasPagar;
   return false;
 }
@@ -17488,7 +17490,7 @@ window._cpConfirmarExcluir=async function(){
 // proprietário só visualizam (proprietário com o sinalizador também edita).
 function podeEditarContasReceber(){
   const perfil=currentUserData?.perfil;
-  if(perfil==='financeiro') return true;
+  if(perfil==='admin'||perfil==='financeiro') return true;
   if(perfil==='proprietario') return !!currentUserData?.podeLancarContasPagar;
   return false;
 }
