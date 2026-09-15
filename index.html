@@ -914,7 +914,8 @@ function renderCustoSimplesTab(colKey){
   // esse mês, e o total pendente sem olhar pra data — visão de curto e de
   // longo prazo lado a lado.
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div>'+(gastoMot>0?'<div style="font-size:10px;opacity:.85;margin-top:2px">inclui '+fmtMoeda(gastoMot)+' de motoristas</div>':'')+'</div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div></div></div>'
+    +(gastoMot>0?'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Motoristas em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(gastoMot)+'</div></div></div>':'')
     +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarGeral)+'</div></div></div>'
     +'</div>';
