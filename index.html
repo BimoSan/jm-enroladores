@@ -684,6 +684,35 @@ function custoSaidaRealMes(colKey,itensTodos,mes){
   return {avista,aprazoPago,total:avista+aprazoPago};
 }
 
+// Custos Indiretos por categoria específica (Energia, Gás etc.), em caixa
+// real — reaproveitado na própria tela de Custos Indiretos e no DRE/Balanço,
+// pra não ter duas contas diferentes do mesmo número em lugares diferentes.
+function custosIndiretosPorCategoriaCaixa(mes){
+  const porCat={};
+  custosIndiretos.filter(c=>(c.data||'').startsWith(mes)&&!custoEstaAPrazo(c)).forEach(c=>{
+    porCat[c.categoria]=(porCat[c.categoria]||0)+(parseFloat(c.valor)||0);
+  });
+  custosIndiretos.filter(custoEstaAPrazo).forEach(c=>{
+    const g=cpGrupoInfo(c.cpGrupoId);
+    if(!g) return;
+    const pagoNoMes=g.itens.filter(p=>p.pago&&(p.dataPagamento||'').startsWith(mes)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    if(pagoNoMes>0) porCat[c.categoria]=(porCat[c.categoria]||0)+pagoNoMes;
+  });
+  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
+  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.categoriaIndireta&&c.pago&&(c.dataPagamento||'').startsWith(mes)).forEach(c=>{
+    const grupoId=c.grupoId||c.id;
+    if(gruposJaLancados.has(grupoId)) return;
+    porCat[c.categoriaIndireta]=(porCat[c.categoriaIndireta]||0)+(parseFloat(c.valor)||0);
+  });
+  const catsOrd=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  return {catsOrd,total:catsOrd.reduce((s,[,v])=>s+v,0)};
+}
+// Saída de caixa de Viagens no mês, incluindo o gasto com motorista (sempre
+// à vista, vindo direto de Caminhões).
+function viagensCaixaMes(mes){
+  return custoSaidaRealMes('viagens',finViagensCustos,mes).total+gastoMotoristasMes(mes);
+}
+
 window._custoVincularCP=function(colKey,docId){
   const cfg=CUSTO_COLECOES[colKey]; if(!cfg) return;
   window._pendingCustoVinculo={colKey,docId};
@@ -16568,39 +16597,15 @@ function renderFinCustos(){
   const doMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
   const totalMes=doMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
 
-  // Por categoria — caixa real, pra bater exatamente com o card "Total" lá
-  // em cima. Só conta o que de fato virou saída de caixa neste mês: à vista
-  // lançado neste mês, ou a prazo (lançado aqui ou direto em Contas a
-  // Pagar) cuja duplicata foi paga neste mês — não importa em que mês a
-  // compra foi lançada, o que decide o mês aqui é quando o boleto saiu.
-  const porCat={};
-  custosIndiretos.filter(c=>(c.data||'').startsWith(mes)&&!custoEstaAPrazo(c)).forEach(c=>{
-    if(!porCat[c.categoria]) porCat[c.categoria]=0;
-    porCat[c.categoria]+=parseFloat(c.valor)||0;
-  });
-  custosIndiretos.filter(custoEstaAPrazo).forEach(c=>{
-    const g=cpGrupoInfo(c.cpGrupoId);
-    if(!g) return;
-    const pagoNoMes=g.itens.filter(p=>p.pago&&(p.dataPagamento||'').startsWith(mes)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
-    if(pagoNoMes<=0) return;
-    if(!porCat[c.categoria]) porCat[c.categoria]=0;
-    porCat[c.categoria]+=pagoNoMes;
-  });
-  // Duplicatas de Contas a Pagar categorizadas direto lá (sem "+ Lançamento"
-  // aqui) também entram, contanto que tenham ganhado uma categoria
-  // específica e já estejam pagas neste mês. As que JÁ vieram de um
-  // lançamento (cpGrupoId aponta pra cá) ficam de fora — senão contava o
-  // mesmo custo duas vezes.
-  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
-  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.categoriaIndireta&&c.pago&&(c.dataPagamento||'').startsWith(mes))
-    .forEach(c=>{
-      const grupoId=c.grupoId||c.id;
-      if(gruposJaLancados.has(grupoId)) return;
-      if(!porCat[c.categoriaIndireta]) porCat[c.categoriaIndireta]=0;
-      porCat[c.categoriaIndireta]+=parseFloat(c.valor)||0;
-    });
-  const catOrdenadas=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  // Por categoria — caixa real, pra bater exatamente com o card "Total" lá em
+  // cima (mesma conta usada no DRE/Balanço, pra nunca dar número diferente
+  // em tela diferente).
+  const {catsOrd:catOrdenadas}=custosIndiretosPorCategoriaCaixa(mes);
+  const porCat=Object.fromEntries(catOrdenadas);
   const maxCat=catOrdenadas[0]?.[1]||1;
+  // Ainda precisa dessa lista aqui embaixo, pro resumo por dia não repetir
+  // uma duplicata que já apareceu no dia do lançamento vinculado a ela.
+  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
 
   // Navegação
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
@@ -18353,25 +18358,22 @@ function calcDREMes(mes){
   // Receita de caixa = vendas à vista + baixas do Contas a Receber no mês.
   const receita=finEntradasMes(mes).total;
 
+  // Mão de obra já era caixa real desde sempre. Almoxarifado/Diretos/
+  // Químicos/Viagens/Indiretos agora usam a mesma conta de caixa real das
+  // telas deles — à vista lançado no mês + duplicata paga no mês, não
+  // importa quando a compra em si foi lançada.
   const maoObra=finPagamentosTodos()
     .filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes)
     .reduce((s,p)=>s+p.valor,0);
-  const almox=finComprasTodos().filter(c=>(c.data||'').startsWith(mes))
-    .reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
-  const matDiretosVal=matDiretos.filter(m=>(m.data||'').startsWith(mes))
-    .reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-  const quimicos=(espumaEstoque||[])
-    .filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes))
-    .reduce((s,e)=>{
-      const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;
-      return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));
-    },0);
-  const viagens=finViagensDetalhe(mes).total;
+  const almox=custoSaidaRealMes('almoxarifado',finAlmox,mes).total;
+  const matDiretosVal=custoSaidaRealMes('mat_diretos',matDiretos,mes).total;
+  const quimicos=custoSaidaRealMes('mat_quimicos',matQuimicos,mes).total;
+  const viagens=viagensCaixaMes(mes);
 
   // Custos indiretos quebrados pelos grupos do DRE
   const porGrupo={producao:0,administrativa:0,comercial:0,tributaria:0,investimento:0};
   const detalhePorGrupo={producao:[],administrativa:[],comercial:[],tributaria:[],investimento:[]};
-  finCustosIndiretosDetalhe(mes).catsOrd.forEach(([cat,val])=>{
+  custosIndiretosPorCategoriaCaixa(mes).catsOrd.forEach(([cat,val])=>{
     const g=dreGrupoDaCategoria(cat);
     porGrupo[g]=(porGrupo[g]||0)+val;
     (detalhePorGrupo[g]=detalhePorGrupo[g]||[]).push([cat,val]);
@@ -20307,19 +20309,19 @@ function renderFinRelatorio(){
   </select>`;
 
   // Dados mensais do ano
+  // Caixa real — mesma conta do DRE e das abas de custo: à vista lançado no
+  // mês + duplicata paga no mês, não importa quando a compra em si foi
+  // lançada. Meses anteriores a setembro/2026 continuam parecidos com o que
+  // já era antes (nada foi marcado "a prazo" neles), então não tem retrabalho.
   const mesesData=Array.from({length:12},(_,i)=>{
     const mes=ano+'-'+String(i+1).padStart(2,'0');
     const pagsMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes);
-    const comprasMes=compras.filter(c=>(c.data||'').startsWith(mes));
-    const indiretMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
-    const matDiretosMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
-    const quimicosMes=(espumaEstoque||[]).filter(e=>!e._saida&&(parseFloat(e.kg)||0)>0&&(e.data||'').startsWith(mes));
     const pagVal=pagsMes.reduce((s,p)=>s+p.valor,0);
-    const compVal=comprasMes.reduce((s,c)=>s+(parseFloat(c.custoTotal)||0),0);
-    const indVal=indiretMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-    const matVal=matDiretosMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    const quimVal=quimicosMes.reduce((s,e)=>{const cpk=parseFloat(e.custoPorKg)||parseFloat(getMpById(e.mpId)?.custoPorKg)||0;return s+(cpk>0?cpk*(parseFloat(e.kg)||0):(parseFloat(e.custo)||0));},0);
-    const viagVal=finViagensDetalhe(mes).total;
+    const compVal=custoSaidaRealMes('almoxarifado',finAlmox,mes).total;
+    const indVal=custosIndiretosPorCategoriaCaixa(mes).total;
+    const matVal=custoSaidaRealMes('mat_diretos',matDiretos,mes).total;
+    const quimVal=custoSaidaRealMes('mat_quimicos',matQuimicos,mes).total;
+    const viagVal=viagensCaixaMes(mes);
     const vendVal=finEntradasMes(mes).total;
     const total=pagVal+compVal+indVal+matVal+quimVal+viagVal;
     return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,vendVal,total,resultado:vendVal-total};
