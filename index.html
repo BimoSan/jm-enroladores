@@ -20311,8 +20311,10 @@ function renderFinRelatorio(){
   // Dados mensais do ano
   // Caixa real — mesma conta do DRE e das abas de custo: à vista lançado no
   // mês + duplicata paga no mês, não importa quando a compra em si foi
-  // lançada. Meses anteriores a setembro/2026 continuam parecidos com o que
-  // já era antes (nada foi marcado "a prazo" neles), então não tem retrabalho.
+  // lançada. Meses antes de setembro/2026 ficam de fora — o controle de
+  // à vista/a prazo só existe a partir daí, então o número deles não é
+  // confiável (era tudo tratado como à vista antes, mesmo o que não era).
+  const CORTE_CAIXA_REAL='2026-09';
   const mesesData=Array.from({length:12},(_,i)=>{
     const mes=ano+'-'+String(i+1).padStart(2,'0');
     const pagsMes=pagamentos.filter(p=>p.pago&&finExtrairAnoMesRef(p.dataPagamento||p.dataRef)===mes);
@@ -20325,7 +20327,7 @@ function renderFinRelatorio(){
     const vendVal=finEntradasMes(mes).total;
     const total=pagVal+compVal+indVal+matVal+quimVal+viagVal;
     return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,vendVal,total,resultado:vendVal-total};
-  });
+  }).filter(m=>m.mes>=CORTE_CAIXA_REAL);
 
   const maxVal=Math.max(...mesesData.map(m=>m.total),1);
   const totalAnoPag=mesesData.reduce((s,m)=>s+m.pagVal,0);
@@ -20394,7 +20396,8 @@ function renderFinRelatorio(){
   html+='</div>';
 
   // Tabela mensal detalhada
-  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:12px">📋 Balanço mensal (entradas x saídas)</div>';
+  html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:2px">📋 Balanço mensal (entradas x saídas)</div>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px">A partir de Setembro 2026 — meses anteriores não têm o controle de à vista/a prazo e por isso ficam de fora.</div>';
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
   html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th><th style="padding:8px 10px;text-align:center">DRE / PDF</th></tr></thead><tbody>';
   html+=mesesData.filter(m=>m.total>0||m.vendVal>0).map((m,i)=>{
