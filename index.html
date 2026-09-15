@@ -16542,23 +16542,34 @@ function renderFinCustos(){
   const doMes=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
   const totalMes=doMes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
 
-  // Por categoria no mês
+  // Por categoria — caixa real, pra bater exatamente com o card "Total" lá
+  // em cima. Só conta o que de fato virou saída de caixa neste mês: à vista
+  // lançado neste mês, ou a prazo (lançado aqui ou direto em Contas a
+  // Pagar) cuja duplicata foi paga neste mês — não importa em que mês a
+  // compra foi lançada, o que decide o mês aqui é quando o boleto saiu.
   const porCat={};
-  doMes.forEach(c=>{
+  custosIndiretos.filter(c=>(c.data||'').startsWith(mes)&&!custoEstaAPrazo(c)).forEach(c=>{
     if(!porCat[c.categoria]) porCat[c.categoria]=0;
     porCat[c.categoria]+=parseFloat(c.valor)||0;
   });
+  custosIndiretos.filter(custoEstaAPrazo).forEach(c=>{
+    const g=cpGrupoInfo(c.cpGrupoId);
+    if(!g) return;
+    const pagoNoMes=g.itens.filter(p=>p.pago&&(p.dataPagamento||'').startsWith(mes)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    if(pagoNoMes<=0) return;
+    if(!porCat[c.categoria]) porCat[c.categoria]=0;
+    porCat[c.categoria]+=pagoNoMes;
+  });
   // Duplicatas de Contas a Pagar categorizadas direto lá (sem "+ Lançamento"
   // aqui) também entram, contanto que tenham ganhado uma categoria
-  // específica. As que JÁ vieram de um lançamento (cpGrupoId aponta pra cá)
-  // ficam de fora — senão contava o mesmo custo duas vezes.
+  // específica e já estejam pagas neste mês. As que JÁ vieram de um
+  // lançamento (cpGrupoId aponta pra cá) ficam de fora — senão contava o
+  // mesmo custo duas vezes.
   const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
-  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.categoriaIndireta)
+  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.categoriaIndireta&&c.pago&&(c.dataPagamento||'').startsWith(mes))
     .forEach(c=>{
       const grupoId=c.grupoId||c.id;
       if(gruposJaLancados.has(grupoId)) return;
-      const mesRef=(c.pago?c.dataPagamento:c.vencimento)||'';
-      if(!mesRef.startsWith(mes)) return;
       if(!porCat[c.categoriaIndireta]) porCat[c.categoriaIndireta]=0;
       porCat[c.categoriaIndireta]+=parseFloat(c.valor)||0;
     });
@@ -16607,8 +16618,19 @@ function renderFinCustos(){
     const dupsCategoriaCI=(contasPagar||[]).filter(c=>c.categoria==='indireto')
       .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
     if(dupsCategoriaCI.length){
+      // Fica fechada por padrão — a lista é enorme e a maioria já entra
+      // sozinha no resumo por dia assim que for paga.
+      if(window._ciDupsAbertas==null) window._ciDupsAbertas=false;
+      const dupsAbertas=window._ciDupsAbertas;
+      const totalDups=dupsCategoriaCI.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
       html+='<div class="card" style="margin-bottom:14px">'
-        +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — Custo Indireto</div>';
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="window._ciToggleDups()">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Duplicatas em Contas a Pagar — Custo Indireto <span style="font-size:10px;color:#94a3b8;font-weight:400">('+dupsCategoriaCI.length+' · '+fmtMoeda(totalDups)+')</span></div>'
+        +'<span style="font-size:11px;color:#1d4ed8;font-weight:700;white-space:nowrap">'+(dupsAbertas?'▾ Ocultar':'▸ Ver duplicatas')+'</span>'
+        +'</div>';
+      if(!dupsAbertas){ html+='</div>'; }
+      else {
+      html+='<div style="margin-top:10px">';
       dupsCategoriaCI.forEach((c,i)=>{
         const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
         const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
@@ -16629,8 +16651,9 @@ function renderFinCustos(){
             :(c.categoriaIndireta?'<span style="font-size:10px;color:#64748b">'+c.categoriaIndireta+'</span>':''))
           +'</div></div>';
       });
-      html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Escolha a categoria específica de cada uma pra ela entrar no "Por categoria" logo abaixo. Pra dar baixa ou editar o resto, use a aba <strong>Contas a Pagar</strong>.</div>';
-      html+='</div>';
+      html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Escolha a categoria específica de cada uma pra ela entrar no "Por categoria" e no resumo por dia. Pra dar baixa ou editar o resto, use a aba <strong>Contas a Pagar</strong>.</div>';
+      html+='</div></div>';
+      }
     }
 
     if(!doMes.length){
@@ -16674,6 +16697,18 @@ function renderFinCustos(){
         if(!porDia[dia]) porDia[dia]=[];
         porDia[dia].push(c);
       });
+      // Duplicatas de Contas a Pagar pagas neste mês entram também, no dia
+      // em que foram pagas — só as que não têm lançamento vinculado aqui
+      // (as vinculadas já aparecem no dia do lançamento, com o selo de pago).
+      (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.pago&&(c.dataPagamento||'').startsWith(mes))
+        .forEach(c=>{
+          const grupoId=c.grupoId||c.id;
+          if(gruposJaLancados.has(grupoId)) return;
+          if(filtroCat&&c.categoriaIndireta!==filtroCat) return;
+          const dia=c.dataPagamento;
+          if(!porDia[dia]) porDia[dia]=[];
+          porDia[dia].push({...c,_dup:true});
+        });
       const dias=Object.keys(porDia).sort().reverse();
 
       dias.forEach((dia,di)=>{
@@ -16688,6 +16723,17 @@ function renderFinCustos(){
           +'<span style="font-size:12px;font-weight:800;color:#dc2626">'+fmtMoeda(totalDia)+'</span>'
           +'</div>';
         itens.forEach((c,i)=>{
+          if(c._dup){
+            html+='<div style="padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+              +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+              +'<div style="flex:1;min-width:0">'
+              +'<span style="font-size:10px;background:#f0fdf4;color:#059669;padding:1px 7px;border-radius:99px;font-weight:700">📥 '+(c.categoriaIndireta||'Sem categoria')+'</span>'
+              +'<div style="font-size:11px;color:#64748b;margin-top:2px">'+(c.fornecedor||'—')+(c.parcela?' ('+c.parcela+')':'')+' · duplicata paga</div>'
+              +'</div>'
+              +'<span style="font-size:13px;font-weight:700;color:#059669">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
+              +'</div></div>';
+            return;
+          }
           const dest=custoDestinoInfo(c.destino);
           const optsDest=CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'"'+(d.id===dest.id?' selected':'')+'>'+d.curto+'</option>').join('');
           html+='<div style="padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
@@ -17463,6 +17509,7 @@ window._cpSetCategoriaIndireta=async function(id,categoriaIndireta){
     showToast('Erro: '+e.message);
   }
 };
+window._ciToggleDups=function(){ window._ciDupsAbertas=!window._ciDupsAbertas; reloadTab(); };
 
 window._cpExcluirConta=function(id){
   window._pendingCpId=id;
