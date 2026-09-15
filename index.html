@@ -913,14 +913,25 @@ function renderCustoSimplesTab(colKey){
   // Os 3 números que importam: o que já saiu do caixa, o que ainda vence
   // esse mês, e o total pendente sem olhar pra data — visão de curto e de
   // longo prazo lado a lado.
-  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
+  // Viagens: 3 cards principais (combustível/motoristas/total) + 2
+  // secundários, menores, só com a situação em Contas a Pagar. As outras
+  // abas (sem essa quebra) mantêm um único card principal de "Pago".
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">'
     +(colKey==='viagens'
       ?'<div class="stat-card" style="background:linear-gradient(135deg,#0e7490,#06b6d4)"><div><div class="stat-label">Combustível em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(real.total)+'</div></div></div>'
         +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Motoristas em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(gastoMot)+'</div></div></div>'
         +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Total pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div></div></div>'
       :'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div></div></div>')
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarMes)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarGeral)+'</div></div></div>'
+    +'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="card" style="border-left:4px solid #d97706;background:#fffbeb;padding:14px 10px;text-align:center">'
+    +'<div style="font-size:9px;font-weight:700;color:#d97706;margin-bottom:6px;text-transform:uppercase">A pagar em '+mesLabel(mes)+'</div>'
+    +'<div style="font-size:18px;font-weight:900;color:#d97706">'+fmtMoeda(cpTot.aPagarMes)+'</div>'
+    +'</div>'
+    +'<div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:14px 10px;text-align:center">'
+    +'<div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;text-transform:uppercase">A pagar no geral</div>'
+    +'<div style="font-size:18px;font-weight:900;color:#dc2626">'+fmtMoeda(cpTot.aPagarGeral)+'</div>'
+    +'</div>'
     +'</div>';
 
   // Duplicatas de Contas a Pagar já classificadas nessa categoria — aparecem
