@@ -894,6 +894,11 @@ function renderCustoSimplesTab(colKey){
 
   const real=custoSaidaRealMes(colKey,arr,mes);
   const cpTot=cpTotaisCategoria(CUSTO_COLECOES[colKey].categoriaCP,mes);
+  // Viagens é a única onde tem um gasto sempre à vista vindo de outro setor
+  // (o motorista recebe na hora, na rota) — entra direto na conta, sem
+  // precisar lançar aqui nem virar duplicata.
+  const gastoMot=colKey==='viagens'?gastoMotoristasMes(mes):0;
+  const pagoComMot=real.total+gastoMot;
 
   const mesSelect='<select onchange="window._csSetMes(\''+colKey+'\',this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
     +mesesDisp.map(m=>'<option value="'+m+'"'+(m===mes?' selected':'')+'>'+mesLabel(m)+'</option>').join('')+'</select>';
@@ -909,7 +914,7 @@ function renderCustoSimplesTab(colKey){
   // esse mês, e o total pendente sem olhar pra data — visão de curto e de
   // longo prazo lado a lado.
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(real.total)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Pago em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div>'+(gastoMot>0?'<div style="font-size:10px;opacity:.85;margin-top:2px">inclui '+fmtMoeda(gastoMot)+' de motoristas</div>':'')+'</div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTot.aPagarGeral)+'</div></div></div>'
     +'</div>';
@@ -6485,6 +6490,12 @@ function todosAbastecimentos(){
 }
 function abastecimentosDoMes(mes){
   return todosAbastecimentos().filter(a=>(a.data||'').startsWith(mes));
+}
+// Gasto com motorista (diária/ajuda de custo da rota) — sempre pago na hora,
+// direto pro motorista, então entra automático no caixa de Viagens sem
+// precisar de lançamento manual nem duplicata.
+function gastoMotoristasMes(mes){
+  return abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
 }
 
 function renderTabCaminhoes(tab){
@@ -18927,7 +18938,9 @@ function renderFinDashboard(){
 
   const viagensDoMes=(finViagensCustos||[]).filter(v=>(v.data||'').startsWith(mesAtualFin));
   const realViagens=custoSaidaRealMes('viagens',finViagensCustos,mesAtualFin);
-  const totalViagensMes=realViagens.total;
+  // Gasto com motorista é sempre à vista, pago na própria rota — entra
+  // direto, sem precisar de lançamento manual nem duplicata.
+  const totalViagensMes=realViagens.total+gastoMotoristasMes(mesAtualFin);
 
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const recCRDoMes=crRecebimentosDoMes(mesAtualFin);
@@ -18979,6 +18992,12 @@ function renderFinDashboard(){
     if(!mes_) return;
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(v.valor)||0;
+  });
+  todosAbastecimentos().forEach(a=>{
+    const mes_=(a.data||'').slice(0,7);
+    if(!mes_) return;
+    if(!porMes[mes_]) porMes[mes_]=0;
+    porMes[mes_]+=parseFloat(a.gastoMot)||0;
   });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
