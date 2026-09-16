@@ -933,6 +933,9 @@ function renderCustoSimplesTab(colKey){
   // precisar lançar aqui nem virar duplicata.
   const gastoMot=colKey==='viagens'?gastoMotoristasMes(mes):0;
   const pagoComMot=real.total+gastoMot;
+  const ano=mes.slice(0,4);
+  const gastoMotAno=colKey==='viagens'?todosAbastecimentos().filter(a=>(a.data||'').startsWith(ano)).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0):0;
+  const totalAno=arr.filter(it=>(it.data||'').startsWith(ano)).reduce((s,it)=>s+CUSTO_COLECOES[colKey].valorDe(it),0)+gastoMotAno;
 
   const mesSelect='<select onchange="window._csSetMes(\''+colKey+'\',this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
     +mesesDisp.map(m=>'<option value="'+m+'"'+(m===mes?' selected':'')+'>'+mesLabel(m)+'</option>').join('')+'</select>';
@@ -944,20 +947,24 @@ function renderCustoSimplesTab(colKey){
     +'<button class="btn btn-primary btn-sm" onclick="window._csNovo(\''+colKey+'\')">+ Lançamento</button>'
     +'</div></div>';
 
-  // Os 3 números que importam: o que já saiu do caixa, o que ainda vence
-  // esse mês, e o total pendente sem olhar pra data — visão de curto e de
-  // longo prazo lado a lado.
-  // Viagens: 3 cards principais (combustível/motoristas/total) + 2
-  // secundários, menores, só com a situação em Contas a Pagar. As outras
-  // abas (sem essa quebra) mantêm um único card principal de "Pago".
+  // Cards topo — mesmo padrão de Custos Indiretos: "Total" é o gasto real de
+  // caixa (à vista do mês + duplicatas pagas no mês), não a soma do que foi
+  // lançado.
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Total '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Total '+ano+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAno)+'</div></div></div>'
+    +'</div>';
+
+  // Viagens quebra o "Total" em combustível + motoristas, pra deixar claro
+  // de onde vem o número. As outras abas (sem essa quebra) só mostram as
+  // duplicatas pagas no mês.
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">'
     +(colKey==='viagens'
       ?'<div class="stat-card" style="background:linear-gradient(135deg,#0e7490,#06b6d4)"><div><div class="stat-label">Combustível em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(real.total)+'</div></div></div>'
         +'<div class="stat-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)"><div><div class="stat-label">Motoristas em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(gastoMot)+'</div></div></div>'
-        +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Total saiu do caixa em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div></div></div>'
-      :'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Saiu do caixa em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(pagoComMot)+'</div></div></div>')
+      :'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Duplicatas pagas em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(real.aprazoPago)+'</div></div></div>')
     +'</div>';
-  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px">'
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="card" style="border-left:4px solid #d97706;background:#fffbeb;padding:14px 10px;text-align:center">'
     +'<div style="font-size:9px;font-weight:700;color:#d97706;margin-bottom:6px;text-transform:uppercase">A pagar em '+mesLabel(mes)+'</div>'
     +'<div style="font-size:18px;font-weight:900;color:#d97706">'+fmtMoeda(cpTot.aPagarMes)+'</div>'
@@ -966,8 +973,7 @@ function renderCustoSimplesTab(colKey){
     +'<div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;text-transform:uppercase">A pagar no geral</div>'
     +'<div style="font-size:18px;font-weight:900;color:#dc2626">'+fmtMoeda(cpTot.aPagarGeral)+'</div>'
     +'</div>'
-    +'</div>'
-    +'<div style="font-size:10px;color:#94a3b8;margin-bottom:16px;line-height:1.5">💡 <strong>Saiu do caixa</strong> = pago à vista nesse mês + parcelas de compras (de qualquer mês) que venceram e foram pagas nesse mês. Pode ser diferente do total lançado no mês, já que inclui parcelas de compras antigas.</div>';
+    +'</div>';
 
   // Duplicatas de Contas a Pagar já classificadas nessa categoria — aparecem
   // aqui mesmo sem ter um "+ Lançamento" correspondente, porque a categoria
@@ -19724,7 +19730,7 @@ function renderFinMatDiretos(){
 
   const mesesDisp=[...new Set([today().slice(0,7),...matDiretos.map(m=>(m.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
   const doMes=matDiretos.filter(m=>(m.data||'').startsWith(mes));
-  const totalMes=doMes.reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  const ano=mes.slice(0,4);
 
   // Agrupa por categoria
   const porCat={};
@@ -19735,10 +19741,6 @@ function renderFinMatDiretos(){
 
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     ${mesSelect}
-    <div style="text-align:right">
-      <div style="font-size:10px;color:#64748b">Comprado em ${mesLabel(mes)} <span style="font-weight:400">(à vista + a prazo)</span></div>
-      <div style="font-size:22px;font-weight:900;color:#1d4ed8">${fmtMoeda(totalMes)}</div>
-    </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost btn-sm" onclick="window._exportarMatDiretosPDF('${mes}','${mesLabel(mes)}')">📄 PDF</button>
       <button class="btn btn-ghost btn-sm" style="border:1.5px solid #64748b;color:#64748b" onclick="window._matDiretosGerirCats()">⚙️ Categorias</button>
@@ -19746,14 +19748,20 @@ function renderFinMatDiretos(){
     </div>
   </div>`;
 
+  // Cards topo — "Total" é o gasto real de caixa (à vista do mês + duplicatas
+  // pagas no mês), igual ao padrão usado em Custos Indiretos.
   const realMD=custoSaidaRealMes('mat_diretos',matDiretos,mes);
   const cpTotMD=cpTotaisCategoria('mat_direto',mes);
+  const totalAnoMD=matDiretos.filter(m=>(m.data||'').startsWith(ano)).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Total ${mesLabel(mes)}</div><div class="stat-value" style="font-size:18px">${fmtMoeda(realMD.total)}</div></div></div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Total ${ano}</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAnoMD)}</div></div></div>
+  </div>`;
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Saiu do caixa em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(realMD.total)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Duplicatas pagas em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(realMD.aprazoPago)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarMes)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarGeral)+'</div></div></div>'
-    +'</div>'
-    +'<div style="font-size:10px;color:#94a3b8;margin:-8px 0 16px;line-height:1.5">💡 <strong>Comprado</strong> = tudo que você lançou nesse mês (mesmo que a prazo, vencendo depois). <strong>Saiu do caixa</strong> = o que você realmente pagou nesse mês, inclusive parcelas de compras de meses anteriores que venceram agora. Por isso os dois números não precisam bater.</div>';
+    +'</div>';
 
   // Duplicatas de Contas a Pagar já classificadas como Material Direto —
   // aparecem aqui mesmo sem "+ Lançamento" correspondente, porque a
