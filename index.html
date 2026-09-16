@@ -623,6 +623,8 @@ const CUSTO_COLECOES={
     valorDe:it=>parseFloat(it.valor)||0},
   indiretos:    {colFirestore:'fin_custos',      categoriaCP:'indireto',
     valorDe:it=>parseFloat(it.valor)||0},
+  outros:       {colFirestore:'fin_outros',      categoriaCP:'outro',
+    valorDe:it=>parseFloat(it.valor)||0},
 };
 
 // Quanto ainda falta pagar de uma categoria — no mês (pela data de
@@ -908,6 +910,9 @@ const CUSTO_SIMPLES_CONFIG={
   viagens:{titulo:'Viagens', cor:'#374151', temQuantidade:false,
     colFirestore:'fin_viagens', configFirestore:'config_fin_viagens',
     arr:()=>finViagensCustos, cfg:()=>finViagensConfig, setCfg:c=>{finViagensConfig=c;}},
+  outros:{titulo:'Outros / Geral', cor:'#64748b', temQuantidade:false,
+    colFirestore:'fin_outros', configFirestore:'config_fin_outros',
+    arr:()=>finOutros, cfg:()=>finOutrosConfig, setCfg:c=>{finOutrosConfig=c;}},
 };
 
 function renderCustoSimplesTab(colKey){
@@ -1215,6 +1220,9 @@ let finAlmox=[];
 let finAlmoxConfig={categorias:[{nome:'Outros',unidade:'un'}]};
 let finViagensCustos=[];
 let finViagensConfig={categorias:[{nome:'Combustível',unidade:'un'},{nome:'Manutenção',unidade:'un'},{nome:'Pedágio',unidade:'un'}]};
+// Categoria "coringa" — qualquer custo que não se encaixa nas outras abas.
+let finOutros=[];
+let finOutrosConfig={categorias:[{nome:'Outros',unidade:'un'}]};
 let vendas=[];
 let clientes=[];
 let valesPagamento=[]; // descontos de vale lançados em cima de um pagamento de mão de obra
@@ -1535,6 +1543,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'grad_config':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   'fin_pagamentos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
   'fin_viagens':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  'fin_outros':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>',
   'fin_vendas':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
   'fin_compras':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
   'fin_matquimicos':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v11l3.5 6.5A1 1 0 0117.6 22H6.4a1 1 0 01-.9-1.5L9 14V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg>',
@@ -1586,7 +1595,7 @@ const TAB_LABELS={
   'cam_rotas':'Rotas','cam_abastecimento':'Abastecimento','cam_manutencao':'Manutenção',
   'cam_veiculos':'Veículos','cam_motoristas':'Motoristas','cam_relatorio':'Relatórios',
   'alm_painel':'Painel','alm_entrada':'Entrada','alm_saida':'Saída',
-  'fin_dashboard':'Dashboard','fin_vendas':'Contas a Receber','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_relatorio':'Relatórios',
+  'fin_dashboard':'Dashboard','fin_vendas':'Contas a Receber','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_outros':'Outros / Geral','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_colchao':'Calculadora de Colchão','eng_indiretos':'Custo Indireto','eng_relatorio':'Relatórios','eng_config':'Configurações',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
@@ -1826,7 +1835,7 @@ function renderApp(){
     // cp_lista (Contas a Pagar) não começa com "fin_" — é o único caso, por
     // isso a checagem abaixo trata ele à parte pra não voltar pro dashboard
     // sozinho toda vez que a tela recarrega.
-    tabs.push('fin_dashboard','fin_vendas','cp_lista','fin_pagamentos','fin_compras','fin_matdiretos','fin_matquimicos','fin_custos','fin_viagens','fin_relatorio');
+    tabs.push('fin_dashboard','fin_vendas','cp_lista','fin_pagamentos','fin_compras','fin_matdiretos','fin_matquimicos','fin_custos','fin_viagens','fin_outros','fin_relatorio');
     if(!currentTab||(!currentTab.startsWith('fin_')&&currentTab!=='cp_lista')) currentTab='fin_dashboard';
   } else if(currentSetor==='manutencao'){
     tabs.push('man_painel','man_maquinas','man_relatorio');
@@ -18369,6 +18378,7 @@ function renderTabFinanceiro(tab){
     if(tab==='fin_matquimicos') return renderCustoSimplesTab('mat_quimicos');
     if(tab==='fin_custos') return renderFinCustos();
     if(tab==='fin_viagens') return renderCustoSimplesTab('viagens');
+    if(tab==='fin_outros') return renderCustoSimplesTab('outros');
     if(tab==='fin_relatorio') return renderFinRelatorio();
     return renderFinDashboard();
   }catch(e){
@@ -18462,6 +18472,7 @@ function calcDREMes(mes){
   const matDiretosVal=custoSaidaRealMes('mat_diretos',matDiretos,mes).total;
   const quimicos=custoSaidaRealMes('mat_quimicos',matQuimicos,mes).total;
   const viagens=viagensCaixaMes(mes);
+  const outros=custoSaidaRealMes('outros',finOutros,mes).total;
 
   // Custos indiretos quebrados pelos grupos do DRE
   const porGrupo={producao:0,administrativa:0,comercial:0,tributaria:0,investimento:0};
@@ -18475,7 +18486,8 @@ function calcDREMes(mes){
   const cpv=maoObra+matDiretosVal+quimicos+almox+porGrupo.producao;
   const lucroBruto=receita-cpv;
   const despComercial=porGrupo.comercial+viagens;
-  const despOperacionais=porGrupo.administrativa+despComercial+porGrupo.tributaria;
+  const despAdministrativas=porGrupo.administrativa+outros;
+  const despOperacionais=despAdministrativas+despComercial+porGrupo.tributaria;
   const resultadoOperacional=lucroBruto-despOperacionais;
   const investimento=porGrupo.investimento;
   const resultadoLiquido=resultadoOperacional-investimento;
@@ -18491,7 +18503,7 @@ function calcDREMes(mes){
     ],
     cpv,lucroBruto,
     despItens:[
-      ['Administrativas',porGrupo.administrativa],
+      ['Administrativas',despAdministrativas],
       ['Comerciais e viagens',despComercial],
       ['Tributárias',porGrupo.tributaria],
     ],
@@ -19063,6 +19075,9 @@ function renderFinDashboard(){
   // direto, sem precisar de lançamento manual nem duplicata.
   const totalViagensMes=realViagens.total+gastoMotoristasMes(mesAtualFin);
 
+  const outrosDoMes=(finOutros||[]).filter(o=>(o.data||'').startsWith(mesAtualFin));
+  const totalOutrosMes=custoSaidaRealMes('outros',finOutros,mesAtualFin).total;
+
   const vendasDoMes=vendas.filter(v=>(v.data||'').startsWith(mesAtualFin));
   const recCRDoMes=crRecebimentosDoMes(mesAtualFin);
   const entradasDoMes=finEntradasMes(mesAtualFin);
@@ -19120,6 +19135,12 @@ function renderFinDashboard(){
     if(!porMes[mes_]) porMes[mes_]=0;
     porMes[mes_]+=parseFloat(a.gastoMot)||0;
   });
+  (finOutros||[]).forEach(o=>{
+    const mes_=(o.data||'').slice(0,7);
+    if(!mes_) return;
+    if(!porMes[mes_]) porMes[mes_]=0;
+    porMes[mes_]+=parseFloat(o.valor)||0;
+  });
   const mesesOrdenados=Object.keys(porMes).sort().reverse().slice(0,6).reverse();
 
   const MESES_N=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -19129,7 +19150,7 @@ function renderFinDashboard(){
 
   let html='';
 
-  const totalSaidas=totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes+totalMatQuimicosMes+totalViagensMes;
+  const totalSaidas=totalPagoMes+totalComprasMes+totalCustosDoMes+totalMatDiretosMes+totalMatQuimicosMes+totalViagensMes+totalOutrosMes;
   const resultado=totalVendasMes-totalSaidas;
 
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
@@ -19187,6 +19208,11 @@ function renderFinDashboard(){
       <div style="font-size:9px;font-weight:700;color:#374151;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">VIAGENS — ${mesNomeFin.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalViagensMes)}</div>
       <div style="font-size:10px;color:#6b7280;margin-top:4px">${viagensDoMes.length} lançamento${viagensDoMes.length!==1?"s":""}</div>
+    </div>
+    <div class="card" style="border-left:4px solid #dc2626;background:#f8fafc;padding:14px 10px;text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#64748b;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">OUTROS / GERAL — ${mesNomeFin.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtMoeda(totalOutrosMes)}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:4px">${outrosDoMes.length} lançamento${outrosDoMes.length!==1?"s":""}</div>
     </div>
   </div>
   <div style="font-size:11px;color:#94a3b8;margin-bottom:20px;text-align:right">* Valores referentes a ${mesNomeFin}</div>`;
@@ -20417,9 +20443,10 @@ function renderFinRelatorio(){
     const matVal=custoSaidaRealMes('mat_diretos',matDiretos,mes).total;
     const quimVal=custoSaidaRealMes('mat_quimicos',matQuimicos,mes).total;
     const viagVal=viagensCaixaMes(mes);
+    const outVal=custoSaidaRealMes('outros',finOutros,mes).total;
     const vendVal=finEntradasMes(mes).total;
-    const total=pagVal+compVal+indVal+matVal+quimVal+viagVal;
-    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,vendVal,total,resultado:vendVal-total};
+    const total=pagVal+compVal+indVal+matVal+quimVal+viagVal+outVal;
+    return {mes,label:MESES_N3[i].slice(0,3),pagVal,compVal,indVal,matVal,quimVal,viagVal,outVal,vendVal,total,resultado:vendVal-total};
   }).filter(m=>m.mes>=CORTE_CAIXA_REAL);
 
   const maxVal=Math.max(...mesesData.map(m=>m.total),1);
@@ -20429,7 +20456,8 @@ function renderFinRelatorio(){
   const totalAnoMat=mesesData.reduce((s,m)=>s+m.matVal,0);
   const totalAnoQuim=mesesData.reduce((s,m)=>s+m.quimVal,0);
   const totalAnoViag=mesesData.reduce((s,m)=>s+m.viagVal,0);
-  const totalAno=totalAnoPag+totalAnoComp+totalAnoInd+totalAnoMat+totalAnoQuim+totalAnoViag;
+  const totalAnoOut=mesesData.reduce((s,m)=>s+m.outVal,0);
+  const totalAno=totalAnoPag+totalAnoComp+totalAnoInd+totalAnoMat+totalAnoQuim+totalAnoViag+totalAnoOut;
   const totalAnoVend=mesesData.reduce((s,m)=>s+m.vendVal,0);
   const resultadoAno=totalAnoVend-totalAno;
 
@@ -20464,9 +20492,11 @@ function renderFinRelatorio(){
     const hM=Math.round((m.matVal/maxVal)*100);
     const hQ=Math.round((m.quimVal/maxVal)*100);
     const hV=Math.round((m.viagVal/maxVal)*100);
+    const hO=Math.round((m.outVal/maxVal)*100);
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
       ${m.total>0?`<div style="font-size:8px;color:#475569;font-weight:700">${(m.total/1000).toFixed(1)}k</div>`:'<div style="font-size:8px;color:#e2e8f0">—</div>'}
       <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:110px;gap:1px">
+        ${m.outVal>0?`<div style="width:100%;background:#94a3b8;border-radius:0;height:${hO}%;min-height:2px"></div>`:''}
         ${m.viagVal>0?`<div style="width:100%;background:#374151;border-radius:0;height:${hV}%;min-height:2px"></div>`:''}
         ${m.quimVal>0?`<div style="width:100%;background:#0e7490;border-radius:0;height:${hQ}%;min-height:2px"></div>`:''}
         ${m.matVal>0?`<div style="width:100%;background:#0d9488;border-radius:0;height:${hM}%;min-height:2px"></div>`:''}
@@ -20485,6 +20515,7 @@ function renderFinRelatorio(){
     <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#0d9488;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Mat. Diretos ${fmtMoeda(totalAnoMat)}</span></div>
     <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#0e7490;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Mat. Químicos ${fmtMoeda(totalAnoQuim)}</span></div>
     <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#374151;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Viagens ${fmtMoeda(totalAnoViag)}</span></div>
+    <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:#94a3b8;border-radius:2px"></div><span style="font-size:11px;color:#64748b">Outros ${fmtMoeda(totalAnoOut)}</span></div>
   </div>`;
   html+='</div>';
 
@@ -20492,7 +20523,7 @@ function renderFinRelatorio(){
   html+='<div class="card" style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;margin-bottom:2px">📋 Balanço mensal (entradas x saídas)</div>'
     +'<div style="font-size:10px;color:#94a3b8;margin-bottom:10px">A partir de Setembro 2026 — meses anteriores não têm o controle de à vista/a prazo e por isso ficam de fora.</div>';
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th><th style="padding:8px 10px;text-align:center">DRE / PDF</th></tr></thead><tbody>';
+  html+='<thead><tr style="background:#f1f5f9"><th style="padding:8px 10px;text-align:left">Mês</th><th style="padding:8px 10px;text-align:right;color:#059669">Entradas</th><th style="padding:8px 10px;text-align:right">Mão obra</th><th style="padding:8px 10px;text-align:right">Materiais</th><th style="padding:8px 10px;text-align:right">Indiretos</th><th style="padding:8px 10px;text-align:right;color:#0d9488">Diretos</th><th style="padding:8px 10px;text-align:right;color:#0e7490">Químicos</th><th style="padding:8px 10px;text-align:right;color:#374151">Viagens</th><th style="padding:8px 10px;text-align:right;color:#64748b">Outros</th><th style="padding:8px 10px;text-align:right;font-weight:800">Saídas</th><th style="padding:8px 10px;text-align:right;font-weight:800">Balanço</th><th style="padding:8px 10px;text-align:center">DRE / PDF</th></tr></thead><tbody>';
   html+=mesesData.filter(m=>m.total>0||m.vendVal>0).map((m,i)=>{
     const nomeMes=MESES_N3[parseInt(m.mes.slice(5))-1];
     return `<tr style="${i%2?'background:#f8fafc':''}">
@@ -20504,6 +20535,7 @@ function renderFinRelatorio(){
     <td style="padding:8px 10px;text-align:right;color:#0d9488">${m.matVal>0?fmtMoeda(m.matVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#0e7490">${m.quimVal>0?fmtMoeda(m.quimVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;color:#374151">${m.viagVal>0?fmtMoeda(m.viagVal):'—'}</td>
+    <td style="padding:8px 10px;text-align:right;color:#64748b">${m.outVal>0?fmtMoeda(m.outVal):'—'}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:#1e40af">${fmtMoeda(m.total)}</td>
     <td style="padding:8px 10px;text-align:right;font-weight:800;color:${m.resultado>=0?'#059669':'#dc2626'}">${m.resultado>=0?'+':''}${fmtMoeda(m.resultado)}</td>
     <td style="padding:8px 10px;text-align:center;white-space:nowrap">
@@ -20511,7 +20543,7 @@ function renderFinRelatorio(){
       <button class="btn btn-sm btn-ghost" style="padding:3px 8px" title="Gerar PDF do balanço de ${nomeMes}" onclick="window._exportarBalancoPDF('${m.mes}','${nomeMes} de ${ano}')">📄</button>
     </td>
   </tr>`;}).join('');
-  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#059669">${fmtMoeda(totalAnoVend)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td><td style="padding:8px 10px;text-align:right;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</td><td></td></tr>`;
+  html+=`<tr style="background:#dbeafe;font-weight:800"><td style="padding:8px 10px">Total ${ano}</td><td style="padding:8px 10px;text-align:right;color:#059669">${fmtMoeda(totalAnoVend)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAnoPag)}</td><td style="padding:8px 10px;text-align:right;color:#b45309">${fmtMoeda(totalAnoComp)}</td><td style="padding:8px 10px;text-align:right;color:#7c3aed">${fmtMoeda(totalAnoInd)}</td><td style="padding:8px 10px;text-align:right;color:#0d9488">${fmtMoeda(totalAnoMat)}</td><td style="padding:8px 10px;text-align:right;color:#0e7490">${fmtMoeda(totalAnoQuim)}</td><td style="padding:8px 10px;text-align:right;color:#374151">${fmtMoeda(totalAnoViag)}</td><td style="padding:8px 10px;text-align:right;color:#64748b">${fmtMoeda(totalAnoOut)}</td><td style="padding:8px 10px;text-align:right;color:#1e40af">${fmtMoeda(totalAno)}</td><td style="padding:8px 10px;text-align:right;color:${resultadoAno>=0?'#059669':'#dc2626'}">${resultadoAno>=0?'+':''}${fmtMoeda(resultadoAno)}</td><td></td></tr>`;
   html+='</tbody></table></div></div>';
 
   // Ranking de gastos por pessoa (mão de obra)
@@ -22800,6 +22832,13 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(doc(db,'config_fin_viagens','geral'),snap=>{
       if(snap.exists()) finViagensConfig={categorias:[{nome:'Combustível',unidade:'un'},{nome:'Manutenção',unidade:'un'},{nome:'Pedágio',unidade:'un'}],...snap.data()};
+    }),
+    ()=>onSnapshot(collection(db,'fin_outros'),snap=>{
+      finOutros=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(doc(db,'config_fin_outros','geral'),snap=>{
+      if(snap.exists()) finOutrosConfig={categorias:[{nome:'Outros',unidade:'un'}],...snap.data()};
     }),
     ()=>onSnapshot(collection(db,'fin_vendas'),snap=>{
       vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
