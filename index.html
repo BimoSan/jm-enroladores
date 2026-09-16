@@ -6557,6 +6557,15 @@ function abastecimentosDoMes(mes){
 function gastoMotoristasMes(mes){
   return abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
 }
+// Tacógrafo é lançado por posto (cada abastecimento pode ter seu custo de
+// tacógrafo), então soma igual ao gasto de motorista — pela data do
+// abastecimento, não pela data de saída da rota.
+function gastoTacografoMes(mes){
+  return abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.tacografo)||0),0);
+}
+function rotaTotalTacografo(r){
+  return (r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.tacografo)||0),0);
+}
 
 function renderTabCaminhoes(tab){
   try{
@@ -6627,7 +6636,7 @@ function renderCamRotas(){
 
   // Stat cards
   const totalGastoMot=abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
-  const totalTacografo=rotasMes.reduce((s,r)=>s+(parseFloat(r.tacografo)||0),0);
+  const totalTacografo=gastoTacografoMes(mes);
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Viagens no mês</div><div class="stat-value">'+rotasMes.length+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
@@ -6675,7 +6684,7 @@ function renderCamRotas(){
         +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#2563eb">'+(kmRod>0?kmRod.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(totalComb>0?fmtMoeda(totalComb):'—')+'</td>'
         +(()=>{const gMot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);return '<td style="padding:7px 10px;text-align:right;color:#6366f1">'+(gMot>0?fmtMoeda(gMot):'—')+'</td>';})()
-        +'<td style="padding:7px 10px;text-align:right;color:#c2410c">'+(r.tacografo?fmtMoeda(parseFloat(r.tacografo)):'—')+'</td>'
+        +(()=>{const tac=rotaTotalTacografo(r);return '<td style="padding:7px 10px;text-align:right;color:#c2410c">'+(tac>0?fmtMoeda(tac):'—')+'</td>';})()
         +(()=>{
           const totalLitros=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.litros)||0),0);
           const kmRod2=parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0);
@@ -6708,8 +6717,8 @@ function renderCamRotas(){
 // Modal nova rota
 window._abrirNovaRota=function(rota){
   const edit=rota&&rota.id;
-  const r=rota||{data:today(),abastecimentos:[{posto:'',combustivel:'Diesel',valUnit:'',litros:'',totalPago:'',gastoMot:''}]};
-  const abs=r.abastecimentos||[{posto:'',combustivel:'Diesel',valUnit:'',litros:'',totalPago:'',gastoMot:''}];
+  const r=rota||{data:today(),abastecimentos:[{posto:'',combustivel:'Diesel',valUnit:'',litros:'',totalPago:'',tacografo:'',gastoMot:''}]};
+  const abs=r.abastecimentos||[{posto:'',combustivel:'Diesel',valUnit:'',litros:'',totalPago:'',tacografo:'',gastoMot:''}];
 
   function rowAbs(a,i){
     const postos=camPostos.length?camPostos:[{id:'_p1',nome:'Posto Jati Rede Mais'},{id:'_p2',nome:'Auto Posto Nordeste'},{id:'_p3',nome:'Araújo Petróleo'}];
@@ -6722,6 +6731,7 @@ window._abrirNovaRota=function(rota){
       +'<td style="padding:4px"><input id="abs-valunit-'+i+'" type="number" step="0.01" placeholder="R$/L" value="'+(a.valUnit||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%" oninput="window._camCalcTotal('+i+')"></td>'
       +'<td style="padding:4px"><input id="abs-litros-'+i+'" type="number" step="0.01" placeholder="Litros" value="'+(a.litros||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%" oninput="window._camCalcTotal('+i+')"></td>'
       +'<td style="padding:4px"><input id="abs-total-'+i+'" type="number" step="0.01" placeholder="Total R$" value="'+(a.totalPago||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"></td>'
+      +'<td style="padding:4px"><input id="abs-tacografo-'+i+'" type="number" step="0.01" placeholder="Tacógrafo" value="'+(a.tacografo||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"></td>'
       +'<td style="padding:4px"><input id="abs-gastoMot-'+i+'" type="number" step="0.01" placeholder="Gasto mot." value="'+(a.gastoMot||'')+'" onfocus="this.select()" style="font-size:12px;border:1px solid #d0d0d0;border-radius:6px;padding:4px;width:100%"></td>'
       +'<td style="padding:4px;text-align:center"><button onclick="window._removerAbsRow('+i+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button></td>'
       +'</tr>';
@@ -6747,7 +6757,6 @@ window._abrirNovaRota=function(rota){
     +'<div class="form-row">'
     +'<div class="form-group"><label>Km Inicial</label><input id="rota-kmini" type="number" value="'+(r.kmInicial||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Km Final</label><input id="rota-kmfin" type="number" value="'+(r.kmFinal||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
-    +'<div class="form-group"><label>Tacógrafo (R$)</label><input id="rota-tacografo" type="number" step="0.01" placeholder="0.00" value="'+(r.tacografo||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
     +'<div class="form-row">'
     +'<div class="form-group"><label>Observação</label><input id="rota-obs" value="'+(r.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
@@ -6775,6 +6784,7 @@ window._abrirNovaRota=function(rota){
     +'<th style="padding:6px 8px">R$/L</th>'
     +'<th style="padding:6px 8px">Litros</th>'
     +'<th style="padding:6px 8px">Total R$</th>'
+    +'<th style="padding:6px 8px">Tacógrafo</th>'
     +'<th style="padding:6px 8px">Gasto mot.</th>'
     +'<th style="padding:6px 8px"></th>'
     +'</tr></thead>'
@@ -6824,7 +6834,6 @@ window._salvarRota=async function(rotaId){
   const destino=document.getElementById('rota-destino')?.value;
   const kmInicial=parseFloat(document.getElementById('rota-kmini')?.value)||0;
   const kmFinal=parseFloat(document.getElementById('rota-kmfin')?.value)||0;
-  const tacografo=parseFloat(document.getElementById('rota-tacografo')?.value)||0;
   const obs=document.getElementById('rota-obs')?.value||'';
 
   if(!data||!veiculoId){showToast('Informe data e veículo.');return;}
@@ -6840,8 +6849,9 @@ window._salvarRota=async function(rotaId){
     const valUnit=parseFloat(document.getElementById('abs-valunit-'+i)?.value)||0;
     const litros=parseFloat(document.getElementById('abs-litros-'+i)?.value)||0;
     const totalPago=parseFloat(document.getElementById('abs-total-'+i)?.value)||0;
+    const tacografo=parseFloat(document.getElementById('abs-tacografo-'+i)?.value)||0;
     const gastoMot=parseFloat(document.getElementById('abs-gastoMot-'+i)?.value)||0;
-    if(posto||litros||totalPago) abastecimentos.push({data:dataAbs,posto,combustivel,valUnit,litros,totalPago,gastoMot});
+    if(posto||litros||totalPago||tacografo) abastecimentos.push({data:dataAbs,posto,combustivel,valUnit,litros,totalPago,tacografo,gastoMot});
   }
 
   // Abastecimento inicial (não entra na média)
@@ -6853,7 +6863,7 @@ window._salvarRota=async function(rotaId){
     posto:absInicialPosto,litros:absInicialLitros,valUnit:absInicialValUnit,totalPago:absInicialTotal
   }:null;
 
-  const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,tacografo,obs,abastecimentos,
+  const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,obs,abastecimentos,
     ...(absInicial?{absInicial}:{}),
     registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
 
@@ -7303,7 +7313,7 @@ function renderCamRelatorio(){
     const combTotal=absMes.reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
     const manTotal=camManutencoes.filter(m=>(m.data||'').slice(0,7)===mesStr).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const motTotal=absMes.reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
-    const tacTotal=rotas.reduce((s,r)=>s+(parseFloat(r.tacografo)||0),0);
+    const tacTotal=gastoTacografoMes(mesStr);
     return {mes:MESES[mi],kmTotal,combTotal,manTotal,motTotal,tacTotal,viagens:rotas.length};
   });
 
@@ -7315,7 +7325,7 @@ function renderCamRelatorio(){
     const km=rotasV.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
     const comb=rotasV.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
     const man=camManutencoes.filter(m=>m.veiculoId===v.id&&(m.data||'').slice(0,4)===ano).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    const tac=rotasV.reduce((s,r)=>s+(parseFloat(r.tacografo)||0),0);
+    const tac=rotasV.reduce((s,r)=>s+rotaTotalTacografo(r),0);
     return {v,km,comb,man,tac,viagens:rotasV.length,total:comb+man+tac};
   }).filter(x=>x.viagens>0||x.man>0).sort((a,b)=>b.total-a.total);
 
