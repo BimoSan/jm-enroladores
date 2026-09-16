@@ -17229,6 +17229,10 @@ function podeEditarContasPagar(){
   if(perfil==='proprietario') return !!currentUserData?.podeLancarContasPagar;
   return false;
 }
+// O que falta pagar dessa duplicata — desconta o que já foi pago parcialmente.
+function cpPendente(c){
+  return Math.max(0,(parseFloat(c.valor)||0)-(parseFloat(c.valorPago)||0));
+}
 
 window._cpSetView=function(v,mes){
   window._cpView=v;
@@ -17292,6 +17296,8 @@ function renderContasPagar(){
       +'<div style="min-width:0;flex:1">'
       +'<div style="font-size:14px;font-weight:700;word-break:break-word">'+(c.fornecedor||'—')+(c.parcela?' <span style="font-size:11px;font-weight:600;color:#64748b">('+c.parcela+')</span>':'')+'</div>'
       +'<div style="font-size:11px;color:'+cor+';font-weight:700;margin-top:2px">'+statusLabel+' · vence '+fmtDate(venc)+'</div>'
+      +(!c.pago&&(parseFloat(c.valorPago)||0)>0
+        ?'<div style="font-size:11px;color:#059669;font-weight:700;margin-top:2px">pago '+fmtMoeda(parseFloat(c.valorPago)||0)+' · falta '+fmtMoeda(cpPendente(c))+'</div>':'')
       +(podeEditar?'<select onchange="window._cpSetCategoria(\''+c.id+'\',this.value)" title="Categoria do custo" style="margin-top:5px;font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:'+(c.categoria?'#334155':'#94a3b8')+'">'
         +'<option value=""'+(!c.categoria?' selected':'')+'>Sem categoria</option>'
         +CP_CATEGORIAS.map(cat=>'<option value="'+cat.id+'"'+(c.categoria===cat.id?' selected':'')+'>'+cat.label+'</option>').join('')
@@ -17302,7 +17308,7 @@ function renderContasPagar(){
       +'<div style="font-size:17px;font-weight:800;color:'+cor+'">'+fmtMoeda(parseFloat(c.valor)||0)+'</div>'
       +(podeEditar?'<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end">'
         +(c.pago?'<button onclick="window._cpDesmarcarPago(\''+c.id+'\')" class="btn btn-sm btn-ghost" style="font-size:11px">Desmarcar</button>'
-                :'<button onclick="window._cpMarcarPago(\''+c.id+'\')" class="btn btn-sm" style="font-size:11px;background:#d1fae5;color:#065f46;border:none">Marcar pago</button>')
+                :'<button onclick="window._cpAbrirBaixa(\''+c.id+'\')" class="btn btn-sm" style="font-size:11px;background:#d1fae5;color:#065f46;border:none">Dar baixa</button>')
         +'<button onclick="window._cpEditarConta(\''+c.id+'\')" style="border:none;background:#dbeafe;color:#1d4ed8;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✎</button>'
         +'<button onclick="window._cpExcluirConta(\''+c.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>'
         +'</div>':'')
@@ -17511,18 +17517,93 @@ window._cpSalvarEdicao=async function(id){
   }
 };
 
-window._cpMarcarPago=async function(id){
+// Mesmo padrão do "Dar baixa" de Contas a Receber: abre perguntando o valor
+// (já vem preenchido com o valor cheio, então confirmar sem mexer paga
+// tudo) — dá pra editar pra registrar um pagamento parcial.
+window._cpAbrirBaixa=function(id){
+  const c=(contasPagar||[]).find(x=>x.id===id);
+  if(!c) return;
+  const pendente=cpPendente(c);
+  const jaPago=parseFloat(c.valorPago)||0;
+  // Parcelas seguintes da MESMA duplicata que ainda estão em aberto — é
+  // nelas que uma sobra de pagamento é abatida.
+  const seguintes=(contasPagar||[]).filter(x=>x.grupoId&&x.grupoId===c.grupoId&&x.id!==c.id&&!x.pago);
+  showModal('Dar baixa — '+(c.fornecedor||'—')+(c.parcela?' ('+c.parcela+')':''),
+    (jaPago>0?'<div style="font-size:11px;color:#059669;margin-bottom:8px">Já pago nesta parcela: <strong>'+fmtMoeda(jaPago)+'</strong> de '+fmtMoeda(parseFloat(c.valor)||0)+'</div>':'')
+    +'<div class="form-group"><label>Valor pago (R$)</label>'
+    +'<input type="number" id="cpb-valor" min="0" step="0.01" value="'+pendente.toFixed(2)+'" onfocus="this.select()" style="font-size:18px;font-weight:800;border:2px solid #e2e8f0;border-radius:9px;padding:10px;width:100%;text-align:center"></div>'
+    +'<div class="form-group"><label>Data do pagamento</label>'
+    +'<input type="date" id="cpb-data" value="'+today()+'" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="font-size:11px;color:#94a3b8;line-height:1.6;background:#f8fafc;border-radius:8px;padding:8px 10px">'
+    +'Falta pagar nesta parcela: <strong>'+fmtMoeda(pendente)+'</strong>.<br>'
+    +(seguintes.length
+      ?'Se pagar <strong>a mais</strong>, a diferença é abatida das <strong>'+seguintes.length+'</strong> parcela'+(seguintes.length!==1?'s':'')+' seguintes que ainda faltam.'
+      :'Não há parcelas seguintes em aberto pra abater uma sobra.')
+    +'<br>Se pagar <strong>a menos</strong>, a parcela continua aberta com o saldo restante.'
+    +'</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._cpConfirmarBaixa(\''+id+'\')">Confirmar baixa</button>');
+};
+window._cpConfirmarBaixa=async function(id){
+  const c=(contasPagar||[]).find(x=>x.id===id);
+  if(!c) return;
+  const pagoAgora=parseFloat(document.getElementById('cpb-valor')?.value)||0;
+  const data=document.getElementById('cpb-data')?.value||today();
+  if(pagoAgora<=0){showToast('Informe o valor pago.');return;}
+  const pendente=cpPendente(c);
+  closeModal();
   try{
-    await updateDoc(doc(db,'contas_pagar',id),{pago:true,dataPagamento:today()});
-    showToast('Marcada como paga!');
+    if(pagoAgora<pendente-0.005){
+      // Pagamento parcial — a duplicata segue aberta com o saldo
+      await updateDoc(doc(db,'contas_pagar',id),{
+        valorPago:(parseFloat(c.valorPago)||0)+pagoAgora,
+        ultimoPagamento:data,
+      });
+      showToast('Pagamento parcial registrado. Falta '+fmtMoeda(pendente-pagoAgora)+'.');
+      return;
+    }
+
+    // Quita a parcela
+    await updateDoc(doc(db,'contas_pagar',id),{
+      pago:true,dataPagamento:data,
+      valorPago:(parseFloat(c.valorPago)||0)+Math.min(pagoAgora,pendente),
+    });
+
+    const sobra=pagoAgora-pendente;
+    if(sobra<=0.005){ showToast('Baixa registrada!'); return; }
+
+    // Sobra: abate das parcelas seguintes em aberto
+    const seguintes=(contasPagar||[])
+      .filter(x=>x.grupoId&&x.grupoId===c.grupoId&&x.id!==id&&!x.pago)
+      .sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
+    if(!seguintes.length){
+      showToast('Baixa registrada. Sobra de '+fmtMoeda(sobra)+' sem parcela seguinte pra abater.');
+      return;
+    }
+    const cota=Math.floor((sobra/seguintes.length)*100)/100;
+    let distribuido=0;
+    for(let i=0;i<seguintes.length;i++){
+      const p=seguintes[i];
+      const abate=i===seguintes.length-1?parseFloat((sobra-distribuido).toFixed(2)):cota;
+      distribuido+=abate;
+      const pendP=cpPendente(p);
+      const novoValor=parseFloat(Math.max(0,(parseFloat(p.valor)||0)-abate).toFixed(2));
+      const dados={
+        valor:novoValor,
+        abatimentos:[...(p.abatimentos||[]),{data,valor:parseFloat(abate.toFixed(2)),origem:c.parcela||'parcela anterior'}],
+      };
+      if(abate>=pendP-0.005){ dados.pago=true; dados.dataPagamento=data; dados.valorPago=novoValor; }
+      await updateDoc(doc(db,'contas_pagar',p.id),dados);
+    }
+    showToast('Baixa registrada! '+fmtMoeda(sobra)+' abatido em '+seguintes.length+' parcela'+(seguintes.length!==1?'s':'')+'.');
   }catch(e){
-    console.error('Erro ao marcar como paga:',e);
+    console.error('Erro ao dar baixa:',e);
     showToast('Erro: '+e.message);
   }
 };
 window._cpDesmarcarPago=async function(id){
   try{
-    await updateDoc(doc(db,'contas_pagar',id),{pago:false,dataPagamento:null});
+    await updateDoc(doc(db,'contas_pagar',id),{pago:false,dataPagamento:null,valorPago:0});
     showToast('Marcação de pago desfeita.');
   }catch(e){
     console.error('Erro ao desmarcar pago:',e);
