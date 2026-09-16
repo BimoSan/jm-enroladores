@@ -6627,11 +6627,13 @@ function renderCamRotas(){
 
   // Stat cards
   const totalGastoMot=abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
-  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'
+  const totalTacografo=rotasMes.reduce((s,r)=>s+(parseFloat(r.tacografo)||0),0);
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Viagens no mês</div><div class="stat-value">'+rotasMes.length+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalGasto)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#6366f1)"><div><div class="stat-label">Gasto motoristas</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalGastoMot)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#7c2d12,#c2410c)"><div><div class="stat-label">Gasto tacógrafo</div><div class="stat-value" style="font-size:16px">'+fmtMoeda(totalTacografo)+'</div></div></div>'
     +'</div>';
 
   if(!rotasMes.length){
@@ -6651,6 +6653,7 @@ function renderCamRotas(){
     +'<th style="padding:8px 10px;text-align:right">Km Rod.</th>'
     +'<th style="padding:8px 10px;text-align:right">Combust.</th>'
     +'<th style="padding:8px 10px;text-align:right">Gasto Mot.</th>'
+    +'<th style="padding:8px 10px;text-align:right">Tacógrafo</th>'
     +'<th style="padding:8px 10px;text-align:center">Média</th>'
     +'<th style="padding:8px 10px;text-align:center">Postos</th>'
     +(camPodeEditar()?'<th style="padding:8px 10px;text-align:center">Ações</th>':'')
@@ -6672,6 +6675,7 @@ function renderCamRotas(){
         +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#2563eb">'+(kmRod>0?kmRod.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(totalComb>0?fmtMoeda(totalComb):'—')+'</td>'
         +(()=>{const gMot=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);return '<td style="padding:7px 10px;text-align:right;color:#6366f1">'+(gMot>0?fmtMoeda(gMot):'—')+'</td>';})()
+        +'<td style="padding:7px 10px;text-align:right;color:#c2410c">'+(r.tacografo?fmtMoeda(parseFloat(r.tacografo)):'—')+'</td>'
         +(()=>{
           const totalLitros=(r.abastecimentos||[]).reduce((s,a)=>s+(parseFloat(a.litros)||0),0);
           const kmRod2=parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0);
@@ -6689,10 +6693,12 @@ function renderCamRotas(){
         +'</tr>';
     }).join('')
     +'<tr style="background:#f0f9ff;font-weight:700">'
-    +'<td colspan="'+(camPodeEditar()?'7':'6')+'" style="padding:8px 10px;text-align:right">TOTAL</td>'
+    +'<td colspan="6" style="padding:8px 10px;text-align:right">TOTAL</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#2563eb">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+' km</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalGasto)+'</td>'
-    +'<td colspan="2"></td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#6366f1">'+fmtMoeda(totalGastoMot)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#c2410c">'+fmtMoeda(totalTacografo)+'</td>'
+    +'<td colspan="'+(camPodeEditar()?'3':'2')+'"></td>'
     +'</tr>'
     +'</tbody></table></div>';
 
@@ -6741,6 +6747,9 @@ window._abrirNovaRota=function(rota){
     +'<div class="form-row">'
     +'<div class="form-group"><label>Km Inicial</label><input id="rota-kmini" type="number" value="'+(r.kmInicial||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'<div class="form-group"><label>Km Final</label><input id="rota-kmfin" type="number" value="'+(r.kmFinal||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'<div class="form-group"><label>Tacógrafo (R$)</label><input id="rota-tacografo" type="number" step="0.01" placeholder="0.00" value="'+(r.tacografo||'')+'" onfocus="this.select()" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
+    +'</div>'
+    +'<div class="form-row">'
     +'<div class="form-group"><label>Observação</label><input id="rota-obs" value="'+(r.obs||'')+'" style="font-size:13px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 9px;width:100%"></div>'
     +'</div>'
     // Abastecimento inicial — não entra na média
@@ -6815,6 +6824,7 @@ window._salvarRota=async function(rotaId){
   const destino=document.getElementById('rota-destino')?.value;
   const kmInicial=parseFloat(document.getElementById('rota-kmini')?.value)||0;
   const kmFinal=parseFloat(document.getElementById('rota-kmfin')?.value)||0;
+  const tacografo=parseFloat(document.getElementById('rota-tacografo')?.value)||0;
   const obs=document.getElementById('rota-obs')?.value||'';
 
   if(!data||!veiculoId){showToast('Informe data e veículo.');return;}
@@ -6843,7 +6853,7 @@ window._salvarRota=async function(rotaId){
     posto:absInicialPosto,litros:absInicialLitros,valUnit:absInicialValUnit,totalPago:absInicialTotal
   }:null;
 
-  const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,obs,abastecimentos,
+  const dados={veiculoId,motoristId,data,origem,destino,kmInicial,kmFinal,tacografo,obs,abastecimentos,
     ...(absInicial?{absInicial}:{}),
     registradoPor:currentUserData?.nome||'',criadoEm:new Date().toISOString()};
 
@@ -7293,10 +7303,11 @@ function renderCamRelatorio(){
     const combTotal=absMes.reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
     const manTotal=camManutencoes.filter(m=>(m.data||'').slice(0,7)===mesStr).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
     const motTotal=absMes.reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
-    return {mes:MESES[mi],kmTotal,combTotal,manTotal,motTotal,viagens:rotas.length};
+    const tacTotal=rotas.reduce((s,r)=>s+(parseFloat(r.tacografo)||0),0);
+    return {mes:MESES[mi],kmTotal,combTotal,manTotal,motTotal,tacTotal,viagens:rotas.length};
   });
 
-  const totalAnual={km:dadosMes.reduce((s,m)=>s+m.kmTotal,0),comb:dadosMes.reduce((s,m)=>s+m.combTotal,0),man:dadosMes.reduce((s,m)=>s+m.manTotal,0),mot:dadosMes.reduce((s,m)=>s+(m.motTotal||0),0),viagens:dadosMes.reduce((s,m)=>s+m.viagens,0)};
+  const totalAnual={km:dadosMes.reduce((s,m)=>s+m.kmTotal,0),comb:dadosMes.reduce((s,m)=>s+m.combTotal,0),man:dadosMes.reduce((s,m)=>s+m.manTotal,0),mot:dadosMes.reduce((s,m)=>s+(m.motTotal||0),0),tac:dadosMes.reduce((s,m)=>s+(m.tacTotal||0),0),viagens:dadosMes.reduce((s,m)=>s+m.viagens,0)};
 
   // Por veículo
   const porVeiculo=camVeiculos.map(v=>{
@@ -7304,7 +7315,8 @@ function renderCamRelatorio(){
     const km=rotasV.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
     const comb=rotasV.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
     const man=camManutencoes.filter(m=>m.veiculoId===v.id&&(m.data||'').slice(0,4)===ano).reduce((s,m)=>s+(parseFloat(m.valor)||0),0);
-    return {v,km,comb,man,viagens:rotasV.length,total:comb+man};
+    const tac=rotasV.reduce((s,r)=>s+(parseFloat(r.tacografo)||0),0);
+    return {v,km,comb,man,tac,viagens:rotasV.length,total:comb+man+tac};
   }).filter(x=>x.viagens>0||x.man>0).sort((a,b)=>b.total-a.total);
 
   let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
@@ -7314,13 +7326,14 @@ function renderCamRelatorio(){
 
   // Stat cards anuais
   const totalAnualMot=camRotas.filter(r=>(r.data||'').slice(0,4)===ano).reduce((s,r)=>(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),s),0);
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Total de viagens</div><div class="stat-value">'+totalAnual.viagens+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalAnual.km.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Gasto combustível</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.comb)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)"><div><div class="stat-label">Gasto manutenção</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.man)+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#6366f1)"><div><div class="stat-label">Gasto motoristas</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnualMot)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#7f1d1d,#ef4444)"><div><div class="stat-label">Custo total</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.comb+totalAnual.man+totalAnualMot)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#7c2d12,#c2410c)"><div><div class="stat-label">Gasto tacógrafo</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.tac)+'</div></div></div>'
+    +'<div class="stat-card" style="background:linear-gradient(135deg,#7f1d1d,#ef4444)"><div><div class="stat-label">Custo total</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(totalAnual.comb+totalAnual.man+totalAnualMot+totalAnual.tac)+'</div></div></div>'
     +'</div>';
 
   // Tabela mensal
@@ -7334,6 +7347,7 @@ function renderCamRelatorio(){
     +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
     +'<th style="padding:7px 10px;text-align:right">Manutenção</th>'
     +'<th style="padding:7px 10px;text-align:right">Motoristas</th>'
+    +'<th style="padding:7px 10px;text-align:right">Tacógrafo</th>'
     +'<th style="padding:7px 10px;text-align:right">Total</th>'
     +'</tr></thead><tbody>'
     +dadosMes.map((m,i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+(m.mes===MESES[parseInt(today().slice(5,7))-1]&&today().slice(0,4)===ano?'font-weight:700;background:#eff6ff;':'')+'">'
@@ -7343,7 +7357,8 @@ function renderCamRelatorio(){
       +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(m.combTotal?fmtMoeda(m.combTotal):'—')+'</td>'
       +'<td style="padding:7px 10px;text-align:right;color:#dc2626">'+(m.manTotal?fmtMoeda(m.manTotal):'—')+'</td>'
       +'<td style="padding:7px 10px;text-align:right;color:#6366f1">'+(m.motTotal?fmtMoeda(m.motTotal):'—')+'</td>'
-      +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+(m.combTotal+m.manTotal+(m.motTotal||0)?fmtMoeda(m.combTotal+m.manTotal+(m.motTotal||0)):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;color:#c2410c">'+(m.tacTotal?fmtMoeda(m.tacTotal):'—')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+(m.combTotal+m.manTotal+(m.motTotal||0)+(m.tacTotal||0)?fmtMoeda(m.combTotal+m.manTotal+(m.motTotal||0)+(m.tacTotal||0)):'—')+'</td>'
       +'</tr>').join('')
     +'<tr style="background:#f0f9ff;font-weight:700">'
     +'<td style="padding:8px 10px">TOTAL</td>'
@@ -7352,7 +7367,8 @@ function renderCamRelatorio(){
     +'<td style="padding:8px 10px;text-align:right;color:#d97706">'+fmtMoeda(totalAnual.comb)+'</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#dc2626">'+fmtMoeda(totalAnual.man)+'</td>'
     +'<td style="padding:8px 10px;text-align:right;color:#6366f1">'+fmtMoeda(totalAnual.mot||0)+'</td>'
-    +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalAnual.comb+totalAnual.man+(totalAnual.mot||0))+'</td>'
+    +'<td style="padding:8px 10px;text-align:right;color:#c2410c">'+fmtMoeda(totalAnual.tac||0)+'</td>'
+    +'<td style="padding:8px 10px;text-align:right">'+fmtMoeda(totalAnual.comb+totalAnual.man+(totalAnual.mot||0)+(totalAnual.tac||0))+'</td>'
     +'</tr>'
     +'</tbody></table></div></div>';
 
@@ -7367,14 +7383,16 @@ function renderCamRelatorio(){
       +'<th style="padding:7px 10px;text-align:right">Km</th>'
       +'<th style="padding:7px 10px;text-align:right">Combustível</th>'
       +'<th style="padding:7px 10px;text-align:right">Manutenção</th>'
+      +'<th style="padding:7px 10px;text-align:right">Tacógrafo</th>'
       +'<th style="padding:7px 10px;text-align:right">Total</th>'
       +'</tr></thead><tbody>'
-      +porVeiculo.map(({v,km,comb,man,viagens,total},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
+      +porVeiculo.map(({v,km,comb,man,tac,viagens,total},i)=>'<tr style="'+(i%2?'background:#f8fafc;':'')+'">'
         +'<td style="padding:7px 10px;font-weight:700">'+v.modelo+' <span style="font-size:10px;color:#64748b">'+v.placa+'</span></td>'
         +'<td style="padding:7px 10px;text-align:center">'+viagens+'</td>'
         +'<td style="padding:7px 10px;text-align:right">'+(km?km.toLocaleString('pt-BR',{maximumFractionDigits:0}):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;color:#d97706">'+(comb?fmtMoeda(comb):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;color:#dc2626">'+(man?fmtMoeda(man):'—')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;color:#c2410c">'+(tac?fmtMoeda(tac):'—')+'</td>'
         +'<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtMoeda(total)+'</td>'
         +'</tr>').join('')
       +'</tbody></table></div></div>';
