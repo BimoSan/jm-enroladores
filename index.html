@@ -16661,10 +16661,18 @@ function renderFinCustos(){
       <div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Total ${ano}</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAno)}</div></div></div>
     </div>`;
 
-    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">'
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">'
       +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Duplicatas pagas em '+mesNome+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(realCI.aprazoPago)+'</div></div></div>'
-      +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesNome+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotCI.aPagarMes)+'</div></div></div>'
-      +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotCI.aPagarGeral)+'</div></div></div>'
+      +'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">'
+      +'<div class="card" style="border-left:4px solid #d97706;background:#fffbeb;padding:14px 10px;text-align:center">'
+      +'<div style="font-size:9px;font-weight:700;color:#d97706;margin-bottom:6px;text-transform:uppercase">A pagar em '+mesNome+'</div>'
+      +'<div style="font-size:18px;font-weight:900;color:#d97706">'+fmtMoeda(cpTotCI.aPagarMes)+'</div>'
+      +'</div>'
+      +'<div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:14px 10px;text-align:center">'
+      +'<div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;text-transform:uppercase">A pagar no geral</div>'
+      +'<div style="font-size:18px;font-weight:900;color:#dc2626">'+fmtMoeda(cpTotCI.aPagarGeral)+'</div>'
+      +'</div>'
       +'</div>';
 
     // Duplicatas de Contas a Pagar já classificadas como Custo Indireto —
@@ -19757,10 +19765,18 @@ function renderFinMatDiretos(){
     <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">Total ${mesLabel(mes)}</div><div class="stat-value" style="font-size:18px">${fmtMoeda(realMD.total)}</div></div></div>
     <div class="stat-card" style="background:linear-gradient(135deg,#374151,#6b7280)"><div><div class="stat-label">Total ${ano}</div><div class="stat-value" style="font-size:18px">${fmtMoeda(totalAnoMD)}</div></div></div>
   </div>`;
-  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)"><div><div class="stat-label">Duplicatas pagas em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(realMD.aprazoPago)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><div><div class="stat-label">A pagar em '+mesLabel(mes)+'</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarMes)+'</div></div></div>'
-    +'<div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><div><div class="stat-label">A pagar no geral</div><div class="stat-value" style="font-size:18px">'+fmtMoeda(cpTotMD.aPagarGeral)+'</div></div></div>'
+    +'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
+    +'<div class="card" style="border-left:4px solid #d97706;background:#fffbeb;padding:14px 10px;text-align:center">'
+    +'<div style="font-size:9px;font-weight:700;color:#d97706;margin-bottom:6px;text-transform:uppercase">A pagar em '+mesLabel(mes)+'</div>'
+    +'<div style="font-size:18px;font-weight:900;color:#d97706">'+fmtMoeda(cpTotMD.aPagarMes)+'</div>'
+    +'</div>'
+    +'<div class="card" style="border-left:4px solid #dc2626;background:#fef2f2;padding:14px 10px;text-align:center">'
+    +'<div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:6px;text-transform:uppercase">A pagar no geral</div>'
+    +'<div style="font-size:18px;font-weight:900;color:#dc2626">'+fmtMoeda(cpTotMD.aPagarGeral)+'</div>'
+    +'</div>'
     +'</div>';
 
   // Duplicatas de Contas a Pagar já classificadas como Material Direto —
