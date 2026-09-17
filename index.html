@@ -701,10 +701,14 @@ function custosIndiretosPorCategoriaCaixa(mes){
     if(pagoNoMes>0) porCat[c.categoria]=(porCat[c.categoria]||0)+pagoNoMes;
   });
   const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
-  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.categoriaIndireta&&c.pago&&(c.dataPagamento||'').startsWith(mes)).forEach(c=>{
+  // Duplicata sem categoriaIndireta definida ainda conta no total (senão o
+  // card "Total" e a soma dessa lista por categoria batiam números
+  // diferentes) — só cai num balde "Sem categoria" até alguém classificar.
+  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.pago&&(c.dataPagamento||'').startsWith(mes)).forEach(c=>{
     const grupoId=c.grupoId||c.id;
     if(gruposJaLancados.has(grupoId)) return;
-    porCat[c.categoriaIndireta]=(porCat[c.categoriaIndireta]||0)+(parseFloat(c.valor)||0);
+    const cat=c.categoriaIndireta||'Sem categoria';
+    porCat[cat]=(porCat[cat]||0)+(parseFloat(c.valor)||0);
   });
   const catsOrd=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
   return {catsOrd,total:catsOrd.reduce((s,[,v])=>s+v,0)};
