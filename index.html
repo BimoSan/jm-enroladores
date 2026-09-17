@@ -17690,6 +17690,7 @@ window._cpSetCategoriaIndireta=async function(id,categoriaIndireta){
   }
 };
 window._ciToggleDups=function(){ window._ciDupsAbertas=!window._ciDupsAbertas; reloadTab(); };
+window._mdToggleDups=function(){ window._mdDupsAbertas=!window._mdDupsAbertas; reloadTab(); };
 window._crToggleRecebidos=function(){ window._crRecebidosAbertos=!window._crRecebidosAbertos; reloadTab(); };
 
 window._cpExcluirConta=function(id){
@@ -19817,8 +19818,19 @@ function renderFinMatDiretos(){
   const dupsCategoriaMD=(contasPagar||[]).filter(c=>c.categoria==='mat_direto')
     .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
   if(dupsCategoriaMD.length){
+    // Fica fechada por padrão — a lista é enorme e a maioria já entra sozinha
+    // no resumo por dia assim que for paga.
+    if(window._mdDupsAbertas==null) window._mdDupsAbertas=false;
+    const mdDupsAbertas=window._mdDupsAbertas;
+    const totalDupsMD=dupsCategoriaMD.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
     html+='<div class="card" style="margin-bottom:16px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — Material Direto</div>';
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="window._mdToggleDups()">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Duplicatas em Contas a Pagar — Material Direto <span style="font-size:10px;color:#94a3b8;font-weight:400">('+dupsCategoriaMD.length+' · '+fmtMoeda(totalDupsMD)+')</span></div>'
+      +'<span style="font-size:11px;color:#1d4ed8;font-weight:700;white-space:nowrap">'+(mdDupsAbertas?'▾ Ocultar':'▸ Ver duplicatas')+'</span>'
+      +'</div>';
+    if(!mdDupsAbertas){ html+='</div>'; }
+    else {
+    html+='<div style="margin-top:10px">';
     dupsCategoriaMD.forEach((c,i)=>{
       const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
       const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
@@ -19832,7 +19844,8 @@ function renderFinMatDiretos(){
         +'</div>';
     });
     html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
-    html+='</div>';
+    html+='</div></div>';
+    }
   }
 
   // Resumo por categoria
