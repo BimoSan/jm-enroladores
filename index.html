@@ -19293,12 +19293,34 @@ function renderFinDashboard(){
   }
 
   // Últimas transações (mistura pagamentos + compras recentes)
-  const todasPagas=pagamentos.filter(p=>p.pago);
-  const todasCompras=finComprasTodos();
-  const ultimas=[
-    ...todasPagas.slice(0,5).map(p=>({data:p.dataPagamento||p.dataRef,desc:p.pessoa+' — '+p.setor,valor:p.valor,tipo:'pagamento'})),
-    ...todasCompras.slice(0,5).map(c=>({data:c.data,desc:c.itemDesc,valor:parseFloat(c.custoTotal)||0,tipo:'compra'})),
-  ].sort((a,b)=>(b.data||'')>(a.data||'')?1:-1).slice(0,8);
+  // Cada setor guarda a data de um jeito (AAAA-MM-DD, DD/MM/AAAA da Espuma,
+  // quinzena AAAA-MM-Qn) — normaliza tudo pra AAAA-MM-DD antes de ordenar,
+  // e ordena ANTES de cortar (antes cortava 5 de cada lista sem ordem).
+  const dataISO=s=>{
+    if(!s) return '';
+    const b=String(s).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if(b) return b[3]+'-'+b[2]+'-'+b[1];
+    const q=String(s).match(/^(\d{4})-(\d{2})-Q(\d)/);
+    if(q) return q[1]+'-'+q[2]+'-'+(q[3]==='1'?'15':'28');
+    const i=String(s).match(/^\d{4}-\d{2}-\d{2}/);
+    return i?i[0]:'';
+  };
+  const ultimasTodas=[];
+  pagamentos.filter(p=>p.pago).forEach(p=>ultimasTodas.push({data:dataISO(p.dataPagamento||p.dataRef),desc:p.pessoa+' — '+p.setor,valor:p.valor,tipo:'pagamento'}));
+  finComprasTodos().forEach(c=>ultimasTodas.push({data:dataISO(c.data),desc:c.itemDesc,valor:parseFloat(c.custoTotal)||0,tipo:'compra'}));
+  // Saídas lançadas à vista nas categorias do Financeiro (as a prazo entram
+  // pela duplicata paga, logo abaixo — senão contaria duas vezes).
+  [['Mat. Direto',matDiretos],['Mat. Químico',CUSTO_SIMPLES_CONFIG.mat_quimicos.arr()],['Almoxarifado',CUSTO_SIMPLES_CONFIG.almoxarifado.arr()],
+   ['Custo Indireto',custosIndiretos],['Viagens',CUSTO_SIMPLES_CONFIG.viagens.arr()],['Outros / Geral',CUSTO_SIMPLES_CONFIG.outros.arr()]].forEach(([rot,arr])=>{
+    (arr||[]).filter(it=>!custoEstaAPrazo(it)).forEach(it=>{
+      const v=parseFloat(it.valor)||0; if(v<=0) return;
+      ultimasTodas.push({data:dataISO(it.data),desc:rot+(it.categoria?' — '+it.categoria:'')+(it.descricao?' · '+it.descricao:''),valor:v,tipo:'compra'});
+    });
+  });
+  (contasPagar||[]).filter(c=>c.pago&&c.dataPagamento).forEach(c=>{
+    ultimasTodas.push({data:dataISO(c.dataPagamento),desc:'Duplicata — '+(c.fornecedor||'—')+(c.parcela?' ('+c.parcela+')':''),valor:parseFloat(c.valor)||0,tipo:'compra'});
+  });
+  const ultimas=ultimasTodas.filter(t=>t.data).sort((a,b)=>a.data<b.data?1:a.data>b.data?-1:0).slice(0,8);
 
   if(ultimas.length){
     html+='<div class="card"><div style="font-size:13px;font-weight:700;margin-bottom:12px">🕐 Últimas transações</div>';
