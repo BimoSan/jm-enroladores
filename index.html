@@ -986,9 +986,20 @@ function renderCustoSimplesTab(colKey){
   const dupsCategoria=(contasPagar||[]).filter(c=>c.categoria===CUSTO_COLECOES[colKey].categoriaCP)
     .sort((a,b)=>(a.pago===b.pago?0:(a.pago?1:-1))||((a.vencimento||'')<(b.vencimento||'')?-1:1));
   if(dupsCategoria.length){
-    html+='<div class="card" style="margin-bottom:16px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — '+cs.titulo+'</div>';
-    dupsCategoria.forEach((c,i)=>{
+    // Só o Almoxarifado fica retraído por padrão (lista enorme).
+    const dupsRetratil=colKey==='almoxarifado';
+    const almoxAberta=!dupsRetratil||!!window._almoxDupsAbertas;
+    const totalDupsCS=dupsCategoria.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    html+='<div class="card" style="margin-bottom:16px">';
+    if(dupsRetratil){
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="window._almoxToggleDups()">'
+        +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Duplicatas em Contas a Pagar — '+cs.titulo+' <span style="font-size:10px;color:#94a3b8;font-weight:400">('+dupsCategoria.length+' · '+fmtMoeda(totalDupsCS)+')</span></div>'
+        +'<span style="font-size:11px;color:#1d4ed8;font-weight:700;white-space:nowrap">'+(almoxAberta?'▾ Ocultar':'▸ Ver duplicatas')+'</span>'
+        +'</div>';
+    } else {
+      html+='<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">📥 Duplicatas em Contas a Pagar — '+cs.titulo+'</div>';
+    }
+    (almoxAberta?dupsCategoria:[]).forEach((c,i)=>{
       const vencida=!c.pago&&c.vencimento&&c.vencimento<today();
       const cor=c.pago?'#059669':vencida?'#dc2626':'#d97706';
       const statusLabel=c.pago?'✓ Pago'+(c.dataPagamento?' em '+fmtDate(c.dataPagamento):''):(vencida?'Vencida':'A vencer');
@@ -1000,7 +1011,7 @@ function renderCustoSimplesTab(colKey){
         +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
         +'</div>';
     });
-    html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
+    if(almoxAberta) html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Pra dar baixa ou editar, use a aba <strong>Contas a Pagar</strong>.</div>';
     html+='</div>';
   }
 
@@ -17691,6 +17702,7 @@ window._cpSetCategoriaIndireta=async function(id,categoriaIndireta){
 };
 window._ciToggleDups=function(){ window._ciDupsAbertas=!window._ciDupsAbertas; reloadTab(); };
 window._mdToggleDups=function(){ window._mdDupsAbertas=!window._mdDupsAbertas; reloadTab(); };
+window._almoxToggleDups=function(){ window._almoxDupsAbertas=!window._almoxDupsAbertas; reloadTab(); };
 window._crToggleRecebidos=function(){ window._crRecebidosAbertos=!window._crRecebidosAbertos; reloadTab(); };
 
 window._cpExcluirConta=function(id){
