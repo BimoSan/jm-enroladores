@@ -17399,10 +17399,41 @@ function renderContasPagar(){
     if(!pendentes.length){
       html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma duplicata pendente 🎉</div>';
     } else {
-      agruparPorMes(pendentes,'vencimento').forEach(g=>{
-        html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
-        html+=g.itens.map(linha).join('');
+      // Previsão de saída por mês — clicar no mês mostra as duplicatas dele
+      // (a lista inteira passa de 200 itens).
+      const previsaoCP={};
+      pendentes.forEach(c=>{
+        const m=(c.vencimento||'').slice(0,7);
+        if(!m) return;
+        previsaoCP[m]=(previsaoCP[m]||0)+cpPendente(c);
       });
+      const mesesPrevCP=Object.keys(previsaoCP).sort();
+      if(mesesPrevCP.length){
+        const maxPrevCP=Math.max(...Object.values(previsaoCP),1);
+        html+='<div class="card" style="margin-bottom:18px">'
+          +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📅 Previsão de saída por mês</div>';
+        mesesPrevCP.forEach(m=>{
+          const v=previsaoCP[m];
+          const pct=Math.round(v/maxPrevCP*100);
+          const atrasadoMes=m<mesAtual;
+          const sel=window._cpMesSel===m;
+          html+='<div onclick="window._cpSelMes(\''+m+'\')" style="margin-bottom:6px;padding:6px 8px;border-radius:8px;cursor:pointer;'+(sel?'background:#fff7ed;box-shadow:0 0 0 2px #fdba74':'')+'">'
+            +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+            +'<span style="font-size:12px;font-weight:600">'+(sel?'▾ ':'▸ ')+mesLabel(m)+(atrasadoMes?' <span style="font-size:10px;color:#dc2626;font-weight:700">em atraso</span>':'')+'</span>'
+            +'<span style="font-size:12px;font-weight:700;color:'+(atrasadoMes?'#dc2626':'#d97706')+'">'+fmtMoeda(v)+'</span>'
+            +'</div>'
+            +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
+            +'<div style="height:100%;width:'+pct+'%;background:'+(atrasadoMes?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#d97706,#fbbf24)')+';border-radius:99px"></div>'
+            +'</div></div>';
+        });
+        html+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">Clique num mês pra ver as duplicatas dele.</div>';
+        html+='</div>';
+      }
+      if(window._cpMesSel&&previsaoCP[window._cpMesSel]!=null){
+        const doMesSelCP=pendentes.filter(c=>(c.vencimento||'').slice(0,7)===window._cpMesSel);
+        html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A pagar em '+mesLabel(window._cpMesSel)+' ('+doMesSelCP.length+')</div>';
+        html+=doMesSelCP.map(linha).join('');
+      }
     }
   } else {
     // Pagas — com filtro de mês, porque o histórico inteiro junto fica
@@ -17815,15 +17846,17 @@ function renderContasReceber(){
       const v=previsao[m];
       const pct=Math.round(v/maxPrev*100);
       const atrasadoMes=m<mesAtual;
-      html+='<div style="margin-bottom:10px">'
+      const selCR=window._crMesSel===m;
+      html+='<div onclick="window._crSelMes(\''+m+'\')" style="margin-bottom:6px;padding:6px 8px;border-radius:8px;cursor:pointer;'+(selCR?'background:#eff6ff;box-shadow:0 0 0 2px #93c5fd':'')+'">'
         +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
-        +'<span style="font-size:12px;font-weight:600">'+mesLabel(m)+(atrasadoMes?' <span style="font-size:10px;color:#dc2626;font-weight:700">em atraso</span>':'')+'</span>'
+        +'<span style="font-size:12px;font-weight:600">'+(selCR?'▾ ':'▸ ')+mesLabel(m)+(atrasadoMes?' <span style="font-size:10px;color:#dc2626;font-weight:700">em atraso</span>':'')+'</span>'
         +'<span style="font-size:12px;font-weight:700;color:'+(atrasadoMes?'#dc2626':'#059669')+'">'+fmtMoeda(v)+'</span>'
         +'</div>'
         +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
         +'<div style="height:100%;width:'+pct+'%;background:'+(atrasadoMes?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#059669,#34d399)')+';border-radius:99px"></div>'
         +'</div></div>';
     });
+    html+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">Clique num mês pra ver as parcelas dele.</div>';
     html+='</div>';
   }
 
@@ -17862,14 +17895,15 @@ function renderContasReceber(){
     return grupos;
   };
 
-  html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A receber ('+pendentes.length+')</div>';
+  // Só mostra as parcelas do mês clicado na previsão (a lista inteira passa
+  // de 700 itens).
   if(!pendentes.length){
+    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A receber (0)</div>';
     html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma parcela pendente 🎉</div>';
-  } else {
-    agruparPorMes(pendentes).forEach(g=>{
-      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
-      html+=g.itens.map(linha).join('');
-    });
+  } else if(window._crMesSel&&previsao[window._crMesSel]!=null){
+    const doMesSel=pendentes.filter(c=>(c.vencimento||'').slice(0,7)===window._crMesSel);
+    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A receber em '+mesLabel(window._crMesSel)+' ('+doMesSel.length+')</div>';
+    html+=doMesSel.map(linha).join('');
   }
 
   if(recebidas.length){
@@ -17882,6 +17916,9 @@ function renderContasReceber(){
 
   return html;
 }
+
+window._crSelMes=function(m){ window._crMesSel=(window._crMesSel===m)?null:m; reloadTab(); };
+window._cpSelMes=function(m){ window._cpMesSel=(window._cpMesSel===m)?null:m; reloadTab(); };
 
 // Visão por cliente — quanto cada um ainda deve e como está o prazo dele
 function renderContasReceberClientes(){
