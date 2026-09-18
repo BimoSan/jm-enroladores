@@ -17734,7 +17734,6 @@ window._cpSetCategoriaIndireta=async function(id,categoriaIndireta){
 window._ciToggleDups=function(){ window._ciDupsAbertas=!window._ciDupsAbertas; reloadTab(); };
 window._mdToggleDups=function(){ window._mdDupsAbertas=!window._mdDupsAbertas; reloadTab(); };
 window._almoxToggleDups=function(){ window._almoxDupsAbertas=!window._almoxDupsAbertas; reloadTab(); };
-window._crToggleRecebidos=function(){ window._crRecebidosAbertos=!window._crRecebidosAbertos; reloadTab(); };
 
 window._cpExcluirConta=function(id){
   window._pendingCpId=id;
@@ -17806,20 +17805,13 @@ function renderContasReceber(){
   };
 
   let html='';
-  if(!contasReceber.length){
-    return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhuma venda a prazo cadastrada ainda.</div>';
-  }
-
   const pendentes=contasReceber.filter(c=>!c.recebido).sort((a,b)=>(a.vencimento||'')<(b.vencimento||'')?-1:1);
-  const recebidas=contasReceber.filter(c=>c.recebido).sort((a,b)=>(b.dataRecebimento||b.vencimento||'')<(a.dataRecebimento||a.vencimento||'')?-1:1);
   // Em aberto conta só o que FALTA receber (desconta pagamento parcial);
   // recebido conta o que efetivamente entrou.
   const somaPendente=(lista)=>lista.reduce((s,c)=>s+crPendente(c),0);
-  const somaRecebida=(lista)=>lista.reduce((s,c)=>s+((parseFloat(c.valorPago)||parseFloat(c.valor))||0),0);
-
   const atrasadas=pendentes.filter(c=>(c.vencimento||'')&&(c.vencimento<hoje));
   const aReceberMes=somaPendente(pendentes.filter(c=>(c.vencimento||'').slice(0,7)===mesAtual));
-  const recebidoMes=somaRecebida(recebidas.filter(c=>(c.dataRecebimento||'').slice(0,7)===mesAtual));
+  const recebidoMes=crTotalRecebidoMes(mesAtual);
   const totalPendente=somaPendente(pendentes);
 
   // Cards de resumo
@@ -17830,35 +17822,40 @@ function renderContasReceber(){
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff"><div><div class="stat-label">Total a receber</div><div class="stat-value" style="font-size:22px">'+fmtMoeda(totalPendente)+'</div></div></div>'
     +'</div>';
 
-  // Previsão de entrada por mês — o que o chefe quer ver: quanto entra em cada mês
-  const previsao={};
-  pendentes.forEach(c=>{
-    const m=(c.vencimento||'').slice(0,7);
-    if(!m) return;
-    previsao[m]=(previsao[m]||0)+crPendente(c);
+  // Tabela única por mês: o que entrou (à vista + baixas de duplicata) e o
+  // que ainda falta receber de duplicata. Clicar no mês abre o detalhe.
+  const mapa={};
+  const get=(m)=>mapa[m]||(mapa[m]={avista:0,recebido:0,areceber:0});
+  (vendas||[]).forEach(v=>{ const m=(v.data||'').slice(0,7); if(m) get(m).avista+=parseFloat(v.valor)||0; });
+  (contasReceber||[]).forEach(c=>crEventosRecebimento(c).forEach(r=>{ const m=(r.data||'').slice(0,7); if(m) get(m).recebido+=parseFloat(r.valor)||0; }));
+  pendentes.forEach(c=>{ const m=(c.vencimento||'').slice(0,7); if(m) get(m).areceber+=crPendente(c); });
+  get(mesAtual);
+  const meses=Object.keys(mapa).sort();
+  const maxMes=Math.max(...meses.map(m=>mapa[m].avista+mapa[m].recebido+mapa[m].areceber),1);
+
+  html+='<div class="card" style="margin-bottom:18px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📅 Entradas por mês</div>';
+  meses.forEach(m=>{
+    const d=mapa[m];
+    const entrou=d.avista+d.recebido;
+    const atrasadoMes=m<mesAtual&&d.areceber>0;
+    const sel=window._crMesSel===m;
+    html+='<div onclick="window._crSelMes(\''+m+'\')" style="margin-bottom:6px;padding:6px 8px;border-radius:8px;cursor:pointer;'+(sel?'background:#eff6ff;box-shadow:0 0 0 2px #93c5fd':'')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:3px;flex-wrap:wrap">'
+      +'<span style="font-size:12px;font-weight:600">'+(sel?'▾ ':'▸ ')+mesLabel(m)
+      +(m===mesAtual?' <span style="font-size:10px;color:#1d4ed8;font-weight:700">mês atual</span>':'')
+      +(atrasadoMes?' <span style="font-size:10px;color:#dc2626;font-weight:700">em atraso</span>':'')+'</span>'
+      +'<span style="font-size:12px;font-weight:700;display:flex;gap:12px">'
+      +(entrou>0?'<span style="color:#059669">Entrou '+fmtMoeda(entrou)+'</span>':'')
+      +(d.areceber>0?'<span style="color:'+(atrasadoMes?'#dc2626':'#d97706')+'">A receber '+fmtMoeda(d.areceber)+'</span>':'')
+      +'</span></div>'
+      +'<div style="display:flex;height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden">'
+      +'<div style="width:'+(entrou/maxMes*100)+'%;background:linear-gradient(90deg,#059669,#34d399)"></div>'
+      +'<div style="width:'+(d.areceber/maxMes*100)+'%;background:'+(atrasadoMes?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#d97706,#fbbf24)')+'"></div>'
+      +'</div></div>';
   });
-  const mesesPrev=Object.keys(previsao).sort();
-  if(mesesPrev.length){
-    const maxPrev=Math.max(...Object.values(previsao),1);
-    html+='<div class="card" style="margin-bottom:18px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">📅 Previsão de entrada por mês</div>';
-    mesesPrev.forEach(m=>{
-      const v=previsao[m];
-      const pct=Math.round(v/maxPrev*100);
-      const atrasadoMes=m<mesAtual;
-      const selCR=window._crMesSel===m;
-      html+='<div onclick="window._crSelMes(\''+m+'\')" style="margin-bottom:6px;padding:6px 8px;border-radius:8px;cursor:pointer;'+(selCR?'background:#eff6ff;box-shadow:0 0 0 2px #93c5fd':'')+'">'
-        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
-        +'<span style="font-size:12px;font-weight:600">'+(selCR?'▾ ':'▸ ')+mesLabel(m)+(atrasadoMes?' <span style="font-size:10px;color:#dc2626;font-weight:700">em atraso</span>':'')+'</span>'
-        +'<span style="font-size:12px;font-weight:700;color:'+(atrasadoMes?'#dc2626':'#059669')+'">'+fmtMoeda(v)+'</span>'
-        +'</div>'
-        +'<div style="height:6px;background:#f1f5f9;border-radius:99px">'
-        +'<div style="height:100%;width:'+pct+'%;background:'+(atrasadoMes?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#059669,#34d399)')+';border-radius:99px"></div>'
-        +'</div></div>';
-    });
-    html+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">Clique num mês pra ver as parcelas dele.</div>';
-    html+='</div>';
-  }
+  html+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">Clique num mês pra ver o que foi à vista e as duplicatas dele.</div>';
+  html+='</div>';
 
   const linha=(c)=>{
     const sit=crSituacao(c);
@@ -17884,34 +17881,74 @@ function renderContasReceber(){
       +'</div></div></div>';
   };
 
-  const agruparPorMes=(lista)=>{
-    const grupos=[];
-    lista.forEach(c=>{
-      const chave=(c.vencimento||'').slice(0,7);
-      let g=grupos.find(x=>x.chave===chave);
-      if(!g){g={chave,itens:[]};grupos.push(g);}
-      g.itens.push(c);
-    });
-    return grupos;
-  };
+  // Detalhe do mês clicado: à vista + duplicatas (recebidas e a receber).
+  const sel=window._crMesSel;
+  if(sel&&mapa[sel]){
+    const vendasMes=(vendas||[]).filter(v=>(v.data||'').startsWith(sel)).sort((a,b)=>(a.data||'')<(b.data||'')?1:-1);
+    const totalAvista=vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+    const recMes=crRecebimentosDoMes(sel);
+    const totalRec=recMes.reduce((s,r)=>s+r.valor,0);
+    const pendMes=pendentes.filter(c=>(c.vencimento||'').slice(0,7)===sel);
 
-  // Só mostra as parcelas do mês clicado na previsão (a lista inteira passa
-  // de 700 itens).
-  if(!pendentes.length){
-    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A receber (0)</div>';
-    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;margin-bottom:14px">Nenhuma parcela pendente 🎉</div>';
-  } else if(window._crMesSel&&previsao[window._crMesSel]!=null){
-    const doMesSel=pendentes.filter(c=>(c.vencimento||'').slice(0,7)===window._crMesSel);
-    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">A receber em '+mesLabel(window._crMesSel)+' ('+doMesSel.length+')</div>';
-    html+=doMesSel.map(linha).join('');
-  }
+    html+='<div style="font-size:14px;font-weight:800;color:#334155;margin:4px 0 10px">'+mesLabel(sel)+'</div>';
 
-  if(recebidas.length){
-    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Recebidas ('+recebidas.length+')</div>';
-    agruparPorMes(recebidas).forEach(g=>{
-      html+='<div style="font-size:12px;font-weight:700;color:#334155;margin:12px 0 6px">'+mesLabel(g.chave)+'</div>';
-      html+=g.itens.map(linha).join('');
-    });
+    // ⚡ À vista
+    const porForma={pix:0,dinheiro:0,cheque:0};
+    vendasMes.forEach(v=>{ if(porForma[v.forma]!==undefined) porForma[v.forma]+=parseFloat(v.valor)||0; });
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569">⚡ À vista <span style="font-size:10px;color:#94a3b8;font-weight:400">('+vendasMes.length+')</span></div>'
+      +'<div style="font-size:15px;font-weight:800;color:#059669">'+fmtMoeda(totalAvista)+'</div></div>';
+    if(!vendasMes.length){
+      html+='<div style="text-align:center;color:#94a3b8;padding:12px;font-size:12px">Nenhuma venda à vista neste mês.</div>';
+    } else {
+      html+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">📱 Pix '+fmtMoeda(porForma.pix)+' · 💵 Dinheiro '+fmtMoeda(porForma.dinheiro)+' · 📝 Cheque '+fmtMoeda(porForma.cheque)+'</div>';
+      vendasMes.forEach((v,i)=>{
+        const[,m_,dd]=(v.data||'--').split('-');
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="font-size:13px;font-weight:700">'+(v.forma==='pix'?'📱 Pix':v.forma==='dinheiro'?'💵 Dinheiro':v.forma==='cheque'?'📝 Cheque':(v.forma||'—'))
+          +' <span style="font-size:10px;color:#94a3b8;font-weight:400">'+dd+'/'+m_+'</span></div>'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:14px;font-weight:800;color:#059669">'+fmtMoeda(parseFloat(v.valor)||0)+'</span>'
+          +'<button onclick="window._vendasExcluir(\''+v.id+'\')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>'
+          +'</div></div>';
+      });
+    }
+    html+='</div>';
+
+    // 📥 Duplicatas recebidas no mês
+    html+='<div class="card" style="margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Duplicatas recebidas <span style="font-size:10px;color:#94a3b8;font-weight:400">('+recMes.length+')</span></div>'
+      +'<div style="font-size:15px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalRec)+'</div></div>';
+    if(!recMes.length){
+      html+='<div style="text-align:center;color:#94a3b8;padding:12px;font-size:12px">Nenhuma duplicata recebida neste mês.</div>';
+    } else {
+      recMes.forEach((r,i)=>{
+        const[,m_,dd]=(r.data||'--').split('-');
+        const conta=(contasReceber||[]).find(c=>c.id===r.contaId);
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
+          +'<div style="min-width:0;flex:1">'
+          +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.cliente
+          +(r.parcela?'<span style="font-size:10px;color:#64748b;font-weight:600"> · '+r.parcela+'</span>':'')+'</div>'
+          +'<div style="font-size:10px;color:#94a3b8">'+dd+'/'+m_+(r.descricao?' · '+r.descricao:'')
+          +(r.estimado?' · <span style="color:#b45309">data estimada</span>':'')+'</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-left:10px">'
+          +'<span style="font-size:14px;font-weight:800;color:#1d4ed8">'+fmtMoeda(r.valor)+'</span>'
+          +(podeEditar&&conta&&conta.recebido?'<button onclick="window._crDesmarcarRecebido(\''+conta.id+'\')" class="btn btn-sm btn-ghost" style="font-size:11px">Desmarcar</button>':'')
+          +'</div></div>';
+      });
+    }
+    html+='</div>';
+
+    // 📥 Duplicatas ainda a receber (vencimento no mês)
+    html+='<div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Duplicatas a receber em '+mesLabel(sel)+' ('+pendMes.length+')</div>';
+    if(!pendMes.length){
+      html+='<div class="card" style="text-align:center;color:#94a3b8;padding:16px;font-size:12px">Nenhuma parcela pendente com vencimento neste mês.</div>';
+    } else {
+      html+=pendMes.map(linha).join('');
+    }
   }
 
   return html;
@@ -18830,144 +18867,15 @@ function renderFinVendas(){
     return html;
   }
 
-  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  if(!window._vendasMes) window._vendasMes=today().slice(0,7);
-  // Os meses disponíveis somam os das vendas à vista e os das baixas do
-  // Contas a Receber — senão um mês que só teve recebimento a prazo sumiria.
-  const mesesCR=(contasReceber||[]).flatMap(c=>crEventosRecebimento(c).map(r=>(r.data||'').slice(0,7))).filter(Boolean);
-  const mesesDisp=[...new Set([today().slice(0,7),...vendas.map(v=>(v.data||'').slice(0,7)).filter(Boolean),...mesesCR])].sort().reverse();
-  const mes=mesesDisp.includes(window._vendasMes)?window._vendasMes:mesesDisp[0]||today().slice(0,7);
-  const doMes=vendas.filter(v=>(v.data||'').startsWith(mes));
-  const totalMes=doMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
-  const recCR=crRecebimentosDoMes(mes);
-  const totalCR=recCR.reduce((s,r)=>s+r.valor,0);
-  const totalGeral=totalMes+totalCR;
-  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
-
-  const mesSelect='<select onchange="window._vendasSetMes(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
-    +mesesDisp.map(m=>`<option value="${m}"${m===mes?' selected':''}>${mesLabel(m)}</option>`).join('')+'</select>';
-
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    ${mesSelect}
-    <div style="text-align:right">
-      <div style="font-size:10px;color:#64748b">Entrou em ${mesLabel(mes)}</div>
-      <div style="font-size:22px;font-weight:900;color:#059669">${fmtMoeda(totalGeral)}</div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-sm btn-ghost" onclick="window._vendasSetView('clientes')">👤 Clientes</button>
-      <button class="btn btn-primary btn-sm" onclick="window._entradaNova()">+ Entrada</button>
-    </div>
-  </div>`;
-
-  // Quebra à vista x a prazo — clicável, escolhe qual bloco de detalhe
-  // aparece embaixo. Antes os dois ficavam sempre abertos e a tela ficava
-  // enorme de tão vertical.
-  if(!window._vendasSubTab) window._vendasSubTab='avista';
-  const subTab=window._vendasSubTab;
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
-    +'<div onclick="window._vendasSetSubTab(\'avista\')" style="cursor:pointer;text-align:center;background:#f0fdf4;border-radius:12px;padding:12px;border:2px solid '+(subTab==='avista'?'#059669':'transparent')+'">'
-    +'<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">⚡ À vista</div>'
-    +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(totalMes)+'</div>'
-    +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+doMes.length+' lançamento'+(doMes.length!==1?'s':'')+'</div>'
-    +'</div>'
-    +'<div onclick="window._vendasSetSubTab(\'aprazo\')" style="cursor:pointer;text-align:center;background:#eff6ff;border-radius:12px;padding:12px;border:2px solid '+(subTab==='aprazo'?'#1d4ed8':'transparent')+'">'
-    +'<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">📥 A prazo (Contas a Receber)</div>'
-    +'<div style="font-size:18px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</div>'
-    +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+recCR.length+' baixa'+(recCR.length!==1?'s':'')+'</div>'
-    +'</div>'
+  // Tela única: cards + tabela por mês (à vista e duplicatas dentro de cada mês).
+  let html='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<button class="btn btn-sm btn-ghost" onclick="window._vendasSetView(\'clientes\')">👤 Clientes</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="window._entradaNova()">+ Entrada</button>'
     +'</div>';
-
-  if(subTab==='avista'){
-    // Agrupado por dia
-    const porDia={};
-    doMes.forEach(v=>{ const d=v.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(v); });
-    const dias=Object.keys(porDia).sort().reverse();
-
-    // Resumo por forma de pagamento
-    const porForma={pix:0,dinheiro:0,cheque:0};
-    doMes.forEach(v=>{ const f=v.forma||'outros'; if(porForma[f]!==undefined) porForma[f]+=parseFloat(v.valor)||0; });
-    if(totalMes>0){
-      html+='<div class="card" style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">💳 Por forma de recebimento</div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
-        +[{k:'pix',l:'📱 Pix'},{k:'dinheiro',l:'💵 Dinheiro'},{k:'cheque',l:'📝 Cheque'}].map(({k,l})=>`<div style="text-align:center;background:#f0fdf4;border-radius:12px;padding:12px">
-          <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">${l}</div>
-          <div style="font-size:18px;font-weight:800;color:#059669">${fmtMoeda(porForma[k])}</div>
-        </div>`).join('')
-        +'</div></div>';
-    }
-
-    html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">⚡ Lançamentos à vista — '+mesLabel(mes)+'</div>';
-    if(!dias.length){
-      html+='<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma venda à vista neste mês.</div>';
-    } else {
-      dias.forEach((dia,di)=>{
-        const itens=porDia[dia];
-        const totalDia=itens.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
-        const[ano,m_,dd]=dia.split('-');
-        html+=`<div style="${di>0?'margin-top:14px;padding-top:14px;border-top:2px solid #f1f5f9':''}">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:11px;font-weight:800;color:#475569">${dd}/${m_}/${ano}</span>
-            <span style="font-size:12px;font-weight:800;color:#059669">${fmtMoeda(totalDia)}</span>
-          </div>`;
-        itens.forEach((v,i)=>{
-          html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;${i>0?'border-top:1px solid #f8fafc':''}">
-            <div>
-              <span style="font-size:13px;font-weight:700">${v.forma==='pix'?'📱 Pix':v.forma==='dinheiro'?'💵 Dinheiro':v.forma==='cheque'?'📝 Cheque':v.forma||'—'}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:14px;font-weight:800;color:#059669">${fmtMoeda(parseFloat(v.valor))}</span>
-              <button onclick="window._vendasExcluir('${v.id}')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:6px;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
-            </div>
-          </div>`;
-        });
-        html+='</div>';
-      });
-    }
-    html+='</div>';
-  } else {
-    // Recebimentos do mês selecionado, vindos do Contas a Receber (só
-    // leitura — a baixa é dada aqui embaixo mesmo, na gestão de parcelas).
-    // Fica fechada por padrão — em mês cheio essa lista fica enorme.
-    if(recCR.length){
-      if(window._crRecebidosAbertos==null) window._crRecebidosAbertos=false;
-      const recAbertos=window._crRecebidosAbertos;
-      html+='<div class="card" style="margin-bottom:16px">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer" onclick="window._crToggleRecebidos()">'
-        +'<div style="font-size:12px;font-weight:700;color:#475569">📥 Recebido em '+mesLabel(mes)+' <span style="font-size:10px;color:#94a3b8;font-weight:400">('+recCR.length+')</span></div>'
-        +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<span style="font-size:13px;font-weight:800;color:#1d4ed8">'+fmtMoeda(totalCR)+'</span>'
-        +'<span style="font-size:11px;color:#1d4ed8;font-weight:700;white-space:nowrap">'+(recAbertos?'▾ Ocultar':'▸ Ver')+'</span>'
-        +'</div></div>';
-      if(recAbertos){
-        html+='<div style="margin-top:10px">';
-        recCR.forEach((r,i)=>{
-          const[ano,m_,dd]=(r.data||'--').split('-');
-          html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;'+(i>0?'border-top:1px solid #f8fafc':'')+'">'
-            +'<div style="min-width:0;flex:1">'
-            +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.cliente
-            +(r.parcela?'<span style="font-size:10px;color:#64748b;font-weight:600"> · '+r.parcela+'</span>':'')+'</div>'
-            +'<div style="font-size:10px;color:#94a3b8">'+dd+'/'+m_+'/'+ano+(r.descricao?' · '+r.descricao:'')
-            +(r.estimado?' · <span style="color:#b45309">data estimada</span>':'')+'</div>'
-            +'</div>'
-            +'<span style="font-size:14px;font-weight:800;color:#1d4ed8;margin-left:10px">'+fmtMoeda(r.valor)+'</span>'
-            +'</div>';
-        });
-        html+='</div>';
-      }
-      html+='</div>';
-    }
-
-    // Gestão de parcelas — pendentes/recebidas, dar baixa etc. Os cards
-    // daqui embaixo são sempre "hoje", diferente do seletor de mês lá em
-    // cima (que é só pra ver quanto entrou de caixa num mês específico).
-    html+=renderContasReceber();
-  }
-
+  html+=renderContasReceber();
   return html;
 }
-window._vendasSetMes=function(m){ window._vendasMes=m; reloadTab(); };
 window._vendasSetView=function(v){ window._vendasView=v; reloadTab(); };
-window._vendasSetSubTab=function(v){ window._vendasSubTab=v; reloadTab(); };
 window._entradaNova=function(){
   showModal('+ Nova Entrada',
     '<div style="font-size:13px;color:#444;line-height:1.6;margin-bottom:14px">Essa venda foi à vista ou a prazo?</div>'
