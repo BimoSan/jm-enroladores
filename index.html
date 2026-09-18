@@ -2642,6 +2642,7 @@ function renderPainel(){
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
           <span class="badge ${sl}">${st}</span>
           ${podeFechar?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar</button>`:''}
+          ${podeFecharParcial(f)?`<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd" onclick="window._fecharFichaParcial('${f.id}')">Fechar parcial</button>`:''}
         </div>
       </div>
       <div style="display:grid;grid-template-columns:${gridCols};gap:8px;margin-bottom:10px;width:100%">
@@ -2789,12 +2790,15 @@ function fichasInner(lista,isEntregador){
           <div>
             <div style="font-size:14px;font-weight:700">${enr.nome}</div>
             <div style="font-size:11px;color:#64748b">Aberta em ${fmtDate(f.dataAbertura)}</div>
+            ${f.fechamentoParcial?`<div style="font-size:10px;color:#1d4ed8;margin-top:2px">✂ Fechada parcialmente — só o que já tinha sido recolhido; as peças que faltavam seguiram pra uma ficha nova</div>`:''}
+            ${f.continuacaoDe?`<div style="font-size:10px;color:#1d4ed8;margin-top:2px">↪ Continuação: peças que faltavam recolher de uma ficha fechada parcialmente</div>`:''}
             ${f.status==='cancelada'?`<div style="font-size:10px;color:#dc2626;margin-top:2px">↩ Cancelada em ${fmtDate(f.dataCancelamento)} · ${f.justificativaCancelamento||''}</div>`:''}
           </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
           ${f.pago?'<span class="pago-badge">✓ Pago</span>':''}
           ${closable?`<button class="btn btn-sm btn-success" onclick="window._fecharFicha('${f.id}')">Fechar ficha</button>`:''}
+          ${podeFecharParcial(f)?`<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd" onclick="window._fecharFichaParcial('${f.id}')">Fechar parcial</button>`:''}
           ${isAdmin&&f.status==='cancelada'?`<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd" onclick="window._reabrirFicha('${f.id}')">↩ Reabrir ficha</button>`:''}
           ${isAdmin?`<button class="btn btn-sm btn-danger" onclick="window._excluirFicha('${f.id}')">Excluir ficha</button>`:''}
           ${(can('registrar')||can('editar'))&&f.status==='aberta'?`<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5" onclick="window._abrirRetiradaAdmin('${f.id}')">↩ Retirada</button>`:''}
@@ -4188,6 +4192,81 @@ window._confirmarFecharFicha=async()=>{
   });
   window._pendingFichaId=null;
   showToast('Ficha fechada!');
+};
+// Fechar parcial: fecha a ficha só com o que já foi recolhido (vai pro
+// financeiro) e as peças ainda pendentes passam pra uma ficha nova, aberta,
+// do mesmo enrolador. As peças pendentes MUDAM de ficha com as mesmas datas
+// de entrega (tiradas das entregas mais recentes), então os relatórios de
+// enviado por dia/mês não contam nada em dobro. Fita e fio ficam na ficha
+// fechada.
+function podeFecharParcial(f){
+  return can('fecharFicha')&&f.status==='aberta'&&pendentes(f)>0&&TIPOS.some(t=>somaRecolPago(f,t.id)>0);
+}
+window._fecharFichaParcial=id=>{
+  const f=getFicha(id); if(!f) return;
+  const enr=getEnr(f.enroladorId);
+  const recolhidas=TIPOS.reduce((a,t)=>a+somaRecolPago(f,t.id),0);
+  const pendTxt=TIPOS.filter(t=>pendentes_tipo(f,t.id)>0).map(t=>pendentes_tipo(f,t.id)+'× '+t.label).join(', ');
+  const valor=calcularPagamento({...f,valorFechamento:null,status:'fechada'});
+  window._pendingFichaId=id;
+  showModal('Fechar ficha parcialmente',
+    `<div style="font-size:13px;color:#444;line-height:1.7">
+      Fechar a ficha de <strong>${enr?.nome}</strong> só com o que já foi recolhido:<br>
+      <strong>${recolhidas} peça${recolhidas!==1?'s':''}</strong> recolhida${recolhidas!==1?'s':''} · a pagar <strong>${fmtMoeda(valor)}</strong> (vai pro financeiro).<br><br>
+      As peças ainda pendentes (<strong>${pendTxt}</strong>) continuam numa <strong>ficha nova, aberta</strong>.
+      <div style="font-size:11px;color:#94a3b8;margin-top:8px">Fita e fio ficam na ficha fechada.</div>
+    </div>`,
+    `<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>
+     <button class="btn btn-sm btn-success" onclick="window._confirmarFecharParcial()">Fechar parcial</button>`);
+};
+window._confirmarFecharParcial=async()=>{
+  const id=window._pendingFichaId; if(!id) return;
+  closeModal();
+  const f=getFicha(id); if(!f) return;
+  const enr=getEnr(f.enroladorId);
+  const pend={};
+  TIPOS.forEach(t=>{ const p=pendentes_tipo(f,t.id); if(p>0) pend[t.id]=p; });
+  if(!Object.keys(pend).length){ showToast('Nada pendente — use "Fechar ficha".'); return; }
+
+  const entregas=(f.entregas||[]).map(e=>({...e,tipos:{...(e.tipos||{})}}));
+  const movidos=entregas.map(()=>({}));
+  Object.entries(pend).forEach(([tid,q])=>{
+    let resta=q;
+    for(let i=entregas.length-1;i>=0&&resta>0;i--){
+      const disp=parseInt(entregas[i].tipos[tid])||0;
+      const tira=Math.min(disp,resta);
+      if(tira>0){ entregas[i].tipos[tid]=disp-tira; movidos[i][tid]=(movidos[i][tid]||0)+tira; resta-=tira; }
+    }
+  });
+  const entregasFicha=entregas.filter(e=>Object.values(e.tipos).some(v=>(parseInt(v)||0)>0)||(parseInt(e.fita)||0)>0||(parseInt(e.fio)||0)>0);
+  const novasEntregas=[];
+  entregas.forEach((e,i)=>{
+    if(Object.keys(movidos[i]).length) novasEntregas.push({data:e.data||today(),entregador:e.entregador||'',cor:e.cor||'',fita:0,fio:0,tipos:movidos[i],transferidaDe:id});
+  });
+  const valorFechamento=calcularPagamento({...f,entregas:entregasFicha,valorFechamento:null,status:'fechada'});
+
+  let novaRef=null;
+  try{
+    novaRef=await addDoc(collection(db,'fichas'),{
+      enroladorId:f.enroladorId,dataAbertura:today(),status:'aberta',pago:false,
+      entregas:novasEntregas,recolhimentos:[],continuacaoDe:id,
+      prontos:{...(f.prontos||{})},prontoSinalizado:!!f.prontoSinalizado,
+    });
+    await updateDoc(doc(db,'fichas',id),{
+      entregas:entregasFicha,status:'fechada',dataFechamento:today(),valorFechamento,
+      prontos:{},prontoSinalizado:false,fechamentoParcial:true,continuadaEm:novaRef.id,
+    });
+    await addDoc(collection(db,'notificacoes'),{
+      tipo:'ficha_fechada',fichaId:id,enroladorNome:enr?.nome||'',total:valorFechamento,
+      data:today(),lida:false,criadaEm:new Date().toISOString(),
+    });
+    window._pendingFichaId=null;
+    showToast('Ficha fechada parcialmente — o restante continua numa ficha nova.');
+  }catch(e){
+    console.error('Erro ao fechar ficha parcialmente:',e);
+    if(novaRef){ try{ await deleteDoc(doc(db,'fichas',novaRef.id)); }catch(_){} }
+    showToast('Erro: '+e.message);
+  }
 };
 window._confirmarPago=(id,setorKey)=>{
   window._pendingPagoId=id;
