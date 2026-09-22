@@ -21446,7 +21446,7 @@ function renderAlmItens(){
     const matchQ=!q||(i.descricao||'').toLowerCase().startsWith(q);
     const matchC=!window._almClassFiltro||i.classificacao===window._almClassFiltro;
     return matchQ&&matchC;
-  }).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'','pt-BR'));
+  }).sort((a,b)=>(a.descricao||'').localeCompare(b.descricao||'','pt-BR'));
 
   const podeEditar=['admin','apontador1'].includes(currentUserData?.perfil);
   const optsClass='<option value="">Todas as classificações</option>'+almClassificacoes().map(c=>'<option value="'+c+'"'+(window._almClassFiltro===c?' selected':'')+'>'+c+'</option>').join('');
@@ -21463,7 +21463,6 @@ function renderAlmItens(){
     +'</div>'
     +(podeEditar
       ?'<button class="btn btn-primary btn-sm" onclick="window._novoAlmItem()">+ Novo item</button>'
-       +' <button class="btn btn-ghost btn-sm" onclick="window._importarAlmBase()">Importar base</button>'
       :'')
     +'</div>'
     +'<div id="alm-count" style="font-size:11px;color:#64748b;margin-bottom:8px">'+filtrados.length+' itens encontrados</div>'    +'<div id="alm-lista">';
