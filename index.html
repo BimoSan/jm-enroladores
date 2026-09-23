@@ -9030,11 +9030,16 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
     }
   }
   function melhorPosicao(w){
+    // Tolerância de 0,05cm (meio milímetro) pra absorver arredondamento de
+    // ponto flutuante acumulado depois de muitas peças — sem folga nenhuma,
+    // num produto com muita peça diferente (tipo Jogo de Sofá) a soma das
+    // larguras podia ficar uns fiapos abaixo de 142 por erro de
+    // arredondamento, fazendo a última peça não encontrar posição nenhuma.
     let melhor=null;
     for(let i=0;i<skyline.length;i++){
       let somaW=0,maxY=0,j=i;
-      while(j<skyline.length&&somaW<w-0.01){ somaW+=skyline[j].w; maxY=Math.max(maxY,skyline[j].y); j++; }
-      if(somaW>=w-0.01){
+      while(j<skyline.length&&somaW<w-0.05){ somaW+=skyline[j].w; maxY=Math.max(maxY,skyline[j].y); j++; }
+      if(somaW>=w-0.05){
         if(!melhor||maxY<melhor.y-0.01||(Math.abs(maxY-melhor.y)<0.01&&skyline[i].x<melhor.x)){
           melhor={x:skyline[i].x,y:maxY};
         }
@@ -9064,20 +9069,23 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
   // que testa as combinações), então ficam sempre num bloco só, nunca
   // espalhadas em pedaços por lugares diferentes do rolo.
   const colocadas=[];
-  let comprimentoAcumulado=0;
-  pecasOrientadas.forEach(p=>{
+  for(let pi=0;pi<pecasOrientadas.length;pi++){
+    const p=pecasOrientadas[pi];
     const w=p.wPlace,h=p.hPlace,girada=p.girada;
-    // Em teoria melhorPosicao sempre acha uma posição (a peça já passou pela
+    const usa=melhorPosicao(w);
+    // Em teoria isso sempre acha uma posição (a peça já passou pela
     // validação de largura lá em cima) — mas com acúmulo de arredondamento
     // de ponto flutuante depois de muitas peças, num caso raro pode não
-    // achar por uma margem mínima. Em vez de quebrar (o que travava a
-    // Promise pra sempre, sem nunca avisar ninguém), usa uma posição seguros
-    // de reserva: no topo de tudo que já foi colocado.
-    const usa=melhorPosicao(w)||{x:0,y:comprimentoAcumulado};
+    // achar por uma margem mínima. ANTES, nesse caso o sistema forçava uma
+    // posição "de reserva" sem checar se cabia — o que fazia peça
+    // ultrapassar a largura do rolo de verdade no mapa. Agora, em vez de
+    // arriscar um encaixe inválido, essa tentativa inteira é descartada (a
+    // busca sempre testa várias outras tentativas, então perder uma não é
+    // problema — o que não pode é usar uma que sai errada).
+    if(!usa) return null;
     colocarPeca(usa.x,usa.y,w,h);
-    comprimentoAcumulado=Math.max(comprimentoAcumulado,usa.y+h);
     colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
-  });
+  }
 
   // Soma manual em vez de Math.max(...array) — com o skyline podendo
   // crescer bastante em produtos com muitos tipos de peça, espalhar um
@@ -9271,6 +9279,7 @@ function _prepararBuscaEncaixe(pecas,L){
   // tecido do que o mínimo real só por causa desse acúmulo.
   let melhor=null, menorComprimento=Infinity;
   function avaliar(tentativa){
+    if(!tentativa) return; // tentativa descartada (não achou posição válida)
     // Tolerância de empate relativa (1% do comprimento, mínimo 0,5cm) —
     // 0,01cm fixo era rígido demais: duas tentativas que na prática gastam
     // o MESMO tecido (a diferença é só arredondamento da própria
