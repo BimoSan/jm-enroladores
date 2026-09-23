@@ -9084,14 +9084,12 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
   return {colocadas,comprimentoTotal,sobras};
 }
 
-function empacotarCorte(pecas){
-  const L=LARGURA_ROLO_TECIDO;
-
-  const foraDaLargura=pecas.filter(p=>Math.min(p.w,p.h)>L+0.01);
-  if(foraDaLargura.length){
-    return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
-  }
-
+// Agrupa por tamanho (decide orientação em grupo, ver comentário mais
+// abaixo) e testa várias ordens de encaixe pra uma LISTA de peças, ficando
+// com a que gastar menos tecido. Isolado numa função própria porque
+// empacotarCorte chama isso duas vezes — uma pra tudo junto, outra peça por
+// peça separado por produto (ver comentário em empacotarCorte).
+function _melhorEncaixe(pecas,L){
   // Peças repetidas (qtd>1 do mesmo tamanho) decidem a orientação em GRUPO,
   // não uma por uma. Decidir peça a peça (só olhando onde ELA sozinha entra
   // mais baixo) deixava passar batido casos como "2 peças de 135×71cm cabem
@@ -9128,13 +9126,50 @@ function empacotarCorte(pecas){
     (a,b)=>(b.wPlace*b.hPlace)-(a.wPlace*a.hPlace),
     (a,b)=>Math.max(b.wPlace,b.hPlace)-Math.max(a.wPlace,a.hPlace),
   ];
-  let melhorResultado=null;
+  let melhor=null;
   ordens.forEach(cmp=>{
     const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
-    if(!melhorResultado||tentativa.comprimentoTotal<melhorResultado.comprimentoTotal-0.01){
-      melhorResultado=tentativa;
-    }
+    if(!melhor||tentativa.comprimentoTotal<melhor.comprimentoTotal-0.01) melhor=tentativa;
   });
+  return melhor;
+}
+
+function empacotarCorte(pecas){
+  const L=LARGURA_ROLO_TECIDO;
+
+  const foraDaLargura=pecas.filter(p=>Math.min(p.w,p.h)>L+0.01);
+  if(foraDaLargura.length){
+    return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
+  }
+
+  // Tenta encaixar tudo junto, misturando as peças dos produtos escolhidos
+  // — pode economizar tecido aproveitando a sobra de um produto com peça de
+  // outro (é o objetivo principal de juntar vários produtos num gabarito só).
+  const junto=_melhorEncaixe(pecas,L);
+
+  // ...MAS juntar produtos nunca pode dar PIOR do que cortar cada um
+  // separado, um atrás do outro — senão a única forma seria não juntar
+  // produto nenhum. Por segurança, calcula também essa opção (cada produto
+  // encaixado sozinho, um empilhado depois do outro) e fica com a menor das
+  // duas. Isso corrige casos em que misturar os grupos de tamanhos
+  // diferentes de dois produtos confunde o encaixe e sai pior do que juntar.
+  const porProduto={};
+  pecas.forEach(p=>{ (porProduto[p.produtoNome||'']=porProduto[p.produtoNome||'']||[]).push(p); });
+  const gruposProduto=Object.values(porProduto);
+  let separado=null;
+  if(gruposProduto.length>1){
+    let yAcumulado=0;
+    const colocadas=[]; const sobras=[];
+    gruposProduto.forEach(lista=>{
+      const r=_melhorEncaixe(lista,L);
+      r.colocadas.forEach(p=>colocadas.push({...p,y:p.y+yAcumulado}));
+      r.sobras.forEach(s=>sobras.push(s)); // sobra de cada bloco (largura/comprimento) não muda ao empilhar
+      yAcumulado+=r.comprimentoTotal;
+    });
+    separado={colocadas,comprimentoTotal:yAcumulado,sobras};
+  }
+
+  const melhorResultado=(separado&&separado.comprimentoTotal<junto.comprimentoTotal-0.01)?separado:junto;
 
   const areaPecas=pecas.reduce((s,p)=>s+p.w*p.h,0);
   const areaTecido=L*melhorResultado.comprimentoTotal;
