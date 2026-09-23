@@ -9058,22 +9058,37 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
     mesclarSkyline();
   }
 
+  // Uma vez decidido "girar ou não" pro grupo (na primeira peça dele que
+  // aparece), TODAS as peças iguais seguintes usam a mesma orientação —
+  // senão só algumas unidades pegavam uma sobra e giravam, o resto ficava
+  // no padrão normal, e a peça acabava espalhada em pedaços por lugares
+  // diferentes do rolo em vez de ficar num bloco só (que é bem mais fácil
+  // de cortar E deixa uma sobra concentrada, mais fácil de reaproveitar).
+  const decisaoGrupo={};
   const colocadas=[];
   pecasOrientadas.forEach(p=>{
-    let w=p.wPlace,h=p.hPlace,girada=p.girada;
-    const entradaGrupo=melhorPosicao(w);
-    // Mesmo já tendo a orientação "certa" pro grupo, vale checar se a OUTRA
-    // orientação encontra um buraco existente mais baixo que o normal (tipo
-    // uma sobra estreita do lado de outra peça) — só troca se achar mesmo
-    // uma posição de entrada mais baixa, não só um resultado final menor
-    // (senão desfaz o pareamento já decidido pro próprio grupo).
-    let usa=entradaGrupo;
-    if(w!==h){
-      const entradaGirada=melhorPosicao(h);
-      if(entradaGirada&&(!entradaGrupo||entradaGirada.y<entradaGrupo.y-0.01)){
-        usa=entradaGirada; [w,h]=[h,w]; girada=!girada;
+    const chaveGrupo=Math.round(p.wPlace*10)+'_'+Math.round(p.hPlace*10);
+    let w,h,girada;
+    if(decisaoGrupo[chaveGrupo]){
+      ({w,h,girada}=decisaoGrupo[chaveGrupo]);
+    } else {
+      w=p.wPlace; h=p.hPlace; girada=p.girada;
+      const entradaGrupo=melhorPosicao(w);
+      // Mesmo já tendo a orientação "certa" pro grupo, vale checar se a
+      // OUTRA orientação encontra um buraco existente bem mais baixo que o
+      // normal (tipo uma sobra estreita do lado de outra peça) — só troca
+      // se achar uma posição de entrada CLARAMENTE mais baixa (não só um
+      // pouquinho), pra não trocar de orientação por uma vantagem mínima e
+      // acabar fragmentando a sobra em vários lugares à toa.
+      if(w!==h){
+        const entradaGirada=melhorPosicao(h);
+        if(entradaGirada&&(!entradaGrupo||entradaGirada.y<entradaGrupo.y-Math.min(w,h)*0.3)){
+          w=p.hPlace; h=p.wPlace; girada=!girada;
+        }
       }
+      decisaoGrupo[chaveGrupo]={w,h,girada};
     }
+    const usa=melhorPosicao(w);
     colocarPeca(usa.x,usa.y,w,h);
     colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
   });
@@ -9129,7 +9144,15 @@ function _melhorEncaixe(pecas,L){
   let melhor=null;
   ordens.forEach(cmp=>{
     const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
-    if(!melhor||tentativa.comprimentoTotal<melhor.comprimentoTotal-0.01) melhor=tentativa;
+    if(!melhor||tentativa.comprimentoTotal<melhor.comprimentoTotal-0.01){
+      melhor=tentativa;
+    } else if(tentativa.comprimentoTotal<melhor.comprimentoTotal+0.01&&tentativa.sobras.length<melhor.sobras.length){
+      // Empate no comprimento — prefere a tentativa que deixa a sobra
+      // concentrada em menos pedaços. Menos pedaços de sobra (mesmo que a
+      // área total seja igual) é mais fácil de reaproveitar depois do que
+      // vários retalhos espalhados pelo rolo.
+      melhor=tentativa;
+    }
   });
   return melhor;
 }
