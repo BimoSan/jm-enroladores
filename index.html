@@ -9425,16 +9425,30 @@ function corteSugestoesSobra(sobras){
 // Duas peças (já colocadas) se sobrepõem? Usado só depois de um ajuste
 // manual — o encaixe automático nunca sobrepõe nada, mas arrastar na mão
 // pode.
+function corteParSobrepoe(a,b){
+  const sobrepoeX=a.x<b.x+b.wColocada-0.01&&b.x<a.x+a.wColocada-0.01;
+  const sobrepoeY=a.y<b.y+b.hColocada-0.01&&b.y<a.y+a.hColocada-0.01;
+  return sobrepoeX&&sobrepoeY;
+}
 function corteTemSobreposicao(colocadas){
   for(let i=0;i<colocadas.length;i++){
     for(let j=i+1;j<colocadas.length;j++){
-      const a=colocadas[i],b=colocadas[j];
-      const sobrepoeX=a.x<b.x+b.wColocada-0.01&&b.x<a.x+a.wColocada-0.01;
-      const sobrepoeY=a.y<b.y+b.hColocada-0.01&&b.y<a.y+a.hColocada-0.01;
-      if(sobrepoeX&&sobrepoeY) return true;
+      if(corteParSobrepoe(colocadas[i],colocadas[j])) return true;
     }
   }
   return false;
+}
+// Índices de todas as peças que estão sobrepondo ALGUMA outra — usado pra
+// pintar elas de vermelho no mapa (em vez de recusar o movimento, deixa
+// soltar onde quiser e mostra visualmente o que ainda precisa ajustar).
+function corteIndicesSobrepostos(colocadas){
+  const idx=new Set();
+  for(let i=0;i<colocadas.length;i++){
+    for(let j=i+1;j<colocadas.length;j++){
+      if(corteParSobrepoe(colocadas[i],colocadas[j])){ idx.add(i); idx.add(j); }
+    }
+  }
+  return idx;
 }
 
 function renderMapaCorte(resultado,editavel){
@@ -9465,10 +9479,15 @@ function renderMapaCorte(resultado,editavel){
   // limite). No desenho é o contrário: comprimento vai no eixo horizontal
   // (acompanhando a mesa) e largura no eixo vertical — por isso os dois
   // pares trocam de lugar aqui.
+  // Depois de mexer na mão, peça sobrepondo outra fica vermelha em vez de
+  // impedir o solte — assim dá pra ver na hora o que ainda precisa ajustar,
+  // sem a peça "voltar sozinha" e atrapalhar quem está tentando encaixar.
+  const indicesInvalidos=editavel&&resultado.ajustadoManualmente?corteIndicesSobrepostos(resultado.colocadas):new Set();
   const rects=resultado.colocadas.map((p,i)=>{
-    const cor=PALETA[legenda[p.label].i%PALETA.length];
-    return '<rect data-idx="'+i+'" x="'+p.y+'" y="'+(p.x+offY)+'" width="'+p.hColocada+'" height="'+p.wColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"'
-      +(editavel?' style="cursor:move" onmousedown="window._corteArrastarInicio(event,'+i+')"':'')
+    const invalida=indicesInvalidos.has(i);
+    const cor=invalida?'#ef4444':PALETA[legenda[p.label].i%PALETA.length];
+    return '<rect data-idx="'+i+'" x="'+p.y+'" y="'+(p.x+offY)+'" width="'+p.hColocada+'" height="'+p.wColocada+'" fill="'+cor+'" stroke="'+(invalida?'#7f1d1d':'#1e293b')+'" stroke-width="'+(invalida?0.9:0.4)+'"'
+      +(editavel?' style="cursor:move" onmousedown="window._corteArrastarInicio(event,'+i+')" ondblclick="window._corteGirarPeca('+i+')"':'')
       +'/>';
   }).join('');
   const textos=resultado.colocadas.map((p,i)=>{
@@ -9526,7 +9545,7 @@ function renderMapaCorte(resultado,editavel){
   // O SVG escala pela largura do cartão (viewBox cuida da proporção) — assim
   // a mesa inteira sempre cabe na tela de uma vez, sem precisar rolar.
   return '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Mesa de corte — 12,00 × 1,85 m · tecido estendido na horizontal (rolo de 1,42m centralizado)'
-    +(editavel?' · <strong>arraste uma peça pra ajustar a posição dela na mão</strong>':'')+'</div>'
+    +(editavel?' · <strong>arraste uma peça pra mover, clique duas vezes pra girar</strong>':'')+'</div>'
     +'<div style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
     +'<svg viewBox="0 -14 '+vbComprimento+' '+(ML+14)+'" style="display:block;width:100%;height:auto">'
     +mesaHtml+rolo+rects+regua+textos
@@ -9588,26 +9607,12 @@ window._corteArrastarFim=function(){
   // Comprimento não trava (só não deixa negativo) — largura trava dentro do
   // rolo, porque isso é uma peça de tecido de verdade, não dá pra cortar
   // fora da largura dele.
-  const novoY=Math.max(0,st.origY+st.deltaDisplayX);
-  const novoX=Math.max(0,Math.min(L-st.wColocada,st.origX+st.deltaDisplayY));
-
-  // Não deixa soltar em cima de outra peça — testa a posição nova ANTES de
-  // aplicar; se colidir com qualquer outra, cancela o arrasto e a peça
-  // volta pro lugar de onde saiu (o desenho já reflete a posição antiga,
-  // só precisa desfazer o transform visual e não mexer nos dados).
-  const colideComOutra=resultado.colocadas.some((outra,i)=>{
-    if(i===st.idx) return false;
-    const sobrepoeX=novoY<outra.y+outra.hColocada-0.01&&outra.y<novoY+p.hColocada-0.01;
-    const sobrepoeY=novoX<outra.x+outra.wColocada-0.01&&outra.x<novoX+p.wColocada-0.01;
-    return sobrepoeX&&sobrepoeY;
-  });
-  if(colideComOutra){
-    showToast('Não dá pra soltar em cima de outra peça — voltou pro lugar.');
-    reloadTab(); // desfaz o deslocamento visual (transform) redesenhando do zero
-    return;
-  }
-  p.y=novoY;
-  p.x=novoX;
+  // Solta onde for, mesmo em cima de outra peça — não trava o movimento.
+  // Se ficar sobrepondo, o próprio redesenho já pinta as duas de vermelho
+  // (ver corteIndicesSobrepostos), pra dar pra ver o que falta ajustar sem
+  // a peça "voltar sozinha" no meio do ajuste.
+  p.y=Math.max(0,st.origY+st.deltaDisplayX);
+  p.x=Math.max(0,Math.min(L-st.wColocada,st.origX+st.deltaDisplayY));
 
   // Comprimento total = ponto mais longe entre todas as peças depois do
   // ajuste. Aproveitamento recalculado em cima disso.
@@ -9619,6 +9624,31 @@ window._corteArrastarFim=function(){
   // A lista de sobras (usada pra sugerir preenchimento) só faz sentido pro
   // arranjo que o algoritmo gerou — depois de mexer na mão ela não
   // representa mais o desenho real, então some até gerar de novo.
+  resultado.sobras=[];
+  resultado.ajustadoManualmente=true;
+  reloadTab();
+};
+// Clique duplo numa peça gira ela 90° no lugar — largura e comprimento
+// trocam de lugar, mantendo o canto (x,y) onde já estava. Se depois de
+// girar ela não couber mais na largura do rolo ali, empurra pra dentro do
+// rolo; se acabar sobrepondo outra peça, fica vermelha igual no arrasto —
+// não bloqueia, só avisa visualmente.
+window._corteGirarPeca=function(idx){
+  const resultado=window._corteResultado;
+  if(!resultado||!resultado.colocadas||!resultado.colocadas[idx]) return;
+  const L=LARGURA_ROLO_TECIDO;
+  const p=resultado.colocadas[idx];
+  const novaLargura=p.hColocada, novaAltura=p.wColocada;
+  p.wColocada=novaLargura;
+  p.hColocada=novaAltura;
+  p.girada=!p.girada;
+  p.x=Math.max(0,Math.min(L-p.wColocada,p.x));
+
+  let novoComprimento=0;
+  resultado.colocadas.forEach(pc=>{ const fim=pc.y+pc.hColocada; if(fim>novoComprimento) novoComprimento=fim; });
+  resultado.comprimentoTotal=novoComprimento;
+  resultado.areaTecido=L*novoComprimento;
+  resultado.aproveitamento=resultado.areaTecido>0?resultado.areaPecas/resultado.areaTecido:0;
   resultado.sobras=[];
   resultado.ajustadoManualmente=true;
   reloadTab();
