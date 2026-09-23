@@ -9064,14 +9064,27 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
   // que testa as combinações), então ficam sempre num bloco só, nunca
   // espalhadas em pedaços por lugares diferentes do rolo.
   const colocadas=[];
+  let comprimentoAcumulado=0;
   pecasOrientadas.forEach(p=>{
     const w=p.wPlace,h=p.hPlace,girada=p.girada;
-    const usa=melhorPosicao(w);
+    // Em teoria melhorPosicao sempre acha uma posição (a peça já passou pela
+    // validação de largura lá em cima) — mas com acúmulo de arredondamento
+    // de ponto flutuante depois de muitas peças, num caso raro pode não
+    // achar por uma margem mínima. Em vez de quebrar (o que travava a
+    // Promise pra sempre, sem nunca avisar ninguém), usa uma posição seguros
+    // de reserva: no topo de tudo que já foi colocado.
+    const usa=melhorPosicao(w)||{x:0,y:comprimentoAcumulado};
     colocarPeca(usa.x,usa.y,w,h);
+    comprimentoAcumulado=Math.max(comprimentoAcumulado,usa.y+h);
     colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
   });
 
-  const comprimentoTotal=Math.max(...skyline.map(s=>s.y),0);
+  // Soma manual em vez de Math.max(...array) — com o skyline podendo
+  // crescer bastante em produtos com muitos tipos de peça, espalhar um
+  // array grande como argumentos soltos pode estourar o limite da própria
+  // engine do JavaScript.
+  let comprimentoTotal=0;
+  skyline.forEach(s=>{ if(s.y>comprimentoTotal) comprimentoTotal=s.y; });
   const sobras=skyline.filter(s=>(comprimentoTotal-s.y)>10&&s.w>10)
     .map(s=>({x:s.x,largura:s.w,comprimento:comprimentoTotal-s.y}));
   return {colocadas,comprimentoTotal,sobras};
@@ -9092,16 +9105,34 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
 // ali, mesmo que não tenha testado tudo.
 function _melhorEncaixeAsync(pecas,L,prazoFinal){
   return new Promise(resolve=>{
-    const {trabalhos,avaliar,pegarMelhor}=_prepararBuscaEncaixe(pecas,L);
+    let trabalhos,avaliar,pegarMelhor;
+    try{
+      ({trabalhos,avaliar,pegarMelhor}=_prepararBuscaEncaixe(pecas,L));
+    }catch(e){
+      // Se nem preparar a lista de tentativas der certo, não dá pra
+      // continuar — mas ainda assim NUNCA deixa a tela esperando pra
+      // sempre: devolve um erro em vez de travar.
+      console.error('Erro ao preparar busca de encaixe:',e);
+      resolve({erro:'Erro ao calcular o encaixe: '+e.message,colocadas:[],comprimentoTotal:0,sobras:[]});
+      return;
+    }
     let idx=0;
     function passo(){
       const inicioFatia=Date.now();
       while(idx<trabalhos.length&&Date.now()-inicioFatia<50){
-        trabalhos[idx](); idx++;
+        // Uma tentativa individual falhando (por exemplo, por acúmulo de
+        // arredondamento numérico num caso bem específico) não pode travar
+        // a Promise inteira pra sempre — antes, um erro aqui dentro de um
+        // setTimeout desaparecia sem avisar ninguém, e a tela de
+        // "Calculando..." ficava presa mesmo depois do prazo de 2 minutos,
+        // porque a função nunca chegava a resolver.
+        try{ trabalhos[idx](); }catch(e){ console.error('Tentativa de encaixe pulada por erro:',e); }
+        idx++;
         if(Date.now()>prazoFinal) break;
       }
       if(idx>=trabalhos.length||Date.now()>prazoFinal){
-        resolve(pegarMelhor());
+        const resultado=pegarMelhor();
+        resolve(resultado||{erro:'Não foi possível encontrar um encaixe válido pra essas peças.',colocadas:[],comprimentoTotal:0,sobras:[]});
       } else {
         setTimeout(passo,0);
       }
@@ -9297,7 +9328,7 @@ function _prepararBuscaEncaixe(pecas,L){
 
 // Assíncrono — pode levar até uns minutos num produto com muitos tipos de
 // peça diferentes, mas roda em fatias (não trava a tela) e nunca passa do
-// prazo total combinado (10 minutos), não importa quantas chamadas internas
+// prazo total combinado (2 minutos), não importa quantas chamadas internas
 // precisar fazer — todas comparilham o MESMO relógio.
 async function empacotarCorte(pecas){
   const L=LARGURA_ROLO_TECIDO;
@@ -9307,12 +9338,13 @@ async function empacotarCorte(pecas){
     return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
   }
 
-  const prazoFinal=Date.now()+10*60*1000; // 10 minutos no total, pra tudo
+  const prazoFinal=Date.now()+2*60*1000; // 2 minutos no total, pra tudo
 
   // Tenta encaixar tudo junto, misturando as peças dos produtos escolhidos
   // — pode economizar tecido aproveitando a sobra de um produto com peça de
   // outro (é o objetivo principal de juntar vários produtos num gabarito só).
   const junto=await _melhorEncaixeAsync(pecas,L,prazoFinal);
+  if(junto.erro) return junto;
 
   // ...MAS juntar produtos nunca pode dar PIOR do que cortar cada um
   // separado, um atrás do outro — senão a única forma seria não juntar
@@ -9327,13 +9359,15 @@ async function empacotarCorte(pecas){
   if(gruposProduto.length>1){
     let yAcumulado=0;
     const colocadas=[]; const sobras=[];
+    let algumErro=false;
     for(const lista of gruposProduto){
       const r=await _melhorEncaixeAsync(lista,L,prazoFinal);
+      if(r.erro){ algumErro=true; break; } // essa opção não dá — fica só com "junto" mesmo
       r.colocadas.forEach(p=>colocadas.push({...p,y:p.y+yAcumulado}));
       r.sobras.forEach(s=>sobras.push(s)); // sobra de cada bloco (largura/comprimento) não muda ao empilhar
       yAcumulado+=r.comprimentoTotal;
     }
-    separado={colocadas,comprimentoTotal:yAcumulado,sobras};
+    if(!algumErro) separado={colocadas,comprimentoTotal:yAcumulado,sobras};
   }
 
   const melhorResultado=(separado&&separado.comprimentoTotal<junto.comprimentoTotal-0.01)?separado:junto;
