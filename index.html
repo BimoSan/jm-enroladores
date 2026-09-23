@@ -9060,24 +9060,37 @@ function empacotarCorte(pecas){
     return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
   }
 
-  const ordenadas=[...pecas].sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h));
+  // Peças repetidas (qtd>1 do mesmo tamanho) decidem a orientação em GRUPO,
+  // não uma por uma. Decidir peça a peça (só olhando onde ELA sozinha entra
+  // mais baixo) deixava passar batido casos como "2 peças de 135×71cm cabem
+  // lado a lado se giradas (71+71=142), gastando só 135cm de comprimento —
+  // só que colocadas em pé, uma de cada vez, cada uma escolhia sozinha ficar
+  // deitada (135 largura, 71 altura) por parecer melhor isoladamente, e aí
+  // empilhava as duas (71+71=142cm de comprimento) em vez de lado a lado.
+  const grupos={};
+  pecas.forEach(p=>{
+    const chave=Math.round(p.w*10)+'_'+Math.round(p.h*10);
+    (grupos[chave]=grupos[chave]||[]).push(p);
+  });
+  const pecasOrientadas=[];
+  Object.values(grupos).forEach(grupo=>{
+    const p0=grupo[0];
+    let w=p0.w,h=p0.h,girada=false;
+    if(p0.w!==p0.h){
+      const n=grupo.length;
+      const configNormal=Math.ceil(n/Math.max(1,Math.floor(L/p0.w)))*p0.h;
+      const configGirada=Math.ceil(n/Math.max(1,Math.floor(L/p0.h)))*p0.w;
+      if(configGirada<configNormal-0.01){ w=p0.h; h=p0.w; girada=true; }
+    }
+    grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:w,hPlace:h,girada}));
+  });
+
+  const ordenadas=pecasOrientadas.sort((a,b)=>Math.max(b.wPlace,b.hPlace)-Math.max(a.wPlace,a.hPlace));
   const colocadas=[];
   ordenadas.forEach(p=>{
-    const opNormal=melhorPosicao(p.w);
-    const opGirada=(p.w!==p.h)?melhorPosicao(p.h):null;
-    // Decide pela orientação que deixa o TOPO da peça mais baixo depois de
-    // colocada (y de entrada + altura naquela orientação) — não só pela
-    // posição de entrada. Comparar só o "y" de entrada (como era antes)
-    // ignora que girar a peça também muda quanto ela CONSOME de
-    // comprimento; numa peça bem mais larga que alta (tipo 87×138cm), isso
-    // fazia a peça entrar "em pé" (consumindo 138cm de comprimento) quando
-    // deitada (consumindo só 87cm) aproveitava muito mais o rolo.
-    const topoNormal=opNormal?opNormal.y+p.h:Infinity;
-    const topoGirada=opGirada?opGirada.y+p.w:Infinity;
-    let usa=opNormal,w=p.w,h=p.h,girada=false;
-    if(opGirada&&topoGirada<topoNormal-0.01){ usa=opGirada; w=p.h; h=p.w; girada=true; }
-    colocarPeca(usa.x,usa.y,w,h);
-    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
+    const usa=melhorPosicao(p.wPlace);
+    colocarPeca(usa.x,usa.y,p.wPlace,p.hPlace);
+    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:p.wPlace,hColocada:p.hPlace});
   });
 
   const comprimentoTotal=Math.max(...skyline.map(s=>s.y),0);
