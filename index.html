@@ -9084,7 +9084,42 @@ function empacotarCorte(pecas){
   const areaPecas=pecas.reduce((s,p)=>s+p.w*p.h,0);
   const areaTecido=L*comprimentoTotal;
   const aproveitamento=areaTecido>0?areaPecas/areaTecido:0;
-  return {colocadas,comprimentoTotal,areaPecas,areaTecido,aproveitamento};
+
+  // Sobras — cada trecho do skyline final que não chegou até o topo é um
+  // retângulo de tecido livre (não fica buraco escondido: toda peça sempre
+  // entra rente ao que já tem embaixo, então o que sobra é sempre isso).
+  // Só interessa sobra grande o bastante pra caber alguma peça de verdade.
+  const sobras=skyline.filter(s=>(comprimentoTotal-s.y)>10&&s.w>10)
+    .map(s=>({x:s.x,largura:s.w,comprimento:comprimentoTotal-s.y}));
+
+  return {colocadas,comprimentoTotal,areaPecas,areaTecido,aproveitamento,sobras};
+}
+
+// Lista achatada de todas as peças cadastradas em todos os produtos —
+// usada pra sugerir o que encaixa nas sobras do gabarito.
+function corteTodasPecas(){
+  const out=[];
+  corteProdutos.forEach(prod=>(prod.pecas||[]).forEach(p=>{
+    out.push({produtoId:prod.id,produtoNome:prod.nome,nome:p.nome,largura:parseFloat(p.largura)||0,altura:parseFloat(p.altura)||0});
+  }));
+  return out;
+}
+// Pra cada sobra, acha peças do catálogo que caibam nela (em qualquer
+// orientação) e estima quantas dá pra tirar ali — é só uma grade simples
+// (não roda o encaixe completo de novo), suficiente pra sugestão.
+function corteSugestoesSobra(sobras){
+  const catalogo=corteTodasPecas();
+  return (sobras||[]).map(sobra=>{
+    const sugestoes=catalogo.map(peca=>{
+      const cabeDireto=peca.largura<=sobra.largura+0.5&&peca.altura<=sobra.comprimento+0.5;
+      const cabeGirada=peca.altura<=sobra.largura+0.5&&peca.largura<=sobra.comprimento+0.5;
+      if(!cabeDireto&&!cabeGirada) return null;
+      const [pw,ph]=cabeDireto?[peca.largura,peca.altura]:[peca.altura,peca.largura];
+      const qtd=Math.max(1,Math.floor(sobra.largura/pw))*Math.max(1,Math.floor(sobra.comprimento/ph));
+      return {...peca,qtd,area:peca.largura*peca.altura};
+    }).filter(Boolean).sort((a,b)=>(b.qtd*b.area)-(a.qtd*a.area)).slice(0,3);
+    return {sobra,sugestoes};
+  }).filter(s=>s.sugestoes.length);
 }
 
 // Desenho do mapa de corte — SVG com o rolo "deitado", comprimento no eixo
@@ -9347,6 +9382,14 @@ function renderCorteNovo(){
       +'<input type="number" min="0" step="1" value="'+(qtd||'')+'" placeholder="0" onchange="window._corteSetQtd(\''+prod.id+'\',this.value)" style="width:70px;font-size:13px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;text-align:center">'
       +'</div>';
   }).join('');
+  const avulsos=window._corteAvulsos||[];
+  if(avulsos.length){
+    html+='<div style="font-size:11px;font-weight:700;color:#7c3aed;margin:12px 0 4px">Peças avulsas (pra aproveitar sobra)</div>'
+      +avulsos.map((a,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid #f8fafc;font-size:12px">'
+        +'<span>'+a.nome+' ('+a.produtoNome+') — '+a.largura+'×'+a.altura+'cm × '+a.qtd+'</span>'
+        +'<button onclick="window._corteRemoverAvulso('+i+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
+        +'</div>').join('');
+  }
   html+='<button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="window._corteGerarMapa()">Gerar gabarito</button>'
     +'</div>';
 
@@ -9380,6 +9423,25 @@ function renderCorteNovo(){
       }
       html+='</div></div>';
 
+      // Sugestão de preenchimento — olha as sobras do skyline final e procura
+      // no catálogo inteiro (qualquer produto) peças que caibam ali.
+      const sugestoes=corteSugestoesSobra(resultado.sobras);
+      if(sugestoes.length){
+        html+='<div class="card" style="margin-bottom:14px;background:#faf5ff;border:1.5px solid #e9d5ff">'
+          +'<div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:8px">💡 Dá pra aproveitar a sobra com essas peças</div>';
+        sugestoes.forEach(({sobra,sugestoes:opcoes})=>{
+          html+='<div style="font-size:11px;color:#7c3aed;font-weight:700;margin:8px 0 4px">Sobra de '+Math.round(sobra.largura)+'×'+Math.round(sobra.comprimento)+'cm</div>';
+          opcoes.forEach(op=>{
+            html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px">'
+              +'<span>'+op.nome+' <span style="color:#94a3b8">('+op.produtoNome+') — '+op.largura+'×'+op.altura+'cm</span></span>'
+              +'<button class="btn btn-sm btn-ghost" style="border:1.5px solid #c4b5fd;color:#7c3aed;font-size:11px" onclick="window._corteAdicionarAvulso(\''+op.nome.replace(/'/g,"\\'")+'\',\''+op.produtoNome.replace(/'/g,"\\'")+'\','+op.largura+','+op.altura+','+op.qtd+')">+ Adicionar '+op.qtd+'×</button>'
+              +'</div>';
+          });
+        });
+        html+='<div style="font-size:10px;color:#a78bfa;margin-top:6px">São sugestões — clique em "Gerar gabarito" de novo depois de adicionar, pra reencaixar tudo.</div>'
+          +'</div>';
+      }
+
       html+='<button class="btn btn-primary btn-sm" onclick="window._corteSalvarHistorico()">💾 Salvar no histórico</button>';
     }
   }
@@ -9392,6 +9454,19 @@ window._corteSetQtd=function(prodId,v){
 };
 window._corteSetQtdDesejada=function(v){
   window._corteQtdDesejada=parseInt(v)||0;
+  reloadTab();
+};
+// Peça avulsa: veio de uma sugestão de preenchimento de sobra, não conta
+// como "unidade de produto" pra calculadora de camadas — é só pra
+// aproveitar tecido que ia ficar sobrando mesmo.
+window._corteAdicionarAvulso=function(nome,produtoNome,largura,altura,qtd){
+  if(!window._corteAvulsos) window._corteAvulsos=[];
+  window._corteAvulsos.push({nome,produtoNome,largura,altura,qtd});
+  showToast('Adicionado! Clique em "Gerar gabarito" pra reencaixar.');
+  reloadTab();
+};
+window._corteRemoverAvulso=function(i){
+  (window._corteAvulsos||[]).splice(i,1);
   reloadTab();
 };
 window._corteGerarMapa=function(){
@@ -9409,6 +9484,11 @@ window._corteGerarMapa=function(){
       }
     });
   });
+  (window._corteAvulsos||[]).forEach(a=>{
+    for(let i=0;i<a.qtd;i++){
+      pecas.push({id:'p'+(seq++),label:a.nome,w:a.largura,h:a.altura,produtoNome:a.produtoNome});
+    }
+  });
   if(!pecas.length){ showToast('Escolha a quantidade de pelo menos um produto.'); return; }
   window._corteResultado=empacotarCorte(pecas);
   window._corteResultadoSelecao=corteProdutos.filter(p=>(sel[p.id]||0)>0).map(p=>({nome:p.nome,qtd:sel[p.id]}));
@@ -9422,6 +9502,7 @@ window._corteSalvarHistorico=async function(){
   try{
     await addDoc(collection(db,'corte_historico'),{
       produtos:window._corteResultadoSelecao||[],
+      avulsos:window._corteAvulsos||[],
       unidadesPorGabarito:window._corteUnidadesPorGabarito||1,
       colocadas:r.colocadas,
       comprimentoTotal:r.comprimentoTotal,
