@@ -9136,6 +9136,32 @@ function _melhorEncaixe(pecas,L){
     combinacoes=novo;
   });
 
+  // Reforço explícito: um cortador de verdade costuma agrupar, de
+  // propósito, as peças que compartilham a mesma medida crua (tipo Costa,
+  // Braço e Botão, todas com 75cm de um lado) numa coluna só. As ordens de
+  // encaixe genéricas (fixas ou embaralhadas) às vezes NÃO tropeçam nesse
+  // arranjo sozinhas, mesmo testando várias — então aqui a gente monta essa
+  // combinação de propósito: acha a medida mais comum entre os tipos de
+  // peça e força cada grupo que tem essa medida a usá-la como largura.
+  const medidas={};
+  listaGrupos.forEach(grupo=>{
+    const p0=grupo[0];
+    [p0.w,p0.h].forEach(medida=>{
+      const chave=Math.round(medida*10);
+      medidas[chave]=(medidas[chave]||0)+grupo.length;
+    });
+  });
+  const medidaMaisComum=Object.entries(medidas).sort((a,b)=>b[1]-a[1])[0];
+  if(medidaMaisComum&&medidaMaisComum[1]>=2){
+    const medida=parseInt(medidaMaisComum[0],10)/10;
+    const escolhaAgrupada={};
+    listaGrupos.forEach((grupo,i)=>{
+      const comEssaLargura=opcoesPorGrupo[i].find(o=>Math.abs(o.w-medida)<0.05);
+      if(comEssaLargura) escolhaAgrupada[i]=comEssaLargura;
+    });
+    combinacoes.push(escolhaAgrupada);
+  }
+
   const ordens=[
     (a,b)=>b.hPlace-a.hPlace,
     (a,b)=>b.wPlace-a.wPlace,
@@ -9179,30 +9205,50 @@ function _melhorEncaixe(pecas,L){
   // de muitas tentativas o resultado final podia acabar gastando bem mais
   // tecido do que o mínimo real só por causa desse acúmulo.
   let melhor=null, menorComprimento=Infinity;
+  function avaliar(tentativa){
+    // Tolerância de empate relativa (1% do comprimento, mínimo 0,5cm) —
+    // 0,01cm fixo era rígido demais: duas tentativas que na prática gastam
+    // o MESMO tecido (a diferença é só arredondamento da própria
+    // heurística) não deviam competir só pelo comprimento bruto, e sim
+    // pela sobra ficar mais concentrada.
+    const tolerancia=Number.isFinite(menorComprimento)?Math.max(0.5,menorComprimento*0.01):0;
+    if(tentativa.comprimentoTotal<menorComprimento-0.01){
+      menorComprimento=tentativa.comprimentoTotal;
+      melhor=tentativa;
+    } else if(tentativa.comprimentoTotal<menorComprimento+tolerancia){
+      if(!melhor||tentativa.sobras.length<melhor.sobras.length
+        ||(tentativa.sobras.length===melhor.sobras.length&&maiorSobra(tentativa)>maiorSobra(melhor)+0.01)){
+        melhor=tentativa;
+      }
+    }
+  }
+
   combinacoes.forEach(escolha=>{
     const pecasOrientadas=[];
     listaGrupos.forEach((grupo,i)=>{
       const opt=escolha[i]||opcoesPorGrupo[i][0];
       grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
     });
-    geradoresDeOrdem.forEach(gerarOrdem=>{
-      const tentativa=_tentarEmpacotarCorte(gerarOrdem(pecasOrientadas),L);
-      // Tolerância de empate relativa (1% do comprimento, mínimo 0,5cm) —
-      // 0,01cm fixo era rígido demais: duas tentativas que na prática gastam
-      // o MESMO tecido (a diferença é só arredondamento da própria
-      // heurística) não deviam competir só pelo comprimento bruto, e sim
-      // pela sobra ficar mais concentrada.
-      const tolerancia=Number.isFinite(menorComprimento)?Math.max(0.5,menorComprimento*0.01):0;
-      if(tentativa.comprimentoTotal<menorComprimento-0.01){
-        menorComprimento=tentativa.comprimentoTotal;
-        melhor=tentativa;
-      } else if(tentativa.comprimentoTotal<menorComprimento+tolerancia){
-        if(!melhor||tentativa.sobras.length<melhor.sobras.length
-          ||(tentativa.sobras.length===melhor.sobras.length&&maiorSobra(tentativa)>maiorSobra(melhor)+0.01)){
-          melhor=tentativa;
-        }
-      }
-    });
+    geradoresDeOrdem.forEach(gerarOrdem=>avaliar(_tentarEmpacotarCorte(gerarOrdem(pecasOrientadas),L)));
+
+    // Pra combinação "agrupada por medida comum" (a última da lista, ver
+    // acima), as ordens genéricas podem intercalar outra peça (tipo o Friz)
+    // NO MEIO do grupo que devia ficar junto numa coluna só, desmanchando o
+    // agrupamento por acidente. Aqui força na mão: o que faz parte do
+    // agrupamento fica todo consecutivo, testando as peças de fora antes e
+    // depois dele.
+    if(escolha===combinacoes[combinacoes.length-1]&&medidaMaisComum&&medidaMaisComum[1]>=2){
+      const doGrupo=[],foraDoGrupo=[];
+      listaGrupos.forEach((grupo,i)=>{
+        const alvo=(escolha[i]?doGrupo:foraDoGrupo);
+        const opt=escolha[i]||opcoesPorGrupo[i][0];
+        grupo.forEach(p=>alvo.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
+      });
+      doGrupo.sort((a,b)=>b.hPlace-a.hPlace);
+      foraDoGrupo.sort((a,b)=>b.hPlace-a.hPlace);
+      avaliar(_tentarEmpacotarCorte([...doGrupo,...foraDoGrupo],L));
+      avaliar(_tentarEmpacotarCorte([...foraDoGrupo,...doGrupo],L));
+    }
   });
   return melhor;
 }
