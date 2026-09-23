@@ -9050,74 +9050,30 @@ function renderGradPainel(){
       +'</div></div>';
   }
 
-  html+='<div class="section-label" style="margin-bottom:10px">produção de hoje</div>';
-  if(!gradistas.length){
-    html+='<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px;font-size:13px">Nenhum gradista cadastrado.</div></div>';
+  // Fichas em andamento — mesmo estilo do painel do Enrolamento Interno
+  html+='<div class="section-label" style="margin-bottom:10px">fichas em andamento</div>';
+  const podeFecharG=['admin','proprietario','encarregado_est','apontador_gra'].includes(currentUserData?.perfil);
+  const abertasGrad=fichasGrad.filter(f=>f.status==='aberta').sort((a,b)=>(b.quinzena||'')>(a.quinzena||'')?1:-1);
+  if(!abertasGrad.length){
+    html+='<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px;font-size:13px">Nenhuma ficha aberta.</div></div>';
   } else {
-    gradistas.filter(g=>g.ativo!==false).forEach(g=>{
-      const ci=gradistas.filter(x=>x.ativo!==false).findIndex(x=>x.id===g.id);
-      const c=avatarColor(ci);
-      const mesAtualGrad=hoje.slice(0,7);
-
-      // Apontamentos de hoje e da quinzena — usa o mesmo helper que o
-      // resto da tela (fichaGradAtiva). Antes buscava direto aqui sem
-      // checar status==='aberta' na primeira tentativa: se o gradista já
-      // tinha uma ficha FECHADA na mesma quinzena, pegava essa em vez da
-      // aberta de verdade, escondendo a produção lançada hoje.
-      const totHoje={}, totQ={};
-      const ficha=fichaGradAtiva(g.id,q);
-      (ficha?.apontamentos||[]).forEach(a=>{
-        getPecasGradAtivas().forEach(p=>{
-          const v=parseInt((a.pecas||{})[p.id])||0;
-          if(v>0){
-            if(a.data===hoje) totHoje[p.id]=(totHoje[p.id]||0)+v;
-            totQ[p.id]=(totQ[p.id]||0)+v;
-          }
-        });
-      });
-
-      const ganho=calcGanhoGrad(ficha?.apontamentos||[]);
-      const ganhoHoje=calcGanhoGrad((ficha?.apontamentos||[]).filter(a=>a.data===hoje));
-      const totalHojeG=Object.values(totHoje).reduce((s,v)=>s+v,0);
-      const totalQG=Object.values(totQ).reduce((s,v)=>s+v,0);
-
-      const pecasComDados=getPecasGradAtivas().filter(p=>(totHoje[p.id]||0)>0||(totQ[p.id]||0)>0);
-      const shortLabel=p=>p.label.replace('Grade Cabeceira ','Cab. ').replace('Grade Poltrona ','Poltrona ').replace('Grade Sofá ','Sofá ').replace('Grade Cama ','Cama ').replace('Grade Puf','Puf').replace('Encosto ','Enc. ').replace('Grade ','').replace(' — Normal',' N.').replace(' — Reforma',' R.').replace(' — Pedaço',' P.');
-
-      const barras=pecasComDados.map(p=>{
-        const qH=totHoje[p.id]||0;
-        const qM=totQ[p.id]||0;
-        const isReforma=p.id.includes('reforma')||p.id.includes('ref');
-        const cor=isReforma?'#7c3aed':'#1d4ed8';
-        const bgCor=isReforma?'#ede9fe':'#dbeafe';
-        return '<div style="margin-bottom:7px">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
-          +'<span style="font-size:11px;color:'+(isReforma?'#7c3aed':'#475569')+'">'+shortLabel(p)+'</span>'
-          +'<div>'
-          +'<span style="font-size:14px;font-weight:800;color:'+cor+'">'+qH+'</span>'
-          +'<span style="font-size:10px;color:#94a3b8"> hj · </span>'
-          +'<span style="font-size:12px;font-weight:700;color:#065f46">'+qM+'</span>'
-          +'<span style="font-size:10px;color:#94a3b8"> Q</span>'
-          +'</div></div>'
-          +'<div style="height:5px;background:'+bgCor+';border-radius:99px;overflow:hidden">'
-          +'<div style="height:100%;width:'+(qM>0?Math.min(100,Math.round(qH/qM*100)):0)+'%;background:'+cor+';border-radius:99px"></div>'
-          +'</div></div>';
-      }).join('');
-
+    abertasGrad.forEach(f=>{
+      const g=gradistas.find(x=>x.id===f.gradId);
+      const ganho=calcGanhoGrad(f.apontamentos||[]);
+      const totalPecasN=totalPecasGrad(f.apontamentos||[]);
       html+='<div class="card" style="margin-bottom:10px">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(pecasComDados.length?'12px':'0')+'">'
-        +'<div style="display:flex;align-items:center;gap:12px">'
-        +'<div style="width:44px;height:44px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">'+initials(g.nome)+'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
         +'<div>'
-        +'<div style="font-size:14px;font-weight:700">'+g.nome+'</div>'
-        +'<div style="font-size:11px;color:#64748b">'+totalHojeG+' peças hoje · '+totalQG+' na quinzena</div>'
-        +'</div></div>'
+        +'<div style="font-weight:700;font-size:14px">'+(g?.nome||'⚠️ Gradista removido')+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelGrad(f.quinzena)+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
         +'<div style="text-align:right">'
-        +'<div style="font-size:11px;color:#64748b">ganho hoje</div>'
-        +'<div style="font-size:18px;font-weight:800;color:#059669">'+fmtMoeda(ganhoHoje)+'</div>'
-        +'</div></div>'
-        +(pecasComDados.length?'<div>'+barras+'</div>':'<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px 0">Nenhum apontamento hoje</div>')
-        +'</div>';
+        +'<div style="font-size:18px;font-weight:800;color:#065f46">'+fmtMoeda(ganho)+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+totalPecasN+' peças</div>'
+        +'</div>'
+        +(podeFecharG?'<button class="btn btn-sm btn-warn" onclick="window._gradFecharFicha(\''+f.id+'\')">Fechar ficha</button>':'')
+        +'</div></div></div>';
     });
   }
   return html;
@@ -11059,44 +11015,30 @@ function renderTapPainel(){
       +'</div></div>';
   }
 
-  html+='<div class="section-label" style="margin-bottom:10px">produção de hoje</div>';
-  if(!tapecadores.length){
-    html+='<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px;font-size:13px">Nenhum tapecador cadastrado.</div></div>';
+  // Fichas em andamento — mesmo estilo do painel do Enrolamento Interno
+  html+='<div class="section-label" style="margin-bottom:10px">fichas em andamento</div>';
+  const podeFecharT=['admin','proprietario','encarregado_est','apontador_tap'].includes(currentUserData?.perfil);
+  const abertasTap=fichasTap.filter(f=>f.status==='aberta').sort((a,b)=>(b.quinzena||'')>(a.quinzena||'')?1:-1);
+  if(!abertasTap.length){
+    html+='<div class="card"><div style="color:#94a3b8;text-align:center;padding:20px;font-size:13px">Nenhuma ficha aberta.</div></div>';
   } else {
-    tapecadores.filter(t=>t.ativo!==false).forEach(t=>{
-      const ci=tapecadores.filter(x=>x.ativo!==false).findIndex(x=>x.id===t.id);
-      const c=avatarColor(ci);
-      const fichaQ=fichasTapAtiva(t.id,q);
-      const apontsHoje=(fichaQ?.apontamentos||[]).filter(a=>a.data===hoje);
-      const apontsQ=fichaQ?.apontamentos||[];
-      const totalHoje=totalPecasTap(apontsHoje);
-      const totalQ=totalPecasTap(apontsQ);
-      const ganhoHoje=calcGanhoTap(apontsHoje);
-      html+='<div class="card" style="margin-bottom:10px;border-left:4px solid '+c+'">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-        +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:'+c+'22;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+initials(t.nome)+'</div>'
-        +'<div><div style="font-size:13px;font-weight:700">'+t.nome+'</div>'
-        +'<div style="font-size:11px;color:#64748b">'+totalHoje+' peças hoje · '+totalQ+' na quinzena</div>'
-        +'</div></div>'
-        +'<div style="text-align:right"><div style="font-size:10px;color:#64748b">ganho hoje</div>'
-        +'<div style="font-size:16px;font-weight:800;color:#059669">'+fmtMoeda(ganhoHoje)+'</div></div>'
-        +'</div>';
-      if(apontsHoje.length){
-        getPecasTapAtivas().forEach(p=>{
-          const v=apontsHoje.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
-          const vQ=apontsQ.reduce((s,a)=>s+(parseInt((a.pecas||{})[p.id])||0),0);
-          if(vQ===0) return;
-          html+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid #f1f5f9">'
-            +'<span style="color:#64748b">'+p.label+'</span>'
-            +'<span><span style="font-weight:700">'+v+'</span><span style="color:#94a3b8;font-size:10px"> hj  </span>'
-            +'<span style="font-weight:700;color:#3b82f6">'+vQ+'</span><span style="color:#94a3b8;font-size:10px"> q</span></span>'
-            +'</div>';
-        });
-      } else {
-        html+='<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px">Nenhum apontamento hoje</div>';
-      }
-      html+='</div>';
+    abertasTap.forEach(f=>{
+      const t=tapecadores.find(x=>x.id===f.tapId);
+      const ganho=calcGanhoTap(f.apontamentos||[]);
+      const totalPecasN=totalPecasTap(f.apontamentos||[]);
+      html+='<div class="card" style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+        +'<div>'
+        +'<div style="font-weight:700;font-size:14px">'+(t?.nome||'⚠️ Tapecador removido')+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+quinzenaLabelTap(f.quinzena)+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
+        +'<div style="text-align:right">'
+        +'<div style="font-size:18px;font-weight:800;color:#065f46">'+fmtMoeda(ganho)+'</div>'
+        +'<div style="font-size:11px;color:#64748b">'+totalPecasN+' peças</div>'
+        +'</div>'
+        +(podeFecharT?'<button class="btn btn-sm btn-warn" onclick="window._tapFecharFicha(\''+f.id+'\')">Fechar ficha</button>':'')
+        +'</div></div></div>';
     });
   }
   return html;
