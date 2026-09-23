@@ -9132,7 +9132,10 @@ function renderMapaCorte(resultado){
   }
 
   // Faixa branca do rolo de tecido, centralizada na mesa.
-  const rolo='<rect x="0" y="'+offY+'" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fff" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,1.5"/>';
+  // A faixa do rolo já nasce vermelha (sobra/desperdício) — as peças são
+  // desenhadas por cima cobrindo o que é aproveitado, então só fica
+  // vermelho onde realmente não coube nenhuma peça.
+  const rolo='<rect x="0" y="'+offY+'" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fca5a5" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,1.5"/>';
 
   // Régua de metro em metro, ao longo do comprimento da mesa.
   const nMetros=Math.ceil(vbComprimento/100);
@@ -9149,6 +9152,9 @@ function renderMapaCorte(resultado){
       +'<span style="width:14px;height:14px;border-radius:3px;background:'+PALETA[info.i%PALETA.length]+';border:1px solid #1e293b33;flex-shrink:0"></span>'
       +'<span><strong>'+label+'</strong> — '+info.w+'×'+info.h+'cm · '+info.qtd+'×</span>'
       +'</div>').join('')
+    +'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
+    +'<span style="width:14px;height:14px;border-radius:3px;background:#fca5a5;border:1px solid #1e293b33;flex-shrink:0"></span>'
+    +'<span>sobra de tecido</span></div>'
     +'</div>';
 
   // O SVG escala pela largura do cartão (viewBox cuida da proporção) — assim
