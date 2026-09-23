@@ -9147,6 +9147,24 @@ function _melhorEncaixe(pecas,L){
     (a,b)=>(b.wPlace-a.wPlace)||(b.hPlace-a.hPlace),
     (a,b)=>(a.wPlace-b.wPlace)||(b.hPlace-a.hPlace),
   ];
+  // Gera a ordem de encaixe a partir de um comparador OU embaralhada.
+  const geradoresDeOrdem=ordens.map(cmp=>arr=>[...arr].sort(cmp));
+  // "Restart aleatório" — técnica clássica pra sair de um mínimo local: além
+  // das ordens fixas acima, testa várias ordens embaralhadas. Foi assim que
+  // achamos um caso em que juntar dois produtos, só por acaso, tropeçou num
+  // arranjo melhor pro Braço do que qualquer uma das ordens fixas sozinho —
+  // embaralhar aumenta bastante a chance de achar esse tipo de arranjo sem
+  // precisar dessa sorte.
+  for(let i=0;i<8;i++){
+    geradoresDeOrdem.push(arr=>{
+      const copia=[...arr];
+      for(let j=copia.length-1;j>0;j--){
+        const k=Math.floor(Math.random()*(j+1));
+        [copia[j],copia[k]]=[copia[k],copia[j]];
+      }
+      return copia;
+    });
+  }
 
   // Maior sobra de uma tentativa — usado pra desempatar preferindo o
   // resultado que deixa um retalho grande (mais fácil de reaproveitar)
@@ -9167,8 +9185,8 @@ function _melhorEncaixe(pecas,L){
       const opt=escolha[i]||opcoesPorGrupo[i][0];
       grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
     });
-    ordens.forEach(cmp=>{
-      const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
+    geradoresDeOrdem.forEach(gerarOrdem=>{
+      const tentativa=_tentarEmpacotarCorte(gerarOrdem(pecasOrientadas),L);
       // Tolerância de empate relativa (1% do comprimento, mínimo 0,5cm) —
       // 0,01cm fixo era rígido demais: duas tentativas que na prática gastam
       // o MESMO tecido (a diferença é só arredondamento da própria
