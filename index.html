@@ -9422,7 +9422,22 @@ function corteSugestoesSobra(sobras){
 
 // Desenho do mapa de corte — SVG com o rolo "deitado", comprimento no eixo
 // X (pode rolar horizontal) e a largura fixa de 142cm no eixo Y.
-function renderMapaCorte(resultado){
+// Duas peças (já colocadas) se sobrepõem? Usado só depois de um ajuste
+// manual — o encaixe automático nunca sobrepõe nada, mas arrastar na mão
+// pode.
+function corteTemSobreposicao(colocadas){
+  for(let i=0;i<colocadas.length;i++){
+    for(let j=i+1;j<colocadas.length;j++){
+      const a=colocadas[i],b=colocadas[j];
+      const sobrepoeX=a.x<b.x+b.wColocada-0.01&&b.x<a.x+a.wColocada-0.01;
+      const sobrepoeY=a.y<b.y+b.hColocada-0.01&&b.y<a.y+a.hColocada-0.01;
+      if(sobrepoeX&&sobrepoeY) return true;
+    }
+  }
+  return false;
+}
+
+function renderMapaCorte(resultado,editavel){
   if(resultado.erro) return '<div class="card" style="color:#dc2626;padding:16px;text-align:center">⚠️ '+resultado.erro+'</div>';
   const L=LARGURA_ROLO_TECIDO;
   const MC=MESA_CORTE_COMPRIMENTO, ML=MESA_CORTE_LARGURA;
@@ -9450,18 +9465,22 @@ function renderMapaCorte(resultado){
   // limite). No desenho é o contrário: comprimento vai no eixo horizontal
   // (acompanhando a mesa) e largura no eixo vertical — por isso os dois
   // pares trocam de lugar aqui.
-  const rects=resultado.colocadas.map(p=>{
+  const rects=resultado.colocadas.map((p,i)=>{
     const cor=PALETA[legenda[p.label].i%PALETA.length];
-    return '<rect x="'+p.y+'" y="'+(p.x+offY)+'" width="'+p.hColocada+'" height="'+p.wColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"/>';
+    return '<rect data-idx="'+i+'" x="'+p.y+'" y="'+(p.x+offY)+'" width="'+p.hColocada+'" height="'+p.wColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"'
+      +(editavel?' style="cursor:move" onmousedown="window._corteArrastarInicio(event,'+i+')"':'')
+      +'/>';
   }).join('');
-  const textos=resultado.colocadas.map(p=>{
+  const textos=resultado.colocadas.map((p,i)=>{
     // Só escreve o nome dentro da peça se tiver espaço razoável pra caber —
     // senão fica só a cor (a legenda embaixo do mapa identifica cada cor).
     const larguraTxtEstim=p.label.length*4.2;
     if(Math.min(p.wColocada,p.hColocada)<14||p.hColocada<larguraTxtEstim*0.55) return '';
     const fontSize=Math.max(6,Math.min(10,Math.min(p.wColocada,p.hColocada)*0.24));
     const cx=p.y+p.hColocada/2, cy=p.x+offY+p.wColocada/2;
-    return '<text x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700">'+p.label+(p.girada?' ↻':'')+'</text>';
+    // pointer-events:none — o clique sempre atinge o retângulo por baixo,
+    // não o texto, senão arrastar pegando o nome não funcionava.
+    return '<text data-idx="'+i+'" x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700" style="pointer-events:none">'+p.label+(p.girada?' ↻':'')+'</text>';
   }).join('');
 
   // Mesa de corte por baixo do tecido — desenhada em módulos de 3m (a mesa
@@ -9502,16 +9521,90 @@ function renderMapaCorte(resultado){
     +'<span>sobra de tecido</span></div>'
     +'</div>';
 
+  const sobreposto=editavel&&resultado.ajustadoManualmente&&corteTemSobreposicao(resultado.colocadas);
+
   // O SVG escala pela largura do cartão (viewBox cuida da proporção) — assim
   // a mesa inteira sempre cabe na tela de uma vez, sem precisar rolar.
-  return '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Mesa de corte — 12,00 × 1,85 m · tecido estendido na horizontal (rolo de 1,42m centralizado)</div>'
+  return '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Mesa de corte — 12,00 × 1,85 m · tecido estendido na horizontal (rolo de 1,42m centralizado)'
+    +(editavel?' · <strong>arraste uma peça pra ajustar a posição dela na mão</strong>':'')+'</div>'
     +'<div style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
     +'<svg viewBox="0 -14 '+vbComprimento+' '+(ML+14)+'" style="display:block;width:100%;height:auto">'
     +mesaHtml+rolo+rects+regua+textos
     +'</svg></div>'
     +(excedeMesa?'<div style="font-size:11px;color:#dc2626;margin-top:6px">⚠️ Esse gabarito ('+(resultado.comprimentoTotal/100).toFixed(2)+'m) é maior que a mesa (12m) — vai precisar avançar o tecido e continuar em mais de uma posição.</div>':'')
+    +(sobreposto?'<div style="font-size:11px;color:#dc2626;margin-top:6px">⚠️ Tem peça sobreposta depois do ajuste manual — isso não é um corte válido, arraste de novo até não sobrepor nada.</div>':'')
+    +(editavel&&resultado.ajustadoManualmente?'<div style="font-size:10px;color:#94a3b8;margin-top:6px">Esse gabarito foi ajustado na mão — clique em "Gerar gabarito" de novo pra descartar os ajustes e voltar ao encaixe automático.</div>':'')
     +legendaHtml;
 }
+
+// ── Arrastar peça no mapa de corte ──────────────────────────────
+// Move só a posição (x/y) — não muda tamanho nem orientação. Durante o
+// arrasto, só desloca visualmente (transform), sem re-renderizar nada, pra
+// ficar suave; o estado de verdade (window._corteResultado) só é atualizado
+// e a tela redesenhada quando solta o mouse.
+window._corteArrastarInicio=function(ev,idx){
+  const resultado=window._corteResultado;
+  if(!resultado||!resultado.colocadas||!resultado.colocadas[idx]) return;
+  ev.preventDefault();
+  const svg=ev.target.closest('svg');
+  if(!svg) return;
+  const rectSvg=svg.getBoundingClientRect();
+  const vb=svg.viewBox.baseVal;
+  if(!rectSvg.width) return;
+  const p=resultado.colocadas[idx];
+  window._corteArrasto={
+    idx,
+    startClientX:ev.clientX,
+    startClientY:ev.clientY,
+    escala:vb.width/rectSvg.width,
+    origX:p.x,
+    origY:p.y,
+    wColocada:p.wColocada,
+    deltaDisplayX:0,
+    deltaDisplayY:0,
+  };
+  document.addEventListener('mousemove',window._corteArrastarMover);
+  document.addEventListener('mouseup',window._corteArrastarFim);
+};
+window._corteArrastarMover=function(ev){
+  const st=window._corteArrasto;
+  if(!st) return;
+  st.deltaDisplayX=(ev.clientX-st.startClientX)*st.escala; // eixo comprimento
+  st.deltaDisplayY=(ev.clientY-st.startClientY)*st.escala; // eixo largura do rolo
+  document.querySelectorAll('[data-idx="'+st.idx+'"]').forEach(el=>{
+    el.setAttribute('transform','translate('+st.deltaDisplayX+','+st.deltaDisplayY+')');
+  });
+};
+window._corteArrastarFim=function(){
+  const st=window._corteArrasto;
+  document.removeEventListener('mousemove',window._corteArrastarMover);
+  document.removeEventListener('mouseup',window._corteArrastarFim);
+  window._corteArrasto=null;
+  if(!st||(Math.abs(st.deltaDisplayX)<0.5&&Math.abs(st.deltaDisplayY)<0.5)) return; // não moveu de verdade
+  const resultado=window._corteResultado;
+  if(!resultado||!resultado.colocadas||!resultado.colocadas[st.idx]) return;
+  const L=LARGURA_ROLO_TECIDO;
+  const p=resultado.colocadas[st.idx];
+  // Comprimento não trava (só não deixa negativo) — largura trava dentro do
+  // rolo, porque isso é uma peça de tecido de verdade, não dá pra cortar
+  // fora da largura dele.
+  p.y=Math.max(0,st.origY+st.deltaDisplayX);
+  p.x=Math.max(0,Math.min(L-st.wColocada,st.origX+st.deltaDisplayY));
+
+  // Comprimento total = ponto mais longe entre todas as peças depois do
+  // ajuste. Aproveitamento recalculado em cima disso.
+  let novoComprimento=0;
+  resultado.colocadas.forEach(pc=>{ const fim=pc.y+pc.hColocada; if(fim>novoComprimento) novoComprimento=fim; });
+  resultado.comprimentoTotal=novoComprimento;
+  resultado.areaTecido=L*novoComprimento;
+  resultado.aproveitamento=resultado.areaTecido>0?resultado.areaPecas/resultado.areaTecido:0;
+  // A lista de sobras (usada pra sugerir preenchimento) só faz sentido pro
+  // arranjo que o algoritmo gerou — depois de mexer na mão ela não
+  // representa mais o desenho real, então some até gerar de novo.
+  resultado.sobras=[];
+  resultado.ajustadoManualmente=true;
+  reloadTab();
+};
 
 function renderTabCorte(tab){
   try{
@@ -9702,7 +9795,7 @@ function renderCorteNovo(){
 
   const resultado=window._corteResultado;
   if(resultado){
-    html+=renderMapaCorte(resultado);
+    html+=renderMapaCorte(resultado,true);
     if(!resultado.erro){
       const m2Pecas=(resultado.areaPecas/10000).toFixed(2);
       const m2Tecido=(resultado.areaTecido/10000).toFixed(2);
