@@ -9065,8 +9065,17 @@ function empacotarCorte(pecas){
   ordenadas.forEach(p=>{
     const opNormal=melhorPosicao(p.w);
     const opGirada=(p.w!==p.h)?melhorPosicao(p.h):null;
+    // Decide pela orientação que deixa o TOPO da peça mais baixo depois de
+    // colocada (y de entrada + altura naquela orientação) — não só pela
+    // posição de entrada. Comparar só o "y" de entrada (como era antes)
+    // ignora que girar a peça também muda quanto ela CONSOME de
+    // comprimento; numa peça bem mais larga que alta (tipo 87×138cm), isso
+    // fazia a peça entrar "em pé" (consumindo 138cm de comprimento) quando
+    // deitada (consumindo só 87cm) aproveitava muito mais o rolo.
+    const topoNormal=opNormal?opNormal.y+p.h:Infinity;
+    const topoGirada=opGirada?opGirada.y+p.w:Infinity;
     let usa=opNormal,w=p.w,h=p.h,girada=false;
-    if(opGirada&&(!opNormal||opGirada.y<opNormal.y-0.01)){ usa=opGirada; w=p.h; h=p.w; girada=true; }
+    if(opGirada&&topoGirada<topoNormal-0.01){ usa=opGirada; w=p.h; h=p.w; girada=true; }
     colocarPeca(usa.x,usa.y,w,h);
     colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
   });
