@@ -9588,8 +9588,26 @@ window._corteArrastarFim=function(){
   // Comprimento não trava (só não deixa negativo) — largura trava dentro do
   // rolo, porque isso é uma peça de tecido de verdade, não dá pra cortar
   // fora da largura dele.
-  p.y=Math.max(0,st.origY+st.deltaDisplayX);
-  p.x=Math.max(0,Math.min(L-st.wColocada,st.origX+st.deltaDisplayY));
+  const novoY=Math.max(0,st.origY+st.deltaDisplayX);
+  const novoX=Math.max(0,Math.min(L-st.wColocada,st.origX+st.deltaDisplayY));
+
+  // Não deixa soltar em cima de outra peça — testa a posição nova ANTES de
+  // aplicar; se colidir com qualquer outra, cancela o arrasto e a peça
+  // volta pro lugar de onde saiu (o desenho já reflete a posição antiga,
+  // só precisa desfazer o transform visual e não mexer nos dados).
+  const colideComOutra=resultado.colocadas.some((outra,i)=>{
+    if(i===st.idx) return false;
+    const sobrepoeX=novoY<outra.y+outra.hColocada-0.01&&outra.y<novoY+p.hColocada-0.01;
+    const sobrepoeY=novoX<outra.x+outra.wColocada-0.01&&outra.x<novoX+p.wColocada-0.01;
+    return sobrepoeX&&sobrepoeY;
+  });
+  if(colideComOutra){
+    showToast('Não dá pra soltar em cima de outra peça — voltou pro lugar.');
+    reloadTab(); // desfaz o deslocamento visual (transform) redesenhando do zero
+    return;
+  }
+  p.y=novoY;
+  p.x=novoX;
 
   // Comprimento total = ponto mais longe entre todas as peças depois do
   // ajuste. Aproveitamento recalculado em cima disso.
