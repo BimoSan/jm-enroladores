@@ -9081,12 +9081,6 @@ function empacotarCorte(pecas){
 function renderMapaCorte(resultado){
   if(resultado.erro) return '<div class="card" style="color:#dc2626;padding:16px;text-align:center">⚠️ '+resultado.erro+'</div>';
   const L=LARGURA_ROLO_TECIDO;
-  // Escala fixa e legível — antes encolhia até quase sumir em cortes longos,
-  // porque tentava caber tudo em 900px sem rolagem. Agora assume que corte
-  // comprido vai precisar rolar mesmo (tem a régua embaixo pra se localizar).
-  const scale=2.4;
-  const wPx=Math.round(resultado.comprimentoTotal*scale);
-  const hPx=Math.round(L*scale);
   const PALETA=['#93c5fd','#86efac','#fde68a','#fca5a5','#c4b5fd','#67e8f9','#fdba74','#f0abfc','#a5b4fc','#6ee7b7'];
   const legenda={};
   resultado.colocadas.forEach(p=>{ if(!(p.label in legenda)) legenda[p.label]={i:Object.keys(legenda).length,qtd:0,w:p.w,h:p.h}; legenda[p.label].qtd++; });
@@ -9126,9 +9120,10 @@ function renderMapaCorte(resultado){
       +'</div>').join('')
     +'</div>';
 
-  return '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">Role a barra abaixo pra ver o rolo inteiro (as marcas mostram os metros).</div>'
-    +'<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
-    +'<svg viewBox="0 -14 '+resultado.comprimentoTotal+' '+(L+14)+'" width="'+wPx+'" height="'+(hPx+34)+'" style="display:block">'
+  // O SVG escala pela largura do cartão (viewBox cuida da proporção) — assim
+  // o gabarito inteiro sempre cabe na tela de uma vez, sem precisar rolar.
+  return '<div style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
+    +'<svg viewBox="0 -14 '+resultado.comprimentoTotal+' '+(L+14)+'" style="display:block;width:100%;height:auto">'
     +'<rect x="0" y="0" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fff"/>'
     +rects+regua+textos
     +'</svg></div>'
