@@ -9281,7 +9281,11 @@ window._corteConfirmarExcluirProduto=async function(){
   showToast('Produto excluído.');
 };
 
-// ── Novo corte — monta a lista de peças e roda o empacotamento ────
+// ── Novo corte — monta o gabarito de UMA camada e roda o empacotamento ──
+// O gabarito é sempre de uma camada só (as peças escolhidas aqui, uma vez).
+// Pra tirar mais unidades, o cortador empilha mais camadas de tecido e corta
+// tudo de uma vez com esse mesmo desenho — o comprimento do gabarito não
+// muda, só a quantidade de tecido empilhado embaixo dele.
 function renderCorteNovo(){
   if(!corteProdutos.length){
     return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre os produtos em <strong>"Peças por Produto"</strong> antes de gerar um corte.</div>';
@@ -9289,8 +9293,10 @@ function renderCorteNovo(){
   if(!window._corteSelecao) window._corteSelecao={};
   const sel=window._corteSelecao;
 
-  let html='<div class="card" style="margin-bottom:14px">'
-    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Quantidade de cada produto nesse corte</div>';
+  let html='<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;line-height:1.6">Escolha os produtos que entram <strong>nesse gabarito</strong> (normalmente 1 unidade de cada). O sistema acha o melhor encaixe dentro da largura do rolo (1,42m) e diz o comprimento de tecido necessário. Pra tirar mais peças, é só empilhar mais camadas de tecido embaixo desse mesmo gabarito e cortar tudo junto — o desenho não muda de tamanho.</div>';
+
+  html+='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Peças nesse gabarito</div>';
   html+=corteProdutos.map(prod=>{
     const qtd=sel[prod.id]||0;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #f8fafc">'
@@ -9299,7 +9305,7 @@ function renderCorteNovo(){
       +'<input type="number" min="0" step="1" value="'+(qtd||'')+'" placeholder="0" onchange="window._corteSetQtd(\''+prod.id+'\',this.value)" style="width:70px;font-size:13px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;text-align:center">'
       +'</div>';
   }).join('');
-  html+='<button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="window._corteGerarMapa()">Gerar mapa de corte</button>'
+  html+='<button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="window._corteGerarMapa()">Gerar gabarito</button>'
     +'</div>';
 
   const resultado=window._corteResultado;
@@ -9308,12 +9314,31 @@ function renderCorteNovo(){
     if(!resultado.erro){
       const m2Pecas=(resultado.areaPecas/10000).toFixed(2);
       const m2Tecido=(resultado.areaTecido/10000).toFixed(2);
+      const unidadesPorGabarito=window._corteUnidadesPorGabarito||1;
       html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0">'
-        +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Tecido necessário</div><div class="stat-value" style="font-size:18px">'+(resultado.comprimentoTotal/100).toFixed(2)+' m</div></div></div>'
+        +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Comprimento do gabarito</div><div class="stat-value" style="font-size:18px">'+(resultado.comprimentoTotal/100).toFixed(2)+' m</div></div></div>'
         +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Aproveitamento</div><div class="stat-value" style="font-size:18px">'+Math.round(resultado.aproveitamento*100)+'%</div></div></div>'
         +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Área peças / rolo</div><div class="stat-value" style="font-size:14px">'+m2Pecas+' / '+m2Tecido+' m²</div></div></div>'
-        +'</div>'
-        +'<button class="btn btn-primary btn-sm" onclick="window._corteSalvarHistorico()">💾 Salvar no histórico</button>';
+        +'</div>';
+
+      // Calculadora de camadas — não recalcula o gabarito, só multiplica pra
+      // dizer quanto tecido empilhar pra chegar na quantidade desejada.
+      const qtdDesejada=window._corteQtdDesejada||'';
+      html+='<div class="card" style="margin-bottom:14px;background:#eff6ff;border:1.5px solid #bfdbfe">'
+        +'<div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px">📐 Quantas unidades você quer tirar no total?</div>'
+        +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+        +'<input type="number" min="1" step="1" value="'+qtdDesejada+'" placeholder="Ex: 100" oninput="window._corteSetQtdDesejada(this.value)" style="width:110px;font-size:14px;border:1.5px solid #bfdbfe;border-radius:8px;padding:7px 10px;text-align:center">';
+      if(qtdDesejada>0){
+        const camadas=Math.ceil(qtdDesejada/unidadesPorGabarito);
+        const metrosTotal=(camadas*resultado.comprimentoTotal/100).toFixed(2);
+        html+='<div style="font-size:12px;color:#1e40af;line-height:1.6">'
+          +'Empilhe <strong>'+camadas+' camada'+(camadas!==1?'s':'')+'</strong> de tecido (cada camada com '+(resultado.comprimentoTotal/100).toFixed(2)+'m, esse gabarito rende '+unidadesPorGabarito+' unidade'+(unidadesPorGabarito!==1?'s':'')+' por camada) e corte tudo de uma vez.<br>'
+          +'Gasto total de tecido: <strong>'+metrosTotal+' m</strong>.'
+          +'</div>';
+      }
+      html+='</div></div>';
+
+      html+='<button class="btn btn-primary btn-sm" onclick="window._corteSalvarHistorico()">💾 Salvar no histórico</button>';
     }
   }
   return html;
@@ -9323,13 +9348,18 @@ window._corteSetQtd=function(prodId,v){
   window._corteSelecao[prodId]=parseInt(v)||0;
   window._corteResultado=null;
 };
+window._corteSetQtdDesejada=function(v){
+  window._corteQtdDesejada=parseInt(v)||0;
+  reloadTab();
+};
 window._corteGerarMapa=function(){
   const sel=window._corteSelecao||{};
   const pecas=[];
-  let seq=0;
+  let seq=0,unidades=0;
   corteProdutos.forEach(prod=>{
     const qtdProd=sel[prod.id]||0;
     if(qtdProd<=0) return;
+    unidades+=qtdProd;
     (prod.pecas||[]).forEach(p=>{
       const total=qtdProd*(parseInt(p.qtd)||0);
       for(let i=0;i<total;i++){
@@ -9340,6 +9370,8 @@ window._corteGerarMapa=function(){
   if(!pecas.length){ showToast('Escolha a quantidade de pelo menos um produto.'); return; }
   window._corteResultado=empacotarCorte(pecas);
   window._corteResultadoSelecao=corteProdutos.filter(p=>(sel[p.id]||0)>0).map(p=>({nome:p.nome,qtd:sel[p.id]}));
+  window._corteUnidadesPorGabarito=unidades;
+  window._corteQtdDesejada=null;
   reloadTab();
 };
 window._corteSalvarHistorico=async function(){
@@ -9348,6 +9380,7 @@ window._corteSalvarHistorico=async function(){
   try{
     await addDoc(collection(db,'corte_historico'),{
       produtos:window._corteResultadoSelecao||[],
+      unidadesPorGabarito:window._corteUnidadesPorGabarito||1,
       colocadas:r.colocadas,
       comprimentoTotal:r.comprimentoTotal,
       areaPecas:r.areaPecas,
@@ -9376,7 +9409,7 @@ function renderCorteHistorico(){
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer" onclick="window._corteToggleHist(\''+h.id+'\')">'
       +'<div style="min-width:0;flex:1">'
       +'<div style="font-size:13px;font-weight:700">'+fmtDate((h.criadoEm||'').slice(0,10))+' · '+produtosTxt+'</div>'
-      +'<div style="font-size:11px;color:#64748b;margin-top:2px">'+(h.comprimentoTotal/100).toFixed(2)+' m de tecido · '+Math.round((h.aproveitamento||0)*100)+'% aproveitamento'+(h.criadoPor?' · por '+h.criadoPor:'')+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:2px">'+(h.comprimentoTotal/100).toFixed(2)+' m por camada · rende '+(h.unidadesPorGabarito||1)+' unidade'+((h.unidadesPorGabarito||1)!==1?'s':'')+'/camada · '+Math.round((h.aproveitamento||0)*100)+'% aproveitamento'+(h.criadoPor?' · por '+h.criadoPor:'')+'</div>'
       +'</div>'
       +'<span style="font-size:11px;color:#1d4ed8;font-weight:700;white-space:nowrap">'+(aberto?'▾ Ocultar':'▸ Ver mapa')+'</span>'
       +'</div>'
