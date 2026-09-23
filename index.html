@@ -9085,12 +9085,30 @@ function empacotarCorte(pecas){
     grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:w,hPlace:h,girada}));
   });
 
-  const ordenadas=pecasOrientadas.sort((a,b)=>Math.max(b.wPlace,b.hPlace)-Math.max(a.wPlace,a.hPlace));
+  // Ordena pelo quanto cada grupo CONSOME de comprimento (não pelo tamanho
+  // bruto da peça) — assim os grupos "altos" entram primeiro e deixam
+  // buracos estreitos na largura, que os grupos "baixos e finos" (tipo a
+  // Faixa) processados depois conseguem aproveitar em vez de ganhar uma
+  // faixa de tecido só pra eles.
+  const ordenadas=pecasOrientadas.sort((a,b)=>b.hPlace-a.hPlace);
   const colocadas=[];
   ordenadas.forEach(p=>{
-    const usa=melhorPosicao(p.wPlace);
-    colocarPeca(usa.x,usa.y,p.wPlace,p.hPlace);
-    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:p.wPlace,hColocada:p.hPlace});
+    let w=p.wPlace,h=p.hPlace,girada=p.girada;
+    const entradaGrupo=melhorPosicao(w);
+    // Mesmo já tendo a orientação "certa" pro grupo, vale checar se a OUTRA
+    // orientação encontra um buraco existente mais baixo que o normal (tipo
+    // a sobra estreita do lado de outra peça) — só troca se achar mesmo uma
+    // posição de entrada mais baixa, não só um resultado final menor (senão
+    // desfaz o pareamento decidido acima pro próprio grupo).
+    let usa=entradaGrupo;
+    if(w!==h){
+      const entradaGirada=melhorPosicao(h);
+      if(entradaGirada&&(!entradaGrupo||entradaGirada.y<entradaGrupo.y-0.01)){
+        usa=entradaGirada; [w,h]=[h,w]; girada=!girada;
+      }
+    }
+    colocarPeca(usa.x,usa.y,w,h);
+    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
   });
 
   const comprimentoTotal=Math.max(...skyline.map(s=>s.y),0);
