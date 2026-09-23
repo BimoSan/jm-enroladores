@@ -9058,36 +9058,14 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
     mesclarSkyline();
   }
 
-  // Uma vez decidido "girar ou não" pro grupo (na primeira peça dele que
-  // aparece), TODAS as peças iguais seguintes usam a mesma orientação —
-  // senão só algumas unidades pegavam uma sobra e giravam, o resto ficava
-  // no padrão normal, e a peça acabava espalhada em pedaços por lugares
-  // diferentes do rolo em vez de ficar num bloco só (que é bem mais fácil
-  // de cortar E deixa uma sobra concentrada, mais fácil de reaproveitar).
-  const decisaoGrupo={};
+  // A orientação de cada peça (girada ou não) já vem decidida de fora —
+  // essa função só encaixa na ordem dada. Todas as peças do mesmo grupo
+  // sempre chegam aqui com a MESMA orientação (decidida por empacotarCorte,
+  // que testa as combinações), então ficam sempre num bloco só, nunca
+  // espalhadas em pedaços por lugares diferentes do rolo.
   const colocadas=[];
   pecasOrientadas.forEach(p=>{
-    const chaveGrupo=Math.round(p.wPlace*10)+'_'+Math.round(p.hPlace*10);
-    let w,h,girada;
-    if(decisaoGrupo[chaveGrupo]){
-      ({w,h,girada}=decisaoGrupo[chaveGrupo]);
-    } else {
-      w=p.wPlace; h=p.hPlace; girada=p.girada;
-      const entradaGrupo=melhorPosicao(w);
-      // Mesmo já tendo a orientação "certa" pro grupo, vale checar se a
-      // OUTRA orientação encontra um buraco existente bem mais baixo que o
-      // normal (tipo uma sobra estreita do lado de outra peça) — só troca
-      // se achar uma posição de entrada CLARAMENTE mais baixa (não só um
-      // pouquinho), pra não trocar de orientação por uma vantagem mínima e
-      // acabar fragmentando a sobra em vários lugares à toa.
-      if(w!==h){
-        const entradaGirada=melhorPosicao(h);
-        if(entradaGirada&&(!entradaGrupo||entradaGirada.y<entradaGrupo.y-Math.min(w,h)*0.3)){
-          w=p.hPlace; h=p.wPlace; girada=!girada;
-        }
-      }
-      decisaoGrupo[chaveGrupo]={w,h,girada};
-    }
+    const w=p.wPlace,h=p.hPlace,girada=p.girada;
     const usa=melhorPosicao(w);
     colocarPeca(usa.x,usa.y,w,h);
     colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
@@ -9099,60 +9077,90 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
   return {colocadas,comprimentoTotal,sobras};
 }
 
-// Agrupa por tamanho (decide orientação em grupo, ver comentário mais
-// abaixo) e testa várias ordens de encaixe pra uma LISTA de peças, ficando
-// com a que gastar menos tecido. Isolado numa função própria porque
-// empacotarCorte chama isso duas vezes — uma pra tudo junto, outra peça por
-// peça separado por produto (ver comentário em empacotarCorte).
+// Agrupa por tamanho, testa de verdade TODAS as combinações de orientação
+// (reta ou girada) de cada tipo de peça diferente, cada uma em várias ordens
+// de encaixe, e fica com a que gastar menos tecido (empate: menos pedaços de
+// sobra). Isolado numa função própria porque empacotarCorte chama isso duas
+// vezes — uma pra tudo junto, outra peça por peça separado por produto (ver
+// comentário em empacotarCorte).
 function _melhorEncaixe(pecas,L){
-  // Peças repetidas (qtd>1 do mesmo tamanho) decidem a orientação em GRUPO,
-  // não uma por uma. Decidir peça a peça (só olhando onde ELA sozinha entra
-  // mais baixo) deixava passar batido casos como "2 peças de 135×71cm cabem
-  // lado a lado se giradas (71+71=142), gastando só 135cm de comprimento —
-  // só que colocadas em pé, uma de cada vez, cada uma escolhia sozinha ficar
-  // deitada (135 largura, 71 altura) por parecer melhor isoladamente, e aí
-  // empilhava as duas (71+71=142cm de comprimento) em vez de lado a lado.
+  // Peças repetidas (mesmo tamanho) formam um grupo — TODAS as peças de um
+  // grupo sempre usam a mesma orientação (reta ou girada), senão a peça fica
+  // espalhada em pedaços por lugares diferentes do rolo em vez de ficar num
+  // bloco só.
   const grupos={};
   pecas.forEach(p=>{
     const chave=Math.round(p.w*10)+'_'+Math.round(p.h*10);
     (grupos[chave]=grupos[chave]||[]).push(p);
   });
-  const pecasOrientadas=[];
-  Object.values(grupos).forEach(grupo=>{
+  const listaGrupos=Object.values(grupos);
+
+  // Cada grupo tem 1 opção de orientação (peça quadrada) ou 2 (reta/girada).
+  const opcoesPorGrupo=listaGrupos.map(grupo=>{
     const p0=grupo[0];
-    let w=p0.w,h=p0.h,girada=false;
-    if(p0.w!==p0.h){
-      const n=grupo.length;
-      const configNormal=Math.ceil(n/Math.max(1,Math.floor(L/p0.w)))*p0.h;
-      const configGirada=Math.ceil(n/Math.max(1,Math.floor(L/p0.h)))*p0.w;
-      if(configGirada<configNormal-0.01){ w=p0.h; h=p0.w; girada=true; }
-    }
-    grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:w,hPlace:h,girada}));
+    const opcoes=[{w:p0.w,h:p0.h,girada:false}];
+    if(p0.w!==p0.h&&p0.h<=L+0.01) opcoes.push({w:p0.h,h:p0.w,girada:true});
+    return opcoes;
   });
 
   // O encaixe "ótimo" de verdade é matematicamente difícil de garantir
-  // (NP-difícil) pra qualquer quantidade real de peças — a ORDEM em que as
-  // peças entram muda o resultado final, e não tem uma ordem que ganhe
-  // sempre. Em vez de apostar numa ordem só, testa várias (por altura, por
-  // largura, por área, maior lado) e fica com a que gastar menos tecido.
+  // (NP-difícil) pra qualquer quantidade real de peças — tanto a orientação
+  // de cada tipo de peça quanto a ORDEM em que elas entram mudam o
+  // resultado final. Em vez de apostar numa combinação só, testa todas as
+  // combinações de orientação (a quantidade de tipos de peça diferentes por
+  // gabarito costuma ser pequena, então isso é rápido) em várias ordens de
+  // encaixe, e fica com a que gastar menos tecido. Se tiver MUITOS tipos de
+  // peça diferentes, testa a combinação inteira só pros maiores (que fazem
+  // mais diferença no resultado) e usa a orientação mais econômica pro
+  // grupo sozinho nos demais, pra não travar o navegador.
+  const LIMITE_COMBINATORIO=10; // 2^10=1024 combinações — bem rápido
+  const porImpacto=listaGrupos.map((g,i)=>i)
+    .sort((a,b)=>(listaGrupos[b].length*listaGrupos[b][0].w*listaGrupos[b][0].h)-(listaGrupos[a].length*listaGrupos[a][0].w*listaGrupos[a][0].h));
+  const idxCombinatorios=porImpacto.slice(0,LIMITE_COMBINATORIO);
+  const idxFixos=porImpacto.slice(LIMITE_COMBINATORIO);
+  idxFixos.forEach(i=>{
+    const opcoes=opcoesPorGrupo[i];
+    if(opcoes.length<2) return;
+    const p0=listaGrupos[i][0], n=listaGrupos[i].length;
+    const configNormal=Math.ceil(n/Math.max(1,Math.floor(L/p0.w)))*p0.h;
+    const configGirada=Math.ceil(n/Math.max(1,Math.floor(L/p0.h)))*p0.w;
+    opcoesPorGrupo[i]=configGirada<configNormal-0.01?[opcoes[1]]:[opcoes[0]];
+  });
+
+  let combinacoes=[{}];
+  idxCombinatorios.forEach(i=>{
+    const novo=[];
+    combinacoes.forEach(base=>{
+      opcoesPorGrupo[i].forEach(opt=>{ novo.push({...base,[i]:opt}); });
+    });
+    combinacoes=novo;
+  });
+
   const ordens=[
     (a,b)=>b.hPlace-a.hPlace,
     (a,b)=>b.wPlace-a.wPlace,
     (a,b)=>(b.wPlace*b.hPlace)-(a.wPlace*a.hPlace),
     (a,b)=>Math.max(b.wPlace,b.hPlace)-Math.max(a.wPlace,a.hPlace),
   ];
+
   let melhor=null;
-  ordens.forEach(cmp=>{
-    const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
-    if(!melhor||tentativa.comprimentoTotal<melhor.comprimentoTotal-0.01){
-      melhor=tentativa;
-    } else if(tentativa.comprimentoTotal<melhor.comprimentoTotal+0.01&&tentativa.sobras.length<melhor.sobras.length){
-      // Empate no comprimento — prefere a tentativa que deixa a sobra
-      // concentrada em menos pedaços. Menos pedaços de sobra (mesmo que a
-      // área total seja igual) é mais fácil de reaproveitar depois do que
-      // vários retalhos espalhados pelo rolo.
-      melhor=tentativa;
-    }
+  combinacoes.forEach(escolha=>{
+    const pecasOrientadas=[];
+    listaGrupos.forEach((grupo,i)=>{
+      const opt=escolha[i]||opcoesPorGrupo[i][0];
+      grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
+    });
+    ordens.forEach(cmp=>{
+      const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
+      if(!melhor||tentativa.comprimentoTotal<melhor.comprimentoTotal-0.01){
+        melhor=tentativa;
+      } else if(tentativa.comprimentoTotal<melhor.comprimentoTotal+0.01&&tentativa.sobras.length<melhor.sobras.length){
+        // Empate no comprimento — prefere a tentativa que deixa a sobra
+        // concentrada em menos pedaços, mais fácil de reaproveitar depois
+        // do que vários retalhos espalhados pelo rolo.
+        melhor=tentativa;
+      }
+    });
   });
   return melhor;
 }
