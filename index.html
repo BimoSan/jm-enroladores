@@ -9100,17 +9100,22 @@ function renderMapaCorte(resultado){
   // cima. Antes o texto de uma peça que "vazava" pra fora dela (nome maior
   // que o retângulo) ficava por baixo do retângulo da peça vizinha desenhada
   // depois, sumindo da tela sem erro nenhum.
+  // No algoritmo, p.x/p.wColocada correm ao longo da LARGURA do rolo
+  // (0–142) e p.y/p.hColocada ao longo do COMPRIMENTO (o que cresce sem
+  // limite). No desenho é o contrário: comprimento vai no eixo horizontal
+  // (acompanhando a mesa) e largura no eixo vertical — por isso os dois
+  // pares trocam de lugar aqui.
   const rects=resultado.colocadas.map(p=>{
     const cor=PALETA[legenda[p.label].i%PALETA.length];
-    return '<rect x="'+p.x+'" y="'+(p.y+offY)+'" width="'+p.wColocada+'" height="'+p.hColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"/>';
+    return '<rect x="'+p.y+'" y="'+(p.x+offY)+'" width="'+p.hColocada+'" height="'+p.wColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"/>';
   }).join('');
   const textos=resultado.colocadas.map(p=>{
     // Só escreve o nome dentro da peça se tiver espaço razoável pra caber —
     // senão fica só a cor (a legenda embaixo do mapa identifica cada cor).
     const larguraTxtEstim=p.label.length*4.2;
-    if(Math.min(p.wColocada,p.hColocada)<14||p.wColocada<larguraTxtEstim*0.55) return '';
+    if(Math.min(p.wColocada,p.hColocada)<14||p.hColocada<larguraTxtEstim*0.55) return '';
     const fontSize=Math.max(6,Math.min(10,Math.min(p.wColocada,p.hColocada)*0.24));
-    const cx=p.x+p.wColocada/2, cy=p.y+offY+p.hColocada/2;
+    const cx=p.y+p.hColocada/2, cy=p.x+offY+p.wColocada/2;
     return '<text x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700">'+p.label+(p.girada?' ↻':'')+'</text>';
   }).join('');
 
