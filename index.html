@@ -9081,26 +9081,58 @@ function empacotarCorte(pecas){
 function renderMapaCorte(resultado){
   if(resultado.erro) return '<div class="card" style="color:#dc2626;padding:16px;text-align:center">⚠️ '+resultado.erro+'</div>';
   const L=LARGURA_ROLO_TECIDO;
-  const scale=Math.max(1.2,Math.min(4,900/Math.max(resultado.comprimentoTotal,50)));
+  // Escala fixa e legível — antes encolhia até quase sumir em cortes longos,
+  // porque tentava caber tudo em 900px sem rolagem. Agora assume que corte
+  // comprido vai precisar rolar mesmo (tem a régua embaixo pra se localizar).
+  const scale=2.4;
   const wPx=Math.round(resultado.comprimentoTotal*scale);
   const hPx=Math.round(L*scale);
   const PALETA=['#93c5fd','#86efac','#fde68a','#fca5a5','#c4b5fd','#67e8f9','#fdba74','#f0abfc','#a5b4fc','#6ee7b7'];
   const legenda={};
-  const rects=resultado.colocadas.map((p,i)=>{
-    if(!(p.label in legenda)) legenda[p.label]=Object.keys(legenda).length;
-    const cor=PALETA[legenda[p.label]%PALETA.length];
-    const fontSize=Math.max(6,Math.min(p.wColocada,p.hColocada)*0.22);
-    const cx=p.x+p.wColocada/2, cy=p.y+p.hColocada/2;
-    return '<g>'
-      +'<rect x="'+p.x+'" y="'+p.y+'" width="'+p.wColocada+'" height="'+p.hColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.3"/>'
-      +'<text x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700">'+p.label+(p.girada?' ↻':'')+'</text>'
-      +'</g>';
+  resultado.colocadas.forEach(p=>{ if(!(p.label in legenda)) legenda[p.label]={i:Object.keys(legenda).length,qtd:0,w:p.w,h:p.h}; legenda[p.label].qtd++; });
+
+  // Duas passadas — todos os retângulos primeiro, depois todos os textos por
+  // cima. Antes o texto de uma peça que "vazava" pra fora dela (nome maior
+  // que o retângulo) ficava por baixo do retângulo da peça vizinha desenhada
+  // depois, sumindo da tela sem erro nenhum.
+  const rects=resultado.colocadas.map(p=>{
+    const cor=PALETA[legenda[p.label].i%PALETA.length];
+    return '<rect x="'+p.x+'" y="'+p.y+'" width="'+p.wColocada+'" height="'+p.hColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"/>';
   }).join('');
-  return '<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc">'
-    +'<svg viewBox="0 0 '+resultado.comprimentoTotal+' '+L+'" width="'+wPx+'" height="'+hPx+'" style="display:block">'
+  const textos=resultado.colocadas.map(p=>{
+    // Só escreve o nome dentro da peça se tiver espaço razoável pra caber —
+    // senão fica só a cor (a legenda embaixo do mapa identifica cada cor).
+    const larguraTxtEstim=p.label.length*4.2;
+    if(Math.min(p.wColocada,p.hColocada)<14||p.wColocada<larguraTxtEstim*0.55) return '';
+    const fontSize=Math.max(6,Math.min(10,Math.min(p.wColocada,p.hColocada)*0.24));
+    const cx=p.x+p.wColocada/2, cy=p.y+p.hColocada/2;
+    return '<text x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700">'+p.label+(p.girada?' ↻':'')+'</text>';
+  }).join('');
+
+  // Régua de metro em metro, pra dar noção de escala enquanto rola pro lado.
+  const nMetros=Math.ceil(resultado.comprimentoTotal/100);
+  let regua='';
+  for(let m=0;m<=nMetros;m++){
+    const x=m*100;
+    if(x>resultado.comprimentoTotal+0.5) break;
+    regua+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="'+L+'" stroke="#cbd5e1" stroke-width="0.3" stroke-dasharray="1.5,1.5"/>'
+      +'<text x="'+x+'" y="-3" font-size="6" fill="#94a3b8">'+m+'m</text>';
+  }
+
+  const legendaHtml='<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">'
+    +Object.entries(legenda).map(([label,info])=>'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
+      +'<span style="width:14px;height:14px;border-radius:3px;background:'+PALETA[info.i%PALETA.length]+';border:1px solid #1e293b33;flex-shrink:0"></span>'
+      +'<span><strong>'+label+'</strong> — '+info.w+'×'+info.h+'cm · '+info.qtd+'×</span>'
+      +'</div>').join('')
+    +'</div>';
+
+  return '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">Role a barra abaixo pra ver o rolo inteiro (as marcas mostram os metros).</div>'
+    +'<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
+    +'<svg viewBox="0 -14 '+resultado.comprimentoTotal+' '+(L+14)+'" width="'+wPx+'" height="'+(hPx+34)+'" style="display:block">'
     +'<rect x="0" y="0" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fff"/>'
-    +rects
-    +'</svg></div>';
+    +rects+regua+textos
+    +'</svg></div>'
+    +legendaHtml;
 }
 
 function renderTabCorte(tab){
