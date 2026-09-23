@@ -9337,7 +9337,10 @@ function renderMapaCorte(resultado){
   const vbComprimento=Math.max(MC,resultado.comprimentoTotal);
   const excedeMesa=resultado.comprimentoTotal>MC+0.5;
 
-  const PALETA=['#93c5fd','#86efac','#fde68a','#fca5a5','#c4b5fd','#67e8f9','#fdba74','#f0abfc','#a5b4fc','#6ee7b7'];
+  // Sem tons de vermelho/rosa aqui de propósito — essa cor é reservada pra
+  // sobra de tecido (ver "rolo" mais abaixo); se uma peça usasse uma cor
+  // parecida, ia confundir com sobra no mapa.
+  const PALETA=['#93c5fd','#86efac','#fde68a','#c4b5fd','#67e8f9','#fdba74','#a5b4fc','#6ee7b7','#7dd3fc','#bef264'];
   const legenda={};
   resultado.colocadas.forEach(p=>{ if(!(p.label in legenda)) legenda[p.label]={i:Object.keys(legenda).length,qtd:0,w:p.w,h:p.h}; legenda[p.label].qtd++; });
 
