@@ -9141,9 +9141,26 @@ function _melhorEncaixe(pecas,L){
     (a,b)=>b.wPlace-a.wPlace,
     (a,b)=>(b.wPlace*b.hPlace)-(a.wPlace*a.hPlace),
     (a,b)=>Math.max(b.wPlace,b.hPlace)-Math.max(a.wPlace,a.hPlace),
+    // Agrupa por largura primeiro (peças que compartilham a mesma largura —
+    // tipo Costa/Braço/Botão, todas com 75cm — ficam vizinhas na hora de
+    // encaixar, o que ajuda a formar uma coluna só em vez de espalhadas).
+    (a,b)=>(b.wPlace-a.wPlace)||(b.hPlace-a.hPlace),
+    (a,b)=>(a.wPlace-b.wPlace)||(b.hPlace-a.hPlace),
   ];
 
-  let melhor=null;
+  // Maior sobra de uma tentativa — usado pra desempatar preferindo o
+  // resultado que deixa um retalho grande (mais fácil de reaproveitar)
+  // em vez de vários pedacinhos, mesmo quando a QUANTIDADE de sobras é igual.
+  const maiorSobra=t=>t.sobras.reduce((m,s)=>Math.max(m,s.largura*s.comprimento),0);
+
+  // menorComprimento guarda o menor comprimento de verdade já visto — serve
+  // de referência FIXA pra tolerância de empate. Se em vez disso a
+  // tolerância fosse calculada a partir do "melhor" atual (que pode ter sido
+  // trocado por causa de sobra melhor, não por ser mais curto), a cada troca
+  // a régua de comparação ia "escorregando" um pouquinho pra pior, e depois
+  // de muitas tentativas o resultado final podia acabar gastando bem mais
+  // tecido do que o mínimo real só por causa desse acúmulo.
+  let melhor=null, menorComprimento=Infinity;
   combinacoes.forEach(escolha=>{
     const pecasOrientadas=[];
     listaGrupos.forEach((grupo,i)=>{
@@ -9152,13 +9169,20 @@ function _melhorEncaixe(pecas,L){
     });
     ordens.forEach(cmp=>{
       const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
-      if(!melhor||tentativa.comprimentoTotal<melhor.comprimentoTotal-0.01){
+      // Tolerância de empate relativa (1% do comprimento, mínimo 0,5cm) —
+      // 0,01cm fixo era rígido demais: duas tentativas que na prática gastam
+      // o MESMO tecido (a diferença é só arredondamento da própria
+      // heurística) não deviam competir só pelo comprimento bruto, e sim
+      // pela sobra ficar mais concentrada.
+      const tolerancia=Number.isFinite(menorComprimento)?Math.max(0.5,menorComprimento*0.01):0;
+      if(tentativa.comprimentoTotal<menorComprimento-0.01){
+        menorComprimento=tentativa.comprimentoTotal;
         melhor=tentativa;
-      } else if(tentativa.comprimentoTotal<melhor.comprimentoTotal+0.01&&tentativa.sobras.length<melhor.sobras.length){
-        // Empate no comprimento — prefere a tentativa que deixa a sobra
-        // concentrada em menos pedaços, mais fácil de reaproveitar depois
-        // do que vários retalhos espalhados pelo rolo.
-        melhor=tentativa;
+      } else if(tentativa.comprimentoTotal<menorComprimento+tolerancia){
+        if(!melhor||tentativa.sobras.length<melhor.sobras.length
+          ||(tentativa.sobras.length===melhor.sobras.length&&maiorSobra(tentativa)>maiorSobra(melhor)+0.01)){
+          melhor=tentativa;
+        }
       }
     });
   });
