@@ -9164,10 +9164,16 @@ function _prepararBuscaEncaixe(pecas,L){
   });
   const listaGrupos=Object.values(grupos);
 
-  // Cada grupo tem 1 opção de orientação (peça quadrada) ou 2 (reta/girada).
+  // Cada grupo tem 1 opção de orientação (peça quadrada) ou 2 (reta/girada)
+  // — só entra a orientação em que a LARGURA cabe no rolo. Uma peça mais
+  // comprida que 142cm numa medida (ex: um encosto de 160cm) só cabe girada
+  // (com o lado de 160cm virando o comprimento, não a largura) — antes as
+  // duas orientações entravam sem checar isso, e se a busca escolhesse a
+  // orientação que NÃO cabe, toda tentativa com ela dava inválida.
   const opcoesPorGrupo=listaGrupos.map(grupo=>{
     const p0=grupo[0];
-    const opcoes=[{w:p0.w,h:p0.h,girada:false}];
+    const opcoes=[];
+    if(p0.w<=L+0.01) opcoes.push({w:p0.w,h:p0.h,girada:false});
     if(p0.w!==p0.h&&p0.h<=L+0.01) opcoes.push({w:p0.h,h:p0.w,girada:true});
     return opcoes;
   });
