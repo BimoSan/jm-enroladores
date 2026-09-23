@@ -9113,7 +9113,11 @@ function _melhorEncaixe(pecas,L){
   // peça diferentes, testa a combinação inteira só pros maiores (que fazem
   // mais diferença no resultado) e usa a orientação mais econômica pro
   // grupo sozinho nos demais, pra não travar o navegador.
-  const LIMITE_COMBINATORIO=10; // 2^10=1024 combinações — bem rápido
+  // Quanto mais peças físicas no total, mais cara fica CADA tentativa de
+  // encaixe — reduz o tamanho da busca pra não travar a tela em produtos
+  // com muitos tipos de peça diferentes (tipo um jogo de sofá completo).
+  const LIMITE_COMBINATORIO=pecas.length>60?6:pecas.length>30?8:10;
+  const NUM_EMBARALHADAS=pecas.length>60?3:pecas.length>30?5:8;
   const porImpacto=listaGrupos.map((g,i)=>i)
     .sort((a,b)=>(listaGrupos[b].length*listaGrupos[b][0].w*listaGrupos[b][0].h)-(listaGrupos[a].length*listaGrupos[a][0].w*listaGrupos[a][0].h));
   const idxCombinatorios=porImpacto.slice(0,LIMITE_COMBINATORIO);
@@ -9181,7 +9185,7 @@ function _melhorEncaixe(pecas,L){
   // arranjo melhor pro Braço do que qualquer uma das ordens fixas sozinho —
   // embaralhar aumenta bastante a chance de achar esse tipo de arranjo sem
   // precisar dessa sorte.
-  for(let i=0;i<8;i++){
+  for(let i=0;i<NUM_EMBARALHADAS;i++){
     geradoresDeOrdem.push(arr=>{
       const copia=[...arr];
       for(let j=copia.length-1;j>0;j--){
@@ -9594,8 +9598,14 @@ function renderCorteNovo(){
         +'<button onclick="window._corteRemoverAvulso('+i+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">×</button>'
         +'</div>').join('');
   }
-  html+='<button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="window._corteGerarMapa()">Gerar gabarito</button>'
+  const calculando=!!window._corteCalculando;
+  html+='<button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" '
+    +(calculando?'disabled':'onclick="window._corteGerarMapa()"')+'>'
+    +(calculando?'⏳ Calculando o melhor encaixe...':'Gerar gabarito')+'</button>'
     +'</div>';
+  if(calculando){
+    return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:12px">Testando várias combinações de encaixe pra achar a que gasta menos tecido — pode levar alguns segundos se tiver muitos tipos de peça diferentes.</div>';
+  }
 
   const resultado=window._corteResultado;
   if(resultado){
@@ -9694,11 +9704,20 @@ window._corteGerarMapa=function(){
     }
   });
   if(!pecas.length){ showToast('Escolha a quantidade de pelo menos um produto.'); return; }
-  window._corteResultado=empacotarCorte(pecas);
-  window._corteResultadoSelecao=corteProdutos.filter(p=>(sel[p.id]||0)>0).map(p=>({nome:p.nome,qtd:sel[p.id]}));
-  window._corteUnidadesPorGabarito=unidades;
-  window._corteQtdDesejada=null;
+  // O encaixe testa muitas combinações — com muitos tipos de peça diferentes
+  // isso pode travar a tela por alguns segundos sem avisar nada. Mostra
+  // "Calculando..." primeiro, e só depois (num próximo tick, já com essa
+  // tela desenhada) roda a parte pesada de verdade.
+  window._corteCalculando=true;
   reloadTab();
+  setTimeout(()=>{
+    window._corteResultado=empacotarCorte(pecas);
+    window._corteResultadoSelecao=corteProdutos.filter(p=>(sel[p.id]||0)>0).map(p=>({nome:p.nome,qtd:sel[p.id]}));
+    window._corteUnidadesPorGabarito=unidades;
+    window._corteQtdDesejada=null;
+    window._corteCalculando=false;
+    reloadTab();
+  },30);
 };
 window._corteSalvarHistorico=async function(){
   const r=window._corteResultado;
