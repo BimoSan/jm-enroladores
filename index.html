@@ -9083,7 +9083,37 @@ function _tentarEmpacotarCorte(pecasOrientadas,L){
 // sobra). Isolado numa função própria porque empacotarCorte chama isso duas
 // vezes — uma pra tudo junto, outra peça por peça separado por produto (ver
 // comentário em empacotarCorte).
-function _melhorEncaixe(pecas,L){
+// Versão assíncrona — roda a busca em fatias de ~50ms, devolvendo o
+// controle pro navegador entre elas (setTimeout), pra tela não travar/
+// parecer travada durante o tempo todo que isso pode levar num produto com
+// muitos tipos de peça. `prazoFinal` é um horário limite (Date.now() + X)
+// COMPARTILHADO entre todas as chamadas de uma mesma geração de gabarito —
+// se estourar, para na hora e devolve o melhor resultado já encontrado até
+// ali, mesmo que não tenha testado tudo.
+function _melhorEncaixeAsync(pecas,L,prazoFinal){
+  return new Promise(resolve=>{
+    const {trabalhos,avaliar,pegarMelhor}=_prepararBuscaEncaixe(pecas,L);
+    let idx=0;
+    function passo(){
+      const inicioFatia=Date.now();
+      while(idx<trabalhos.length&&Date.now()-inicioFatia<50){
+        trabalhos[idx](); idx++;
+        if(Date.now()>prazoFinal) break;
+      }
+      if(idx>=trabalhos.length||Date.now()>prazoFinal){
+        resolve(pegarMelhor());
+      } else {
+        setTimeout(passo,0);
+      }
+    }
+    passo();
+  });
+}
+
+// Monta a lista de tentativas (combinação de orientação × ordem de
+// encaixe) pra uma lista de peças, sem rodar nada ainda — quem chama decide
+// o ritmo (síncrono ou em fatias, ver _melhorEncaixeAsync).
+function _prepararBuscaEncaixe(pecas,L){
   // Peças repetidas (mesmo tamanho) formam um grupo — TODAS as peças de um
   // grupo sempre usam a mesma orientação (reta ou girada), senão a peça fica
   // espalhada em pedaços por lugares diferentes do rolo em vez de ficar num
@@ -9227,13 +9257,19 @@ function _melhorEncaixe(pecas,L){
     }
   }
 
+  // Monta a lista de tentativas (cada uma é uma função "rode e avalie") sem
+  // executar nada ainda — quem chama (_melhorEncaixeAsync) decide o ritmo,
+  // processando em fatias e checando o prazo entre uma e outra.
+  const trabalhos=[];
   combinacoes.forEach(escolha=>{
     const pecasOrientadas=[];
     listaGrupos.forEach((grupo,i)=>{
       const opt=escolha[i]||opcoesPorGrupo[i][0];
       grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
     });
-    geradoresDeOrdem.forEach(gerarOrdem=>avaliar(_tentarEmpacotarCorte(gerarOrdem(pecasOrientadas),L)));
+    geradoresDeOrdem.forEach(gerarOrdem=>{
+      trabalhos.push(()=>avaliar(_tentarEmpacotarCorte(gerarOrdem(pecasOrientadas),L)));
+    });
 
     // Pra combinação "agrupada por medida comum" (a última da lista, ver
     // acima), as ordens genéricas podem intercalar outra peça (tipo o Friz)
@@ -9242,22 +9278,28 @@ function _melhorEncaixe(pecas,L){
     // agrupamento fica todo consecutivo, testando as peças de fora antes e
     // depois dele.
     if(escolha===combinacoes[combinacoes.length-1]&&medidaMaisComum&&medidaMaisComum[1]>=2){
-      const doGrupo=[],foraDoGrupo=[];
-      listaGrupos.forEach((grupo,i)=>{
-        const alvo=(escolha[i]?doGrupo:foraDoGrupo);
-        const opt=escolha[i]||opcoesPorGrupo[i][0];
-        grupo.forEach(p=>alvo.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
+      trabalhos.push(()=>{
+        const doGrupo=[],foraDoGrupo=[];
+        listaGrupos.forEach((grupo,i)=>{
+          const alvo=(escolha[i]?doGrupo:foraDoGrupo);
+          const opt=escolha[i]||opcoesPorGrupo[i][0];
+          grupo.forEach(p=>alvo.push({...p,wPlace:opt.w,hPlace:opt.h,girada:opt.girada}));
+        });
+        doGrupo.sort((a,b)=>b.hPlace-a.hPlace);
+        foraDoGrupo.sort((a,b)=>b.hPlace-a.hPlace);
+        avaliar(_tentarEmpacotarCorte([...doGrupo,...foraDoGrupo],L));
+        avaliar(_tentarEmpacotarCorte([...foraDoGrupo,...doGrupo],L));
       });
-      doGrupo.sort((a,b)=>b.hPlace-a.hPlace);
-      foraDoGrupo.sort((a,b)=>b.hPlace-a.hPlace);
-      avaliar(_tentarEmpacotarCorte([...doGrupo,...foraDoGrupo],L));
-      avaliar(_tentarEmpacotarCorte([...foraDoGrupo,...doGrupo],L));
     }
   });
-  return melhor;
+  return {trabalhos,avaliar,pegarMelhor:()=>melhor};
 }
 
-function empacotarCorte(pecas){
+// Assíncrono — pode levar até uns minutos num produto com muitos tipos de
+// peça diferentes, mas roda em fatias (não trava a tela) e nunca passa do
+// prazo total combinado (10 minutos), não importa quantas chamadas internas
+// precisar fazer — todas comparilham o MESMO relógio.
+async function empacotarCorte(pecas){
   const L=LARGURA_ROLO_TECIDO;
 
   const foraDaLargura=pecas.filter(p=>Math.min(p.w,p.h)>L+0.01);
@@ -9265,10 +9307,12 @@ function empacotarCorte(pecas){
     return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
   }
 
+  const prazoFinal=Date.now()+10*60*1000; // 10 minutos no total, pra tudo
+
   // Tenta encaixar tudo junto, misturando as peças dos produtos escolhidos
   // — pode economizar tecido aproveitando a sobra de um produto com peça de
   // outro (é o objetivo principal de juntar vários produtos num gabarito só).
-  const junto=_melhorEncaixe(pecas,L);
+  const junto=await _melhorEncaixeAsync(pecas,L,prazoFinal);
 
   // ...MAS juntar produtos nunca pode dar PIOR do que cortar cada um
   // separado, um atrás do outro — senão a única forma seria não juntar
@@ -9283,12 +9327,12 @@ function empacotarCorte(pecas){
   if(gruposProduto.length>1){
     let yAcumulado=0;
     const colocadas=[]; const sobras=[];
-    gruposProduto.forEach(lista=>{
-      const r=_melhorEncaixe(lista,L);
+    for(const lista of gruposProduto){
+      const r=await _melhorEncaixeAsync(lista,L,prazoFinal);
       r.colocadas.forEach(p=>colocadas.push({...p,y:p.y+yAcumulado}));
       r.sobras.forEach(s=>sobras.push(s)); // sobra de cada bloco (largura/comprimento) não muda ao empilhar
       yAcumulado+=r.comprimentoTotal;
-    });
+    }
     separado={colocadas,comprimentoTotal:yAcumulado,sobras};
   }
 
@@ -9710,8 +9754,8 @@ window._corteGerarMapa=function(){
   // tela desenhada) roda a parte pesada de verdade.
   window._corteCalculando=true;
   reloadTab();
-  setTimeout(()=>{
-    window._corteResultado=empacotarCorte(pecas);
+  setTimeout(async()=>{
+    window._corteResultado=await empacotarCorte(pecas);
     window._corteResultadoSelecao=corteProdutos.filter(p=>(sel[p.id]||0)>0).map(p=>({nome:p.nome,qtd:sel[p.id]}));
     window._corteUnidadesPorGabarito=unidades;
     window._corteQtdDesejada=null;
