@@ -525,8 +525,8 @@ const PERFIS={
   geral:            {label:'Geral',                color:'#555',   bg:'#f0f0f0', fabricas:['cadeiras'],            setor:null,               fichaColor:null},
   // Fábrica de Estofados
   encarregado_est:  {label:'Encarregado Estofados',color:'#6d28d9',bg:'#ede9fe', fabricas:['estofados'],           setor:null,               fichaColor:null},
-  apontador_cos:    {label:'Apontador Costura',    color:'#be185d',bg:'#fce7f3', fabricas:['estofados'],           setor:'costura',          fichaColor:null},
-  costureira:       {label:'Costureira',           color:'#db2777',bg:'#fdf2f8', fabricas:['estofados'],           setor:'costura',          fichaColor:null},
+  apontador_corte:  {label:'Apontador Corte',      color:'#be185d',bg:'#fce7f3', fabricas:['estofados'],           setor:'corte',            fichaColor:null},
+  cortador:         {label:'Cortador',             color:'#db2777',bg:'#fdf2f8', fabricas:['estofados'],           setor:'corte',            fichaColor:null},
   apontador_gra:    {label:'Apontador Grades',     color:'#1d4ed8',bg:'#dbeafe', fabricas:['estofados'],           setor:'grades',           fichaColor:null},
   gradista:         {label:'Gradista',             color:'#2563eb',bg:'#eff6ff', fabricas:['estofados'],           setor:'grades',           fichaColor:null},
   apontador_tap:    {label:'Apontador Tapeçamento',color:'#0369a1',bg:'#e0f2fe', fabricas:['estofados'],           setor:'tapecamento',      fichaColor:null},
@@ -1230,6 +1230,12 @@ let espumaOperadores=[];
 let contasPagar=[];
 // Contas a Receber (parcelas de clientes)
 let contasReceber=[];
+// Corte de Tecidos — peças por produto (biblioteca de moldes) e histórico
+// dos planos de corte já gerados.
+let corteProdutos=[];
+let corteHistorico=[];
+const LARGURA_ROLO_TECIDO=142; // cm — largura fixa do rolo
+
 // Custos Indiretos
 let custosIndiretos=[];
 let matDiretos=[];
@@ -1341,7 +1347,7 @@ function can(p){
   if(!currentUserData)return false;
   const perfil=currentUserData.perfil;
   const rules={
-    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
+    verPainel:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','apontador_metal','soldador','apontador_corte','cortador','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
     verFichas:       ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','geral','mecanico','administracao'],
     verFichasEntregador: ['entregador'],
     verFichasEnrolador:  ['enrolador'],
@@ -1351,7 +1357,7 @@ function can(p){
     cadastrarEnrolador:  ['admin'],
     gerenciarUsuarios:   ['admin'],
     verRelatorio:    ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','mecanico','administracao'],
-    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','apontador_metal','soldador','apontador_cos','costureira','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
+    verRanking:      ['admin','proprietario','financeiro','escritorio','encarregado_cad','encarregado_est','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','apontador_metal','soldador','apontador_corte','cortador','apontador_gra','gradista','apontador_tap','tapecador','apontador_esp','mecanico','administracao','encarregado_fitas'],
     verValores:      ['admin','proprietario','financeiro'],
     editar:          ['admin'],
     verSinalizacoes: ['admin','proprietario','financeiro','escritorio','encarregado_cad','apontador1','apontador2','apontador3','apontador4','entregador','enrolador','geral','mecanico','administracao'],
@@ -1547,6 +1553,9 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'esp_operadores':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
   'esp_relatorio': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
   'esp_config':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+  'corte_novo':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>',
+  'corte_produtos':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+  'corte_historico':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   'grad_painel':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   'grad_apontar':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   'grad_fichas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
@@ -1620,6 +1629,7 @@ const TAB_LABELS={
   'fin_dashboard':'Dashboard','fin_vendas':'Contas a Receber','fin_pagamentos':'Mão de Obra','fin_compras':'Almoxarifado','fin_matdiretos':'Mat. Diretos','fin_matquimicos':'Mat. Químicos','fin_custos':'Custos Indiretos','fin_viagens':'Viagens','fin_outros':'Outros / Geral','fin_relatorio':'Relatórios',
   'man_painel':'Painel','man_maquinas':'Máquinas','man_relatorio':'Relatórios',
   'eng_mp':'Matérias-primas','eng_produtos':'Produtos','eng_espuma':'Cálculo de Espuma','eng_colchao':'Calculadora de Colchão','eng_indiretos':'Custo Indireto','eng_relatorio':'Relatórios','eng_config':'Configurações',
+  'corte_novo':'Novo Corte','corte_produtos':'Peças por Produto','corte_historico':'Histórico',
   'grad_painel':'Painel','grad_apontar':'Apontamento','grad_fichas':'Fichas','grad_ranking':'Ranking','grad_gradistas':'Gradistas','grad_config':'Configurações',
   'grad_minha_ficha':'Minha Ficha','grad_meu_desempenho':'Meu Desempenho',
   'tap_painel':'Painel','tap_apontar':'Apontamento','tap_fichas':'Fichas','tap_ranking':'Ranking','tap_tapecadores':'Tapecadores','tap_config':'Configurações',
@@ -1642,7 +1652,7 @@ function renderSelecionarFabrica(){
 
   const fabricas=[
     {id:'cadeiras',     nome:'Fábrica de Cadeiras', icon:'🪑', cor:'#1e40af', bg:'linear-gradient(135deg,#1e40af,#3b82f6)', desc:'Metalúrgica, Enrolamento, Fitas e mais'},
-    {id:'estofados',    nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Costura, Grades, Tapeçamento e Espuma'},
+    {id:'estofados',    nome:'Fábrica de Estofados', icon:'🛋️', cor:'#7c3aed', bg:'linear-gradient(135deg,#7c3aed,#a78bfa)', desc:'Corte, Grades, Tapeçamento e Espuma'},
     {id:'almoxarifado', nome:'Almoxarifado',          icon:'📦', cor:'#92400e', bg:'linear-gradient(135deg,#92400e,#f59e0b)', desc:'Controle de estoque e materiais'},
     {id:'caminhoes',    nome:'Caminhões',              icon:'🚚', cor:'#1e3a5f', bg:'linear-gradient(135deg,#1e3a5f,#2563eb)', desc:'Frotas, rotas e manutenção'},
     {id:'financeiro',   nome:'Financeiro',             icon:'💰', cor:'#065f46', bg:'linear-gradient(135deg,#065f46,#10b981)', desc:'Pagamentos, compras e relatórios financeiros'},
@@ -1730,7 +1740,7 @@ function renderSelecionarSetor(){
     {id:'enrolamento_int',  nome:'Enrolamento Interno',      icon:'🏭', desc:'Enrolamento na própria fábrica', ativo:true},
   ];
   const setoresEstofados=[
-    {id:'costura',    nome:'Costura',           icon:'🧵', desc:'Produção de capas e acabamentos', ativo:false},
+    {id:'corte',      nome:'Corte de Tecidos',  icon:'✂️', desc:'Plano de corte e aproveitamento de tecido', ativo:true},
     {id:'grades',     nome:'Grades',            icon:'🪚', desc:'Produção de estruturas de madeira', ativo:true},
     {id:'tapecamento',nome:'Tapeçamento',       icon:'🪑', desc:'Controle de produção e fichas', ativo:true},
     {id:'espuma',     nome:'Blocos de Espuma',  icon:'⬜', desc:'Produção e controle de blocos D20', ativo:true},
@@ -1888,6 +1898,11 @@ function renderApp(){
     else if(pg==='gradista') tabs.push('grad_minha_ficha','grad_meu_desempenho','grad_ranking');
     else tabs.push('grad_painel','grad_ranking','grad_producao');
     if(!currentTab||!currentTab.startsWith('grad_')) currentTab='grad_painel';
+  } else if(currentSetor==='corte'){
+    const pc=currentUserData?.perfil;
+    if(['admin','proprietario','encarregado_est','apontador_corte'].includes(pc)) tabs.push('corte_novo','corte_produtos','corte_historico');
+    else tabs.push('corte_novo','corte_historico');
+    if(!currentTab||!currentTab.startsWith('corte_')) currentTab='corte_novo';
   } else if(currentSetor==='tapecamento'){
     const pt=currentUserData?.perfil;
     if(['admin','proprietario','encarregado_est'].includes(pt)) tabs.push('tap_painel','tap_apontar','tap_fichas','tap_ranking','tap_producao','tap_tapecadores','tap_config');
@@ -1932,7 +1947,7 @@ function renderApp(){
   if(!tabs.includes(currentTab))currentTab=tabs.length?tabs[0]:null;
 
   const perfisFixos=['soldador','enrolador','entregador',
-    'enrolador_int','costureira','gradista','tapecador','encarregado_esp','operador_esp'];
+    'enrolador_int','cortador','gradista','tapecador','encarregado_esp','operador_esp'];
   const perfilAtual=currentUserData?.perfil;
   const podeVoltarSetor=!perfisFixos.includes(perfilAtual);
   const btnVoltar=podeVoltarSetor?`
@@ -1989,6 +2004,7 @@ function renderApp(){
               currentSetor==='grades'?'Grades':
               currentSetor==='tapecamento'?'Tapeçamento':
               currentSetor==='espuma'?'Blocos de Espuma':
+              currentSetor==='corte'?'Corte de Tecidos':
               currentSetor==='financeiro_geral'?'Financeiro':
               currentSetor==='manutencao'?'Manutenção':
               currentSetor==='engenharia'?'Engenharia':
@@ -2058,6 +2074,7 @@ function renderTab(tab){
   if(currentSetor==='engenharia') return renderTabEngenharia(tab);
   if(currentSetor==='espuma') return renderTabEspuma(tab);
   if(currentSetor==='grades') return renderTabGrades(tab);
+  if(currentSetor==='corte') return renderTabCorte(tab);
   if(currentSetor==='tapecamento') return renderTabTapecamento(tab);
   if(currentSetor==='enrolamento_int') return renderTabInt(tab);
   if(currentSetor==='fitas') return renderTabFitas(tab);
@@ -8980,6 +8997,367 @@ function calcGanhoGrad(fichaOuAponts){
 function totalPecasGrad(aponts){
   return aponts.reduce((s,a)=>s+getPecasGradAtivas().reduce((ss,p)=>ss+(parseInt((a.pecas||{})[p.id])||0),0),0);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ── Corte de Tecidos ─────────────────────────────────────────────
+// Todas as peças são retângulos (tecido liso, sem sentido de estampa),
+// então a peça pode ser girada 90° livremente. O algoritmo é o clássico
+// "skyline" de strip packing: largura do rolo fixa, vai encaixando cada
+// peça (das maiores pras menores) na posição mais baixa disponível,
+// testando as duas orientações — minimiza o comprimento total de tecido
+// gasto. Não é o ótimo matemático absoluto (esse é NP-difícil pra
+// qualquer quantidade real de peças), mas é a heurística padrão da
+// indústria pra esse tipo de problema e fica bem perto do ótimo.
+function corteAreaProduto(produto){
+  return (produto.pecas||[]).reduce((s,p)=>s+((parseFloat(p.largura)||0)*(parseFloat(p.altura)||0)*(parseInt(p.qtd)||0)),0);
+}
+function empacotarCorte(pecas){
+  const L=LARGURA_ROLO_TECIDO;
+  let skyline=[{x:0,w:L,y:0}];
+
+  function mesclarSkyline(){
+    for(let i=0;i<skyline.length-1;i++){
+      if(Math.abs(skyline[i].y-skyline[i+1].y)<0.01){
+        skyline[i].w+=skyline[i+1].w;
+        skyline.splice(i+1,1);
+        i--;
+      }
+    }
+  }
+  function melhorPosicao(w){
+    let melhor=null;
+    for(let i=0;i<skyline.length;i++){
+      let somaW=0,maxY=0,j=i;
+      while(j<skyline.length&&somaW<w-0.01){ somaW+=skyline[j].w; maxY=Math.max(maxY,skyline[j].y); j++; }
+      if(somaW>=w-0.01){
+        if(!melhor||maxY<melhor.y-0.01||(Math.abs(maxY-melhor.y)<0.01&&skyline[i].x<melhor.x)){
+          melhor={x:skyline[i].x,y:maxY};
+        }
+      }
+    }
+    return melhor;
+  }
+  function colocarPeca(x,y,w,h){
+    const novo=[]; let xAtual=0;
+    skyline.forEach(seg=>{
+      const segIni=xAtual,segFim=xAtual+seg.w;
+      const ini=Math.max(segIni,x),fim=Math.min(segFim,x+w);
+      if(ini<fim-0.01){
+        if(segIni<ini-0.01) novo.push({x:segIni,w:ini-segIni,y:seg.y});
+        novo.push({x:ini,w:fim-ini,y:y+h});
+        if(fim<segFim-0.01) novo.push({x:fim,w:segFim-fim,y:seg.y});
+      } else novo.push({x:segIni,w:seg.w,y:seg.y});
+      xAtual=segFim;
+    });
+    skyline=novo;
+    mesclarSkyline();
+  }
+
+  const foraDaLargura=pecas.filter(p=>Math.min(p.w,p.h)>L+0.01);
+  if(foraDaLargura.length){
+    return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
+  }
+
+  const ordenadas=[...pecas].sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h));
+  const colocadas=[];
+  ordenadas.forEach(p=>{
+    const opNormal=melhorPosicao(p.w);
+    const opGirada=(p.w!==p.h)?melhorPosicao(p.h):null;
+    let usa=opNormal,w=p.w,h=p.h,girada=false;
+    if(opGirada&&(!opNormal||opGirada.y<opNormal.y-0.01)){ usa=opGirada; w=p.h; h=p.w; girada=true; }
+    colocarPeca(usa.x,usa.y,w,h);
+    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
+  });
+
+  const comprimentoTotal=Math.max(...skyline.map(s=>s.y),0);
+  const areaPecas=pecas.reduce((s,p)=>s+p.w*p.h,0);
+  const areaTecido=L*comprimentoTotal;
+  const aproveitamento=areaTecido>0?areaPecas/areaTecido:0;
+  return {colocadas,comprimentoTotal,areaPecas,areaTecido,aproveitamento};
+}
+
+// Desenho do mapa de corte — SVG com o rolo "deitado", comprimento no eixo
+// X (pode rolar horizontal) e a largura fixa de 142cm no eixo Y.
+function renderMapaCorte(resultado){
+  if(resultado.erro) return '<div class="card" style="color:#dc2626;padding:16px;text-align:center">⚠️ '+resultado.erro+'</div>';
+  const L=LARGURA_ROLO_TECIDO;
+  const scale=Math.max(1.2,Math.min(4,900/Math.max(resultado.comprimentoTotal,50)));
+  const wPx=Math.round(resultado.comprimentoTotal*scale);
+  const hPx=Math.round(L*scale);
+  const PALETA=['#93c5fd','#86efac','#fde68a','#fca5a5','#c4b5fd','#67e8f9','#fdba74','#f0abfc','#a5b4fc','#6ee7b7'];
+  const legenda={};
+  const rects=resultado.colocadas.map((p,i)=>{
+    if(!(p.label in legenda)) legenda[p.label]=Object.keys(legenda).length;
+    const cor=PALETA[legenda[p.label]%PALETA.length];
+    const fontSize=Math.max(6,Math.min(p.wColocada,p.hColocada)*0.22);
+    const cx=p.x+p.wColocada/2, cy=p.y+p.hColocada/2;
+    return '<g>'
+      +'<rect x="'+p.x+'" y="'+p.y+'" width="'+p.wColocada+'" height="'+p.hColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.3"/>'
+      +'<text x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700">'+p.label+(p.girada?' ↻':'')+'</text>'
+      +'</g>';
+  }).join('');
+  return '<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc">'
+    +'<svg viewBox="0 0 '+resultado.comprimentoTotal+' '+L+'" width="'+wPx+'" height="'+hPx+'" style="display:block">'
+    +'<rect x="0" y="0" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fff"/>'
+    +rects
+    +'</svg></div>';
+}
+
+function renderTabCorte(tab){
+  try{
+    if(tab==='corte_novo')      return renderCorteNovo();
+    if(tab==='corte_produtos')  return renderCorteProdutos();
+    if(tab==='corte_historico') return renderCorteHistorico();
+    return renderCorteNovo();
+  }catch(e){
+    console.error('Erro renderTabCorte:',e.message,e.stack);
+    return '<div class="card" style="color:#dc2626;padding:16px">Erro: '+e.message+'</div>';
+  }
+}
+function corteLimiteAtual(){
+  const p=currentUserData?.perfil;
+  return ['admin','proprietario','encarregado_est','apontador_corte'].includes(p);
+}
+
+// ── Cadastro de peças por produto ─────────────────────────────────
+function renderCorteProdutos(){
+  const podeEditar=corteLimiteAtual();
+  let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    +'<div style="font-size:12px;color:#64748b">Cadastre as peças (retângulos) que compõem cada produto — é a partir daqui que o gerador de corte monta o mapa.</div>'
+    +(podeEditar?'<button class="btn btn-primary btn-sm" style="flex-shrink:0;margin-left:10px" onclick="window._corteNovoProduto()">+ Produto</button>':'')
+    +'</div>';
+  if(!corteProdutos.length){
+    return html+'<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum produto cadastrado ainda.</div>';
+  }
+  html+=corteProdutos.map(prod=>{
+    const pecas=prod.pecas||[];
+    const areaUnit=corteAreaProduto(prod);
+    const rows=pecas.map(p=>'<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-top:1px solid #f8fafc">'
+      +'<span style="color:#475569">'+p.nome+'</span>'
+      +'<span style="color:#64748b">'+p.largura+'×'+p.altura+'cm × '+p.qtd+'</span>'
+      +'</div>').join('');
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div style="font-size:14px;font-weight:700">'+prod.nome+'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +(podeEditar?'<button class="btn btn-sm btn-warn" onclick="window._corteEditarProduto(\''+prod.id+'\')">Editar</button>'
+        +'<button class="btn btn-sm btn-danger" onclick="window._corteExcluirProduto(\''+prod.id+'\')">Excluir</button>':'')
+      +'</div></div>'
+      +'<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+pecas.length+' peça'+(pecas.length!==1?'s':'')+' · '+(areaUnit/10000).toFixed(2)+' m² por unidade</div>'
+      +(rows?'<div style="margin-top:8px">'+rows+'</div>':'')
+      +'</div>';
+  }).join('');
+  return html;
+}
+
+window._corteNovoProduto=function(id){
+  const prod=id?corteProdutos.find(p=>p.id===id):null;
+  window._cortePecasTemp=prod?(prod.pecas||[]).map(p=>({...p})):[{nome:'',largura:'',altura:'',qtd:1}];
+  window._corteProdEditando=id||null;
+  showModal(prod?'Editar produto':'+ Produto',
+    '<div class="form-group"><label>Nome do produto</label>'
+    +'<input id="corte-prod-nome" value="'+(prod?.nome||'').replace(/"/g,'&quot;')+'" placeholder="Ex: Sofá 3 Lugares" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin:12px 0 6px">Peças (retângulos)</div>'
+    +'<div id="corte-pecas-rows"></div>'
+    +'<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="window._corteAdicionarPecaRow()">+ Adicionar peça</button>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._corteSalvarProduto()">Salvar</button>',
+    true);
+  window._corteRenderPecas();
+};
+window._corteEditarProduto=function(id){ window._corteNovoProduto(id); };
+window._corteRenderPecas=function(){
+  const el=document.getElementById('corte-pecas-rows');
+  if(!el) return;
+  const lista=window._cortePecasTemp||[];
+  el.innerHTML=lista.map((p,i)=>
+    '<div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr auto;align-items:flex-end;gap:6px">'
+    +'<div class="form-group"><label style="font-size:11px">Nome</label>'
+    +'<input id="corte-p-nome-'+i+'" value="'+(p.nome||'').replace(/"/g,'&quot;')+'" placeholder="Ex: Encosto" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<div class="form-group"><label style="font-size:11px">Largura (cm)</label>'
+    +'<input id="corte-p-larg-'+i+'" type="number" min="0" step="0.5" value="'+(p.largura||'')+'" onfocus="this.select()" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<div class="form-group"><label style="font-size:11px">Altura (cm)</label>'
+    +'<input id="corte-p-alt-'+i+'" type="number" min="0" step="0.5" value="'+(p.altura||'')+'" onfocus="this.select()" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<div class="form-group"><label style="font-size:11px">Qtd</label>'
+    +'<input id="corte-p-qtd-'+i+'" type="number" min="1" step="1" value="'+(p.qtd||1)+'" onfocus="this.select()" style="font-size:12px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;width:100%"></div>'
+    +'<button onclick="window._corteRemoverPecaRow('+i+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:18px;padding:0 0 8px">×</button>'
+    +'</div>'
+  ).join('');
+};
+window._corteAdicionarPecaRow=function(){
+  const lista=window._cortePecasTemp||[];
+  lista.forEach((p,i)=>{
+    p.nome=document.getElementById('corte-p-nome-'+i)?.value||p.nome;
+    p.largura=document.getElementById('corte-p-larg-'+i)?.value||p.largura;
+    p.altura=document.getElementById('corte-p-alt-'+i)?.value||p.altura;
+    p.qtd=document.getElementById('corte-p-qtd-'+i)?.value||p.qtd;
+  });
+  lista.push({nome:'',largura:'',altura:'',qtd:1});
+  window._cortePecasTemp=lista;
+  window._corteRenderPecas();
+};
+window._corteRemoverPecaRow=function(i){
+  const lista=window._cortePecasTemp||[];
+  lista.forEach((p,idx)=>{
+    p.nome=document.getElementById('corte-p-nome-'+idx)?.value||p.nome;
+    p.largura=document.getElementById('corte-p-larg-'+idx)?.value||p.largura;
+    p.altura=document.getElementById('corte-p-alt-'+idx)?.value||p.altura;
+    p.qtd=document.getElementById('corte-p-qtd-'+idx)?.value||p.qtd;
+  });
+  lista.splice(i,1);
+  window._cortePecasTemp=lista;
+  window._corteRenderPecas();
+};
+window._corteSalvarProduto=async function(){
+  const nome=document.getElementById('corte-prod-nome')?.value.trim();
+  if(!nome){showToast('Digite o nome do produto.');return;}
+  const lista=window._cortePecasTemp||[];
+  const pecas=[];
+  for(let i=0;i<lista.length;i++){
+    const pnome=document.getElementById('corte-p-nome-'+i)?.value.trim()||'';
+    const largura=parseFloat(document.getElementById('corte-p-larg-'+i)?.value)||0;
+    const altura=parseFloat(document.getElementById('corte-p-alt-'+i)?.value)||0;
+    const qtd=parseInt(document.getElementById('corte-p-qtd-'+i)?.value)||0;
+    if(!pnome&&!largura&&!altura) continue;
+    if(!pnome||!largura||!altura||!qtd){showToast('Preencha nome, largura, altura e quantidade da peça '+(i+1)+'.');return;}
+    pecas.push({nome:pnome,largura,altura,qtd});
+  }
+  if(!pecas.length){showToast('Cadastre pelo menos uma peça.');return;}
+  const id=window._corteProdEditando;
+  closeModal();
+  try{
+    if(id) await updateDoc(doc(db,'corte_produtos',id),{nome,pecas});
+    else await addDoc(collection(db,'corte_produtos'),{nome,pecas,criadoEm:new Date().toISOString()});
+    showToast('Produto salvo!');
+  }catch(e){
+    console.error('Erro ao salvar corte_produtos:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+window._corteExcluirProduto=function(id){
+  window._pendingCorteProdExcluir=id;
+  const prod=corteProdutos.find(p=>p.id===id);
+  showModal('Excluir produto',
+    '<div style="font-size:13px;color:#444">Excluir permanentemente <strong>'+(prod?.nome||'')+'</strong> e suas peças cadastradas?</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="window._corteConfirmarExcluirProduto()">Excluir</button>');
+};
+window._corteConfirmarExcluirProduto=async function(){
+  const id=window._pendingCorteProdExcluir; if(!id) return;
+  closeModal();
+  await deleteDoc(doc(db,'corte_produtos',id));
+  showToast('Produto excluído.');
+};
+
+// ── Novo corte — monta a lista de peças e roda o empacotamento ────
+function renderCorteNovo(){
+  if(!corteProdutos.length){
+    return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Cadastre os produtos em <strong>"Peças por Produto"</strong> antes de gerar um corte.</div>';
+  }
+  if(!window._corteSelecao) window._corteSelecao={};
+  const sel=window._corteSelecao;
+
+  let html='<div class="card" style="margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Quantidade de cada produto nesse corte</div>';
+  html+=corteProdutos.map(prod=>{
+    const qtd=sel[prod.id]||0;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #f8fafc">'
+      +'<div><div style="font-size:13px;font-weight:600">'+prod.nome+'</div>'
+      +'<div style="font-size:10px;color:#94a3b8">'+(prod.pecas||[]).length+' peça'+((prod.pecas||[]).length!==1?'s':'')+' por unidade</div></div>'
+      +'<input type="number" min="0" step="1" value="'+(qtd||'')+'" placeholder="0" onchange="window._corteSetQtd(\''+prod.id+'\',this.value)" style="width:70px;font-size:13px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;text-align:center">'
+      +'</div>';
+  }).join('');
+  html+='<button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="window._corteGerarMapa()">Gerar mapa de corte</button>'
+    +'</div>';
+
+  const resultado=window._corteResultado;
+  if(resultado){
+    html+=renderMapaCorte(resultado);
+    if(!resultado.erro){
+      const m2Pecas=(resultado.areaPecas/10000).toFixed(2);
+      const m2Tecido=(resultado.areaTecido/10000).toFixed(2);
+      html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0">'
+        +'<div class="stat-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><div class="stat-label">Tecido necessário</div><div class="stat-value" style="font-size:18px">'+(resultado.comprimentoTotal/100).toFixed(2)+' m</div></div></div>'
+        +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Aproveitamento</div><div class="stat-value" style="font-size:18px">'+Math.round(resultado.aproveitamento*100)+'%</div></div></div>'
+        +'<div class="stat-card" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><div><div class="stat-label">Área peças / rolo</div><div class="stat-value" style="font-size:14px">'+m2Pecas+' / '+m2Tecido+' m²</div></div></div>'
+        +'</div>'
+        +'<button class="btn btn-primary btn-sm" onclick="window._corteSalvarHistorico()">💾 Salvar no histórico</button>';
+    }
+  }
+  return html;
+}
+window._corteSetQtd=function(prodId,v){
+  if(!window._corteSelecao) window._corteSelecao={};
+  window._corteSelecao[prodId]=parseInt(v)||0;
+  window._corteResultado=null;
+};
+window._corteGerarMapa=function(){
+  const sel=window._corteSelecao||{};
+  const pecas=[];
+  let seq=0;
+  corteProdutos.forEach(prod=>{
+    const qtdProd=sel[prod.id]||0;
+    if(qtdProd<=0) return;
+    (prod.pecas||[]).forEach(p=>{
+      const total=qtdProd*(parseInt(p.qtd)||0);
+      for(let i=0;i<total;i++){
+        pecas.push({id:'p'+(seq++),label:p.nome,w:parseFloat(p.largura)||0,h:parseFloat(p.altura)||0,produtoNome:prod.nome});
+      }
+    });
+  });
+  if(!pecas.length){ showToast('Escolha a quantidade de pelo menos um produto.'); return; }
+  window._corteResultado=empacotarCorte(pecas);
+  window._corteResultadoSelecao=corteProdutos.filter(p=>(sel[p.id]||0)>0).map(p=>({nome:p.nome,qtd:sel[p.id]}));
+  reloadTab();
+};
+window._corteSalvarHistorico=async function(){
+  const r=window._corteResultado;
+  if(!r||r.erro) return;
+  try{
+    await addDoc(collection(db,'corte_historico'),{
+      produtos:window._corteResultadoSelecao||[],
+      colocadas:r.colocadas,
+      comprimentoTotal:r.comprimentoTotal,
+      areaPecas:r.areaPecas,
+      areaTecido:r.areaTecido,
+      aproveitamento:r.aproveitamento,
+      criadoPor:currentUserData?.nome||'',
+      criadoEm:new Date().toISOString(),
+    });
+    showToast('Corte salvo no histórico!');
+  }catch(e){
+    console.error('Erro ao salvar corte_historico:',e);
+    showToast('Erro ao salvar: '+e.message);
+  }
+};
+
+// ── Histórico de cortes já gerados ─────────────────────────────────
+function renderCorteHistorico(){
+  if(!corteHistorico.length){
+    return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum corte salvo ainda.</div>';
+  }
+  if(!window._corteHistAberto) window._corteHistAberto=null;
+  let html=corteHistorico.map(h=>{
+    const produtosTxt=(h.produtos||[]).map(p=>p.qtd+'× '+p.nome).join(', ');
+    const aberto=window._corteHistAberto===h.id;
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer" onclick="window._corteToggleHist(\''+h.id+'\')">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:13px;font-weight:700">'+fmtDate((h.criadoEm||'').slice(0,10))+' · '+produtosTxt+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:2px">'+(h.comprimentoTotal/100).toFixed(2)+' m de tecido · '+Math.round((h.aproveitamento||0)*100)+'% aproveitamento'+(h.criadoPor?' · por '+h.criadoPor:'')+'</div>'
+      +'</div>'
+      +'<span style="font-size:11px;color:#1d4ed8;font-weight:700;white-space:nowrap">'+(aberto?'▾ Ocultar':'▸ Ver mapa')+'</span>'
+      +'</div>'
+      +(aberto?'<div style="margin-top:10px">'+renderMapaCorte(h)+'</div>':'')
+      +'</div>';
+  }).join('');
+  return html;
+}
+window._corteToggleHist=function(id){
+  window._corteHistAberto=window._corteHistAberto===id?null:id;
+  reloadTab();
+};
+// ═══════════════════════════════════════════════════════════════════
 
 function renderTabGrades(tab){
   try{
@@ -23099,6 +23477,16 @@ const LISTENERS_POR_SETOR={
     }),
     ()=>onSnapshot(collection(db,'manut_quadros'),snap=>{
       manutQuadros=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+  ],
+  corte: [
+    ()=>onSnapshot(collection(db,'corte_produtos'),snap=>{
+      corteProdutos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'corte_historico'),snap=>{
+      corteHistorico=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.criadoEm||'')>(a.criadoEm||'')?1:-1);
       if(currentUserData)reloadTab();
     }),
   ],
