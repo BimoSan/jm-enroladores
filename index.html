@@ -9013,8 +9013,11 @@ function totalPecasGrad(aponts){
 function corteAreaProduto(produto){
   return (produto.pecas||[]).reduce((s,p)=>s+((parseFloat(p.largura)||0)*(parseFloat(p.altura)||0)*(parseInt(p.qtd)||0)),0);
 }
-function empacotarCorte(pecas){
-  const L=LARGURA_ROLO_TECIDO;
+// Roda o encaixe skyline uma vez, na ORDEM dada, e devolve o resultado.
+// Isolado numa função própria pra poder ser chamado várias vezes com
+// ordens diferentes (ver empacotarCorte) — cada chamada tem seu próprio
+// skyline do zero, não compartilha nada entre tentativas.
+function _tentarEmpacotarCorte(pecasOrientadas,L){
   let skyline=[{x:0,w:L,y:0}];
 
   function mesclarSkyline(){
@@ -9055,6 +9058,35 @@ function empacotarCorte(pecas){
     mesclarSkyline();
   }
 
+  const colocadas=[];
+  pecasOrientadas.forEach(p=>{
+    let w=p.wPlace,h=p.hPlace,girada=p.girada;
+    const entradaGrupo=melhorPosicao(w);
+    // Mesmo já tendo a orientação "certa" pro grupo, vale checar se a OUTRA
+    // orientação encontra um buraco existente mais baixo que o normal (tipo
+    // uma sobra estreita do lado de outra peça) — só troca se achar mesmo
+    // uma posição de entrada mais baixa, não só um resultado final menor
+    // (senão desfaz o pareamento já decidido pro próprio grupo).
+    let usa=entradaGrupo;
+    if(w!==h){
+      const entradaGirada=melhorPosicao(h);
+      if(entradaGirada&&(!entradaGrupo||entradaGirada.y<entradaGrupo.y-0.01)){
+        usa=entradaGirada; [w,h]=[h,w]; girada=!girada;
+      }
+    }
+    colocarPeca(usa.x,usa.y,w,h);
+    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
+  });
+
+  const comprimentoTotal=Math.max(...skyline.map(s=>s.y),0);
+  const sobras=skyline.filter(s=>(comprimentoTotal-s.y)>10&&s.w>10)
+    .map(s=>({x:s.x,largura:s.w,comprimento:comprimentoTotal-s.y}));
+  return {colocadas,comprimentoTotal,sobras};
+}
+
+function empacotarCorte(pecas){
+  const L=LARGURA_ROLO_TECIDO;
+
   const foraDaLargura=pecas.filter(p=>Math.min(p.w,p.h)>L+0.01);
   if(foraDaLargura.length){
     return {erro:'A peça "'+foraDaLargura[0].label+'" ('+foraDaLargura[0].w+'×'+foraDaLargura[0].h+'cm) não cabe na largura do rolo ('+L+'cm), nem girada.'};
@@ -9085,45 +9117,29 @@ function empacotarCorte(pecas){
     grupo.forEach(p=>pecasOrientadas.push({...p,wPlace:w,hPlace:h,girada}));
   });
 
-  // Ordena pelo quanto cada grupo CONSOME de comprimento (não pelo tamanho
-  // bruto da peça) — assim os grupos "altos" entram primeiro e deixam
-  // buracos estreitos na largura, que os grupos "baixos e finos" (tipo a
-  // Faixa) processados depois conseguem aproveitar em vez de ganhar uma
-  // faixa de tecido só pra eles.
-  const ordenadas=pecasOrientadas.sort((a,b)=>b.hPlace-a.hPlace);
-  const colocadas=[];
-  ordenadas.forEach(p=>{
-    let w=p.wPlace,h=p.hPlace,girada=p.girada;
-    const entradaGrupo=melhorPosicao(w);
-    // Mesmo já tendo a orientação "certa" pro grupo, vale checar se a OUTRA
-    // orientação encontra um buraco existente mais baixo que o normal (tipo
-    // a sobra estreita do lado de outra peça) — só troca se achar mesmo uma
-    // posição de entrada mais baixa, não só um resultado final menor (senão
-    // desfaz o pareamento decidido acima pro próprio grupo).
-    let usa=entradaGrupo;
-    if(w!==h){
-      const entradaGirada=melhorPosicao(h);
-      if(entradaGirada&&(!entradaGrupo||entradaGirada.y<entradaGrupo.y-0.01)){
-        usa=entradaGirada; [w,h]=[h,w]; girada=!girada;
-      }
+  // O encaixe "ótimo" de verdade é matematicamente difícil de garantir
+  // (NP-difícil) pra qualquer quantidade real de peças — a ORDEM em que as
+  // peças entram muda o resultado final, e não tem uma ordem que ganhe
+  // sempre. Em vez de apostar numa ordem só, testa várias (por altura, por
+  // largura, por área, maior lado) e fica com a que gastar menos tecido.
+  const ordens=[
+    (a,b)=>b.hPlace-a.hPlace,
+    (a,b)=>b.wPlace-a.wPlace,
+    (a,b)=>(b.wPlace*b.hPlace)-(a.wPlace*a.hPlace),
+    (a,b)=>Math.max(b.wPlace,b.hPlace)-Math.max(a.wPlace,a.hPlace),
+  ];
+  let melhorResultado=null;
+  ordens.forEach(cmp=>{
+    const tentativa=_tentarEmpacotarCorte([...pecasOrientadas].sort(cmp),L);
+    if(!melhorResultado||tentativa.comprimentoTotal<melhorResultado.comprimentoTotal-0.01){
+      melhorResultado=tentativa;
     }
-    colocarPeca(usa.x,usa.y,w,h);
-    colocadas.push({...p,x:usa.x,y:usa.y,wColocada:w,hColocada:h,girada});
   });
 
-  const comprimentoTotal=Math.max(...skyline.map(s=>s.y),0);
   const areaPecas=pecas.reduce((s,p)=>s+p.w*p.h,0);
-  const areaTecido=L*comprimentoTotal;
+  const areaTecido=L*melhorResultado.comprimentoTotal;
   const aproveitamento=areaTecido>0?areaPecas/areaTecido:0;
-
-  // Sobras — cada trecho do skyline final que não chegou até o topo é um
-  // retângulo de tecido livre (não fica buraco escondido: toda peça sempre
-  // entra rente ao que já tem embaixo, então o que sobra é sempre isso).
-  // Só interessa sobra grande o bastante pra caber alguma peça de verdade.
-  const sobras=skyline.filter(s=>(comprimentoTotal-s.y)>10&&s.w>10)
-    .map(s=>({x:s.x,largura:s.w,comprimento:comprimentoTotal-s.y}));
-
-  return {colocadas,comprimentoTotal,areaPecas,areaTecido,aproveitamento,sobras};
+  return {colocadas:melhorResultado.colocadas,comprimentoTotal:melhorResultado.comprimentoTotal,areaPecas,areaTecido,aproveitamento,sobras:melhorResultado.sobras};
 }
 
 // Lista achatada de todas as peças cadastradas em todos os produtos —
