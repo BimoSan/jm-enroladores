@@ -1235,6 +1235,8 @@ let contasReceber=[];
 let corteProdutos=[];
 let corteHistorico=[];
 const LARGURA_ROLO_TECIDO=142; // cm — largura fixa do rolo
+const MESA_CORTE_COMPRIMENTO=1200; // cm — mesa de corte: 12m
+const MESA_CORTE_LARGURA=185;      // cm — mesa de corte: 1,85m
 
 // Custos Indiretos
 let custosIndiretos=[];
@@ -9081,6 +9083,15 @@ function empacotarCorte(pecas){
 function renderMapaCorte(resultado){
   if(resultado.erro) return '<div class="card" style="color:#dc2626;padding:16px;text-align:center">⚠️ '+resultado.erro+'</div>';
   const L=LARGURA_ROLO_TECIDO;
+  const MC=MESA_CORTE_COMPRIMENTO, ML=MESA_CORTE_LARGURA;
+  // O rolo (142cm) é mais estreito que a mesa (1,85m) — fica centralizado
+  // nela, deixando uma sobra de cada lado, igual na realidade.
+  const offY=(ML-L)/2;
+  // Se o gabarito for maior que a mesa (12m), a vista se estende além da
+  // mesa — o traço vermelho marca até onde a mesa realmente vai.
+  const vbComprimento=Math.max(MC,resultado.comprimentoTotal);
+  const excedeMesa=resultado.comprimentoTotal>MC+0.5;
+
   const PALETA=['#93c5fd','#86efac','#fde68a','#fca5a5','#c4b5fd','#67e8f9','#fdba74','#f0abfc','#a5b4fc','#6ee7b7'];
   const legenda={};
   resultado.colocadas.forEach(p=>{ if(!(p.label in legenda)) legenda[p.label]={i:Object.keys(legenda).length,qtd:0,w:p.w,h:p.h}; legenda[p.label].qtd++; });
@@ -9091,7 +9102,7 @@ function renderMapaCorte(resultado){
   // depois, sumindo da tela sem erro nenhum.
   const rects=resultado.colocadas.map(p=>{
     const cor=PALETA[legenda[p.label].i%PALETA.length];
-    return '<rect x="'+p.x+'" y="'+p.y+'" width="'+p.wColocada+'" height="'+p.hColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"/>';
+    return '<rect x="'+p.x+'" y="'+(p.y+offY)+'" width="'+p.wColocada+'" height="'+p.hColocada+'" fill="'+cor+'" stroke="#1e293b" stroke-width="0.4"/>';
   }).join('');
   const textos=resultado.colocadas.map(p=>{
     // Só escreve o nome dentro da peça se tiver espaço razoável pra caber —
@@ -9099,17 +9110,32 @@ function renderMapaCorte(resultado){
     const larguraTxtEstim=p.label.length*4.2;
     if(Math.min(p.wColocada,p.hColocada)<14||p.wColocada<larguraTxtEstim*0.55) return '';
     const fontSize=Math.max(6,Math.min(10,Math.min(p.wColocada,p.hColocada)*0.24));
-    const cx=p.x+p.wColocada/2, cy=p.y+p.hColocada/2;
+    const cx=p.x+p.wColocada/2, cy=p.y+offY+p.hColocada/2;
     return '<text x="'+cx+'" y="'+cy+'" font-size="'+fontSize+'" text-anchor="middle" dominant-baseline="middle" fill="#1e293b" font-weight="700">'+p.label+(p.girada?' ↻':'')+'</text>';
   }).join('');
 
-  // Régua de metro em metro, pra dar noção de escala enquanto rola pro lado.
-  const nMetros=Math.ceil(resultado.comprimentoTotal/100);
+  // Mesa de corte por baixo do tecido — desenhada em módulos de 3m (a mesa
+  // real de 12m é montada em 4 seções), pra ficar reconhecível.
+  const corMesa='#e2d3bb', corMesaBorda='#a68a5e';
+  let mesaHtml='<rect x="0" y="0" width="'+Math.min(MC,vbComprimento)+'" height="'+ML+'" fill="'+corMesa+'" stroke="'+corMesaBorda+'" stroke-width="0.6"/>';
+  for(let m=300;m<Math.min(MC,vbComprimento);m+=300){
+    mesaHtml+='<line x1="'+m+'" y1="0" x2="'+m+'" y2="'+ML+'" stroke="'+corMesaBorda+'" stroke-width="0.6"/>';
+  }
+  if(excedeMesa){
+    mesaHtml+='<line x1="'+MC+'" y1="-6" x2="'+MC+'" y2="'+(ML+6)+'" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>'
+      +'<text x="'+MC+'" y="-9" font-size="7" fill="#dc2626" text-anchor="middle" font-weight="700">fim da mesa (12m)</text>';
+  }
+
+  // Faixa branca do rolo de tecido, centralizada na mesa.
+  const rolo='<rect x="0" y="'+offY+'" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fff" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,1.5"/>';
+
+  // Régua de metro em metro, ao longo do comprimento da mesa.
+  const nMetros=Math.ceil(vbComprimento/100);
   let regua='';
   for(let m=0;m<=nMetros;m++){
     const x=m*100;
-    if(x>resultado.comprimentoTotal+0.5) break;
-    regua+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="'+L+'" stroke="#cbd5e1" stroke-width="0.3" stroke-dasharray="1.5,1.5"/>'
+    if(x>vbComprimento+0.5) break;
+    regua+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="'+ML+'" stroke="#cbd5e1" stroke-width="0.25" stroke-dasharray="1.5,1.5"/>'
       +'<text x="'+x+'" y="-3" font-size="6" fill="#94a3b8">'+m+'m</text>';
   }
 
@@ -9121,12 +9147,13 @@ function renderMapaCorte(resultado){
     +'</div>';
 
   // O SVG escala pela largura do cartão (viewBox cuida da proporção) — assim
-  // o gabarito inteiro sempre cabe na tela de uma vez, sem precisar rolar.
-  return '<div style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
-    +'<svg viewBox="0 -14 '+resultado.comprimentoTotal+' '+(L+14)+'" style="display:block;width:100%;height:auto">'
-    +'<rect x="0" y="0" width="'+resultado.comprimentoTotal+'" height="'+L+'" fill="#fff"/>'
-    +rects+regua+textos
+  // a mesa inteira sempre cabe na tela de uma vez, sem precisar rolar.
+  return '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Mesa de corte — 12,00 × 1,85 m · tecido estendido na horizontal (rolo de 1,42m centralizado)</div>'
+    +'<div style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding-top:14px">'
+    +'<svg viewBox="0 -14 '+vbComprimento+' '+(ML+14)+'" style="display:block;width:100%;height:auto">'
+    +mesaHtml+rolo+rects+regua+textos
     +'</svg></div>'
+    +(excedeMesa?'<div style="font-size:11px;color:#dc2626;margin-top:6px">⚠️ Esse gabarito ('+(resultado.comprimentoTotal/100).toFixed(2)+'m) é maior que a mesa (12m) — vai precisar avançar o tecido e continuar em mais de uma posição.</div>':'')
     +legendaHtml;
 }
 
