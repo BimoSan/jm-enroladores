@@ -16436,25 +16436,13 @@ function calcRateioIndireto(mesesSelecionados){
       porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
     });
 
-  // Materiais indiretos do almoxarifado (solda, linha, banho...): o que saiu
-  // do estoque no período × custo unitário do item, no destino marcado nele.
-  const matIndiretos=[];
-  (almItens||[]).filter(i=>i.materialIndireto).forEach(item=>{
-    const qtd=(almMovimentos||[])
-      .filter(m=>m.itemId===item.id&&m.tipo==='saida'&&mesesSelecionados.includes((m.data||'').slice(0,7)))
-      .reduce((s,m)=>s+(parseInt(m.quantidade)||0),0);
-    if(qtd<=0) return;
-    const custoUnit=parseFloat(item.custoUnitario)||0;
-    const total=qtd*custoUnit;
-    const d=custoDestinoInfo(item.destinoIndireto).id;
-    porDestino[d]=(porDestino[d]||0)+total;
-    matIndiretos.push({item,qtd,custoUnit,total,destino:d});
-  });
+  // Materiais indiretos do almoxarifado NÃO entram aqui de propósito — já
+  // contam dentro dos lançamentos de Custo Indireto (Financeiro), então
+  // somar de novo pela saída do estoque duplicava o custo.
 
   // Divide pelo nº de meses pra virar média mensal (a quantidade também é média mensal)
   const nMeses=Math.max(1,mesesSelecionados.length);
   Object.keys(porDestino).forEach(k=>{ porDestino[k]=porDestino[k]/nMeses; });
-  matIndiretos.forEach(m=>{ m.totalMes=m.total/nMeses; m.qtdMes=m.qtd/nMeses; });
 
   // Quantidades médias por fábrica, somando as categorias
   let qCadeiras=0,qPintadas=0,qEstofados=0;
@@ -16489,7 +16477,7 @@ function calcRateioIndireto(mesesSelecionados){
       : baseCadeiras+(info.pintura?adicionalPintura:0);
   });
 
-  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,folhaCadeiras,folhaEstofados,matIndiretos,
+  return {porDestino,nMeses,qCadeiras,qPintadas,qEstofados,folhaCadeiras,folhaEstofados,
     comumCadeiras,comumEstofados,baseCadeiras,adicionalPintura,indiretoEstofado,porCategoria};
 }
 
@@ -16546,32 +16534,6 @@ function renderEngIndiretos(){
       +'<div style="font-size:16px;font-weight:800;color:'+d.cor+'">'+fmtMoeda(r.porDestino[d.id]||0)+'</div>'
       +'</div>').join('')
     +'</div></div>';
-
-  // Materiais indiretos do almoxarifado — mostra o que entrou e de onde veio
-  if(r.matIndiretos.length){
-    html+='<div class="card" style="margin-bottom:14px">'
-      +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">🧰 Materiais indiretos do almoxarifado</div>'
-      +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Saídas do estoque no período × custo unitário. Já estão somados nos destinos acima. Marque um item como indireto em <strong>Almoxarifado → Itens</strong>.</div>'
-      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">'
-      +'<thead><tr style="background:#f8fafc">'
-      +'<th style="padding:6px 8px;text-align:left">Item</th>'
-      +'<th style="padding:6px 8px;text-align:center">Destino</th>'
-      +'<th style="padding:6px 8px;text-align:right">Qtd/mês</th>'
-      +'<th style="padding:6px 8px;text-align:right">Custo unit.</th>'
-      +'<th style="padding:6px 8px;text-align:right">Total/mês</th>'
-      +'</tr></thead><tbody>'
-      +r.matIndiretos.sort((a,b)=>b.totalMes-a.totalMes).map((m,i)=>{
-        const d=custoDestinoInfo(m.destino);
-        return '<tr style="'+(i%2?'background:#f8fafc':'')+'">'
-          +'<td style="padding:6px 8px;font-weight:600">'+(m.item.descricao||'—')+'</td>'
-          +'<td style="padding:6px 8px;text-align:center"><span style="font-size:10px;background:'+d.bg+';color:'+d.cor+';padding:1px 7px;border-radius:99px;font-weight:700">'+d.curto+'</span></td>'
-          +'<td style="padding:6px 8px;text-align:right">'+m.qtdMes.toLocaleString('pt-BR',{maximumFractionDigits:1})+' '+(m.item.unidade||'')+'</td>'
-          +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+fmtMoeda(m.custoUnit)+'</td>'
-          +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:#7c3aed">'+fmtMoeda(m.totalMes)+'</td>'
-          +'</tr>';
-      }).join('')
-      +'</tbody></table></div></div>';
-  }
 
   // Folha salarial — informada aqui porque não é lançada em Custos Indiretos.
   // Vai direto pra fábrica correspondente, sem entrar no rateio do comum.
