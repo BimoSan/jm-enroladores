@@ -16557,8 +16557,8 @@ function renderEngIndiretos(){
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">💸 Custo indireto — '+baseLabel+'</div>'
     +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">'
-    +(ehMedia?'Total dos '+mesesSel.length+' meses dividido por '+mesesSel.length+', separado pelo destino marcado no Financeiro.'
-             :'Lançamentos do mês, separados pelo destino marcado no Financeiro.')
+    +(ehMedia?'Total dos '+mesesSel.length+' meses dividido por '+mesesSel.length+', separado pelo destino marcado no Financeiro (caixa real).'
+             :'Lançamentos do mês, separados pelo destino marcado no Financeiro (caixa real).')
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'
     +CUSTO_DESTINOS.map(d=>'<div style="background:'+d.bg+';border-radius:10px;padding:10px 12px">'
