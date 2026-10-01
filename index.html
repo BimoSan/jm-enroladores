@@ -19520,11 +19520,15 @@ function finComprasDetalhe(mes){
 }
 // Detalhe de custos indiretos de um mês — reaproveitado no PDF de Custos Indiretos e no Balanço
 function finCustosIndiretosDetalhe(mes){
+  // Lançamentos do mês — só pra listagem dia a dia (duplicata paga não tem
+  // "lançamento" aqui, fica só em Contas a Pagar, então não entra nessa lista).
   const itens=custosIndiretos.filter(c=>(c.data||'').startsWith(mes));
-  const total=itens.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const porCat={};
-  itens.forEach(c=>{ if(!porCat[c.categoria]) porCat[c.categoria]=0; porCat[c.categoria]+=parseFloat(c.valor)||0; });
-  return {itens,total,catsOrd:Object.entries(porCat).sort((a,b)=>b[1]-a[1])};
+  // Total e por categoria em CAIXA REAL (à vista do mês + duplicata paga no
+  // mês) — a mesma conta que a tela usa (card Total, DRE, Balanço). Antes
+  // somava só o que tinha sido lançado no mês, sem contar duplicata paga, e
+  // o PDF saía com um número diferente do que a tela mostrava.
+  const {catsOrd,total}=custosIndiretosPorCategoriaCaixa(mes);
+  return {itens,total,catsOrd};
 }
 // Detalhe de viagens de um mês — reaproveitado no PDF de Viagens e no Balanço
 function finViagensDetalhe(mes){
