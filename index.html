@@ -23981,6 +23981,13 @@ const LISTENERS_POR_SETOR={
       custosIndiretos=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.data||'')>(a.data||'')?1:-1);
       if(currentUserData)reloadTab();
     }),
+    // O rateio é em caixa real (duplicatas pagas), então precisa de Contas a
+    // Pagar aqui também — sem isso a tela ficava sem ver nenhuma duplicata
+    // paga e o total dava bem menor que o do Financeiro.
+    ()=>onSnapshot(collection(db,'contas_pagar'),snap=>{
+      contasPagar=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
     // Materiais marcados como indiretos no almoxarifado (solda, linha, banho)
     // entram no rateio pelo consumo — por isso itens e movimentos aqui também.
     ()=>onSnapshot(collection(db,'alm_itens'),snap=>{
