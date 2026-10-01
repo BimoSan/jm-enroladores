@@ -715,6 +715,35 @@ function custosIndiretosPorCategoriaCaixa(mes){
   const catsOrd=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
   return {catsOrd,total:catsOrd.reduce((s,[,v])=>s+v,0)};
 }
+// Mesma lógica de caixa real acima, mas agrupado por destino (comum/cadeiras/
+// pintura/estofados) em vez de categoria — usado no rateio de Custo Indireto
+// da Engenharia, pra bater com o "Total" do Financeiro em vez de usar uma
+// conta por data de lançamento (accrual) que nunca ia fechar com a de caixa.
+function custosIndiretosPorDestinoCaixa(mes){
+  const porDestino={comum:0,cadeiras:0,pintura:0,estofados:0};
+  custosIndiretos.filter(c=>(c.data||'').startsWith(mes)&&!custoEstaAPrazo(c)).forEach(c=>{
+    const d=custoDestinoInfo(c.destino).id;
+    porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
+  });
+  custosIndiretos.filter(custoEstaAPrazo).forEach(c=>{
+    const g=cpGrupoInfo(c.cpGrupoId);
+    if(!g) return;
+    const pagoNoMes=g.itens.filter(p=>p.pago&&(p.dataPagamento||'').startsWith(mes)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    if(pagoNoMes>0){
+      const d=custoDestinoInfo(c.destino).id;
+      porDestino[d]=(porDestino[d]||0)+pagoNoMes;
+    }
+  });
+  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
+  // Duplicata avulsa de Custo Indireto (sem passar por "+ Lançamento" aqui)
+  // não tem destino marcado — cai em "comum" por padrão.
+  (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.pago&&(c.dataPagamento||'').startsWith(mes)).forEach(c=>{
+    const grupoId=c.grupoId||c.id;
+    if(gruposJaLancados.has(grupoId)) return;
+    porDestino.comum=(porDestino.comum||0)+(parseFloat(c.valor)||0);
+  });
+  return porDestino;
+}
 // Saída de caixa de Viagens no mês, incluindo o gasto com motorista (sempre
 // à vista, vindo direto de Caminhões).
 function viagensCaixaMes(mes){
@@ -16428,26 +16457,15 @@ function engCatInfo(catId){
 }
 
 function calcRateioIndireto(mesesSelecionados){
-  // Soma os custos indiretos do período, separados por destino
+  // Soma os custos indiretos do período, separados por destino — em caixa
+  // real (mesma base de custosIndiretosPorCategoriaCaixa, usada no "Total"
+  // do Financeiro), pra essa tela e a do Financeiro sempre baterem o mesmo
+  // número. Antes essa conta era por data de lançamento (accrual), que nunca
+  // fechava com o caixa real do Financeiro.
   const porDestino={comum:0,cadeiras:0,pintura:0,estofados:0};
-  custosIndiretos.filter(c=>mesesSelecionados.includes((c.data||'').slice(0,7)))
-    .forEach(c=>{
-      const d=custoDestinoInfo(c.destino).id;
-      porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
-    });
-
-  // Duplicatas de Custo Indireto lançadas DIRETO em Contas a Pagar (sem
-  // passar por "+ Lançamento" aqui) — antes ficavam de fora do rateio, só
-  // contavam no card "Total" do Financeiro. Essas não têm "destino"
-  // (comum/cadeiras/pintura/estofados) marcado, só a categoria específica
-  // (Energia, Manutenção...), então entram em "comum" por padrão — melhor
-  // ratear errado entre as fábricas do que não contar o custo nenhuma.
-  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
-  (contasPagar||[]).filter(c=>c.categoria==='indireto').forEach(c=>{
-    const grupoId=c.grupoId||c.id;
-    if(gruposJaLancados.has(grupoId)) return;
-    if(!mesesSelecionados.includes((c.vencimento||'').slice(0,7))) return;
-    porDestino.comum=(porDestino.comum||0)+(parseFloat(c.valor)||0);
+  mesesSelecionados.forEach(mes=>{
+    const doMes=custosIndiretosPorDestinoCaixa(mes);
+    Object.keys(porDestino).forEach(k=>{ porDestino[k]+=doMes[k]||0; });
   });
 
   // Materiais indiretos do almoxarifado NÃO entram aqui de propósito — já
