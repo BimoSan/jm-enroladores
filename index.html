@@ -16436,6 +16436,20 @@ function calcRateioIndireto(mesesSelecionados){
       porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
     });
 
+  // Duplicatas de Custo Indireto lançadas DIRETO em Contas a Pagar (sem
+  // passar por "+ Lançamento" aqui) — antes ficavam de fora do rateio, só
+  // contavam no card "Total" do Financeiro. Essas não têm "destino"
+  // (comum/cadeiras/pintura/estofados) marcado, só a categoria específica
+  // (Energia, Manutenção...), então entram em "comum" por padrão — melhor
+  // ratear errado entre as fábricas do que não contar o custo nenhuma.
+  const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
+  (contasPagar||[]).filter(c=>c.categoria==='indireto').forEach(c=>{
+    const grupoId=c.grupoId||c.id;
+    if(gruposJaLancados.has(grupoId)) return;
+    if(!mesesSelecionados.includes((c.vencimento||'').slice(0,7))) return;
+    porDestino.comum=(porDestino.comum||0)+(parseFloat(c.valor)||0);
+  });
+
   // Materiais indiretos do almoxarifado NÃO entram aqui de propósito — já
   // contam dentro dos lançamentos de Custo Indireto (Financeiro), então
   // somar de novo pela saída do estoque duplicava o custo.
