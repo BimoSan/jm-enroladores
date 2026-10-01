@@ -16522,43 +16522,28 @@ function renderEngIndiretos(){
   if(!mesesComCusto.length){
     return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Nenhum custo indireto lançado ainda.<br><span style="font-size:12px">Lance os custos em <strong>Financeiro → Custos Indiretos</strong> e marque o destino de cada um.</span></div>';
   }
-  // Base de cálculo: um mês específico OU a média de um período. Mês a mês
-  // mostra o custo real daquele mês; a média suaviza gastos que caem de uma
-  // vez só (13º, seguro anual) e não representam um mês típico.
-  if(!window._engIndBase||!engIndMesesDaBase(window._engIndBase,mesesComCusto).length){
-    window._engIndBase=mesesComCusto[0];
-  }
-  const base=window._engIndBase;
+  // Base de cálculo travada na média dos últimos 3 meses — suaviza gastos
+  // que caem de uma vez só (13º, seguro anual) sem depender de escolha manual.
+  const base='media3';
   const mesesSel=engIndMesesDaBase(base,mesesComCusto);
-  const ehMedia=base.startsWith('media');
-  const baseLabel=ehMedia
-    ?('Média de '+mesesSel.length+' mês'+(mesesSel.length!==1?'es':''))
-    :mesLabel(base);
+  const baseLabel='Média de '+mesesSel.length+' mês'+(mesesSel.length!==1?'es':'');
 
   const r=calcRateioIndireto(mesesSel);
 
-  let html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">'
+  let html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;justify-content:space-between">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
     +'<span style="font-size:12px;font-weight:700;color:#475569">Base de cálculo:</span>'
-    +'<select onchange="window._engIndSetBase(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px">'
-    +'<optgroup label="Mês específico">'
-    +mesesComCusto.map(m=>'<option value="'+m+'"'+(m===base?' selected':'')+'>'+mesLabel(m)+'</option>').join('')
-    +'</optgroup>'
-    +'<optgroup label="Média de período">'
-    +[['media3','Média dos últimos 3 meses'],['media6','Média dos últimos 6 meses'],
-      ['media12','Média dos últimos 12 meses'],['mediatodos','Média de todos os meses']]
-      .filter(([v])=>engIndMesesDaBase(v,mesesComCusto).length>1||v===base)
-      .map(([v,l])=>'<option value="'+v+'"'+(v===base?' selected':'')+'>'+l+'</option>').join('')
-    +'</optgroup>'
-    +'</select>'
-    +'<span style="font-size:11px;color:#94a3b8">'+(ehMedia?mesesSel.map(mesLabel).join(' · '):'custos lançados neste mês')+'</span>'
+    +'<span style="font-size:13px;font-weight:700;color:#1e40af;background:#eff6ff;border-radius:9px;padding:6px 12px">Média dos últimos 3 meses</span>'
+    +'<span style="font-size:11px;color:#94a3b8">'+mesesSel.map(mesLabel).join(' · ')+'</span>'
+    +'</div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="window._exportarRateioIndiretoPDF()" style="border:1.5px solid #7c3aed;color:#7c3aed">📄 PDF</button>'
     +'</div>';
 
   // Custos por destino
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">💸 Custo indireto — '+baseLabel+'</div>'
     +'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px">'
-    +(ehMedia?'Total dos '+mesesSel.length+' meses dividido por '+mesesSel.length+', separado pelo destino marcado no Financeiro (caixa real).'
-             :'Lançamentos do mês, separados pelo destino marcado no Financeiro (caixa real).')
+    +'Total dos '+mesesSel.length+' meses dividido por '+mesesSel.length+', separado pelo destino marcado no Financeiro (caixa real).'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'
     +CUSTO_DESTINOS.map(d=>'<div style="background:'+d.bg+';border-radius:10px;padding:10px 12px">'
@@ -16664,7 +16649,139 @@ function renderEngIndiretos(){
   return html;
 }
 
-window._engIndSetBase=function(v){ window._engIndBase=v; reloadTab(); };
+window._exportarRateioIndiretoPDF=function(){
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesLabel=m=>{const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
+  const mesesComCusto=[...new Set(custosIndiretos.map(c=>(c.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const mesesSel=engIndMesesDaBase('media3',mesesComCusto);
+  if(!mesesSel.length){showToast('Nenhum custo indireto lançado ainda.');return;}
+  const r=calcRateioIndireto(mesesSel);
+  const periodoLabel=mesesSel.map(mesLabel).join(' · ');
+  const totalGeral=Object.values(r.porDestino).reduce((s,v)=>s+v,0);
+
+  const destinoRows=CUSTO_DESTINOS.map(d=>`<tr>
+      <td style="padding:7px 10px;font-weight:600">${d.label}</td>
+      <td style="padding:7px 10px;text-align:right">R$ ${(r.porDestino[d.id]||0).toFixed(2).replace('.',',')}</td>
+    </tr>`).join('');
+
+  const cats=getEngCategorias();
+  const catRows=cats.map(cat=>{
+    const info=engCatInfo(cat.id);
+    const qtd=engQtdCategoria(cat.id)||0;
+    return `<tr>
+      <td style="padding:7px 10px;font-weight:600">${cat.label}</td>
+      <td style="padding:7px 10px">${info.fabrica==='estofados'?'Estofados':'Cadeiras'}${info.pintura?' · pintada':''}</td>
+      <td style="padding:7px 10px;text-align:right">${qtd}</td>
+    </tr>`;
+  }).join('');
+
+  const resultadoRows=cats.map(cat=>{
+    const info=engCatInfo(cat.id);
+    const novo=r.porCategoria[cat.id]||0;
+    const atual=getEngIndireto(cat.id);
+    const dif=novo-atual;
+    return `<tr>
+      <td style="padding:7px 10px;font-weight:600">${cat.label}<br><span style="font-size:9px;color:#94a3b8;font-weight:400">${info.fabrica==='estofados'?'estofados':'cadeiras'}${info.pintura?' · pintada':''}</span></td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#0e7490">R$ ${novo.toFixed(2).replace('.',',')}</td>
+      <td style="padding:7px 10px;text-align:right;color:${Math.abs(dif)>0.005?(dif>0?'#dc2626':'#059669'):'#94a3b8'};font-size:11px">${Math.abs(dif)>0.005?(dif>0?'+':'')+'R$ '+dif.toFixed(2).replace('.',','):'sem alteração'}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Custo Indireto por Peça — ${periodoLabel}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; color: #1e293b; font-size: 13px; }
+  .header { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: #fff; padding: 24px 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 22px; font-weight: 900; }
+  .header .total { text-align: right; }
+  .header .total-val { font-size: 28px; font-weight: 900; }
+  .header .total-label { font-size: 11px; opacity: .75; }
+  .card { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 18px; }
+  .card h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #1d4ed8; color: #fff; }
+  thead th { padding: 8px 10px; font-size: 11px; font-weight: 700; text-align: left; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tfoot tr { background: #dbeafe; }
+  tfoot td { padding: 8px 10px; font-weight: 800; color: #1e3a8a; }
+  .resumo { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; font-size: 12px; color: #475569; line-height: 1.7; }
+  .footer { text-align: center; color: #94a3b8; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:.75;margin-bottom:4px">JM — Gestão Fabril · Engenharia</div>
+    <h1>Custo Indireto por Peça</h1>
+    <div style="font-size:13px;opacity:.85;margin-top:4px">Base: média dos últimos 3 meses — ${periodoLabel}</div>
+  </div>
+  <div class="total">
+    <div class="total-label">TOTAL MÉDIO MENSAL</div>
+    <div class="total-val">R$ ${totalGeral.toFixed(2).replace('.',',')}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Custo indireto por destino</h3>
+  <table>
+    <thead><tr><th>Destino</th><th style="text-align:right">Valor médio mensal</th></tr></thead>
+    <tbody>${destinoRows}</tbody>
+    <tfoot><tr><td>Total</td><td style="text-align:right">R$ ${totalGeral.toFixed(2).replace('.',',')}</td></tr></tfoot>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Folha salarial mensal</h3>
+  <div class="resumo">
+    <div>Folha — Cadeiras: <strong>R$ ${r.folhaCadeiras.toFixed(2).replace('.',',')}</strong></div>
+    <div>Folha — Estofados: <strong>R$ ${r.folhaEstofados.toFixed(2).replace('.',',')}</strong></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Categorias — fábrica, pintura e produção mensal</h3>
+  <table>
+    <thead><tr><th>Categoria</th><th>Fábrica</th><th style="text-align:right">Qtd. produzida/mês</th></tr></thead>
+    <tbody>${catRows}</tbody>
+    <tfoot><tr><td colspan="2">Total</td><td style="text-align:right">${r.qCadeiras+r.qEstofados} peças (${r.qCadeiras} cadeiras · ${r.qEstofados} estofados${r.qPintadas>0?' · '+r.qPintadas+' pintadas':''})</td></tr></tfoot>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Memória de cálculo</h3>
+  <div class="resumo">
+    <div>Comum rateado — Cadeiras: <strong>R$ ${r.comumCadeiras.toFixed(2).replace('.',',')}</strong></div>
+    <div>Comum rateado — Estofados: <strong>R$ ${r.comumEstofados.toFixed(2).replace('.',',')}</strong></div>
+    <div>Base por cadeira: <strong>R$ ${r.baseCadeiras.toFixed(2).replace('.',',')}</strong></div>
+    <div>Adicional de pintura: <strong>R$ ${r.adicionalPintura.toFixed(2).replace('.',',')}</strong></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:0">
+  <h3>Custo indireto calculado por peça</h3>
+  <table>
+    <thead><tr><th>Categoria</th><th style="text-align:right">Novo valor</th><th style="text-align:right">Variação vs. atual</th></tr></thead>
+    <tbody>${resultadoRows}</tbody>
+  </table>
+</div>
+
+<div class="footer">Relatório gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · JM Gestão Fabril</div>
+
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
 
 window._engSetFolha=async function(fabrica,valor){
   const v=parseFloat(valor)||0;
@@ -16700,8 +16817,8 @@ window._engAplicarIndiretos=function(){
 };
 window._engConfirmarAplicarIndiretos=async function(){
   const mesesComCusto=[...new Set(custosIndiretos.map(c=>(c.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
-  const mesesSel=engIndMesesDaBase(window._engIndBase||mesesComCusto[0],mesesComCusto);
-  if(!mesesSel.length){showToast('Selecione a base de cálculo.');return;}
+  const mesesSel=engIndMesesDaBase('media3',mesesComCusto);
+  if(!mesesSel.length){showToast('Nenhum custo indireto lançado ainda.');return;}
   const r=calcRateioIndireto(mesesSel);
   closeModal();
   try{
@@ -16711,7 +16828,7 @@ window._engConfirmarAplicarIndiretos=async function(){
     });
     // Guarda de onde veio o valor, pra dar pra conferir depois de onde saiu
     configEng={...configEng,indiretos,
-      indiretosBase:window._engIndBase||mesesComCusto[0],
+      indiretosBase:'media3',
       indiretosAtualizadoEm:new Date().toISOString()};
     await setDoc(doc(db,'config_eng','geral'),configEng);
     showToast('Custos indiretos atualizados!');
