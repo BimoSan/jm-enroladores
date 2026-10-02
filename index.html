@@ -16484,10 +16484,14 @@ function engQtdCategoria(catId){
 // meses que entram na conta. Devolve [] se a base não existir mais.
 function engIndMesesDaBase(base,mesesComCusto){
   if(!base) return [];
-  if(base==='mediatodos') return mesesComCusto;
+  // Média só com meses fechados — o mês em andamento ainda está incompleto e
+  // puxaria a média pra baixo.
+  const mesAtual=today().slice(0,7);
+  const fechados=mesesComCusto.filter(m=>m<mesAtual);
+  if(base==='mediatodos') return fechados;
   if(base.startsWith('media')){
     const n=parseInt(base.replace('media',''))||3;
-    return mesesComCusto.slice(0,n);
+    return fechados.slice(0,n);
   }
   return mesesComCusto.includes(base)?[base]:[];
 }
@@ -16568,6 +16572,9 @@ function renderEngIndiretos(){
   // que caem de uma vez só (13º, seguro anual) sem depender de escolha manual.
   const base='media3';
   const mesesSel=engIndMesesDaBase(base,mesesComCusto);
+  if(!mesesSel.length){
+    return '<div class="card" style="text-align:center;color:#94a3b8;padding:30px">Ainda não há nenhum mês fechado com custo indireto lançado.<br><span style="font-size:12px">A média considera só meses anteriores ao atual.</span></div>';
+  }
   const baseLabel='Média de '+mesesSel.length+' mês'+(mesesSel.length!==1?'es':'');
 
   const r=calcRateioIndireto(mesesSel);
