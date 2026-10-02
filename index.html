@@ -736,11 +736,12 @@ function custosIndiretosPorDestinoCaixa(mes){
   });
   const gruposJaLancados=new Set(custosIndiretos.filter(c=>c.cpGrupoId).map(c=>c.cpGrupoId));
   // Duplicata avulsa de Custo Indireto (sem passar por "+ Lançamento" aqui)
-  // não tem destino marcado — cai em "comum" por padrão.
+  // tem destino só se alguém marcou na lista de duplicatas — senão "comum".
   (contasPagar||[]).filter(c=>c.categoria==='indireto'&&c.pago&&(c.dataPagamento||'').startsWith(mes)).forEach(c=>{
     const grupoId=c.grupoId||c.id;
     if(gruposJaLancados.has(grupoId)) return;
-    porDestino.comum=(porDestino.comum||0)+(parseFloat(c.valor)||0);
+    const d=custoDestinoInfo(c.destinoIndireto).id;
+    porDestino[d]=(porDestino[d]||0)+(parseFloat(c.valor)||0);
   });
   return porDestino;
 }
@@ -17779,10 +17780,16 @@ function renderFinCustos(){
           +'</div>'
           +'<span style="font-size:14px;font-weight:800;color:'+cor+';margin-left:10px;flex-shrink:0">'+fmtMoeda(parseFloat(c.valor)||0)+'</span>'
           +'</div>'
-          +'<div style="margin-top:4px;text-align:right">'
+          +'<div style="margin-top:4px;text-align:right;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">'
           +(podeEditarContasPagar()
             ?'<select onchange="window._cpSetCategoriaIndireta(\''+c.id+'\',this.value)" title="Categoria específica (pro relatório por categoria)" style="font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:'+(c.categoriaIndireta?'#334155':'#94a3b8')+'">'+optsCatEsp+'</select>'
             :(c.categoriaIndireta?'<span style="font-size:10px;color:#64748b">'+c.categoriaIndireta+'</span>':''))
+          +(gruposJaLancados.has(c.grupoId||c.id)
+            ?'<span style="font-size:10px;color:#94a3b8" title="O destino vem do lançamento vinculado a esta duplicata">destino: do lançamento</span>'
+            :(podeEditarContasPagar()
+              ?'<select onchange="window._cpSetDestinoIndireto(\''+c.id+'\',this.value)" title="Fábrica/destino no rateio de custo indireto (Engenharia)" style="font-size:10px;border:1.5px solid #e2e8f0;border-radius:6px;padding:2px 4px;color:#334155">'
+                +CUSTO_DESTINOS.map(d=>'<option value="'+d.id+'"'+(custoDestinoInfo(c.destinoIndireto).id===d.id?' selected':'')+'>'+d.label+'</option>').join('')+'</select>'
+              :'<span style="font-size:10px;color:#64748b">'+custoDestinoInfo(c.destinoIndireto).label+'</span>'))
           +'</div></div>';
       });
       html+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px">Escolha a categoria específica de cada uma pra ela entrar no "Por categoria" e no resumo por dia. Pra dar baixa ou editar o resto, use a aba <strong>Contas a Pagar</strong>.</div>';
@@ -18752,6 +18759,15 @@ window._cpSetCategoriaIndireta=async function(id,categoriaIndireta){
     showToast('Categoria atualizada!');
   }catch(e){
     console.error('Erro ao atualizar categoria específica:',e);
+    showToast('Erro: '+e.message);
+  }
+};
+window._cpSetDestinoIndireto=async function(id,destinoIndireto){
+  try{
+    await updateDoc(doc(db,'contas_pagar',id),{destinoIndireto:destinoIndireto||'comum'});
+    showToast('Destino atualizado!');
+  }catch(e){
+    console.error('Erro ao atualizar destino:',e);
     showToast('Erro: '+e.message);
   }
 };
