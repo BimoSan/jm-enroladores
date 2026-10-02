@@ -1644,6 +1644,7 @@ const NAV_ICONS={'painel': '<svg viewBox="0 0 24 24" fill="none" stroke="current
   'apontar':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   'fichas_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
   'soldadores_metal':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  'ponto_fitas':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
   'ponto_metal':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
   'config_metal':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
   'minha_prod':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
@@ -1695,7 +1696,7 @@ const TAB_LABELS={
   // Fitas
   'estoque_fitas':'Estoque','producao_fitas':'Produção','saidas_fitas':'Saídas',
   'traco_fitas':'Traço da Fibra',
-  'relatorio_fitas':'Relatórios','config_fitas':'Configurações','usuarios_fitas':'Usuários',
+  'ponto_fitas':'Folha de Ponto','relatorio_fitas':'Relatórios','config_fitas':'Configurações','usuarios_fitas':'Usuários',
   'setores_resumo':'Resumo Mensal',
 };
 // ── Seleção de fábrica ──────────────────────────────────────────
@@ -1975,7 +1976,7 @@ function renderApp(){
     }
   } else if(currentSetor==='fitas'){
     tabs.push('estoque_fitas','traco_fitas','prod_fitas','relatorio_fitas');
-    if(currentUserData?.perfil==='admin') tabs.push('config_fitas','usuarios_fitas');
+    if(currentUserData?.perfil==='admin') tabs.push('ponto_fitas','config_fitas','usuarios_fitas');
   } else if(currentSetor==='almoxarifado'){
     const pf=currentUserData?.perfil;
     const podeEditar=['admin','apontador1'].includes(pf);
@@ -5971,15 +5972,34 @@ window._confirmarExcluirSoldador=async id=>{
 };
 
 // ── Configurações metalúrgica ─────────────────────────────────────
+// A folha de ponto é a mesma da Metalúrgica e do setor de Fitas, com os
+// funcionários separados por setor (sem "setor" = Metalúrgica, que já existia).
+function pontoSetorKey(){ return currentSetor==='fitas'?'fitas':'metalurgica'; }
+function pontoFuncsSetor(){
+  const fitas=pontoSetorKey()==='fitas';
+  return pontoFuncionarios.filter(f=>fitas?f.setor==='fitas':(!f.setor||f.setor==='metalurgica'));
+}
+function pontoRegsSetor(){
+  const ids=new Set(pontoFuncsSetor().map(f=>f.id));
+  return pontoRegistros.filter(r=>ids.has(r.funcId));
+}
+// Fitas: só o admin preenche e edita. Metalúrgica mantém os perfis de sempre.
+function pontoPodeEditar(){
+  const perfil=currentUserData?.perfil;
+  return pontoSetorKey()==='fitas'
+    ?perfil==='admin'
+    :['admin','encarregado_cad','apontador_metal'].includes(perfil);
+}
+
 function renderPontoMetal(){
   if(!window._pontoMes) window._pontoMes=today().slice(0,7);
-  const podeEditar=['admin','encarregado_cad','apontador_metal'].includes(currentUserData?.perfil);
+  const podeEditar=pontoPodeEditar();
   const mes=window._pontoMes;
   // Mostra sempre os ativos; funcionários inativados só aparecem nos meses em
   // que eles de fato têm registro — preserva o histórico sem poluir os meses
   // atuais/futuros com quem não trabalha mais aqui.
-  const pontoFuncionariosView=pontoFuncionarios.filter(f=>
-    f.ativo!==false || pontoRegistros.some(r=>r.funcId===f.id&&(r.data||'').startsWith(mes))
+  const pontoFuncionariosView=pontoFuncsSetor().filter(f=>
+    f.ativo!==false || pontoRegsSetor().some(r=>r.funcId===f.id&&(r.data||'').startsWith(mes))
   );
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const [ano,m]=mes.split('-');
@@ -5991,7 +6011,7 @@ function renderPontoMetal(){
 
   // Funções helpers
   function getRegistro(funcId, data){
-    return pontoRegistros.find(r=>r.funcId===funcId&&r.data===data)||null;
+    return pontoRegsSetor().find(r=>r.funcId===funcId&&r.data===data)||null;
   }
 
   // Meses disponíveis (navegação)
@@ -6159,8 +6179,8 @@ function renderPontoMetal(){
 // ── Funções do ponto ──────────────────────────────────────────────
 
 window._excluirFuncPonto=function(funcId){
-  const func=pontoFuncionarios.find(f=>f.id===funcId);if(!func)return;
-  const temRegistros=pontoRegistros.some(r=>r.funcId===funcId);
+  const func=pontoFuncsSetor().find(f=>f.id===funcId);if(!func)return;
+  const temRegistros=pontoRegsSetor().some(r=>r.funcId===funcId);
   window._pendingExcluirFuncPontoId=funcId;
   const aviso=temRegistros
     ?'<div style="margin-top:8px;font-size:12px;background:#ffebee;color:#c62828;padding:8px 10px;border-radius:8px">⚠️ Este funcionário tem registros de ponto em meses anteriores — excluir perderia esse histórico da folha de pagamento.<br><br>Use <strong>"Inativar"</strong>: o histórico continua intacto, e ele só some da lista dos meses novos.</div>'
@@ -6208,17 +6228,17 @@ window._imprimirPonto=function(mes){
     return '<th style="padding:4px 2px;text-align:center;width:26px;background:'+bg+';color:#fff;font-size:9px"><div>'+nm+'</div><div>'+d+'</div></th>';
   }).join('');
 
-  const tbody=pontoFuncionarios.map(func=>{
+  const tbody=pontoFuncsSetor().map(func=>{
     const cells=dias.map(({dt,isDom,isSab})=>{
-      const reg=pontoRegistros.find(r=>r.funcId===func.id&&r.data===dt);
+      const reg=pontoRegsSetor().find(r=>r.funcId===func.id&&r.data===dt);
       const st=reg?.status||'';
       const bg=st&&STATUS_BG[st]?STATUS_BG[st]:(isDom||isSab?'#f3f4f6':'#fff');
       const cor=st&&STATUS_COR[st]?STATUS_COR[st]:'#94a3b8';
       return '<td style="text-align:center;padding:3px 1px;font-size:9px;font-weight:700;background:'+bg+';color:'+cor+'">'+(st||'')+'</td>';
     }).join('');
-    const faltas=dias.filter(({dt,isDom})=>!isDom&&pontoRegistros.find(r=>r.funcId===func.id&&r.data===dt)?.status==='F').length;
-    const faltasJ=dias.filter(({dt,isDom})=>!isDom&&pontoRegistros.find(r=>r.funcId===func.id&&r.data===dt)?.status==='FJ').length;
-    const hExtra=dias.reduce((s,{dt})=>{const r=pontoRegistros.find(x=>x.funcId===func.id&&x.data===dt);return s+(r?.horasExtra&&r.status==='P'?parseFloat(r.horasExtra)||0:0);},0);
+    const faltas=dias.filter(({dt,isDom})=>!isDom&&pontoRegsSetor().find(r=>r.funcId===func.id&&r.data===dt)?.status==='F').length;
+    const faltasJ=dias.filter(({dt,isDom})=>!isDom&&pontoRegsSetor().find(r=>r.funcId===func.id&&r.data===dt)?.status==='FJ').length;
+    const hExtra=dias.reduce((s,{dt})=>{const r=pontoRegsSetor().find(x=>x.funcId===func.id&&x.data===dt);return s+(r?.horasExtra&&r.status==='P'?parseFloat(r.horasExtra)||0:0);},0);
     return '<tr>'
       +'<td style="padding:4px 8px;font-size:10px;font-weight:600;white-space:nowrap;background:#f8fafc">'+func.nome
       +(func.cargo?'<div style="font-size:8px;color:#64748b">'+func.cargo+'</div>':'')
@@ -6245,7 +6265,7 @@ window._imprimirPonto=function(mes){
   .ass{border-top:1px solid #000;padding-top:4px;text-align:center;font-size:10px;color:#475569}
   @media print{@page{size:A4 landscape;margin:8mm}body{margin:0}}
 </style></head><body>
-<h2>📋 Folha de Ponto — ${mesNome}</h2>
+<h2>📋 Folha de Ponto${pontoSetorKey()==='fitas'?' — Setor de Fitas':''} — ${mesNome}</h2>
 <div class="sub">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
 <div class="legenda">
   <span class="leg" style="background:#d1fae5;color:#065f46">P = Presente</span>
@@ -6284,14 +6304,16 @@ window._salvarPontoFunc=async()=>{
   const nome=document.getElementById('pf-nome')?.value.trim();
   if(!nome){showToast('Informe o nome.');return;}
   const cargo=document.getElementById('pf-cargo')?.value.trim()||'';
-  await addDoc(collection(db,'ponto_funcionarios'),{nome,cargo,criadoEm:new Date().toISOString()});
+  if(pontoSetorKey()==='fitas'&&!pontoPodeEditar()){showToast('Sem permissão para editar o ponto.');return;}
+  await addDoc(collection(db,'ponto_funcionarios'),{nome,cargo,setor:pontoSetorKey(),criadoEm:new Date().toISOString()});
   closeModal();showToast('Funcionário adicionado!');
 };
 
 window._abrirEditPonto=(funcId,data)=>{
-  const func=pontoFuncionarios.find(f=>f.id===funcId);
+  if(pontoSetorKey()==='fitas'&&!pontoPodeEditar()) return;
+  const func=pontoFuncsSetor().find(f=>f.id===funcId);
   if(!func) return;
-  const reg=pontoRegistros.find(r=>r.funcId===funcId&&r.data===data)||{};
+  const reg=pontoRegsSetor().find(r=>r.funcId===funcId&&r.data===data)||{};
   const STATUS_LIST=[
     {k:'P',  v:'Presente',       cor:'#059669', bg:'#f0fdf4'},
     {k:'F',  v:'Falta',          cor:'#dc2626', bg:'#fef2f2'},
@@ -6342,6 +6364,7 @@ window._selecionarStatusPonto=function(btn,k){
 };
 
 window._salvarPonto=async(funcId,data,regId)=>{
+  if(pontoSetorKey()==='fitas'&&!pontoPodeEditar()){showToast('Sem permissão para editar o ponto.');return;}
   const status=document.getElementById('pe-status')?.value;
   const horasExtra=parseFloat(document.getElementById('pe-hextra')?.value)||0;
   const obs=document.getElementById('pe-obs')?.value||'';
@@ -6352,12 +6375,13 @@ window._salvarPonto=async(funcId,data,regId)=>{
 };
 
 window._excluirPonto=async(regId)=>{
+  if(pontoSetorKey()==='fitas'&&!pontoPodeEditar()){showToast('Sem permissão para editar o ponto.');return;}
   await deleteDoc(doc(db,'ponto_registros',regId));
   closeModal();showToast('Registro excluído.');
 };
 
 window._abrirRegistroPonto=()=>{
-  const ativos=pontoFuncionarios.filter(f=>f.ativo!==false);
+  const ativos=pontoFuncsSetor().filter(f=>f.ativo!==false);
   const optsFunc=ativos.map(f=>'<option value="'+f.id+'">'+f.nome+'</option>').join('');
   const STATUS={P:'Presente',F:'Falta',FJ:'Falta Just.',M:'Meio Período',FO:'Folga'};
   const optsStatus=Object.entries(STATUS).map(([k,v])=>'<option value="'+k+'">'+k+' — '+v+'</option>').join('');
@@ -6377,10 +6401,10 @@ window._salvarPontoLote=async()=>{
   const status=document.getElementById('pr-status')?.value;
   if(!data||!status){showToast('Preencha data e status.');return;}
   let count=0;
-  for(const func of pontoFuncionarios){
+  for(const func of pontoFuncsSetor()){
     const cb=document.getElementById('pr-func-'+func.id);
     if(!cb?.checked) continue;
-    const existing=pontoRegistros.find(r=>r.funcId===func.id&&r.data===data);
+    const existing=pontoRegsSetor().find(r=>r.funcId===func.id&&r.data===data);
     const dados={funcId:func.id,data,status,horasExtra:0,obs:'',atualizadoPor:currentUserData?.nome||''};
     if(existing){await updateDoc(doc(db,'ponto_registros',existing.id),dados);}
     else{await addDoc(collection(db,'ponto_registros'),dados);}
@@ -12556,6 +12580,7 @@ function renderTabFitas(tab){
     if(tab==='traco_fitas')     return renderTracoFitas();
     if(tab==='prod_fitas')      return renderRelProducaoFitas();
     if(tab==='relatorio_fitas') return renderRelatorioFitas();
+    if(tab==='ponto_fitas')     return renderPontoMetal();
     if(tab==='config_fitas')    return renderConfigFitas();
     if(tab==='usuarios_fitas')  return renderUsuariosContexto('setor','cadeiras','fitas','Setor de Fitas');
     return renderEstoqueFitas();
@@ -24257,6 +24282,14 @@ const LISTENERS_POR_SETOR={
     }),
   ],
   fitas: [
+    ()=>onSnapshot(collection(db,'ponto_funcionarios'),snap=>{
+      pontoFuncionarios=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      if(currentUserData)reloadTab();
+    }),
+    ()=>onSnapshot(collection(db,'ponto_registros'),snap=>{
+      pontoRegistros=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(currentUserData)reloadTab();
+    }),
     ()=>onSnapshot(collection(db,'enroladores_int'),snap=>{
       enroladoresInt=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
       if(currentUserData)reloadTab();
