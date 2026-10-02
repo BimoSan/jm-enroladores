@@ -970,7 +970,14 @@ function renderCustoSimplesTab(colKey){
   const mesLabel=m=>{if(!m)return'';const[y,mo]=m.split('-');return MESES[parseInt(mo)-1]+' '+y;};
   const arr=cs.arr()||[];
   const mesesDisp=[...new Set([today().slice(0,7),...arr.map(it=>(it.data||'').slice(0,7)).filter(Boolean)])].sort().reverse();
-  const doMes=arr.filter(it=>(it.data||'').startsWith(mes));
+  // Lançamento a prazo só desce pra lista de baixo quando a duplicata estiver
+  // toda paga — até lá ele aparece só em "Duplicatas em Contas a Pagar".
+  const doMes=arr.filter(it=>{
+    if(!(it.data||'').startsWith(mes)) return false;
+    if(!custoEstaAPrazo(it)) return true;
+    const g=cpGrupoInfo(it.cpGrupoId);
+    return !g||g.todasPagas;
+  });
 
   const real=custoSaidaRealMes(colKey,arr,mes);
   const cpTot=cpTotaisCategoria(CUSTO_COLECOES[colKey].categoriaCP,mes);
