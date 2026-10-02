@@ -1069,9 +1069,9 @@ function renderCustoSimplesTab(colKey){
   doMes.forEach(it=>{ const d=it.data||''; if(!porDia[d]) porDia[d]=[]; porDia[d].push(it); });
   const dias=Object.keys(porDia).sort().reverse();
 
-  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Lançamentos — '+mesLabel(mes)+'</div>';
+  html+='<div class="card"><div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:10px">Pagamentos — '+mesLabel(mes)+'</div>';
   if(!dias.length){
-    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhum lançamento neste mês.</div>';
+    html+='<div style="text-align:center;color:#94a3b8;padding:16px">Nenhum pagamento neste mês.</div>';
   } else {
     dias.forEach((dia,di)=>{
       const itens=porDia[dia];
