@@ -11173,7 +11173,9 @@ function renderEnroladoresCardsInt(){
     const totalFicha=Object.values(totFicha).reduce((s,v)=>s+v,0);
     const podeLancar=['admin','encarregado_cad','apontador_int'].includes(currentUserData?.perfil);
 
-    html+='<div class="card" style="padding:14px;'+(podeLancar?'cursor:pointer':'')+'"'+(podeLancar?' onclick="window._aiAbrirEnrolador(\''+enr.id+'\')"':'')+'>'
+    const nomeNorm=aiNormBusca(enr.nome);
+    const oculto=window._aiBusca&&!nomeNorm.includes(aiNormBusca(window._aiBusca));
+    html+='<div class="card ai-enr-card" data-nome="'+nomeNorm.replace(/"/g,'')+'" style="padding:14px;'+(oculto?'display:none;':'')+(podeLancar?'cursor:pointer':'')+'"'+(podeLancar?' onclick="window._aiAbrirEnrolador(\''+enr.id+'\')"':'')+'>'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<div style="display:flex;align-items:center;gap:10px">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:#065f46;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">'+enr.nome[0]+'</div>'
@@ -11223,8 +11225,27 @@ function renderEnroladoresCardsInt(){
 }
 
 // ── Apontamento ───────────────────────────────────────────────────
+function aiNormBusca(t){
+  return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+}
+window._aiFiltrar=function(v){
+  window._aiBusca=v||'';
+  const q=aiNormBusca(window._aiBusca);
+  let visiveis=0;
+  document.querySelectorAll('.ai-enr-card').forEach(el=>{
+    const ok=!q||(el.dataset.nome||'').includes(q);
+    el.style.display=ok?'':'none';
+    if(ok) visiveis++;
+  });
+  const vazio=document.getElementById('ai-busca-vazio');
+  if(vazio) vazio.style.display=visiveis?'none':'block';
+};
 function renderApontarInt(){
-  return '<div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:12px">Toque no nome do enrolador para lançar produção:</div>'
+  return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:#475569;flex:1;min-width:200px">Toque no nome do enrolador para lançar produção:</div>'
+    +'<input type="search" placeholder="🔍 Pesquisar enrolador..." value="'+(window._aiBusca||'').replace(/"/g,'&quot;')+'" oninput="window._aiFiltrar(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 12px;min-width:220px">'
+    +'</div>'
+    +'<div id="ai-busca-vazio" style="display:none;text-align:center;color:#94a3b8;font-size:12px;padding:16px">Nenhum enrolador encontrado.</div>'
     +renderEnroladoresCardsInt()
     +'<div class="card" style="margin-top:16px">'
     +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">📋 Histórico de apontamentos — hoje</div>'
