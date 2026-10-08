@@ -6807,9 +6807,9 @@ function renderCamRotas(){
 
   const rotasMes=camRotas.filter(r=>(r.data||'').slice(0,7)===mes);
   const totalKm=rotasMes.reduce((s,r)=>s+(parseFloat(r.kmFinal||0)-parseFloat(r.kmInicial||0)),0);
-  // Gasto combustível é pela data de cada abastecimento (não pela saída da
-  // rota) — pode ter sido pago já no mês seguinte, na volta da viagem.
-  const totalGasto=abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.totalPago)||0),0);
+  // Nesta tela os totais são a soma das rotas listadas (batem com a tabela).
+  // O Financeiro (Viagens) continua contando por data de cada abastecimento.
+  const totalGasto=rotasMes.reduce((s,r)=>s+rotaTotalCombustivel(r),0);
 
 
   // Navegação de mês
@@ -6828,8 +6828,8 @@ function renderCamRotas(){
     +'</div>';
 
   // Stat cards
-  const totalGastoMot=abastecimentosDoMes(mes).reduce((s,a)=>s+(parseFloat(a.gastoMot)||0),0);
-  const totalTacografo=gastoTacografoMes(mes);
+  const totalGastoMot=rotasMes.reduce((s,r)=>s+(r.abastecimentos||[]).reduce((ss,a)=>ss+(parseFloat(a.gastoMot)||0),0),0);
+  const totalTacografo=rotasMes.reduce((s,r)=>s+rotaTotalTacografo(r),0);
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><div><div class="stat-label">Viagens no mês</div><div class="stat-value">'+rotasMes.length+'</div></div></div>'
     +'<div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981)"><div><div class="stat-label">Km rodados</div><div class="stat-value">'+totalKm.toLocaleString('pt-BR',{maximumFractionDigits:0})+'</div></div></div>'
