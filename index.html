@@ -1367,6 +1367,9 @@ let auditLogCache=[];
 let auditLogLoaded=false;
 let auditLogCarregando=false;
 let auditFiltroTexto='';
+let auditFiltroUsuario='';
+let auditFiltroSetor='';
+let auditFiltroDia='';
 let unsubsSetorAtual=[];
 let setorComListenersAtivos=undefined; // undefined força a primeira ativação
 
@@ -4783,8 +4786,19 @@ function renderAuditoria(){
     +'</div>'
   ) : '<div class="card" style="margin-bottom:14px;border:1.5px solid #16a34a;background:#f0fdf4"><div style="font-size:13px;color:#166534;font-weight:600">✅ Todos os usuários estão vinculados por UID.</div></div>';
 
+  const diaLocal=dt=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+  const SETOR_LABEL=s=>s?(String(s).charAt(0).toUpperCase()+String(s).slice(1).replace(/_/g,' ')):'Sem setor';
+  const usuariosLog=[...new Set(auditLogCache.map(e=>e.usuarioNome).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const setoresLog=[...new Set(auditLogCache.map(e=>e.setor||''))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+
   const filtro=(auditFiltroTexto||'').toLowerCase();
   const entradas = auditLogCache.filter(e=>{
+    if(auditFiltroUsuario&&e.usuarioNome!==auditFiltroUsuario) return false;
+    if(auditFiltroSetor!==''&&(e.setor||'')!==(auditFiltroSetor==='__sem__'?'':auditFiltroSetor)) return false;
+    if(auditFiltroDia){
+      const dt=e.tsCliente?new Date(e.tsCliente):null;
+      if(!dt||diaLocal(dt)!==auditFiltroDia) return false;
+    }
     if(!filtro) return true;
     return (e.usuarioNome||'').toLowerCase().includes(filtro)
       || (e.colecao||'').toLowerCase().includes(filtro)
@@ -4793,25 +4807,62 @@ function renderAuditoria(){
   });
 
   const corAcao={criar:'#16a34a',editar:'#d97706',excluir:'#dc2626'};
-  const linhasLog = entradas.slice(0,150).map(e=>{
+  const DIAS_SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const LIMITE_LOG=600;
+  const mostradas=entradas.slice(0,LIMITE_LOG);
+
+  // Agrupa por dia (mais recente primeiro) — cada dia mostra quantas
+  // movimentações cada usuário fez.
+  const porDia={};
+  mostradas.forEach(e=>{
     const dt=e.tsCliente?new Date(e.tsCliente):null;
-    const dtFmt=dt?dt.toLocaleString('pt-BR'):'—';
-    const cor=corAcao[e.acao]||'#475569';
-    return '<div class="card" style="margin-bottom:6px;padding:10px 12px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
-      +'<div style="font-size:12px"><span style="font-weight:700;color:'+cor+'">'+(e.acao||'').toUpperCase()+'</span>'
-      +' <span style="color:#475569">'+(e.colecao||'')+'</span>'
-      +' <span style="color:#94a3b8;font-size:11px">#'+(e.docId||'').slice(0,8)+'</span></div>'
-      +'<div style="font-size:11px;color:#64748b">'+dtFmt+'</div></div>'
-      +'<div style="font-size:11px;color:#334155;margin-top:4px">'+(e.usuarioNome||'—')+' <span style="color:#94a3b8">('+(e.usuarioPerfil||'?')+')</span></div>'
-      +'</div>';
+    const k=dt?diaLocal(dt):'—';
+    (porDia[k]=porDia[k]||[]).push(e);
+  });
+  const linhasLog=Object.keys(porDia).sort().reverse().map(k=>{
+    const itens=porDia[k];
+    const porUser={};
+    itens.forEach(e=>{ const n=e.usuarioNome||'—'; porUser[n]=(porUser[n]||0)+1; });
+    const resumo=Object.entries(porUser).sort((a,b)=>b[1]-a[1]).map(([n,q])=>n+': '+q).join(' · ');
+    const d=k==='—'?null:new Date(k+'T12:00:00');
+    const titulo=d?(k.split('-').reverse().join('/')+' <span style="font-weight:400;color:#94a3b8">('+DIAS_SEM[d.getDay()]+')</span>'):'Sem data';
+    return '<div style="margin:14px 0 6px;padding-bottom:4px;border-bottom:2px solid #e2e8f0">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">'
+      +'<span style="font-size:13px;font-weight:800;color:#1e293b">'+titulo+'</span>'
+      +'<span style="font-size:11px;color:#64748b">'+itens.length+' movimentaç'+(itens.length!==1?'ões':'ão')+'</span></div>'
+      +'<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+resumo+'</div></div>'
+      +itens.map(e=>{
+        const dt=e.tsCliente?new Date(e.tsCliente):null;
+        const hora=dt?dt.toLocaleTimeString('pt-BR'):'—';
+        const cor=corAcao[e.acao]||'#475569';
+        return '<div class="card" style="margin-bottom:6px;padding:10px 12px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+          +'<div style="font-size:12px"><span style="font-weight:700;color:'+cor+'">'+(e.acao||'').toUpperCase()+'</span>'
+          +' <span style="color:#475569">'+(e.colecao||'')+'</span>'
+          +' <span style="color:#94a3b8;font-size:11px">#'+(e.docId||'').slice(0,8)+'</span></div>'
+          +'<div style="font-size:11px;color:#64748b">'+hora+'</div></div>'
+          +'<div style="font-size:11px;color:#334155;margin-top:4px">'+(e.usuarioNome||'—')+' <span style="color:#94a3b8">('+(e.usuarioPerfil||'?')+')</span>'
+          +(e.setor?' <span style="background:#eff6ff;color:#1e40af;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:600">'+SETOR_LABEL(e.setor)+'</span>':'')+'</div>'
+          +'</div>';
+      }).join('');
   }).join('');
+
+  const selStyle='font-size:12px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 8px;background:#fff;min-width:0;flex:1';
+  const filtrosAtivos=auditFiltroTexto||auditFiltroUsuario||auditFiltroSetor!==''||auditFiltroDia;
 
   return '<div style="padding:4px">'
     +blocoMigracao
     +'<div class="card" style="margin-bottom:10px">'
-    +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">📋 Log de Auditoria — últimos 150 registros</div>'
-    +'<input type="text" placeholder="Filtrar por usuário, coleção, ação ou ID..." value="'+auditFiltroTexto+'" oninput="window._auditFiltrar(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:8px">📋 Log de Auditoria <span style="font-size:11px;font-weight:400;color:#94a3b8">— '+entradas.length+' registro'+(entradas.length!==1?'s':'')+(entradas.length>LIMITE_LOG?' (mostrando '+LIMITE_LOG+' mais recentes)':'')+'</span></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<select onchange="window._auditSetFiltro(\'usuario\',this.value)" style="'+selStyle+'"><option value="">Todos os usuários</option>'
+    +usuariosLog.map(u=>'<option value="'+u.replace(/"/g,'&quot;')+'"'+(u===auditFiltroUsuario?' selected':'')+'>'+u+'</option>').join('')+'</select>'
+    +'<select onchange="window._auditSetFiltro(\'setor\',this.value)" style="'+selStyle+'"><option value="">Todos os setores</option>'
+    +setoresLog.map(s=>{const v=s||'__sem__';return '<option value="'+v+'"'+(v===auditFiltroSetor?' selected':'')+'>'+SETOR_LABEL(s)+'</option>';}).join('')+'</select>'
+    +'<input type="date" value="'+auditFiltroDia+'" onchange="window._auditSetFiltro(\'dia\',this.value)" style="'+selStyle+'">'
+    +(filtrosAtivos?'<button class="btn btn-ghost btn-sm" onclick="window._auditLimparFiltros()">✕ Limpar</button>':'')
+    +'</div>'
+    +'<input id="audit-txt" type="text" placeholder="Filtrar por usuário, coleção, ação ou ID..." value="'+auditFiltroTexto.replace(/"/g,'&quot;')+'" oninput="window._auditFiltrar(this.value)" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%;margin-bottom:4px">'
     +(auditLogCarregando&&!auditLogLoaded?'<div style="text-align:center;padding:20px;color:#64748b;font-size:13px">Carregando...</div>'
       :(linhasLog||'<div style="text-align:center;padding:20px;color:#64748b;font-size:13px">Nenhum registro encontrado.</div>'))
     +'</div></div>';
@@ -4819,7 +4870,7 @@ function renderAuditoria(){
 
 window._carregarAuditoria=async function(){
   try{
-    const q=query(collection(db,'auditLog'),orderBy('tsCliente','desc'),limit(300));
+    const q=query(collection(db,'auditLog'),orderBy('tsCliente','desc'),limit(1500));
     const snap=await getDocs(q);
     auditLogCache=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){
@@ -4833,6 +4884,19 @@ window._carregarAuditoria=async function(){
 
 window._auditFiltrar=function(v){
   auditFiltroTexto=v;
+  if(document.getElementById('auditoria-modal-marker')) window._abrirAuditoriaGlobal();
+  // O modal é redesenhado a cada tecla — devolve o cursor pro campo de texto.
+  const el=document.getElementById('audit-txt');
+  if(el){ el.focus(); el.setSelectionRange(v.length,v.length); }
+};
+window._auditSetFiltro=function(campo,v){
+  if(campo==='usuario') auditFiltroUsuario=v;
+  else if(campo==='setor') auditFiltroSetor=v;
+  else if(campo==='dia') auditFiltroDia=v;
+  if(document.getElementById('auditoria-modal-marker')) window._abrirAuditoriaGlobal();
+};
+window._auditLimparFiltros=function(){
+  auditFiltroTexto='';auditFiltroUsuario='';auditFiltroSetor='';auditFiltroDia='';
   if(document.getElementById('auditoria-modal-marker')) window._abrirAuditoriaGlobal();
 };
 
