@@ -4811,6 +4811,46 @@ function renderAuditoria(){
   const LIMITE_LOG=600;
   const mostradas=entradas.slice(0,LIMITE_LOG);
 
+  // Detalhe de cada edição: o log guarda os campos gravados (valor novo).
+  // O valor antigo vem do registro anterior do mesmo documento que também
+  // gravou esse campo — por isso só aparece "antes → depois" quando já houve
+  // um registro anterior daquele campo.
+  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const porDoc={};
+  auditLogCache.forEach(e=>{ if(e.docId) (porDoc[e.docId]=porDoc[e.docId]||[]).push(e); });
+  const fmtVal=v=>{
+    if(v===null||v===undefined||v==='') return '<span style="color:#94a3b8">(vazio)</span>';
+    if(Array.isArray(v)) return v.length+' item'+(v.length!==1?'s':'');
+    if(typeof v==='object'){ const j=JSON.stringify(v); return esc(j.length>140?j.slice(0,140)+'…':j); }
+    if(typeof v==='boolean') return v?'sim':'não';
+    const t=String(v); return esc(t.length>140?t.slice(0,140)+'…':t);
+  };
+  const detalhesLog=e=>{
+    const dados=e.dados||{};
+    const chaves=Object.keys(dados);
+    if(e.acao==='excluir') return '';
+    if(!chaves.length) return '';
+    const lista=porDoc[e.docId]||[];
+    const idx=lista.indexOf(e);
+    const linhas=chaves.map(k=>{
+      let antes,temAntes=false;
+      for(let j=idx+1;j<lista.length;j++){
+        const d=lista[j].dados;
+        if(d&&Object.prototype.hasOwnProperty.call(d,k)){ antes=d[k]; temAntes=true; break; }
+      }
+      const igual=temAntes&&JSON.stringify(antes)===JSON.stringify(dados[k]);
+      return '<div style="display:flex;gap:6px;font-size:11px;padding:2px 0;flex-wrap:wrap">'
+        +'<span style="font-weight:700;color:#475569;min-width:110px">'+esc(k)+'</span>'
+        +(temAntes&&!igual
+          ?'<span style="color:#dc2626;text-decoration:line-through">'+fmtVal(antes)+'</span><span style="color:#94a3b8">→</span>'
+          :'')
+        +'<span style="color:'+(igual?'#94a3b8':'#059669')+'">'+fmtVal(dados[k])+(igual?' (sem mudança)':'')+'</span>'
+        +'</div>';
+    }).join('');
+    return '<details style="margin-top:6px"><summary style="font-size:11px;color:#1d4ed8;cursor:pointer;font-weight:600">ver o que foi gravado ('+chaves.length+' campo'+(chaves.length!==1?'s':'')+')</summary>'
+      +'<div style="margin-top:4px;padding:6px 8px;background:#f8fafc;border-radius:8px">'+linhas+'</div></details>';
+  };
+
   // Agrupa por dia (mais recente primeiro) — cada dia mostra quantas
   // movimentações cada usuário fez.
   const porDia={};
@@ -4843,6 +4883,7 @@ function renderAuditoria(){
           +'<div style="font-size:11px;color:#64748b">'+hora+'</div></div>'
           +'<div style="font-size:11px;color:#334155;margin-top:4px">'+(e.usuarioNome||'—')+' <span style="color:#94a3b8">('+(e.usuarioPerfil||'?')+')</span>'
           +(e.setor?' <span style="background:#eff6ff;color:#1e40af;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:600">'+SETOR_LABEL(e.setor)+'</span>':'')+'</div>'
+          +detalhesLog(e)
           +'</div>';
       }).join('');
   }).join('');
