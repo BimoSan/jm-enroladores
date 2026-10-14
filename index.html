@@ -4825,6 +4825,23 @@ function renderAuditoria(){
     if(typeof v==='boolean') return v?'sim':'não';
     const t=String(v); return esc(t.length>140?t.slice(0,140)+'…':t);
   };
+  // Diferença campo a campo entre dois valores (listas/objetos), pra mostrar
+  // exatamente o que mudou dentro de algo como "apontamentos".
+  const difLog=(a,b,caminho,out)=>{
+    if(out.length>=40) return;
+    const objA=a&&typeof a==='object', objB=b&&typeof b==='object';
+    if(objA&&objB&&Array.isArray(a)===Array.isArray(b)){
+      const chaves=new Set([...Object.keys(a),...Object.keys(b)]);
+      chaves.forEach(k=>{
+        const rot=Array.isArray(a)?caminho+' #'+(parseInt(k)+1):(caminho?caminho+'.':'')+k;
+        if(!(k in a)) out.push({c:rot,antes:undefined,depois:b[k],novo:true});
+        else if(!(k in b)) out.push({c:rot,antes:a[k],depois:undefined,removido:true});
+        else difLog(a[k],b[k],rot,out);
+      });
+      return;
+    }
+    if(JSON.stringify(a)!==JSON.stringify(b)) out.push({c:caminho,antes:a,depois:b});
+  };
   const detalhesLog=e=>{
     const dados=e.dados||{};
     const chaves=Object.keys(dados);
@@ -4839,6 +4856,21 @@ function renderAuditoria(){
         if(d&&Object.prototype.hasOwnProperty.call(d,k)){ antes=d[k]; temAntes=true; break; }
       }
       const igual=temAntes&&JSON.stringify(antes)===JSON.stringify(dados[k]);
+      const composto=temAntes&&!igual&&antes&&dados[k]&&typeof antes==='object'&&typeof dados[k]==='object';
+      if(composto){
+        const difs=[];
+        difLog(antes,dados[k],'',difs);
+        return '<div style="font-size:11px;padding:2px 0"><span style="font-weight:700;color:#475569">'+esc(k)+'</span>'
+          +'<div style="margin:3px 0 4px 10px">'
+          +(difs.length?difs.map(d=>'<div style="padding:1px 0">'
+            +'<span style="color:#64748b">'+esc(d.c.trim()||k)+':</span> '
+            +(d.novo?'<span style="color:#059669">adicionado '+fmtVal(d.depois)+'</span>'
+              :d.removido?'<span style="color:#dc2626">removido '+fmtVal(d.antes)+'</span>'
+              :'<span style="color:#dc2626;text-decoration:line-through">'+fmtVal(d.antes)+'</span> <span style="color:#94a3b8">→</span> <span style="color:#059669">'+fmtVal(d.depois)+'</span>')
+            +'</div>').join('')
+            :'<span style="color:#94a3b8">nenhuma diferença nos valores</span>')
+          +'</div></div>';
+      }
       return '<div style="display:flex;gap:6px;font-size:11px;padding:2px 0;flex-wrap:wrap">'
         +'<span style="font-weight:700;color:#475569;min-width:110px">'+esc(k)+'</span>'
         +(temAntes&&!igual
