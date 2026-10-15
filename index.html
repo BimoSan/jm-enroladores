@@ -18416,8 +18416,66 @@ window._custoGerenciarCategorias=function(voltarId){
     +'<div style="display:flex;gap:6px">'
     +'<input id="ci-cat-nova" placeholder="Nova categoria" style="flex:1;font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px">'
     +'<button type="button" onclick="window._custoAdicionarCategoria()" style="background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:0 16px;font-size:13px;font-weight:700;cursor:pointer">+</button>'
-    +'</div>',
+    +'</div>'
+    +'<button type="button" onclick="window._custoFundirCategorias()" style="margin-top:10px;width:100%;background:#f5f3ff;color:#6d28d9;border:1.5px solid #ddd6fe;border-radius:9px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">🔀 Fundir categorias</button>',
     '<button class="btn btn-sm btn-primary" onclick="window._custoNovo('+(voltarId?'\''+voltarId+'\'':'')+')">Voltar</button>');
+};
+// Junta várias categorias numa só: renomeia tudo que já foi lançado (custos e
+// duplicatas) pro nome novo e tira as antigas da lista.
+window._custoFundirCategorias=function(){
+  const cats=configFin.categoriasCustos||[];
+  const sugeridas=['Manutenção de Caminhão','Manutenção Carro/Moto','Peças Automotivas'];
+  const temSugeridas=sugeridas.filter(s=>cats.includes(s)).length>=2;
+  const linhas=cats.map((c,i)=>'<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer">'
+    +'<input type="checkbox" id="ci-fund-'+i+'"'+(temSugeridas&&sugeridas.includes(c)?' checked':'')+' style="width:15px;height:15px"> '+c+'</label>').join('');
+  showModal('Fundir categorias',
+    '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px;line-height:1.5">Marque as categorias que viram uma só. Todos os lançamentos e duplicatas que já usam elas passam pro nome novo.</div>'
+    +'<div style="max-height:240px;overflow-y:auto;margin-bottom:10px;border:1.5px solid #e2e8f0;border-radius:9px;padding:4px 10px">'+linhas+'</div>'
+    +'<div class="form-group"><label>Nome da categoria final</label>'
+    +'<input id="ci-fund-nome" value="'+(temSugeridas?'Manutenção e Peças de Veículos':'')+'" placeholder="Ex: Manutenção e Peças de Veículos" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>'
+    +'<div style="font-size:11px;color:#b45309;background:#fffbeb;border-radius:8px;padding:8px 10px;line-height:1.5">A linha do DRE da nova categoria será a da primeira categoria marcada. Essa fusão não dá pra desfazer automaticamente.</div>',
+    '<button class="btn btn-sm" onclick="window._custoGerenciarCategorias()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._custoConfirmarFusao()">Fundir</button>');
+};
+window._custoConfirmarFusao=async function(){
+  const cats=configFin.categoriasCustos||[];
+  const sel=cats.filter((c,i)=>document.getElementById('ci-fund-'+i)?.checked);
+  const nome=document.getElementById('ci-fund-nome')?.value.trim();
+  if(sel.length<2){showToast('Marque pelo menos 2 categorias.');return;}
+  if(!nome){showToast('Digite o nome da categoria final.');return;}
+  if(cats.some(c=>c.toLowerCase()===nome.toLowerCase()&&!sel.includes(c))){showToast('Já existe outra categoria com esse nome.');return;}
+  const lancs=custosIndiretos.filter(c=>sel.includes(c.categoria)&&c.categoria!==nome);
+  const dups=(contasPagar||[]).filter(c=>sel.includes(c.categoriaIndireta)&&c.categoriaIndireta!==nome);
+  const grupo=dreGrupoDaCategoria(sel[0]);
+  let novaLista=[],colocou=false;
+  cats.forEach(c=>{
+    if(sel.includes(c)){ if(!colocou){ novaLista.push(nome); colocou=true; } }
+    else novaLista.push(c);
+  });
+  const dreGrupos={...(configFin.dreGrupos||{})};
+  sel.forEach(c=>{ delete dreGrupos[c]; });
+  dreGrupos[nome]=grupo;
+  closeModal();
+  showToast('Fundindo categorias...');
+  try{
+    // Primeiro os documentos: se algo falhar no meio, as categorias antigas
+    // continuam na lista e dá pra repetir a fusão.
+    const tarefas=[
+      ...lancs.map(c=>()=>updateDoc(doc(db,'fin_custos',c.id),{categoria:nome})),
+      ...dups.map(c=>()=>updateDoc(doc(db,'contas_pagar',c.id),{categoriaIndireta:nome})),
+    ];
+    for(let i=0;i<tarefas.length;i+=15){
+      await Promise.all(tarefas.slice(i,i+15).map(f=>f()));
+    }
+    const novoCfg={...configFin,categoriasCustos:novaLista,dreGrupos};
+    await setDoc(doc(db,'config_financeiro','geral'),novoCfg);
+    configFin=novoCfg;
+    showToast('Categorias fundidas em "'+nome+'" ('+lancs.length+' lançamentos, '+dups.length+' duplicatas).');
+    window._custoGerenciarCategorias();
+  }catch(e){
+    console.error('Erro ao fundir categorias:',e);
+    showToast('Erro ao fundir: '+e.message);
+  }
 };
 window._custoSetGrupoDRE=async function(idx,grupo){
   const cats=configFin.categoriasCustos||[];
