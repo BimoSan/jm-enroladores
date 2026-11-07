@@ -10444,8 +10444,10 @@ function renderGradFichas(){
       const labelStatus=f.status==='aberta'?'Aberta':f.pago?'✓ Pago':'Fechada';
       const btnFechar=podeFechar&&f.status==='aberta'
         ?'<button class="btn btn-sm btn-warn" onclick="window._gradFecharFicha(\''+f.id+'\')">Fechar</button>':'';
-      const btnExcluirFicha=podeFechar
-        ?'<button class="btn btn-sm btn-danger" onclick="window._gradExcluirFicha(\''+f.id+'\')">Excluir ficha</button>':'';
+      const btnReabrir=currentUserData?.perfil==='admin'&&f.status==='fechada'&&!f.pago
+        ?'<button class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd" onclick="window._gradReabrirFicha(\''+f.id+'\')">↩ Reabrir</button>':'';
+      const btnExcluirFicha=btnReabrir+(podeFechar
+        ?'<button class="btn btn-sm btn-danger" onclick="window._gradExcluirFicha(\''+f.id+'\')">Excluir ficha</button>':'');
 
       // Histórico expandido com botões editar/excluir por lançamento
       const histExpandido=dias.length?'<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:8px">'
@@ -11048,6 +11050,42 @@ window._gradConfirmarFechar=async function(){
   const ganho=calcGanhoGrad(ficha?.apontamentos||[]);
   await updateDoc(doc(db,'fichas_grad',fichaId),{status:'fechada',dataFechamento:today(),ganho});
   showToast('Ficha fechada!');
+};
+
+window._gradReabrirFicha=function(fichaId){
+  if(currentUserData?.perfil!=='admin'){showToast('Só o admin pode reabrir fichas.');return;}
+  const f=fichasGrad.find(x=>x.id===fichaId);
+  if(!f) return;
+  if(f.pago){showToast('Ficha já paga — não é possível reabrir.');return;}
+  const grad=gradistas.find(g=>g.id===f.gradId);
+  // Uma ficha aberta por gradista — o apontamento novo vai sempre pra
+  // primeira ficha aberta que o sistema encontrar.
+  const jaAberta=fichasGrad.find(x=>x.id!==f.id&&x.gradId===f.gradId&&x.status==='aberta');
+  if(jaAberta){
+    showModal('Não dá pra reabrir agora',
+      '<div style="font-size:13px;line-height:1.6"><strong>'+(grad?.nome||'—')+'</strong> já tem outra ficha aberta ('+quinzenaLabelGrad(jaAberta.quinzena)+').<br><br>Feche ou exclua a ficha aberta antes de reabrir esta, senão os novos lançamentos podem cair na ficha errada.</div>',
+      '<button class="btn btn-sm btn-primary" onclick="window._closeModal()">Entendi</button>');
+    return;
+  }
+  window._pendingReabrirGrad=fichaId;
+  showModal('↩ Reabrir ficha',
+    '<div style="font-size:13px;margin-bottom:8px">Reabrir a ficha de <strong>'+(grad?.nome||'—')+'</strong>?</div>'
+    +'<div style="font-size:12px;color:#64748b;line-height:1.5">Ela volta para <strong>Aberta</strong> e pode ser editada. O que já foi lançado continua na ficha, e o valor é recalculado quando você fechar de novo.</div>',
+    '<button class="btn btn-sm" onclick="window._closeModal()">Cancelar</button>'
+    +'<button class="btn btn-sm btn-primary" onclick="window._gradConfirmarReabrir()">Reabrir</button>');
+};
+window._gradConfirmarReabrir=async function(){
+  if(currentUserData?.perfil!=='admin') return;
+  const id=window._pendingReabrirGrad; if(!id) return;
+  closeModal();
+  try{
+    await updateDoc(doc(db,'fichas_grad',id),{status:'aberta',dataFechamento:null});
+    window._pendingReabrirGrad=null;
+    showToast('Ficha reaberta!');
+  }catch(e){
+    console.error('Erro ao reabrir ficha:',e);
+    showToast('Erro: '+e.message);
+  }
 };
 
 window._gradNovoGradista=function(g={}){
