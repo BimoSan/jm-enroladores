@@ -12061,31 +12061,72 @@ function renderMeuRendimentoInt(){
 }
 
 // ── Ranking (Enrolamento Interno) ────────────────────────────────
+function rankIntToggleHtml(){
+  const v=window._rankIntView==='camp'?'camp':'mensal';
+  const b=(k,l)=>'<button onclick="window._rankIntSetView(\''+k+'\')" style="font-size:12px;padding:6px 14px;border-radius:99px;border:2px solid '+(v===k?'#fbbf24':'rgba(255,255,255,.25)')+';background:'+(v===k?'#fbbf24':'transparent')+';color:'+(v===k?'#1e293b':'#fff')+';cursor:pointer;font-weight:700">'+l+'</button>';
+  return '<div style="display:flex;gap:8px;margin-top:10px">'+b('mensal','Ranking do mês')+b('camp','🏅 Campeonato')+'</div>';
+}
+window._rankIntSetView=function(v){ window._rankIntView=v; reloadTab(); };
+
 function renderRankingInt(){
+  if(window._rankIntView==='camp') return renderCampeonatoInt();
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const mesAtual=today().slice(0,7);
-  const mesNome=MESES[parseInt(mesAtual.slice(5,7))-1]+' '+mesAtual.slice(0,4);
+  const mesHoje=today().slice(0,7);
+  const nomeDoMes=m=>MESES[parseInt(m.slice(5,7))-1]+' '+m.slice(0,4);
   const medalhas=['🥇','🥈','🥉'];
-  const linhasDe=(lista)=>lista.map((e,i)=>
-    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;'+(i>0?'border-top:1px solid #f1f5f9':'')+'">'
-    +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<span style="font-size:16px;width:26px;text-align:center">'+(medalhas[i]||(i+1)+'º')+'</span>'
-    +'<span style="font-size:13px;font-weight:700">'+e.nome+'</span>'
-    +'</div>'
-    +'<span style="font-size:16px;font-weight:800;color:#065f46">'+e.total+' <span style="font-size:10px;font-weight:600;color:#94a3b8">peças</span></span>'
-    +'</div>'
+
+  // Meses com produção + o atual, pra poder navegar pelos anteriores
+  const mesesComProd=new Set([mesHoje]);
+  fichasInt.forEach(f=>(f.apontamentos||[]).forEach(a=>{ if((a.data||'').length>=7) mesesComProd.add(a.data.slice(0,7)); }));
+  const mesesLista=[...mesesComProd].sort().reverse();
+  if(!window._rankIntMes||!mesesComProd.has(window._rankIntMes)) window._rankIntMes=mesHoje;
+  const mes=window._rankIntMes;
+  const idx=mesesLista.indexOf(mes);
+  const mesNovo=idx>0?mesesLista[idx-1]:null;
+  const mesAntigo=idx<mesesLista.length-1?mesesLista[idx+1]:null;
+  const ehAtual=mes===mesHoje;
+
+  const podio=(lista)=>{
+    const top=lista.slice(0,3);
+    const alturas=[92,68,52];
+    const cores=['#f59e0b','#94a3b8','#d97706'];
+    const col=(i)=>{
+      const e=top[i];
+      if(!e) return '<div style="flex:1"></div>';
+      return '<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end">'
+        +'<div style="font-size:22px;line-height:1">'+medalhas[i]+'</div>'
+        +'<div style="font-size:12px;font-weight:800;color:#1e293b;margin:3px 0 1px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.nome+'</div>'
+        +'<div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:4px">'+e.total+' peças</div>'
+        +'<div style="width:100%;height:'+alturas[i]+'px;background:linear-gradient(180deg,'+cores[i]+','+cores[i]+'99);border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;color:#fff;font-size:18px;font-weight:900">'+(i+1)+'º</div>'
+        +'</div>';
+    };
+    return '<div style="display:flex;align-items:flex-end;gap:8px;max-width:420px;margin:4px auto 12px;padding:0 8px">'+col(1)+col(0)+col(2)+'</div>';
+  };
+  const linhasRestantes=(lista)=>lista.slice(3).map((e,i)=>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-top:1px solid #f1f5f9">'
+    +'<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;width:26px;text-align:center;color:#64748b">'+(i+4)+'º</span>'
+    +'<span style="font-size:13px;font-weight:700">'+e.nome+'</span></div>'
+    +'<span style="font-size:15px;font-weight:800;color:#065f46">'+e.total+' <span style="font-size:10px;font-weight:600;color:#94a3b8">peças</span></span></div>'
   ).join('');
 
   let html='<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">'
     +'<div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking por peça — Enrolamento Interno</div>'
-    +'<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">'+mesNome+'</div>'
-    +'</div>';
+    +rankIntToggleHtml()
+    +'<div style="display:flex;align-items:center;gap:10px;margin-top:10px">'
+    +'<button class="btn btn-ghost btn-sm" '+(mesAntigo?'onclick="window._rankIntSetMes(\''+mesAntigo+'\')"':'disabled style="opacity:.3"')+'>←</button>'
+    +'<div style="font-size:14px;font-weight:700;color:#fff;min-width:140px;text-align:center">'+nomeDoMes(mes)+(ehAtual?' <span style="font-size:10px;font-weight:600;color:#fbbf24">(em andamento)</span>':'')+'</div>'
+    +'<button class="btn btn-ghost btn-sm" '+(mesNovo?'onclick="window._rankIntSetMes(\''+mesNovo+'\')"':'disabled style="opacity:.3"')+'>→</button>'
+    +'<select onchange="window._rankIntSetMes(this.value)" style="margin-left:auto;font-size:12px;border-radius:8px;padding:5px 8px;border:none">'
+    +mesesLista.map(m=>'<option value="'+m+'"'+(m===mes?' selected':'')+'>'+nomeDoMes(m)+'</option>').join('')+'</select>'
+    +'</div></div>';
+
   let temAlgumaProducao=false;
   getTiposInt().forEach(t=>{
-    const totaisTipo=enroladoresInt.filter(e=>e.ativo!==false).map(e=>{
+    // Meses anteriores incluem quem produziu e hoje está inativo
+    const totaisTipo=enroladoresInt.filter(e=>ehAtual?e.ativo!==false:true).map(e=>{
       let total=0;
       fichasInt.filter(f=>f.enroladorId===e.id).forEach(f=>{
-        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mesAtual)).forEach(a=>{
+        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mes)).forEach(a=>{
           total+=parseInt((a.tipos||{})[t.id])||0;
         });
       });
@@ -12093,13 +12134,96 @@ function renderRankingInt(){
     }).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
     if(!totaisTipo.length) return;
     temAlgumaProducao=true;
-    html+='<div style="font-size:13px;font-weight:700;color:#1e293b;margin:12px 0 6px">'+t.label+'</div>'
-      +'<div class="card" style="padding:4px 4px;margin-bottom:10px">'+linhasDe(totaisTipo)+'</div>';
+    html+='<div style="font-size:13px;font-weight:700;color:#1e293b;margin:14px 0 6px">'+t.label+'</div>'
+      +'<div class="card" style="padding:10px 4px 4px;margin-bottom:10px">'+podio(totaisTipo)+(totaisTipo.length>3?'<div>'+linhasRestantes(totaisTipo)+'</div>':'')+'</div>';
   });
   if(!temAlgumaProducao){
-    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada esse mês ainda.</div>';
+    html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada em '+nomeDoMes(mes)+'.</div>';
   }
+  return html;
+}
+window._rankIntSetMes=function(m){ window._rankIntMes=m; reloadTab(); };
+window._rankIntSetAno=function(a){ window._rankIntAno=a; reloadTab(); };
 
+// Campeonato: a cada mês os 10 que mais produziram pontuam (1º=10 ... 10º=1),
+// por tipo de peça. Soma de janeiro a dezembro do ano; empate de peças divide
+// a mesma colocação (e os mesmos pontos).
+function campeonatoInt(ano,tipoId){
+  const porEnr={};
+  const MAX=10;
+  for(let m=1;m<=12;m++){
+    const mes=ano+'-'+String(m).padStart(2,'0');
+    const totais=enroladoresInt.map(e=>{
+      let total=0;
+      fichasInt.filter(f=>f.enroladorId===e.id).forEach(f=>{
+        (f.apontamentos||[]).filter(a=>(a.data||'').startsWith(mes)).forEach(a=>{ total+=parseInt((a.tipos||{})[tipoId])||0; });
+      });
+      return {id:e.id,nome:e.nome,total};
+    }).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
+    totais.forEach((x,i)=>{
+      const pos=totais.findIndex(y=>y.total===x.total)+1;
+      const pts=pos<=MAX?MAX+1-pos:0;
+      const r=porEnr[x.id]||(porEnr[x.id]={nome:x.nome,pontos:0,pecas:0,primeiros:0,meses:Array(12).fill(null)});
+      r.meses[m-1]={pos,pts,total:x.total};
+      r.pontos+=pts; r.pecas+=x.total; if(pos===1) r.primeiros++;
+    });
+  }
+  return Object.values(porEnr).sort((a,b)=>b.pontos-a.pontos||b.primeiros-a.primeiros||b.pecas-a.pecas||a.nome.localeCompare(b.nome,'pt-BR'));
+}
+function renderCampeonatoInt(){
+  const hoje=today();
+  const anoHoje=parseInt(hoje.slice(0,4));
+  const anos=new Set([anoHoje]);
+  fichasInt.forEach(f=>(f.apontamentos||[]).forEach(a=>{ if((a.data||'').length>=4) anos.add(parseInt(a.data.slice(0,4))); }));
+  const anosLista=[...anos].sort((a,b)=>b-a);
+  if(!window._rankIntAno||!anos.has(window._rankIntAno)) window._rankIntAno=anoHoje;
+  const ano=window._rankIntAno;
+  const encerrado=ano<anoHoje;
+  const MES_CURTO=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesAtualIdx=ano===anoHoje?parseInt(hoje.slice(5,7))-1:(encerrado?11:-1);
+  const medalhas=['🥇','🥈','🥉'];
+
+  let html='<div style="background:#1e293b;border-radius:14px;padding:14px 18px;margin-bottom:14px;width:100%">'
+    +'<div style="font-size:16px;font-weight:800;color:#fff">🏆 Ranking por peça — Enrolamento Interno</div>'
+    +rankIntToggleHtml()
+    +'<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">'
+    +'<div style="font-size:14px;font-weight:700;color:#fff">Campeonato '+ano+(encerrado?' <span style="font-size:10px;font-weight:600;color:#86efac">(encerrado)</span>':' <span style="font-size:10px;font-weight:600;color:#fbbf24">(encerra em 31/12)</span>')+'</div>'
+    +'<select onchange="window._rankIntSetAno(parseInt(this.value))" style="margin-left:auto;font-size:12px;border-radius:8px;padding:5px 8px;border:none">'
+    +anosLista.map(a=>'<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>').join('')+'</select>'
+    +'</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:8px;line-height:1.5">Todo mês os 10 que mais produzem de cada peça pontuam: 1º = 10 pontos, 2º = 9 ... 10º = 1 ponto. Vence quem somar mais pontos até dezembro. Desempate: mais vitórias no mês, depois mais peças no ano.</div>'
+    +'</div>';
+
+  let tem=false;
+  getTiposInt().forEach(t=>{
+    const tabela=campeonatoInt(ano,t.id);
+    if(!tabela.length) return;
+    tem=true;
+    const lider=tabela[0];
+    html+='<div style="font-size:13px;font-weight:700;color:#1e293b;margin:14px 0 6px">'+t.label+'</div>'
+      +(encerrado?'<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #f59e0b;border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:800;color:#92400e">🏆 Campeão '+ano+': '+lider.nome+' — '+lider.pontos+' pontos</div>':'')
+      +'<div class="card" style="padding:0;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px">'
+      +'<thead><tr style="background:#f1f5f9;color:#475569">'
+      +'<th style="padding:7px 8px;text-align:center;width:36px">#</th>'
+      +'<th style="padding:7px 8px;text-align:left">Enrolador</th>'
+      +MES_CURTO.map((m,i)=>'<th style="padding:7px 4px;text-align:center;'+(i===mesAtualIdx&&!encerrado?'color:#d97706':'')+'">'+m+'</th>').join('')
+      +'<th style="padding:7px 8px;text-align:center;font-weight:800;color:#065f46">Pontos</th>'
+      +'<th style="padding:7px 8px;text-align:right">Peças</th>'
+      +'</tr></thead><tbody>'
+      +tabela.map((r,i)=>{
+        const pos=tabela.findIndex(x=>x.pontos===r.pontos&&x.primeiros===r.primeiros&&x.pecas===r.pecas)+1;
+        return '<tr style="'+(i%2?'background:#f8fafc':'')+'">'
+          +'<td style="padding:7px 8px;text-align:center;font-weight:800">'+(medalhas[pos-1]||pos+'º')+'</td>'
+          +'<td style="padding:7px 8px;font-weight:700;white-space:nowrap">'+r.nome+'</td>'
+          +r.meses.map((m,k)=>'<td style="padding:7px 4px;text-align:center;'+(m?(m.pos===1?'font-weight:800;color:#d97706':'color:#1e40af'):'color:#cbd5e1')+'" title="'+(m?m.pos+'º lugar · '+m.total+' peças':'')+'">'+(m?(m.pts||'0'):'·')+'</td>').join('')
+          +'<td style="padding:7px 8px;text-align:center;font-weight:900;font-size:14px;color:#065f46">'+r.pontos+'</td>'
+          +'<td style="padding:7px 8px;text-align:right;color:#64748b">'+r.pecas+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  });
+  if(!tem) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada em '+ano+'.</div>';
+  else if(!encerrado) html+='<div style="font-size:11px;color:#94a3b8;margin-top:4px">O mês em andamento ('+MES_CURTO[mesAtualIdx]+') conta como parcial e pode mudar até o fim do mês. Passe o mouse num valor para ver a colocação e as peças.</div>';
   return html;
 }
 
