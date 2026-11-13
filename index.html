@@ -12151,8 +12151,11 @@ window._rankIntSetAno=function(a){ window._rankIntAno=a; reloadTab(); };
 function campeonatoInt(ano,tipoId){
   const porEnr={};
   const MAX=10;
+  const mesHoje=today().slice(0,7);
   for(let m=1;m<=12;m++){
     const mes=ano+'-'+String(m).padStart(2,'0');
+    // Só pontua mês encerrado — o mês em andamento (e os futuros) ficam de fora.
+    if(mes>=mesHoje) continue;
     const totais=enroladoresInt.map(e=>{
       let total=0;
       fichasInt.filter(f=>f.enroladorId===e.id).forEach(f=>{
@@ -12222,8 +12225,8 @@ function renderCampeonatoInt(){
       }).join('')
       +'</tbody></table></div>';
   });
-  if(!tem) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhuma produção registrada em '+ano+'.</div>';
-  else if(!encerrado) html+='<div style="font-size:11px;color:#94a3b8;margin-top:4px">O mês em andamento ('+MES_CURTO[mesAtualIdx]+') conta como parcial e pode mudar até o fim do mês. Passe o mouse num valor para ver a colocação e as peças.</div>';
+  if(!tem) html+='<div class="card" style="text-align:center;color:#94a3b8;padding:20px;font-size:13px">Nenhum mês encerrado com produção em '+ano+' ainda.</div>';
+  else if(!encerrado) html+='<div style="font-size:11px;color:#94a3b8;margin-top:4px">A pontuação de cada mês só aparece depois que o mês encerra — o mês em andamento ('+MES_CURTO[mesAtualIdx]+') entra no dia 1º do mês seguinte. Passe o mouse num valor para ver a colocação e as peças.</div>';
   return html;
 }
 
