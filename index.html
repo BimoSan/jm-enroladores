@@ -16497,17 +16497,24 @@ function renderEngEspuma(){
       :'<div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#92400e">⚠️ Custo do m³ de espuma ainda não configurado. Vá em <strong>Configurações → Custo do m³ de espuma</strong> e preencha.</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
         <div class="form-group" style="margin:0"><label>Largura (cm)</label>
-          <input type="number" id="calc-l" min="0" step="1" placeholder="Ex: 140" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+          <input type="number" id="calc-l" min="0" step="1" placeholder="Ex: 140" oninput="window._engCalcMarcarVelho('calc-resultado')" onkeydown="if(event.key==='Enter')window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
         <div class="form-group" style="margin:0"><label>Altura (cm)</label>
-          <input type="number" id="calc-a" min="0" step="1" placeholder="Ex: 12" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+          <input type="number" id="calc-a" min="0" step="1" placeholder="Ex: 12" oninput="window._engCalcMarcarVelho('calc-resultado')" onkeydown="if(event.key==='Enter')window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
         <div class="form-group" style="margin:0"><label>Comprimento (cm)</label>
-          <input type="number" id="calc-e" min="0" step="1" placeholder="Ex: 190" oninput="window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+          <input type="number" id="calc-e" min="0" step="1" placeholder="Ex: 190" oninput="window._engCalcMarcarVelho('calc-resultado')" onkeydown="if(event.key==='Enter')window._engCalcEspuma()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
       </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="window._engCalcEspuma()">🧮 Calcular</button>
       <div id="calc-resultado" style="display:none"></div>
     </div>
   `;
 }
 
+// Resultado só muda quando clica em Calcular; ao mexer nas medidas ele fica
+// esmaecido pra não ser confundido com o valor das medidas novas.
+window._engCalcMarcarVelho=function(idRes){
+  const r=document.getElementById(idRes);
+  if(r&&r.style.display!=='none'){ r.style.opacity='.4'; r.title='Medidas alteradas — clique em Calcular'; }
+};
 window._engCalcEspuma=function(){
   const custoM3=parseFloat(configEng.custoM3Espuma)||0;
   const lCm=parseFloat(document.getElementById('calc-l')?.value)||0;
@@ -16516,7 +16523,12 @@ window._engCalcEspuma=function(){
   const res=document.getElementById('calc-resultado');
   if(!res) return;
   const MARGEM_VENDA=30;
-  if(!custoM3||!lCm||!aCm||!eCm){ res.style.display='none'; return; }
+  if(!custoM3||!lCm||!aCm||!eCm){
+    res.style.display='none';
+    showToast(!custoM3?'Configure o custo do m³ de espuma em Configurações.':'Preencha largura, altura e comprimento.');
+    return;
+  }
+  res.style.opacity='1'; res.title='';
   // Converte cm → m
   const l=lCm/100, a=aCm/100, e=eCm/100;
   const vol=l*a*e;
@@ -16567,12 +16579,13 @@ function renderEngColchao(){
       +'</div>'}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
         <div class="form-group" style="margin:0"><label>Largura (cm)</label>
-          <input type="number" id="colc-l" min="0" step="1" placeholder="Ex: 110" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+          <input type="number" id="colc-l" min="0" step="1" placeholder="Ex: 110" oninput="window._engCalcMarcarVelho('colc-resultado')" onkeydown="if(event.key==='Enter')window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
         <div class="form-group" style="margin:0"><label>Altura (cm)</label>
-          <input type="number" id="colc-a" min="0" step="1" placeholder="Ex: 10" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+          <input type="number" id="colc-a" min="0" step="1" placeholder="Ex: 10" oninput="window._engCalcMarcarVelho('colc-resultado')" onkeydown="if(event.key==='Enter')window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
         <div class="form-group" style="margin:0"><label>Comprimento (cm)</label>
-          <input type="number" id="colc-c" min="0" step="1" placeholder="Ex: 80" oninput="window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
+          <input type="number" id="colc-c" min="0" step="1" placeholder="Ex: 80" oninput="window._engCalcMarcarVelho('colc-resultado')" onkeydown="if(event.key==='Enter')window._engCalcColchao()" style="font-size:13px;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;width:100%"></div>
       </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:6px" onclick="window._engCalcColchao()">🧮 Calcular</button>
       <div id="colc-resultado" style="display:none;margin-top:6px"></div>
     </div>
   `;
@@ -16600,8 +16613,10 @@ window._engCalcColchao=function(){
 
   if(!lCm||!aCm||!cCm||!custoM3Espuma||!mpSuede||!mpEstampado||!mpVies||!mpCola||!mpEmbalagem){
     res.style.display='none';
+    showToast(!lCm||!aCm||!cCm?'Preencha largura, altura e comprimento.':'Faltam itens configurados — veja o aviso amarelo acima.');
     return;
   }
+  res.style.opacity='1'; res.title='';
 
   // Conversões cm → m
   const l=lCm/100, a=aCm/100, c=cCm/100;
